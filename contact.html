@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>聯絡我們 | JieJourneys (旅杰)</title>
+  <style>
+    :root{
+      --brand:#2c3e50; --ink:#1f2937; --muted:#6b7280;
+      --card:#fff; --bg:#f3f6fb; --cta:#1f7a8c; --cta-hover:#176070;
+      --ring: 0 0 0 3px rgba(31,122,140,.18);
+      --radius: 14px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:var(--bg);
+      font-family: ui-sans-serif, system-ui, "Noto Sans TC", Arial, Helvetica, sans-serif;
+      color:var(--ink);
+    }
+    .container{
+      max-width: 760px; margin: 48px auto; padding: 0 20px;
+    }
+    .card{
+      background:var(--card); border-radius:var(--radius);
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      padding: 28px;
+    }
+    h1{
+      margin: 0 0 10px; text-align:center; color:var(--brand);
+      font-size: 32px; letter-spacing:.5px;
+    }
+    .hint{ text-align:center; color:var(--muted); margin-bottom:18px }
+    .field{ margin-top:16px }
+    label{ display:block; font-weight:700; margin-bottom:6px }
+    input, textarea{
+      width:100%; border:1px solid #d1d5db; border-radius:10px;
+      padding:12px 14px; font-size:16px; background:#fff;
+      transition:border-color .15s ease, box-shadow .15s ease;
+    }
+    textarea{ min-height:140px; resize:vertical }
+    input:focus, textarea:focus{
+      outline:none; border-color:#1f7a8c; box-shadow: var(--ring);
+    }
+    .actions{ margin-top:20px; text-align:left }
+    button{
+      background:var(--cta); color:#fff; border:0; cursor:pointer;
+      padding:12px 18px; border-radius:10px; font-weight:700;
+    }
+    button:hover{ background:var(--cta-hover) }
+    @media (max-width:640px){
+      .card{ padding:18px }
+      h1{ font-size:26px }
+    }
+/* 輕量頂部列（和首頁風格一致） */
+.subheader{
+  position: sticky;           /* 捲動時保留在頂部；如果不想吸頂可改成 static */
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.06);
+}
+
+.topbar{
+  max-width: 1080px;          /* 與首頁容器一致 */
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+}
+
+/* 膠囊返回鈕 */
+.back-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 14px;
+  border:1.6px solid #1f7a8c;
+  border-radius:999px;
+  color:#1f7a8c;
+  background:#fff;
+  font-weight:700;
+  text-decoration:none;
+  transition:all .15s ease;
+  margin-bottom:16px;      /* 與卡片留點距離 */
+}
+.back-chip:hover{
+  background:#f0f9fb;
+  color:#176070;
+  transform:translateY(-1px);
+}
+
+
+  </style>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NCTMJ4F5XP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-NCTMJ4F5XP');
+</script>
+
+</head>
+
+<body> 
+  <div class="container">
+    <a href="./index.html" class="back-chip"
+   data-event="contact_nav" data-item="back">← 回上一頁</a>
+    <div class="card">
+      <h1>聯絡我們</h1>
+      <p class="hint">提交後我們會盡快回覆你。</p>
+
+      <form id="contactForm">
+        <div class="field">
+          <label>您的名字</label>
+          <input name="name" required>
+        </div>
+
+        <div class="field">
+          <label>您的 Email</label>
+          <input name="email" type="email" required>
+        </div>
+
+        <div class="field">
+          <label>想詢問的問題</label>
+          <textarea name="message" required></textarea>
+        </div>
+
+        <div class="actions">
+          <button id="submitBtn" type="submit">送出</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.querySelector('#contactForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const payload = Object.fromEntries(f.entries());
+  
+      const btn = document.querySelector('#submitBtn');
+      btn.disabled = true;
+      btn.textContent = '送出中…';
+  
+      try {
+        const res = await fetch('https://fqhjwakhdizopjnnidni.supabase.co/functions/v1/contact-submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxaGp3YWtoZGl6b3Bqbm5pZG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzcyNzAsImV4cCI6MjA3MTAxMzI3MH0.opToqcaOlh1UVdpXf4Gh9zjl8vWgkr35RPsYHkkaItY`
+          },
+          body: JSON.stringify(payload)
+        });
+  
+        const data = await res.json();
+  
+        if (data.success) {
+          alert('✅ 已送出！我們將盡快回覆。');
+          e.target.reset();
+        } else {
+          alert('⚠️ 送出失敗，請稍後再試。');
+          console.log('debug:', data);
+        }
+      } catch (err) {
+        alert('❌ 系統錯誤，請稍後再試。');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '送出';
+      }
+    });
+  </script>
+<script>
+  document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-event]');
+    if (!el || typeof gtag !== 'function') return;
+  
+    const card = el.closest('[data-video],[data-hotel]'); // 找影片卡或飯店卡
+  
+    gtag('event', el.dataset.event, {
+      page_path: location.pathname,
+      platform : el.dataset.platform || '',
+      label    : el.dataset.label || '',
+      // 影片用（若存在）
+      video    : card?.dataset.video || '',
+      title    : card?.dataset.title || '',
+      // 飯店用（若存在）
+      hotel    : card?.dataset.hotel || '',
+      area     : card?.dataset.area || '',
+      url      : el.href || ''
+    });
+  }, {capture:true});
+  </script>  
+
+
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>釜山短影片合輯｜認識釜山・景點攻略・行前準備 | JieJourneys（旅杰）</title>
+<meta name="description" content="釜山短影音合輯：認識釜山、景點攻略、行前準備。每支影片可一鍵前往 IG Reels / YouTube / 小紅書。">
+<meta property="og:title" content="釜山短影片合輯｜JieJourneys（旅杰）">
+<meta property="og:description" content="釜山短影音合輯：認識釜山、景點攻略、行前準備。每支影片可一鍵前往 IG Reels / YouTube / 小紅書。">
+<meta property="og:image" content="https://www.jiejourneys.com/assets/og-busan-video.jpg">
+<meta name="twitter:image" content="https://www.jiejourneys.com/assets/og-busan-video.jpg">
+<link rel="canonical" href="https://www.jiejourneys.com/busan/video.html">
+
+  <style>
+    :root{
+      --brand:#000000;
+      --ink:#1f2937;
+      --bg:#f7fafc;
+      --card:#fff;
+      --muted:#64748b;
+      --ring:rgba(0,0,0,.08);
+      --cta:#1f7a8c;
+      --cta-hover:#176070;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family: ui-sans-serif,system-ui,"Noto Sans TC",Arial,Helvetica,sans-serif;
+      background:var(--bg); color:var(--ink); line-height:1.6;
+    }
+
+    /* ========= Header（與 busan.html 完全一致） ========= */
+    header{
+      background:#fff;
+      box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    nav{
+      max-width:960px;
+      margin:auto;
+      padding:12px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{display:flex;align-items:center;gap:10px;color:var(--brand);font-weight:800;text-decoration:none}
+    .brand img{width:34px;height:34px;border-radius:8px;object-fit:cover}
+
+    .back-link,
+    .home-link {
+      text-decoration: none;
+      color: #1f7a8c;
+      font-weight: 600;
+      background: #f0f9fb;
+      border: 1.5px solid #1f7a8c;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+    }
+    .back-link:hover,
+    .home-link:hover { background:#1f7a8c; color:#fff; }
+
+    /* ========= Main（與 busan.html 同寬） ========= */
+    main{max-width:720px;margin:auto;padding:24px 16px}
+    h1{margin:0;color:var(--brand);font-size:22px}
+    p.sub{color:#64748b;margin:4px 0 16px}
+
+    /* 區域 tabs：保留簡單切換 */
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 14px }
+    .tab{
+      border:1px solid var(--ring); background:#fff;
+      padding:8px 12px; border-radius:999px; cursor:pointer;
+    }
+    .tab.active{ background:#0f172a; color:#fff; border-color:#0f172a }
+
+    /* 住宿卡片：手機 1 欄、桌面 2 欄；卡片高度統一 */
+    .stay-list{ display:grid; grid-template-columns:1fr; gap:12px }
+    @media (min-width:820px){ .stay-list{ grid-template-columns:1fr 1fr } }
+
+/* 最終版：無縮圖 */
+.stay-card{
+  display:grid; grid-template-columns:1fr;
+  gap:8px; padding:12px;
+  border:2px solid #1f7a8c; border-radius:14px; background:var(--card);
+  min-height:110px;
+}
+
+
+    .title{
+      margin:0 0 4px; font-weight:700; font-size:16px;
+      display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;
+    }
+    .meta{
+      color:var(--muted); font-size:14px; margin:0 0 8px;
+      display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;
+    }
+
+    .btn{
+      text-decoration:none; font-size:14px;
+      padding:6px 10px; border-radius:10px; border:1.5px solid var(--ring);
+      background:#fff; display:inline-block; flex:0 0 auto;
+    }
+    .btn.primary{ background:var(--cta); color:#fff; border-color:var(--cta) }
+    .btn.primary:hover{ background:var(--cta-hover) }
+
+    footer{ text-align:center; color:#94a3b8; font-size:14px; margin:36px 0 }
+    
+/* === 移除卡片圖片，版面自動收斂 === */
+.stay-card{
+  grid-template-columns: 1fr;  /* 原本有縮圖的左欄取消 */
+  gap: 8px;
+  min-height: 110px;           /* 統一卡片高度，想更緊可改 96px */
+}
+.thumb{ display: none !important; }  /* 不顯示縮圖 */
+
+/* 標題/區域各限一行，避免忽高忽低 */
+.title, .meta{
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* 連結列單行，超出可滑動，卡片高度不被撐高 */
+.actions{
+  white-space: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.desc{
+  font-size:14px; color:#475569; line-height:1.5; margin:2px 0 8px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+
+.btn{ cursor:pointer; transition:background .15s, border-color .15s, transform .15s; }
+.btn:hover{ background:#f0f9fb; border-color:#1f7a8c; transform:translateY(-1px); }
+.btn:focus-visible{ outline:3px solid rgba(31,122,140,.35); outline-offset:2px; }
+
+/* 章節標題的間距（上 0、下 12px） */
+main h1{ margin:0 0 12px; }
+
+/* 第二層標題（例如“釜山住宿精選”）給一點上間距，再給下 12px */
+main h2{ margin:24px 0 12px; }
+
+/* 保險：影片介紹的標題後面緊接第一個列表，補一點間距 */
+main h1 + .stay-list{ margin-top:8px; }
+
+
+  </style>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NCTMJ4F5XP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-NCTMJ4F5XP');
+</script>
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "JieJourneys（旅杰）",
+        "item": "https://www.jiejourneys.com/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "釜山攻略",
+        "item": "https://www.jiejourneys.com/busan/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "釜山短影片合輯",
+        "item": "https://www.jiejourneys.com/busan/video.html"
+      }
+    ]
+  }
+  </script>
+  
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "釜山短影片合輯｜JieJourneys（旅杰）",
+    "url": "https://www.jiejourneys.com/busan/video.html"
+  }
+  </script>
+  
+
+</head>
+<body>
+  <!-- Header（完全同 busan.html） -->
+  <header>
+    <nav>
+      <a href="../index.html" class="brand" aria-label="回首頁"
+      data-event="video_nav" data-item="brand">
+     <img src="../assets/logo.jpg" alt="JieJourneys（旅杰） Logo">
+     <span>JieJourneys｜旅杰</span>
+   </a>
+   
+      <!-- 回上一頁：因為本頁在 /busan/，上一頁就是同資料夾的 index.html -->
+      <a href="./index.html" class="home-link"
+   data-event="video_nav" data-item="back">← 回上一頁</a>
+      <!-- 回首頁 -->
+      <a href="../index.html" class="home-link"
+   data-event="video_nav" data-item="home">回首頁</a>
+    </nav>
+  </header>
+
+  <!-- Main -->
+  <main>
+    <h1>短影片合輯｜認識釜山・景點攻略・行前準備</h1>
+
+    <!-- 區域切換 -->
+    <div class="tabs" id="areaTabs">
+        <button class="tab active" data-area="all">全部</button>
+        <button class="tab" data-area="認識釜山">認識釜山</button>
+        <button class="tab" data-area="景點攻略">景點攻略</button>
+        <button class="tab" data-area="行前準備">行前準備</button>
+      </div>
+
+    <!-- 清單 -->
+    <section class="stay-list" id="stayList">
+        <article class="stay-card" data-area="認識釜山"
+         data-video="intro-is-busan-for-you" data-title="韓國釜山｜適合你？">
+            <div>
+            <h3 class="title">韓國釜山｜適合你？</h3>
+            <p class="meta">認識釜山</p>
+            <div class="actions">
+              <a class="btn primary" href="https://www.instagram.com/reel/DObDFXuEZFE/"
+                 target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+              <a class="btn" href="https://www.youtube.com/shorts/eYMppYSyIqE"
+                 target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                 <a class="btn" href="https://xhslink.com/o/Afwwt6vbBcq"
+                 target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+            </div>
+        </div>
+          </article>
+  
+          <article class="stay-card" data-area="認識釜山"
+          data-video="first-impressions-pros-cons" data-title="印象篇｜好 vs 壞">
+             <div>
+             <h3 class="title">印象篇｜好 vs 壞</h3>
+             <p class="meta">認識釜山</p>
+             <div class="actions">
+               <a class="btn primary" href="https://www.instagram.com/reel/DO_GKX3kY0F/"
+                  target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+               <a class="btn" href="https://www.youtube.com/shorts/a0hXPor4PfI"
+                  target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                  <a class="btn" href="https://xhslink.com/o/8OJPt7iurEH"
+                  target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+             </div>
+         </div>
+           </article>
+  
+           <article class="stay-card" data-area="認識釜山"
+           data-video="food-pros-cons" data-title="美食篇｜好 vs 壞">
+              <div>
+              <h3 class="title">美食篇｜好 vs 壞</h3>
+              <p class="meta">認識釜山</p>
+              <div class="actions">
+                <a class="btn primary" href="https://www.instagram.com/reel/DPG0jR5ElNi/"
+                   target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                <a class="btn" href="https://www.youtube.com/shorts/CZY0NzKSnOY"
+                   target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                   <a class="btn" href="https://xhslink.com/o/2RYtrtA2yTU"
+                   target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+              </div>
+          </div>
+            </article>
+  
+            <article class="stay-card" data-area="景點攻略"
+            data-video="fast-guide-part-1" data-title="上集｜最速攻略">
+               <div>
+               <h3 class="title">上集｜最速攻略</h3>
+               <p class="meta">景點攻略</p>
+               <div class="actions">
+                 <a class="btn primary" href="https://www.instagram.com/reel/DK4dIqzzJBE/"
+                    target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                 <a class="btn" href="https://www.youtube.com/shorts/r19k0otvGVE"
+                    target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                    <a class="btn" href="https://xhslink.com/o/5H7XNWErVN8"
+                    target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+               </div>
+           </div>
+             </article>
+  
+             <article class="stay-card" data-area="景點攻略"
+             data-video="fast-guide-part-2" data-title="下集｜最速攻略">
+                <div>
+                <h3 class="title">下集｜最速攻略</h3>
+                <p class="meta">景點攻略</p>
+                <div class="actions">
+                  <a class="btn primary" href="https://www.instagram.com/reel/DLCwV2yzbSv/"
+                     target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                  <a class="btn" href="https://www.youtube.com/shorts/Mtn35FzOeis"
+                     target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                     <a class="btn" href="https://xhslink.com/o/4BhS0NKboYQ"
+                     target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                </div>
+            </div>
+              </article>
+
+              <article class="stay-card" data-area="景點攻略"
+              data-video="nampo-part-1" data-title="上集｜南浦洞">
+                 <div>
+                 <h3 class="title">上集｜南浦洞</h3>
+                 <p class="meta">景點攻略</p>
+                 <div class="actions">
+                   <a class="btn primary" href="https://www.instagram.com/reel/DLKer30zmDd/"
+                      target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                   <a class="btn" href="https://www.youtube.com/shorts/wN0KHurau78"
+                      target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                      <a class="btn" href="https://xhslink.com/o/7tpySmrFK2M"
+                      target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                 </div>
+             </div>
+               </article>
+
+               <article class="stay-card" data-area="景點攻略"
+               data-video="nampo-part-2" data-title="下集｜南浦洞">
+                  <div>
+                  <h3 class="title">下集｜南浦洞</h3>
+                  <p class="meta">景點攻略</p>
+                  <div class="actions">
+                    <a class="btn primary" href="https://www.instagram.com/reel/DLeby5yTVTm/"
+                       target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                    <a class="btn" href="https://www.youtube.com/shorts/R8bRLgm5HEA"
+                       target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                       <a class="btn" href="https://xhslink.com/o/14X5o08d827"
+                       target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                  </div>
+              </div>
+                </article>
+
+                <article class="stay-card" data-area="景點攻略"
+                data-video="gamcheon-culture-village" data-title="甘川洞文化村">
+                   <div>
+                   <h3 class="title">甘川洞文化村</h3>
+                   <p class="meta">景點攻略</p>
+                   <div class="actions">
+                     <a class="btn primary" href="https://www.instagram.com/reel/DL408o_ze1X/"
+                        target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                     <a class="btn" href="https://www.youtube.com/shorts/RZREPyNT-Fo"
+                        target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                        <a class="btn" href="https://xhslink.com/o/2aUewZPzJ9U"
+                        target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                   </div>
+               </div>
+                 </article>
+
+                 <article class="stay-card" data-area="景點攻略"
+                 data-video="busan-tower" data-title="釜山塔">
+                    <div>
+                    <h3 class="title">釜山塔</h3>
+                    <p class="meta">景點攻略</p>
+                    <div class="actions">
+                      <a class="btn primary" href="https://www.instagram.com/reel/DMKh_XmzOdG/"
+                         target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                      <a class="btn" href="https://www.youtube.com/shorts/e3-R4YEj7Cw"
+                         target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                         <a class="btn" href="https://xhslink.com/o/9rE8N60xj96"
+                         target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                    </div>
+                </div>
+                  </article>
+
+                  <article class="stay-card" data-area="景點攻略"
+                  data-video="haeundae" data-title="海雲台">
+                     <div>
+                     <h3 class="title">海雲台</h3>
+                     <p class="meta">景點攻略</p>
+                     <div class="actions">
+                       <a class="btn primary" href="https://www.instagram.com/reel/DLuh1WzzM0c/"
+                          target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                       <a class="btn" href="https://www.youtube.com/shorts/T0aTv6PPxMQ"
+                          target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                          <a class="btn" href="https://xhslink.com/o/Bt9siwbllz"
+                          target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                     </div>
+                 </div>
+                   </article>
+
+                   <article class="stay-card" data-area="景點攻略"
+                   data-video="capsule-train" data-title="膠囊列車">
+                      <div>
+                      <h3 class="title">膠囊列車</h3>
+                      <p class="meta">景點攻略</p>
+                      <div class="actions">
+                        <a class="btn primary" href="https://www.instagram.com/reel/DMu5uZxTdO8/"
+                           target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                        <a class="btn" href="https://www.youtube.com/shorts/NojyZ8jfvD4"
+                           target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                           <a class="btn" href="https://xhslink.com/o/4JILJiyezmL"
+                           target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                      </div>
+                  </div>
+                    </article>
+
+                    <article class="stay-card" data-area="行前準備"
+                    data-video="prep-5-tips" data-title="5個行前準備">
+                       <div>
+                       <h3 class="title">5個行前準備</h3>
+                       <p class="meta">行前準備</p>
+                       <div class="actions">
+                         <a class="btn primary" href="https://www.instagram.com/reel/DOixfbBEaCL/"
+                            target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                         <a class="btn" href="https://www.youtube.com/shorts/6K3yI0WrO9k"
+                            target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                            <a class="btn" href="https://xhslink.com/o/6GMt6r34xoA"
+                            target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                       </div>
+                   </div>
+                     </article>
+
+                     <article class="stay-card" data-area="行前準備"
+                     data-video="korea-e-arrival-card" data-title="電子入境卡">
+                        <div>
+                        <h3 class="title">電子入境卡</h3>
+                        <p class="meta">行前準備</p>
+                        <div class="actions">
+                          <a class="btn primary" href="https://www.instagram.com/reel/DKMrn6dzS4G/"
+                             target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                          <a class="btn" href="https://www.youtube.com/shorts/L_FmuAzoGzM"
+                             target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                             <a class="btn" href="https://xhslink.com/o/7C7nTIpO8gw"
+                             target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                        </div>
+                    </div>
+                      </article>
+
+                      <article class="stay-card" data-area="行前準備"
+                      data-video="keta-need-or-not" data-title="K-ETA是否要申請？">
+                         <div>
+                         <h3 class="title">K-ETA是否要申請？</h3>
+                         <p class="meta">行前準備</p>
+                         <div class="actions">
+                           <a class="btn primary" href="https://www.instagram.com/reel/DKetNmXTW3E/"
+                              target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                           <a class="btn" href="https://www.youtube.com/shorts/AXevOEDDzB0"
+                              target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                              <a class="btn" href="https://xhslink.com/o/Y3KqLBooSA"
+                              target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                         </div>
+                     </div>
+                       </article>
+
+                       <article class="stay-card" data-area="行前準備"
+                       data-video="currency-exchange" data-title="韓幣怎麼換？">
+                          <div>
+                          <h3 class="title">韓幣怎麼換？</h3>
+                          <p class="meta">行前準備</p>
+                          <div class="actions">
+                            <a class="btn primary" href="https://www.instagram.com/reel/DKetKpgTvd7/"
+                               target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                            <a class="btn" href="https://www.youtube.com/shorts/ROLLp6mm5p8"
+                               target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                               <a class="btn" href="https://xhslink.com/o/2ZXIOZhpkUP"
+                               target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                          </div>
+                      </div>
+                        </article>
+
+                        <article class="stay-card" data-area="行前準備"
+                        data-video="powerbank-rules" data-title="行動電源規定">
+                           <div>
+                           <h3 class="title">行動電源規定</h3>
+                           <p class="meta">行前準備</p>
+                           <div class="actions">
+                             <a class="btn primary" href="https://www.instagram.com/reel/DKmbjKIzsAT/"
+                                target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                             <a class="btn" href="https://www.youtube.com/shorts/e_7nNXvRhzw"
+                                target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                                <a class="btn" href="https://xhslink.com/o/n23KDIzNFN"
+                                target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                           </div>
+                       </div>
+                         </article>
+
+                         <article class="stay-card" data-area="行前準備"
+                         data-video="lotte-mart-membership" data-title="樂天超市｜會員申請">
+                            <div>
+                            <h3 class="title">樂天超市｜會員申請</h3>
+                            <p class="meta">行前準備</p>
+                            <div class="actions">
+                              <a class="btn primary" href="https://www.instagram.com/reel/DKwurF0Te2B/"
+                                 target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                              <a class="btn" href="https://www.youtube.com/shorts/-CMAajmCatg"
+                                 target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                                 <a class="btn" href="https://xhslink.com/o/1RAg32kAWXa"
+                                 target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                            </div>
+                        </div>
+                          </article>
+
+                          <article class="stay-card" data-area="行前準備"
+                          data-video="5d4n-ultimate-route" data-title="5天4夜終極攻略">
+                             <div>
+                             <h3 class="title">5天4夜終極攻略</h3>
+                             <p class="meta">行前準備</p>
+                             <div class="actions">
+                               <a class="btn primary" href="https://www.instagram.com/reel/DOQv5njkT4I/"
+                                  target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="IG" data-section="video">IG Reels</a>
+                               <a class="btn" href="https://www.youtube.com/shorts/jFq8fhtV4qg"
+                                  target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="YouTube" data-section="video">YouTube</a>
+                                  <a class="btn" href="https://xhslink.com/o/6pvpm14xKAn"
+                                  target="_blank" rel="noopener noreferrer" data-event="video_click" data-platform="小紅書" data-section="video">小紅書</a>
+                             </div>
+                         </div>
+                           </article>
+
+
+    </section>
+  </main>
+
+  <footer>JieJourneys © <span id="year"></span></footer>
+ 
+    <script>
+        // 年份
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+  const tabs = document.querySelectorAll('.tab');
+  const cards = document.querySelectorAll('#stayList .stay-card');
+  let area = 'all';
+
+  tabs.forEach(t => t.onclick = () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    area = t.dataset.area;
+
+    cards.forEach(c => {
+      c.style.display = (area === 'all' || c.dataset.area === area) ? 'grid' : 'none';
+    });
+
+    // 送出 tab 切換事件
+    if (typeof gtag === 'function') {
+      gtag('event', 'video_tab', { page_path: location.pathname, area });
+    }
+  });
+</script>
+
+ 
+<script>
+    document.addEventListener('click', function (e) {
+      const el = e.target.closest('[data-event]');
+      if (!el || typeof gtag !== 'function') return;
+    
+      const card = el.closest('[data-video],[data-hotel],.stay-card');
+      const titleText = card?.querySelector('.title')?.textContent?.trim() || '';
+    
+      gtag('event', el.dataset.event, {
+        page_path: location.pathname,
+        platform : el.dataset.platform || '',
+        label    : el.dataset.label || '',
+        item     : el.dataset.item || card?.dataset.item || '',
+        section  : el.dataset.section || card?.dataset.section || '',
+        // 影片
+        video    : card?.dataset.video || '',
+        title    : card?.dataset.title || titleText,
+        // 票券/住宿可忽略這兩個（留著無妨）
+        hotel    : card?.dataset.hotel || '',
+        area     : card?.dataset.area || '',
+        url      : el.href || ''
+      });
+    }, { capture:true });
+    </script>
+    
+    
+  
+
+</body>
+</html>

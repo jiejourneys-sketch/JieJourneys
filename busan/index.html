@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>釜山攻略 | JieJourneys（旅杰）</title>
+<meta name="description" content="JieJourneys（旅杰）的釜山攻略：行程、住宿、交通、票券、地圖總整。">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:site_name" content="JieJourneys（旅杰）">
+<meta property="og:title" content="釜山攻略｜JieJourneys（旅杰）">
+<meta property="og:description" content="JieJourneys（旅杰）的釜山攻略：行程、住宿、交通、票券、地圖總整。">
+<meta property="og:url" content="https://www.jiejourneys.com/busan/">
+<meta property="og:image" content="https://www.jiejourneys.com/assets/og-busan.jpg">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="釜山攻略｜JieJourneys（旅杰）">
+<meta name="twitter:description" content="JieJourneys（旅杰）的釜山攻略：行程、住宿、交通、票券、地圖總整。">
+<meta name="twitter:image" content="https://www.jiejourneys.com/assets/og-busan.jpg">
+
+<link rel="canonical" href="https://www.jiejourneys.com/busan/">
+<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.googletagmanager.com">
+
+
+  <style>
+    :root{
+      --brand:#000000;
+      --ink:#1f2937;
+      --bg:#f7fafc;
+      --card:#fff;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family: ui-sans-serif,system-ui,"Noto Sans TC",Arial,Helvetica,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      line-height:1.6;
+    }
+    header{
+      background:#fff;
+      box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    nav{
+      max-width:960px;
+      margin:auto;
+      padding:12px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{display:flex;align-items:center;gap:10px;color:var(--brand);font-weight:800;text-decoration:none}
+    .brand img{width:34px;height:34px;border-radius:8px;object-fit:cover}
+    .back-link{color:var(--brand);text-decoration:none;font-weight:600}
+    main{max-width:720px;margin:auto;padding:24px 16px}
+    h1{margin-top:0;color:var(--brand);font-size:22px}
+    p.sub{color:#64748b;margin-top:4px;margin-bottom:20px}
+
+    /* 卡片列表 */
+    .link-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:10px;
+}
+
+/* 1) 卡片高度靠 padding 控，給上下留白；flex 置中整排內容 */
+/* 把每一列改成三欄：左 icon / 中文字 / 右保留位（…） */
+.link-item{
+  display:grid;
+  grid-template-columns: 56px 1fr 56px;  /* 左右固定 56px，中間自動撐滿 */
+  align-items:center;                    /* 垂直置中 */
+  gap:0;                                 /* 三欄已對齊，不需要額外 gap */
+  padding:10px 12px;
+  border:2px solid #1f7a8c;
+  border-radius:14px;
+  background:#fff;
+  transition:all .15s ease;
+  text-decoration:none;
+  color:#1f2937;
+}
+
+/* 左側 icon：40x40 放在 56px 欄位內，左右各留 8px 呼吸 */
+.link-icon{
+  width:40px; height:40px;
+  justify-self:start;
+  border-radius:10px;
+  object-fit:cover;
+  background:#eef2f7;
+  display:block;
+}
+
+/* 中間文字：真正水平「置中」在整張卡的中心線上 */
+.link-text{
+  justify-self:center;     /* 關鍵：讓文字在中間那欄居中 */
+  text-align:center;
+  line-height:1;
+  font-weight:700;
+  font-size:16px;
+  color:#1f2937;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+
+
+/* Hover / Focus 保留你的互動感 */
+.link-item:hover{
+  background:#f0fafb;
+  border-color:#176070;
+  box-shadow:0 4px 10px rgba(31,122,140,0.10);
+  transform:translateY(-2px);
+}
+.link-item:focus-visible{
+  outline:3px solid rgba(31,122,140,.35);
+  outline-offset:2px;
+}
+
+
+
+
+    .link-info strong{font-size:16px;color:#1f2937}
+    .link-info small{display:block;color:#64748b;font-size:14px;margin-top:2px}
+    .arrow{font-size:18px;color:var(--brand)}
+    footer{
+      text-align:center;
+      font-size:14px;
+      color:#64748b;
+      margin-top:40px;
+      padding:16px 0;
+    }
+
+    .nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.back-link,
+.home-link {
+  text-decoration: none;
+  color: #1f7a8c;
+  font-weight: 600;
+  background: #f0f9fb;
+  border: 1.5px solid #1f7a8c;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.back-link:hover,
+.home-link:hover {
+  background: #1f7a8c;
+  color: #fff;
+}
+
+
+  </style>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NCTMJ4F5XP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-NCTMJ4F5XP');
+</script>
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1,
+        "name": "JieJourneys（旅杰）",
+        "item": "https://www.jiejourneys.com/" },
+      { "@type": "ListItem", "position": 2,
+        "name": "釜山攻略",
+        "item": "https://www.jiejourneys.com/busan/" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "釜山攻略｜JieJourneys（旅杰）",
+    "url": "https://www.jiejourneys.com/busan/"
+  }
+  </script>
+  
+
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="../index.html" class="brand" aria-label="回首頁"
+   data-event="busan_nav" data-item="brand">
+  <img src="../assets/logo.jpg" alt="JieJourneys（旅杰） Logo">
+  <span>JieJourneys｜旅杰</span>
+</a>
+
+      <a href="../index.html" class="home-link"
+   data-event="busan_nav" data-item="back">← 回上一頁</a>
+   <a href="../index.html" class="home-link"
+   data-event="busan_nav" data-item="home">回首頁</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>韓國｜釜山</h1>
+    <p class="sub">完整連結快速選單</p>
+
+    <div class="link-list">
+      <a class="link-item" href="https://busantrip.vercel.app"
+      data-event="busan_quicklink" data-item="guide" data-section="quick">
+          <img class="link-icon" src="../assets/gonglue.png" alt="行程PDF">
+            <div class="link-text">終極自由行攻略</div>
+          </a>
+
+          <a class="link-item" href="./video.html"
+   data-event="busan_quicklink" data-item="video" data-section="quick">
+          <img class="link-icon" src="../assets/video.png" alt="影片">
+          <div class="link-text">短影音合輯</div>
+        </a>
+
+          <a class="link-item" href="./hotel.html"
+   data-event="busan_quicklink" data-item="hotel" data-section="quick">
+          <img class="link-icon" src="../assets/hotel.png" alt="住宿">
+          <div class="link-text">住宿</div>
+        </a>
+
+        <a class="link-item" href="./ticket.html"
+   data-event="busan_quicklink" data-item="ticket" data-section="quick">
+          <img class="link-icon" src="../assets/piao.png" alt="票券">
+            <div class="link-text">票券</div>
+          </a>
+
+          <a class="link-item" href="./transport.html"
+   data-event="busan_quicklink" data-item="transport" data-section="quick">
+            <img class="link-icon" src="../assets/jiaotong.png" alt="交通">
+            <div class="link-text">通訊 / 交通</div>
+          </a>
+
+          <a class="link-item" href="https://www.google.com/maps/d/edit?mid=1XsSQewsHL9iIolJLr7wTnD0bz44jOIs&usp=sharing"
+   target="_blank" rel="noopener noreferrer"
+   data-event="busan_quicklink" data-item="map" data-section="quick">
+            <img class="link-icon" src="../assets/ditu.png" alt="地圖">
+            <div class="link-text">釜山通行證 24/48hrs｜地圖</div>
+          </a>
+
+
+    </div>
+  </main>
+
+  <footer>
+    JieJourneys © <span id="year"></span>
+  </footer>
+
+  <script>
+    // 年份
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+<script>
+  document.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-event]');
+    if (!el) return;
+
+    const name = el.dataset.event;
+    const params = {
+      page_path: location.pathname,
+      label    : el.dataset.label || '',
+      hotel    : el.dataset.hotel || '',
+      platform : el.dataset.platform || '',
+      area     : el.dataset.area || '',
+      url      : el.href || '',
+      /* ✅ 新增： */
+      item     : el.dataset.item || '',
+      section  : el.dataset.section || ''
+    };
+
+    if (typeof gtag === 'function') gtag('event', name, params);
+  }, { capture: true });
+</script>
+
+  
+
+
+</body>
+</html>

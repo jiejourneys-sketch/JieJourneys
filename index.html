@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JieJourneys（旅杰） | 自由行旅遊攻略</title>
+  <meta name="description" content="JieJourneys（旅杰）｜熱門攻略、最佳動線、地圖導航、圖影教學與連結總整。">
+  <!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:site_name" content="JieJourneys（旅杰）">
+<meta property="og:title" content="JieJourneys（旅杰）｜自由行旅遊攻略">
+<meta property="og:description" content="JieJourneys（旅杰）：熱門攻略、最佳動線、地圖導航、圖影教學與連結總整。">
+<meta property="og:url" content="https://www.jiejourneys.com/">
+<meta property="og:image" content="https://www.jiejourneys.com/assets/og-cover.jpg">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="JieJourneys（旅杰）｜自由行旅遊攻略">
+<meta name="twitter:description" content="JieJourneys（旅杰）：熱門攻略、最佳動線、地圖導航、圖影教學與連結總整。">
+<meta name="twitter:image" content="https://www.jiejourneys.com/assets/og-cover.jpg">
+
+<!-- Canonical（上線後改成正式網域） -->
+<link rel="canonical" href="https://www.jiejourneys.com/">
+<link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.googletagmanager.com">
+  <style>
+    :root{
+      --brand:#2c3e50;
+      --ink:#1f2937;
+      --bg:#f5f7fb;
+      --card:#fff;
+      --muted:#667085;
+      --cta:#1f7a8c;
+      --cta-hover:#176070;
+      --ring:rgba(0,0,0,.08);
+      --navH:64px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0}
+    html{ scroll-behavior:smooth }
+    body{
+      font-family: ui-sans-serif,system-ui,Arial,"Noto Sans TC",Helvetica,sans-serif;
+      color:var(--ink); background:var(--bg); line-height:1.55;
+    }
+    img{max-width:100%; display:block}
+    a{color:var(--brand); text-decoration:none}
+
+    /* Header */
+    header{
+      position:sticky; top:0; z-index:50;
+      background:var(--card); box-shadow:0 2px 6px var(--ring);
+    }
+    .nav{
+      max-width:1080px; margin:auto; padding:10px 16px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:800; color:var(--brand)}
+    .brand img{width:36px; height:36px; border-radius:8px; object-fit:cover}
+    .menu{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+    .menu a{padding:8px 10px; border-radius:8px; font-weight:600; color:#344054}
+    .menu a.btn{background:var(--cta); color:#fff; font-weight:800}
+    .menu a.btn:hover{background:var(--cta-hover)}
+    @media (max-width:600px){
+  :root{ --navH:96px }
+
+  /* ✅ 導覽列變成單排可滑動 */
+  .menu{
+    display:flex;
+    flex-wrap:nowrap;              /* 不換行 */
+    overflow-x:auto;               /* 可水平滑動 */
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;          /* 隱藏滾動條 (Firefox) */
+  }
+  .menu::-webkit-scrollbar{display:none;} /* 隱藏滾動條 (Chrome/Safari) */
+
+  /* ✅ 每個按鈕保持固定寬度不被擠壓 */
+  .menu a{
+    flex:0 0 auto;
+    font-size:14px;
+    padding:6px 10px;
+  }
+}
+
+
+    .container{max-width:1080px; margin:auto; padding:0 16px}
+    .section{padding:28px 0; scroll-margin-top:calc(var(--navH) + 12px)}
+    .section h2{margin:0 0 6px; color:var(--brand)}
+    .sub{color:var(--muted); margin:0 0 14px}
+
+    /* Popular grid：固定 2 欄、小卡片 */
+/* Popular grid：兩欄，吃滿容器寬度，左右對齊 */
+.popular-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 固定兩欄 */
+  gap:14px;                                        /* 卡片間距 */
+  margin:0;                                        /* 取消置中 */
+  max-width:none;                                  /* 不再縮窄 */
+}
+
+/* 搜尋欄外觀 */
+.search-box{
+  max-width: 360px;
+  margin: 0 auto 16px;
+  position: relative;
+}
+.search-box input{
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 15px;
+  border: 2px solid #1f7a8c;
+  border-radius: 999px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+.search-box input:focus{
+  border-color: #176070;
+  box-shadow: 0 2px 6px rgba(31,122,140,0.15);
+}
+
+
+
+    /* 卡片（縮圖 + 藍色線條） */
+/* === 卡片：圖示 + 文字置中 + 右側平衡欄 === */
+.card{
+  display:grid;
+  grid-template-columns: 72px 1fr 72px;   /* 左圖72，中間文字，自動；右邊留同寬平衡 */
+  align-items:center;                     /* 垂直置中 */
+  gap:10px;
+  border:2px solid #1f7a8c;
+  border-radius:14px;
+  padding:12px 14px;
+  background:#fff;
+  transition:all .18s ease;
+}
+a.card{ color:inherit; text-decoration:none; }
+
+/* 右側平衡欄（不顯示任何東西，只佔位以達到真正置中） */
+.card::after{
+  content:"";
+}
+
+/* 圖示 */
+.thumb{
+  width:72px; height:52px;
+  object-fit:cover;
+  border-radius:10px;
+  background:#eef2f7;
+}
+
+/* 文字容器：在中間那欄再置中一次（保險） */
+.card-body{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:52px;              /* 與縮圖同高，視覺更居中 */
+}
+
+/* 文字：放大、單行、太長以 … 省略；RWD 用 clamp 控制大小 */
+.card-body h3{
+  font-size: clamp(14px, 3.8vw, 17px);  /* 桌機最多17px，手機自動縮 */
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  white-space: nowrap;                  /* 不換行 */
+  overflow: hidden;                     /* 超出隱藏 */
+  text-overflow: ellipsis;              /* 超出時用「...」 */
+}
+
+
+/* Hover 效果保留 */
+.card:hover{
+  background:#f0fafb;
+  border-color:#176070;
+  box-shadow:0 4px 10px rgba(31,122,140,0.1);
+  transform:translateY(-2px);
+}
+
+/* （可選）極窄手機再微縮一點字體，避免太早出現 …  */
+/* 手機：縮小左右欄與邊距，讓中間文字有更多呼吸空間 */
+@media (max-width: 480px){
+  .card{
+    grid-template-columns: 56px 1fr 56px; /* 左右一起縮到 56 */
+    gap:8px;
+    padding:10px 12px;
+  }
+  .thumb{
+    width:56px; height:42px;
+  }
+  .card-body{ min-height:42px; }
+  .card-body h3{
+    font-size: clamp(14px, 4.2vw, 16px); /* 手機略縮，避免擠到 */
+  }
+}
+
+/* 更窄的手機（例如 360px 以下）再縮一級 */
+@media (max-width: 360px){
+  .card{
+    grid-template-columns: 48px 1fr 48px; /* 左右 48 */
+    gap:6px;
+    padding:9px 10px;
+  }
+  .thumb{
+    width:48px; height:36px;
+  }
+  .card-body{ min-height:36px; }
+  .card-body h3{ font-size:13.5px; }
+}
+
+    /* Social row */
+    .social-row{display:flex; gap:8px; flex-wrap:wrap}
+    .social-row a{
+      flex:1; min-width:140px; height:48px;
+      display:flex; align-items:center; justify-content:center;
+      border:1.6px solid #1f7a8c; border-radius:10px;
+      font-weight:600; color:#1f7a8c; background:#fff; transition:all .15s ease;
+    }
+    .social-row a:hover{
+      background:#f0f9fb; color:#155c6a; transform:translateY(-2px);
+      box-shadow:0 3px 8px rgba(0,0,0,0.06);
+    }
+
+    /* About（藍色線框） */
+    .about{
+      border:2px solid #1f7a8c; background:#fff; border-radius:14px;
+      padding:16px 18px; font-size:16px; color:#334155;
+      box-shadow:0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    footer{
+      background:var(--card); color:#475467;
+      text-align:center; padding:16px; margin-top:28px;
+      font-size:14px; box-shadow:0 -2px 6px var(--ring);
+    }
+  
+    /* 文字容器可縮，不會被擠壞 */
+.card-body{ min-width:0; }
+
+/* 文字：自然換行就好（沒有省略號、不直排）*/
+.card-body h3{
+  margin:0;
+  text-align:center;
+  line-height:1.35;
+  font-weight:800;
+  font-size:clamp(14px, 4vw, 16px);
+  white-space:normal;          /* 允許自動換行 */
+  word-break:normal;           /* 不逐字斷行 */
+  overflow-wrap:break-word;    /* 英文/長詞需要時才折行 */
+}
+
+/* ⭐ 手機：移除右側平衡欄，給中間文字更多寬度 */
+@media (max-width: 480px){
+  .card{ grid-template-columns:56px 1fr; }  /* 只留「圖示 | 文字」兩欄 */
+  .card::after{ display:none; }             /* 拿掉右側平衡欄 */
+  .thumb{ width:56px; height:42px; }        /* 圖示也一起略縮 */
+}
+
+/* FAQ 區塊 */
+.faq {
+  border: 2px solid #1f7a8c;
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+/* 每個問答項目 */
+.faq details {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 0;
+}
+
+.faq details:last-child {
+  border-bottom: none;
+}
+
+.faq summary {
+  font-weight: 700;
+  color: #1f2937;
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq p {
+  margin: 8px 0 0;
+  color: #475467;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Hover 效果 */
+.faq summary:hover {
+  color: #176070;
+}
+
+.sr-only{
+  position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+
+  </style>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NCTMJ4F5XP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-NCTMJ4F5XP');
+</script>
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "JieJourneys",
+    "alternateName": "旅杰",
+    "url": "https://www.jiejourneys.com/",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://www.jiejourneys.com/assets/logo.jpg",
+      "width": 512,
+      "height": 512
+    }    
+    "sameAs": [
+      "https://www.instagram.com/jiejourneys",
+      "https://www.youtube.com/@jiejourneys",
+      "https://www.threads.net/@jiejourneys",
+      "https://xhslink.com/m/6OAjLumXIO1"
+    ]
+  }
+  </script>
+  
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "JieJourneys（旅杰）",
+    "url": "https://www.jiejourneys.com/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.jiejourneys.com/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+  
+
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <nav class="nav">
+      <a href="index.html" class="brand" aria-label="回首頁"
+   data-event="home_nav" data-item="brand">
+  <img src="assets/logo.jpg" alt="JieJourneys（旅杰） Logo">
+  <span>JieJourneys｜旅杰</span>
+</a>
+      <div class="menu">
+        <a href="#popular" data-event="home_nav" data-item="popular">熱門攻略</a>
+        <a href="#follow"  data-event="home_nav" data-item="follow">追蹤我們</a>
+        <a href="#about"   data-event="home_nav" data-item="about">關於</a>
+        <a href="#faq"     data-event="home_nav" data-item="faq">常見問題</a>
+        <a href="contact.html" data-event="home_nav" data-item="contact">聯絡我們</a>
+
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <h1 class="sr-only">JieJourneys（旅杰）— 自由行旅遊攻略</h1>
+    <!-- 熱門攻略：國家卡片 -->
+    <section id="popular" class="section" aria-label="熱門攻略">
+      <h2>熱門攻略</h2>
+      <p class="sub">點擊國家卡片，會有連結總整理</p>
+
+        <!-- ✅ 搜尋欄 -->
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="輸入國家或城市名稱..." />
+  </div>
+
+      <div class="popular-grid">
+        <!-- Busan：改成直接跳頁 -->
+        <a href="./busan/index.html" class="card"
+   data-event="home_popular" data-item="busan" data-section="popular" aria-label="前往釜山攻略頁面">
+          <img class="thumb" src="assets/busan.png" alt="釜山 Busan">
+          <div class="card-body"><h3>韓國｜釜山</h3></div>
+        </a>
+
+        <!-- Hanoi：之後做好 hanoi.html 再連過去 -->
+        <a href="./northvietnam/index.html" class="card"
+   data-event="home_popular" data-item="hanoi" data-section="popular" aria-label="前往河內攻略頁面">
+          <img class="thumb" src="assets/hanoi.png" alt="河內 Hanoi">
+          <div class="card-body"><h3>越南｜北越</h3></div>
+        </a>
+      </div>
+    </section>
+
+    <!-- 追蹤我們 -->
+    <section id="follow" class="section" aria-label="追蹤我們">
+      <h2>追蹤我們</h2>
+      <p class="sub">第一時間收到新攻略</p>
+      <div class="social-row">
+        <a href="https://www.instagram.com/jiejourneys" target="_blank" rel="noopener noreferrer"
+   data-event="home_social" data-platform="instagram">Instagram</a>
+<a href="https://www.threads.net/@jiejourneys" target="_blank" rel="noopener noreferrer"
+   data-event="home_social" data-platform="threads">Threads</a>
+<a href="https://www.youtube.com/@jiejourneys" target="_blank" rel="noopener noreferrer"
+   data-event="home_social" data-platform="youtube">YouTube</a>
+<a href="https://xhslink.com/m/6OAjLumXIO1" target="_blank" rel="noopener noreferrer"
+   data-event="home_social" data-platform="xiaohongshu">小紅書</a>
+
+      </div>
+    </section>
+
+    <!-- 關於我們 -->
+    <section id="about" class="section" aria-label="關於我們">
+      <h2>關於 JieJourneys（旅杰）</h2>
+      <p class="sub">自助旅遊｜一看就懂的攻略</p>
+      <div class="about">
+        我們專做「打開就能用」的旅行攻略，把複雜資訊整理成清楚的路線與連結，讓你最快掌握重點。
+      </div>
+    </section>
+
+<!-- 常見問題 -->
+<section id="faq" class="section" aria-label="常見問題">
+  <h2>常見問題</h2>
+  <p class="sub">關於 JieJourneys（旅杰）的說明</p>
+
+  <div class="faq">
+    <details>
+      <summary>🌏 為什麼會有 JieJourneys？</summary>
+      <p>JieJourneys 致力於幫助旅人，用最短時間掌握重點、規劃順暢的自助行程。</p>
+    </details>
+
+    <details>
+      <summary>🗺️ 這些攻略可以免費使用嗎？</summary>
+      <p>大部分內容（景點、地圖、教學）是免費公開的，行程 PDF 屬於付費下載項目。</p>
+    </details>
+
+    <details>
+      <summary>💳 付款後多久可以收到行程 PDF？</summary>
+      <p>付款成功後系統會立即自動寄送下載連結到信箱，通常幾秒內就能收到。</p>
+    </details>
+
+    <details>
+      <summary>📱 可以用手機開啟 PDF 嗎？</summary>
+      <p>可以，建議使用 iPhone 的「檔案」或 Android 的「Adobe Acrobat Reader」開啟即可。</p>
+    </details>
+
+    <details>
+      <summary>🌏 之後會增加其他國家嗎？</summary>
+      <p>會的，我們接下來會製作大阪、東京、首爾、香港等地的自由行攻略，敬請期待！</p>
+    </details>
+  </div>
+</section>
+
+
+  </main>
+
+  <footer>
+    <div><strong>JieJourneys</strong> © <span id="y"></span></div>
+  </footer>
+
+  <script>
+    // 年份
+    document.getElementById('y').textContent = new Date().getFullYear();
+  
+    // 修正錨點被 sticky header 遮住
+    (function(){
+      const header = document.querySelector('header');
+      document.querySelectorAll('a[href^="#"]').forEach(a=>{
+        a.addEventListener('click', (e)=>{
+          const hash = a.getAttribute('href');
+          const id = hash && hash.startsWith('#') ? hash.slice(1) : null;
+          const el = id ? document.getElementById(id) : null;
+          if(!el) return;
+          e.preventDefault();
+          const offset = (header?.getBoundingClientRect().height || 0) + 12;
+          const y = el.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        });
+      });
+    })();
+  
+    // ✅ 搜尋：等 DOM 就緒再掛事件、只篩熱門攻略卡片
+    document.addEventListener('DOMContentLoaded', () => {
+      const searchInput = document.getElementById('searchInput');
+      // 只抓「熱門攻略」區的卡片，避免抓到其他版位
+      const cards = Array.from(document.querySelectorAll('.popular-grid .card'));
+  
+      if (!searchInput) return;
+  
+      // 正規化：小寫＋移除空白
+      const norm = s => (s || '').toLowerCase().replace(/\s+/g, '');
+  
+      // 你也可以給卡片加 data-tags（見下方 HTML 建議），讓搜尋更好用
+      searchInput.addEventListener('input', () => {
+        const kw = norm(searchInput.value);
+  
+        // 空字串 => 全部顯示
+        if (!kw) {
+          cards.forEach(c => c.style.display = '');
+          return;
+        }
+  
+        cards.forEach(card => {
+          const bag = norm(card.innerText + ' ' + (card.dataset.tags || ''));
+          card.style.display = bag.includes(kw) ? '' : 'none';
+        });
+      });
+    });
+  </script>
+  
+  <script>
+    document.addEventListener('click', function (e) {
+      const el = e.target.closest('[data-event]');
+      if (!el || typeof gtag !== 'function') return;
+    
+      // 往上找影片卡或飯店卡（父層）
+      const card = el.closest('[data-video],[data-hotel]');
+    
+      gtag('event', el.dataset.event, {
+        page_path: location.pathname,
+        platform : el.dataset.platform || '',
+        label    : el.dataset.label || '',
+    
+        // ✅ 新增兩個通用欄位（先讀按鈕自己的 data-，沒有就讀父卡）
+        item     : el.dataset.item || card?.dataset.item || '',
+        section  : el.dataset.section || card?.dataset.section || '',
+    
+        // 影片用（若存在）
+        video    : card?.dataset.video || '',
+        title    : card?.dataset.title || '',
+    
+        // 飯店用（若存在）
+        hotel    : card?.dataset.hotel || '',
+        area     : card?.dataset.area || '',
+    
+        url      : el.href || ''
+      });
+    }, {capture:true});
+    </script>
+    
+
+<script>
+  (function(){
+    const input = document.getElementById('searchInput');
+    if(!input || typeof gtag!=='function') return;
+  
+    let timer;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const term = (input.value || '').trim();
+        // 算出目前「熱門攻略」區塊顯示中的卡片數
+        const shown = [...document.querySelectorAll('.popular-grid .card')]
+                      .filter(c => c.style.display !== 'none').length;
+  
+        gtag('event', 'home_search', {
+          page_path: location.pathname,
+          term, result_count: shown
+        });
+      }, 400); // 簡單防抖
+    });
+  })();
+  </script>
+
+<script>
+  (function(){
+    if(typeof gtag!=='function') return;
+    document.querySelectorAll('#faq details').forEach(d => {
+      d.addEventListener('toggle', () => {
+        const q = d.querySelector('summary')?.textContent?.trim() || '';
+        gtag('event', 'faq_toggle', {
+          page_path: location.pathname,
+          question: q, open: d.open
+        });
+      });
+    });
+  })();
+  </script>
+  
+  
+
+</body>
+</html>
