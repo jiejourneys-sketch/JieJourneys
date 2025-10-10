@@ -355,7 +355,47 @@ a.card{ color:inherit; text-decoration:none; }
 
 </head>
 <body>
-  <!-- Header -->
+<!-- 頂部公告列 -->
+<div class="top-banner">
+  <div class="banner-content">
+    🏷️ <strong>KKday 折扣碼：</strong><span class="code">KKJIE94</span>
+    滿 1500 元享 <b>94 折</b>（部分商品不適用）｜
+    <a href="https://www.kkday.com/zh-tw?cid=22312" target="_blank" rel="noopener">前往活動頁</a><br>
+  </div>
+</div>
+
+<style>
+.top-banner {
+  background: #1f7a8c;
+  color: #fff;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.banner-content {
+  margin: 2px 0;
+}
+.banner-content a {
+  color: #ffd43b;
+  text-decoration: underline;
+  margin-left: 6px;
+}
+.banner-content a:hover {
+  color: #fff1a8;
+}
+.code {
+  color: #ffd43b;
+  font-weight: 700;
+}
+@media (max-width: 768px) {
+  .top-banner {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+</style>
+
   <header>
     <nav class="nav">
       <a href="index.html" class="brand" aria-label="回首頁"
