@@ -398,16 +398,16 @@ a.card{ color:inherit; text-decoration:none; }
   <header>
     <nav class="nav">
       <a href="index.html" class="brand" aria-label="回首頁"
-   data-event="home_nav" data-item="brand">
+   data-event="home_logo" data-item="brand">
   <img src="assets/logo.jpg" alt="JieJourneys（旅杰） Logo">
   <span>JieJourneys｜旅杰</span>
 </a>
       <div class="menu">
-        <a href="#popular" data-event="home_nav" data-item="popular">熱門攻略</a>
-        <a href="#follow"  data-event="home_nav" data-item="follow">追蹤我們</a>
-        <a href="#about"   data-event="home_nav" data-item="about">關於</a>
-        <a href="#faq"     data-event="home_nav" data-item="faq">常見問題</a>
-        <a href="contact.html" data-event="home_nav" data-item="contact">聯絡我們</a>
+        <a href="#popular" data-event="home_gonglue" data-item="popular">熱門攻略</a>
+        <a href="#follow"  data-event="home_follow" data-item="follow">追蹤我們</a>
+        <a href="#about"   data-event="home_about" data-item="about">關於</a>
+        <a href="#faq"     data-event="home_questions" data-item="faq">常見問題</a>
+        <a href="contact.html" data-event="home_contact" data-item="contact">聯絡我們</a>
 
       </div>
     </nav>
@@ -428,14 +428,14 @@ a.card{ color:inherit; text-decoration:none; }
       <div class="popular-grid">
         <!-- Busan：改成直接跳頁 -->
         <a href="./busan/index.html" class="card"
-   data-event="home_popular" data-item="busan" data-section="popular" aria-label="前往釜山攻略頁面">
+   data-event="home_card_busan" data-item="busan" data-section="popular" aria-label="前往釜山攻略頁面">
           <img class="thumb" src="assets/busan.png" alt="釜山 Busan">
           <div class="card-body"><h3>韓國｜釜山</h3></div>
         </a>
 
         <!-- Hanoi：之後做好 hanoi.html 再連過去 -->
         <a href="./northvietnam/index.html" class="card"
-   data-event="home_popular" data-item="hanoi" data-section="popular" aria-label="前往河內攻略頁面">
+   data-event="home_card_northvietnam" data-item="hanoi" data-section="popular" aria-label="前往河內攻略頁面">
           <img class="thumb" src="assets/hanoi.png" alt="河內 Hanoi">
           <div class="card-body"><h3>越南｜北越</h3></div>
         </a>
@@ -448,13 +448,13 @@ a.card{ color:inherit; text-decoration:none; }
       <p class="sub">第一時間收到新攻略</p>
       <div class="social-row">
         <a href="https://www.instagram.com/jiejourneys" target="_blank" rel="noopener noreferrer"
-   data-event="home_social" data-platform="instagram">Instagram</a>
+   data-event="home_social_IG" data-platform="instagram">Instagram</a>
 <a href="https://www.threads.net/@jiejourneys" target="_blank" rel="noopener noreferrer"
-   data-event="home_social" data-platform="threads">Threads</a>
+   data-event="home_social_Threads" data-platform="threads">Threads</a>
 <a href="https://www.youtube.com/@jiejourneys" target="_blank" rel="noopener noreferrer"
-   data-event="home_social" data-platform="youtube">YouTube</a>
+   data-event="home_social_Youtube" data-platform="youtube">YouTube</a>
 <a href="https://xhslink.com/m/6OAjLumXIO1" target="_blank" rel="noopener noreferrer"
-   data-event="home_social" data-platform="xiaohongshu">小紅書</a>
+   data-event="home_social_xiaohongshu" data-platform="xiaohongshu">小紅書</a>
 
       </div>
     </section>
@@ -474,27 +474,27 @@ a.card{ color:inherit; text-decoration:none; }
   <p class="sub">關於 JieJourneys（旅杰）的說明</p>
 
   <div class="faq">
-    <details>
+    <details data-event="faq_first">
       <summary>🌏 為什麼會有 JieJourneys？</summary>
       <p>JieJourneys 致力於幫助旅人，用最短時間掌握重點、規劃順暢的自助行程。</p>
     </details>
 
-    <details>
+    <details data-event="faq_second">
       <summary>🗺️ 這些攻略可以免費使用嗎？</summary>
       <p>大部分內容（景點、地圖、教學）是免費公開的，行程 PDF 屬於付費下載項目。</p>
     </details>
 
-    <details>
+    <details data-event="faq_third">
       <summary>💳 付款後多久可以收到行程 PDF？</summary>
       <p>付款成功後系統會立即自動寄送下載連結到信箱，通常幾秒內就能收到。</p>
     </details>
 
-    <details>
+    <details data-event="faq_fourth">
       <summary>📱 可以用手機開啟 PDF 嗎？</summary>
       <p>可以，建議使用 iPhone 的「檔案」或 Android 的「Adobe Acrobat Reader」開啟即可。</p>
     </details>
 
-    <details>
+    <details data-event="faq_fifth">
       <summary>🌏 之後會增加其他國家嗎？</summary>
       <p>會的，我們接下來會製作大阪、東京、首爾、香港等地的自由行攻略，敬請期待！</p>
     </details>
