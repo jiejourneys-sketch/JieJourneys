@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- 主站 -->
   <url><loc>https://www.jiejourneys.com/</loc></url>
   <url><loc>https://www.jiejourneys.com/contact/</loc></url>
+
+  <!-- 釜山區 -->
   <url><loc>https://www.jiejourneys.com/busan/</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/hotel.html</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/ticket.html</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/transport.html</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/video.html</loc></url>
+
+  <!-- 北越區 -->
   <url><loc>https://www.jiejourneys.com/northvietnam/</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/hotel.html</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/ticket.html</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/transport.html</loc></url>
 </urlset>
