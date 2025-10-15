@@ -327,12 +327,8 @@ a.card{ color:inherit; text-decoration:none; }
     "name": "JieJourneys",
     "alternateName": "旅杰",
     "url": "https://www.jiejourneys.com/",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://www.jiejourneys.com/assets/logo.jpg",
-      "width": 512,
-      "height": 512
-    },
+    "logo": "https://www.jiejourneys.com/assets/logo.jpg",
+    "image": "https://www.jiejourneys.com/assets/logo.jpg",
     "sameAs": [
       "https://instagram.com/jiejourneys",
       "https://youtube.com/@jiejourneys",
@@ -342,16 +338,26 @@ a.card{ color:inherit; text-decoration:none; }
   }
   </script>
   
+  
   <!-- WebSite（若沒有站內搜尋，就先不要放 SearchAction） -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "JieJourneys",
-    "alternateName": "旅杰",
-    "url": "https://www.jiejourneys.com/"
-  }
-  </script>
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "JieJourneys",
+      "alternateName": "旅杰",
+      "url": "https://www.jiejourneys.com/",
+      "publisher": {
+        "@type": "Organization",
+        "name": "JieJourneys",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.jiejourneys.com/assets/logo.jpg"
+        }
+      }
+    }
+    </script>
+    
      
   
 
@@ -400,17 +406,17 @@ a.card{ color:inherit; text-decoration:none; }
 
   <header>
     <nav class="nav">
-      <a href="index.html" class="brand" aria-label="回首頁"
-   data-event="home_logo" data-item="brand">
-  <img src="assets/logo.jpg" alt="JieJourneys(旅杰) Logo">
-  <span>JieJourneys｜旅杰</span>
-</a>
+      <a href="/" class="brand" aria-label="回首頁" data-event="home_logo" data-item="brand">
+        <img src="assets/logo.jpg" alt="JieJourneys(旅杰) Logo">
+        <span>JieJourneys｜旅杰</span>
+      </a>
+
       <div class="menu">
         <a href="#popular" data-event="home_gonglue" data-item="popular">熱門攻略</a>
         <a href="#follow"  data-event="home_follow" data-item="follow">追蹤我們</a>
         <a href="#about"   data-event="home_about" data-item="about">關於</a>
         <a href="#faq"     data-event="home_questions" data-item="faq">常見問題</a>
-        <a href="contact.html" data-event="home_contact" data-item="contact">聯絡我們</a>
+        <a href="/contact/" data-event="home_contact" data-item="contact">聯絡我們</a>
 
       </div>
     </nav>
@@ -430,14 +436,14 @@ a.card{ color:inherit; text-decoration:none; }
 
       <div class="popular-grid">
         <!-- Busan：改成直接跳頁 -->
-        <a href="./busan/index.html" class="card"
+        <a href="/busan/" class="card"
    data-event="home_card_busan" data-item="busan" data-section="popular" aria-label="前往釜山攻略頁面">
           <img class="thumb" src="assets/busan.png" alt="釜山 Busan">
           <div class="card-body"><h3>韓國｜釜山</h3></div>
         </a>
 
         <!-- Hanoi：之後做好 hanoi.html 再連過去 -->
-        <a href="./northvietnam/index.html" class="card"
+        <a href="/northvietnam/" class="card"
    data-event="home_card_northvietnam" data-item="hanoi" data-section="popular" aria-label="前往河內攻略頁面">
           <img class="thumb" src="assets/hanoi.png" alt="河內 Hanoi">
           <div class="card-body"><h3>越南｜北越</h3></div>

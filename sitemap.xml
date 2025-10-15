@@ -1,19 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://www.jiejourneys.com/</loc>
-    <lastmod>2025-10-11</lastmod>
-  </url>
-  <url>
-    <loc>https://www.jiejourneys.com/contact.html</loc>
-    <lastmod>2025-10-11</lastmod>
-  </url>
-  <url>
-    <loc>https://www.jiejourneys.com/busan/</loc>
-    <lastmod>2025-10-11</lastmod>
-  </url>
-  <url>
-    <loc>https://www.jiejourneys.com/northvietnam/</loc>
-    <lastmod>2025-10-11</lastmod>
-  </url>
+  <url><loc>https://www.jiejourneys.com/</loc></url>
+  <url><loc>https://www.jiejourneys.com/contact/</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/</loc></url>
 </urlset>
