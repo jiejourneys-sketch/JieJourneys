@@ -102,6 +102,21 @@
   max-width:none;                                  /* 不再縮窄 */
 }
 
+/* 讓超窄手機（≤360px）縮小卡片文字，保持兩欄 */
+@media (max-width: 360px) {
+  .popular-grid .card-title {
+    font-size: 14px;
+  }
+  .popular-grid .card-subtitle {
+    font-size: 12px;
+  }
+  .popular-grid .card-description {
+    font-size: 12px;
+  }
+}
+
+
+
 /* 搜尋欄外觀 */
 .search-box{
   max-width: 360px;
