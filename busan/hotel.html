@@ -154,6 +154,31 @@ main h2{ margin:24px 0 12px; }
 /* 保險：影片介紹的標題後面緊接第一個列表，補一點間距 */
 main h1 + .stay-list{ margin-top:8px; }
 
+/* 修正右上按鈕在小螢幕會爆出去 */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  flex-shrink: 1;     /* 允許縮小 */
+  overflow: hidden;  /* 防止爆出去 */
+}
+
+.nav-actions a {
+  padding: 6px 10px;
+  font-size: 14px;
+  white-space: nowrap; /* 不換行 */
+  flex-shrink: 1;      /* 允許縮小 */
+  min-width: 0;
+}
+
 
   </style>
 
@@ -210,11 +235,13 @@ main h1 + .stay-list{ margin-top:8px; }
 </a>
 
       <!-- 回上一頁：因為本頁在 /busan/，上一頁就是同資料夾的 index.html -->
+      <div class="nav-actions">
       <a href="./index.html" class="home-link"
-   data-event="busanhotel_back" data-item="back">← 回上一頁</a>
+   data-event="busanhotel_back" data-item="back">← 上一頁</a>
       <!-- 回首頁 -->
       <a href="/busan/" class="home-link"
    data-event="busanhotel_backhome" data-item="home">回首頁</a>
+  </div>
     </nav>
   </header>
 
