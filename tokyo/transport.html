@@ -130,6 +130,30 @@
 }
 .thumb{ display: none !important; }  /* 不顯示縮圖 */
 
+.group-card{
+  grid-column: 1 / -1;
+  background: #f3fbff;
+  border-style: dashed;
+  position: relative;
+  text-align: center;
+}
+
+
+
+/* ✅ 只針對總覽卡，讓按鈕群置中 */
+.group-card .actions{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ✅ 保險：如果按鈕被當成 inline-block/寬度不一致 */
+.group-card .actions .btn{
+  display: inline-flex;
+  justify-content: center;
+}
+
+
 /* 標題/區域各限一行，避免忽高忽低 */
 .title, .meta{
   display: -webkit-box;
@@ -139,6 +163,7 @@
 }
 /* 連結列單行，超出可滑動，卡片高度不被撐高 */
 .actions{
+  display: flex; 
   white-space: nowrap;
   overflow-x: auto;
   gap: 8px;
@@ -284,9 +309,9 @@ nav {
     <div class="tabs" id="areaTabs">
       <button class="tab active" data-area="all">全部</button>
       <button class="tab" data-area="通訊">通訊</button>
-      <button class="tab" data-area="成田機場交通">成田機場交通</button>
-      <button class="tab" data-area="羽田機場交通">羽田機場交通</button>
       <button class="tab" data-area="地鐵/鐵路">地鐵/鐵路</button>
+      <button class="tab" data-area="成田機場交通">成田機場交通</button>
+      <button class="tab" data-area="羽田機場交通">羽田機場交通</button>    
     </div>
 
     <!-- 清單 -->
@@ -329,6 +354,69 @@ nav {
                 </div>
             </div>
               </article>
+
+              <article class="stay-card" data-area="地鐵/鐵路" data-title="西瓜卡(Suica IC)">
+                <div>
+                <h3 class="title">西瓜卡(Suica IC)｜成田/羽田機場領取</h3>
+                <p class="meta">地鐵</p>
+                <div class="actions">
+                  <a class="btn primary" href="https://www.klook.com/zh-TW/activity/16917-suica-ic-card-tokyo/?aid=93798"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_SuicaKLOOK" data-platform="KLOOK" data-section="transport_card">KLOOK</a>
+                </div>
+            </div>
+              </article>
+
+              <article class="stay-card" data-area="地鐵/鐵路" data-title="東京地鐵券(Tokyo Subway Ticket)">
+                <div>
+                <h3 class="title">東京地鐵券(Tokyo Subway Ticket)</h3>
+                <p class="meta">地鐵</p>
+                <div class="actions">
+                  <a class="btn primary" href="https://www.kkday.com/zh-tw/product/5989-24-48-72-hr-tokyo-subway-ticket-japan?cid=22312"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_Subway123KKday" data-platform="KKDAY" data-section="transport_card">KKDAY</a>
+                  <a class="btn" href="https://www.klook.com/zh-TW/activity/1552-subway-ticket-tokyo/?aid=93798"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_Subway123KLOOK" data-platform="KLOOK" data-section="transport_card">KLOOK</a>
+                  <a class="btn" href="https://tw.trip.com/things-to-do/detail/24465457/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_Subway123Trip" data-platform="Trip" data-section="transport_card">Trip</a>   
+                </div>
+            </div>
+              </article>
+
+              <article class="stay-card" data-area="地鐵/鐵路" data-title="鐵路周遊券(JR PASS)">
+                <div>
+                <h3 class="title">鐵路周遊券(JR PASS)</h3>
+                <p class="meta">鐵路</p>
+                <div class="actions">
+                  <a class="btn primary" href="https://www.kkday.com/zh-tw/product/6681-jr-east-pass-tohoku-area?cid=22312"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_JRPassKKday" data-platform="KKDAY" data-section="transport_card">KKDAY</a>
+                  <a class="btn" href="https://www.klook.com/zh-TW/activity/49927-jr-east-tokyo-tokyowidepass/?aid=93798"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_JRPassKLOOK" data-platform="KLOOK" data-section="transport_card">KLOOK</a>
+                  <a class="btn" href="https://tw.trip.com/things-to-do/detail/44275093/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_JRPassTrip" data-platform="Trip" data-section="transport_card">Trip</a>   
+                </div>
+            </div>
+              </article>
+
+              <article class="stay-card group-card"
+              data-area="成田機場交通"
+              data-title="成田機場交通（總覽）">
+       <div>
+         <h3 class="title">
+           成田機場到市區｜交通
+         </h3>
+         <p class="meta">適用於Skyliner / N'EX / 利木津巴士</p>
+     
+         <div class="actions">
+           <a class="btn primary"
+              href="https://www.google.com/maps/d/edit?mid=1ZmBLaHH4TUkIxpwun8PUQETXJGN2rQ4&usp=sharing"
+              target="_blank" rel="noopener noreferrer"
+              data-event="tokyotransport_NRTMap"
+              data-platform="GoogleMap"
+              data-section="transport_group">
+             終極地圖
+           </a>
+         </div>
+       </div>
+     </article>
 
               <article class="stay-card" data-area="成田機場交通" data-title="成田機場 ⇄ 上野站/日暮里站｜Skyliner">
                 <div>
@@ -394,6 +482,50 @@ nav {
             </div>
               </article>
 
+              <article class="stay-card group-card"
+              data-area="羽田機場交通"
+              data-title="羽田機場交通（總覽）">
+       <div>
+         <h3 class="title">
+           羽田機場到市區｜交通
+         </h3>
+         <p class="meta">適用於京急電鐵 / 單軌電車 / 利木津巴士</p>
+     
+         <div class="actions">
+           <a class="btn primary"
+              href="https://www.google.com/maps/d/edit?mid=1d5zUE9pWTdlrDUplV7Q5ARZ6GoIhOQA&usp=sharing"
+              target="_blank" rel="noopener noreferrer"
+              data-event="tokyotransport_HNDMap"
+              data-platform="GoogleMap"
+              data-section="transport_group">
+             終極地圖
+           </a>
+         </div>
+       </div>
+     </article>
+
+     <article class="stay-card" data-area="羽田機場交通" data-title="羽田機場 ⇄ 品川/新橋/東銀座/淺草/押上｜京急電鐵">
+      <div>
+      <h3 class="title">羽田機場 ⇄ 東銀座/淺草/押上｜京急電鐵</h3>
+      <p class="meta">羽田機場交通</p>
+      <div class="actions">
+        <a class="btn primary" href="https://www.klook.com/zh-TW/activity/16917-suica-ic-card-tokyo/?aid=93798"
+           target="_blank" rel="noopener noreferrer" data-event="HNDKKlinetransport_SuicaKLOOK" data-platform="KLOOK" data-section="transport_card">SUICA</a>
+      </div>
+  </div>
+    </article>
+
+    <article class="stay-card" data-area="羽田機場交通" data-title="羽田機場 ⇄ 東京車站/新宿/澀谷｜單軌電車">
+      <div>
+      <h3 class="title">羽田機場 ⇄ 秋葉原/新宿/池袋｜單軌電車</h3>
+      <p class="meta">羽田機場交通</p>
+      <div class="actions">
+        <a class="btn primary" href="https://www.klook.com/zh-TW/activity/16917-suica-ic-card-tokyo/?aid=93798"
+           target="_blank" rel="noopener noreferrer" data-event="HNDmonorailtransport_SuicaKLOOK" data-platform="KLOOK" data-section="transport_card">SUICA</a>
+      </div>
+  </div>
+    </article>
+
               <article class="stay-card" data-area="羽田機場交通" data-title="羽田機場 ⇄ 東京市區｜東京利木津巴士">
                 <div>
                 <h3 class="title">羽田機場 ⇄ 東京市區｜東京利木津巴士</h3>
@@ -420,47 +552,6 @@ nav {
                      target="_blank" rel="noopener noreferrer" data-event="tokyotransport_HNDCarKKday" data-platform="KKDAY" data-section="transport_card">KKDAY</a>
                   <a class="btn" href="https://www.klook.com/zh-TW/airport-transfers/?aid=93798"
                      target="_blank" rel="noopener noreferrer" data-event="tokyotransport_HNDCarKLOOK" data-platform="KLOOK" data-section="transport_card">KLOOK</a>
-                </div>
-            </div>
-              </article>
-
-              <article class="stay-card" data-area="地鐵/鐵路" data-title="西瓜卡(Suica IC)">
-                <div>
-                <h3 class="title">西瓜卡(Suica IC)｜成田/羽田機場領取</h3>
-                <p class="meta">地鐵</p>
-                <div class="actions">
-                  <a class="btn primary" href="https://www.klook.com/zh-TW/activity/16917-suica-ic-card-tokyo/?aid=93798"
-                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_SuicaKLOOK" data-platform="KLOOK" data-section="transport_card">KLOOK</a>
-                </div>
-            </div>
-              </article>
-
-              <article class="stay-card" data-area="地鐵/鐵路" data-title="東京地鐵券(Tokyo Subway Ticket)">
-                <div>
-                <h3 class="title">東京地鐵券(Tokyo Subway Ticket)</h3>
-                <p class="meta">地鐵</p>
-                <div class="actions">
-                  <a class="btn primary" href="https://www.kkday.com/zh-tw/product/5989-24-48-72-hr-tokyo-subway-ticket-japan?cid=22312"
-                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_Subway123KKday" data-platform="KKDAY" data-section="transport_card">KKDAY</a>
-                  <a class="btn" href="https://www.klook.com/zh-TW/activity/1552-subway-ticket-tokyo/?aid=93798"
-                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_Subway123KLOOK" data-platform="KLOOK" data-section="transport_card">KLOOK</a>
-                  <a class="btn" href="https://tw.trip.com/things-to-do/detail/24465457/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
-                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_Subway123Trip" data-platform="Trip" data-section="transport_card">Trip</a>   
-                </div>
-            </div>
-              </article>
-
-              <article class="stay-card" data-area="地鐵/鐵路" data-title="鐵路周遊券(JR PASS)">
-                <div>
-                <h3 class="title">鐵路周遊券(JR PASS)</h3>
-                <p class="meta">鐵路</p>
-                <div class="actions">
-                  <a class="btn primary" href="https://www.kkday.com/zh-tw/product/6681-jr-east-pass-tohoku-area?cid=22312"
-                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_JRPassKKday" data-platform="KKDAY" data-section="transport_card">KKDAY</a>
-                  <a class="btn" href="https://www.klook.com/zh-TW/activity/49927-jr-east-tokyo-tokyowidepass/?aid=93798"
-                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_JRPassKLOOK" data-platform="KLOOK" data-section="transport_card">KLOOK</a>
-                  <a class="btn" href="https://tw.trip.com/things-to-do/detail/44275093/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
-                     target="_blank" rel="noopener noreferrer" data-event="tokyotransport_JRPassTrip" data-platform="Trip" data-section="transport_card">Trip</a>   
                 </div>
             </div>
               </article>
