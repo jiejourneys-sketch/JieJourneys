@@ -186,6 +186,96 @@ nav {
   min-width: 0;
 }
 
+/* === Pass 單列：文字+按鈕整排置中 === */
+.link-item.pass-card{
+  padding:10px 12px;
+}
+
+.pass-row{
+  display:flex;
+  align-items:center;
+  justify-content:center; /* ✅ 置中整排 */
+  gap:12px;
+  width:100%;
+}
+
+/* 標題 */
+.pass-title{
+  font-weight:800;
+  font-size:15px;
+  white-space:nowrap;
+}
+
+/* 按鈕列：桌機維持一排，置中 */
+.pass-actions{
+  display:flex;
+  gap:8px;
+  justify-content:center;  /* ✅ 按鈕也置中 */
+  flex-wrap:nowrap;        /* 桌機不換行 */
+}
+
+/* 小格子按鈕 */
+.pass-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:6px 10px;
+  font-size:13px;
+  border-radius:12px;
+  border:1.5px solid rgba(0,0,0,.12);
+  background:#fff;
+  color:#1f7a8c;
+  text-decoration:none;
+  transition:.15s;
+}
+.pass-btn.primary{
+  background:#1f7a8c;
+  border-color:#1f7a8c;
+  color:#fff;
+}
+.pass-btn:hover{
+  background:#f0f9fb;
+  border-color:#1f7a8c;
+  transform:translateY(-1px);
+}
+.pass-btn.primary:hover{
+  background:#176070;
+}
+
+/* ✅ 手機：不要拖動 → 允許自動換行 + 縮小按鈕 */
+@media (max-width:420px){
+  .pass-row{
+    flex-wrap:wrap;          /* ✅ 允許換行，避免超出 */
+    gap:8px;
+  }
+  .pass-actions{
+    flex-wrap:wrap;          /* ✅ 按鈕可換行 */
+    justify-content:center;  /* ✅ 換行後仍置中 */
+    gap:6px;
+  }
+  .pass-title{
+    font-size:13px;
+  }
+  .pass-btn{
+    font-size:11px;          /* ✅ 按鈕字縮小 */
+    padding:4px 6px;         /* ✅ 按鈕變瘦 */
+    border-radius:9px;
+    white-space:nowrap;
+    flex:0 1 auto;           /* ✅ 允許按鈕縮小 */
+    min-width:0;
+  }
+}
+
+/* 更窄的手機（像 iPhone SE）再壓一次 */
+@media (max-width:360px){
+  .pass-title{ font-size:13px; }
+  .pass-btn{ font-size:11px; padding:4px 7px; }
+}
+
+/* 非主按鈕：改成跟 ticket.html 一樣的「連結藍」 */
+.pass-btn:not(.primary){
+  color:#0000EE;   /* 瀏覽器預設藍，最像你截圖那種 */
+}
 
   </style>
 
@@ -277,12 +367,36 @@ nav {
             <div class="link-text">通訊 / 交通</div>
           </a>
 
-          <a class="link-item" href="https://www.google.com/maps/d/edit?mid=1ys8gug0O1U9-eI7ja3oKE5AN3CepItM&usp=sharing"
-   target="_blank" rel="noopener noreferrer"
-   data-event="TokyoDisney_ditu" data-item="map" data-section="quick">
-            <img class="link-icon" src="../assets/ditu.png" alt="地圖">
-            <div class="link-text">東京迪士尼陸地｜地圖</div>
-          </a>
+          <div class="link-item pass-card" data-section="quick">
+            <img class="link-icon" src="../assets/ditu.png" alt="東京迪士尼">
+          
+            <div class="pass-row">
+              <div class="pass-title">東京迪士尼</div>
+          
+              <div class="pass-actions">
+                <a class="pass-btn primary"
+                   href="https://www.kkday.com/zh-tw/product/19252-tokyo-disney-resort-disneyland-disneysea?cid=22312"
+                   target="_blank" rel="noopener noreferrer"
+                   data-event="Tokyodisney_kkday" data-platform="KKDAY">KKDAY</a>
+          
+                <a class="pass-btn"
+                   href="https://www.klook.com/zh-TW/activity/695-tokyo-disney-resort-1-day-pass-tokyo/?aid=93798"
+                   target="_blank" rel="noopener noreferrer"
+                   data-event="Tokyodisney_klook" data-platform="KLOOK">KLOOK</a>
+          
+                <a class="pass-btn"
+                   href="https://tw.trip.com/travel-guide/attraction/urayasu/tokyo-disneyland-10758189/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                   target="_blank" rel="noopener noreferrer"
+                   data-event="Tokyodisney_trip" data-platform="Trip">Trip</a>
+          
+                <a class="pass-btn"
+                   href="https://www.google.com/maps/d/edit?mid=1ys8gug0O1U9-eI7ja3oKE5AN3CepItM&usp=sharing"
+                   target="_blank" rel="noopener noreferrer"
+                   data-event="TokyoDisney_ditu" data-platform="map">地圖</a>
+              </div>
+            </div>
+          </div>
+
 
 
     </div>
