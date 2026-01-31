@@ -255,12 +255,15 @@ nav {
     gap:6px;
   }
   .pass-title{
-    font-size:14px;
+    font-size:13px;
   }
   .pass-btn{
-    font-size:12px;
-    padding:5px 8px;
-    border-radius:10px;
+    font-size:11px;          /* ✅ 按鈕字縮小 */
+    padding:4px 6px;         /* ✅ 按鈕變瘦 */
+    border-radius:9px;
+    white-space:nowrap;
+    flex:0 1 auto;           /* ✅ 允許按鈕縮小 */
+    min-width:0;
   }
 }
 
