@@ -122,6 +122,12 @@
           <label>您的 Email</label>
           <input name="email" type="email" required>
         </div>
+        
+        <div class="field">
+          <label>再次輸入 Email（避免打錯）</label>
+          <input name="confirmEmail" type="email" required>
+        </div>
+        
 
         <div class="field">
           <label>想詢問的問題</label>
@@ -130,7 +136,7 @@
 
         <div class="actions">
           <button id="submitBtn" type="submit">送出</button>
-        </div>
+        </div>      
       </form>
     </div>
   </div>
@@ -140,6 +146,18 @@
       e.preventDefault();
       const f = new FormData(e.target);
       const payload = Object.fromEntries(f.entries());
+
+// 檢查 email 是否一致
+if (payload.email !== payload.confirmEmail) {
+  alert('⚠️ 兩次輸入的 Email 不一致，請檢查。');
+  btn.disabled = false;
+  btn.textContent = '送出';
+  return;
+}
+
+// 刪除 confirmEmail 不傳到後端
+delete payload.confirmEmail;
+
   
       const btn = document.querySelector('#submitBtn');
       btn.disabled = true;
@@ -158,9 +176,9 @@
         const data = await res.json();
   
         if (data.success) {
-          alert('✅ 已送出！我們將盡快回覆。');
-          e.target.reset();
-        } else {
+  alert(`✅ 已送出！我們將回覆至：${payload.email}\n請確認 Email 是否正確。`);
+  e.target.reset();
+} else {
           alert('⚠️ 送出失敗，請稍後再試。');
           console.log('debug:', data);
         }
