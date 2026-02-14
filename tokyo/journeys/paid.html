@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>付款完成 | JieJourneys</title>
+  <style>
+    :root{
+      --bg: #f5f7fb;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --brand:#2563eb;
+      --brand-2:#60a5fa;
+      --ok:#16a34a;
+      --card:#ffffff;
+      --radius:18px;
+      --shadow:0 10px 30px rgba(15,23,42,.08);
+      --ring:0 0 0 6px rgba(37,99,235,.12);
+      --warnbg:#eef2ff;
+      --warnink:#1e3a8a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: "Noto Sans TC", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+      color:var(--ink); background:
+        radial-gradient(1200px 500px at 80% -10%, #dbeafe 10%, transparent 60%),
+        radial-gradient(700px 400px at -10% 10%, #e0e7ff 10%, transparent 60%),
+        var(--bg);
+      min-height:100svh;
+    }
+    .wrap{max-width:760px; margin:48px auto; padding:0 20px}
+    .card{
+      background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+      padding:28px; position:relative; overflow:hidden;
+    }
+    .ribbon{
+      position:absolute; inset:auto -40px 0 auto; top:-120px; width:260px; height:260px;
+      background: radial-gradient(closest-side, rgba(96,165,250,.2), transparent 70%);
+      transform:rotate(25deg);
+    }
+    .head{
+      display:flex; gap:16px; align-items:center; margin-bottom:10px;
+    }
+    .check{
+      width:56px;height:56px; border-radius:50%; display:grid; place-items:center;
+      background:conic-gradient(from 220deg, var(--brand), var(--brand-2));
+      box-shadow:0 6px 16px rgba(37,99,235,.35);
+    }
+    .check svg{width:30px;height:30px; color:white}
+    h1{margin:0; font-size:28px; letter-spacing:.3px}
+    .sub{color:var(--muted); margin:6px 0 18px; font-size:15px}
+    .summary{
+      display:grid; grid-template-columns:1fr auto; gap:10px;
+      background:#f1f5f9; border-radius:14px; padding:14px 16px; margin:10px 0 18px;
+    }
+    .summary .name{font-weight:800}
+    .summary .price{font-weight:800; color:var(--brand)}
+    .tips{display:grid; gap:8px; margin:8px 0 4px; padding-left:16px}
+    .tips li{color:var(--muted)}
+    .policy{
+      margin-top:16px; border-radius:14px; padding:14px 16px;
+      background:var(--warnbg); color:var(--warnink); border:1px solid #c7d2fe;
+      display:flex; gap:10px; align-items:flex-start;
+    }
+    .policy svg{flex:0 0 18px; margin-top:2px}
+    .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
+    .btn{
+      appearance:none; border:0; padding:12px 18px; border-radius:12px; font-weight:700;
+      background:var(--brand); color:#fff; cursor:pointer;
+      box-shadow:0 8px 18px rgba(37,99,235,.25);
+      transition:transform .08s ease, filter .15s ease;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn:focus-visible{outline:none; box-shadow:var(--ring)}
+    @media (max-width:640px){
+      .wrap{margin:28px auto}
+      .summary{grid-template-columns:1fr}
+    }
+  </style>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NCTMJ4F5XP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-NCTMJ4F5XP');
+</script>
+
+
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="status" aria-live="polite">
+      <div class="ribbon" aria-hidden="true"></div>
+
+      <div class="head">
+        <div class="check" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h1>付款成功</h1>
+          <div class="sub">已將 <strong>PDF 下載連結</strong> 寄到你的 Email，請稍候查收。</div>
+        </div>
+      </div>
+
+      <div class="summary" aria-label="訂單摘要">
+        <div>
+          <div class="name">東京 5 日行程攻略 PDF</div>
+          <div class="sub">電子檔｜可離線觀看</div>
+        </div>
+        <div class="price">NT$ 399</div>
+      </div>
+
+      <ul class="tips">
+        <li>幾分鐘內未收到？請先檢查垃圾信件匣。</li>
+        <li>若仍無法收到，請回到首頁聯繫我們。</li>
+      </ul>
+
+      <div class="policy">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 22s8-3 8-10V6l-8-4-8 4v6c0 7 8 10 8 10Z" stroke="#312e81" stroke-width="1.5"/>
+          <path d="M8.5 12.5l2.2 2.2 4.8-4.8" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div><strong>本檔僅供個人使用，含浮水印與隱碼，嚴禁轉傳或販售。</strong></div>
+      </div>
+
+      <div class="actions">
+        <a class="btn" href="index.html">回首頁</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
