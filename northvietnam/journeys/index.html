@@ -222,6 +222,26 @@ input[type="email"].invalid{
   .jj-btn{ padding:6px 10px; font-size:14px; border-radius:10px; }
 }
 
+.cta-links{
+  margin-top:14px;
+  font-size:15px;
+  color:#2C7292;
+}
+
+.cta-links a{
+  text-decoration:none;
+  color:#2C7292;
+  font-weight:600;
+}
+
+.cta-links a:hover{
+  text-decoration:underline;
+}
+
+.divider{
+  margin:0 10px;
+  color:#bbb;
+}
 
   </style>
 
@@ -265,15 +285,18 @@ input[type="email"].invalid{
           <span class="badge">🧾 票券連結</span>
         </div>
         <p class="price">NT$499</p>
-        <div class="secure">🔒 安全付款｜成功後立即寄送 PDF</div>
+        <div class="secure">🔒 安全付款｜立即寄送 PDF｜永久使用</div>
       </div>
 
       <div>
           <div class="form" style="margin-top:12px; text-align:center">
             <a href="order.html" class="btn buy-now big-btn" data-event="hanoiPDF_clickbuy" data-item="cta">立即購買</a>
             <div style="margin-top:10px">
-              <a class="ig-btn" href="https://www.instagram.com/reels/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="hanoiPDF_TrialIG">
-                🎬 30秒試看(釜山版本)
+              <a class="cta-links" href="https://www.instagram.com/reels/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="hanoiPDF_TrialIG">
+                🎬 30秒試看
+              </a>
+              <a class="cta-links" data-event="HanoiPDF_TrialPDF" href="./download/JieJourneys_HanoiGuide_Sample.pdf">
+                📄 試閱內容
               </a>
             </div>
           </div>          
