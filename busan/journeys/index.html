@@ -241,25 +241,28 @@ input[type="email"].invalid{
   color:#2C7292;
 }
 
-.cta-links{
+.cta-secondary{
+  display:flex;
+  gap:12px;
   margin-top:14px;
-  font-size:15px;
-  color:#2C7292;
 }
 
-.cta-links a{
-  text-decoration:none;
+.secondary-btn{
+  flex:1;                 /* ← 各占一半 */
+  text-align:center;
+  padding:12px 0;
+  border-radius:12px;
+  border:2px solid #2C7292;
+  background:#f5f9fb;
   color:#2C7292;
   font-weight:600;
+  text-decoration:none;
+  transition:.2s;
 }
 
-.cta-links a:hover{
-  text-decoration:underline;
-}
-
-.divider{
-  margin:0 10px;
-  color:#bbb;
+.secondary-btn:hover{
+  background:#e8f2f6;
+  transform:translateY(-1px);
 }
   </style>
 
@@ -309,11 +312,11 @@ input[type="email"].invalid{
       <div>
           <div class="form" style="margin-top:12px; text-align:center">
             <a href="order.html" class="btn buy-now big-btn" data-event="busanPDF_clickbuy" data-item="cta">立即購買</a>
-            <div style="margin-top:10px">
-              <a class="cta-links" href="https://www.instagram.com/reels/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="busanPDF_TrialIG">
+            <div class="cta-secondary">
+              <a class="secondary-btn" href="https://www.instagram.com/reels/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="busanPDF_TrialIG">
                 🎬 30秒試看
               </a>
-              <a class="cta-links" data-event="busanPDF_TrialPDF" href="./download/JieJourneys_BusanGuide_Sample.pdf">
+              <a class="secondary-btn" data-event="busanPDF_TrialPDF" href="./download/JieJourneys_BusanGuide_Sample.pdf">
                 📄 試閱內容
               </a>
             </div>
