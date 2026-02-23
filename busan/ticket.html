@@ -235,6 +235,25 @@ nav {
       </script>
       <script defer src="/_vercel/insights/script.js"></script>   
 
+      <script>
+        document.addEventListener('click', function (e) {
+          let el = e.target;
+        
+          while (el && el !== document) {
+            if (el.dataset && el.dataset.event) {
+              const eventName = el.dataset.event;
+        
+              if (window.va) {
+                va(eventName);
+              }
+        
+              break;
+            }
+            el = el.parentElement;
+          }
+        });
+        </script>
+
 </head>
 <body>
   <!-- Header（完全同 busan.html） -->
