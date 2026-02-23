@@ -264,6 +264,25 @@ input[type="email"].invalid{
   </script>
   <script defer src="/_vercel/insights/script.js"></script>  
 
+  <script>
+    document.addEventListener('click', function (e) {
+      let el = e.target;
+    
+      while (el && el !== document) {
+        if (el.dataset && el.dataset.event) {
+          const eventName = el.dataset.event;
+    
+          if (window.va) {
+            va(eventName);
+          }
+    
+          break;
+        }
+        el = el.parentElement;
+      }
+    });
+    </script>
+
 </head>
 <body>
   <!-- Header -->
@@ -403,7 +422,7 @@ input[type="email"].invalid{
       <div class="secure">🔒 即時寄送 PDF</div>
     </div>
     <div class="price">NT$399</div>
-    <a href="order.html" class="btn buy-now" data-event="tokyoPDF_clickbuy" data-item="cta">立即購買</a>
+    <a href="order.html" class="btn buy-now" data-event="tokyoPDF_clickbuy1" data-item="cta">立即購買</a>
   </div>  
   <footer id="contact" style="padding:16px;text-align:center;font-size:14px;line-height:1.6;background:#f8fafc;border-top:1px solid #e5e7eb;">
     <div><strong>JieJourneys</strong></div>
