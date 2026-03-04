@@ -72,7 +72,7 @@
 
     .form{
       background:var(--card); border:1px solid rgba(0,0,0,.06);
-      border-radius:10px; padding:30px;
+      border-radius:10px; padding:22px 24px;
     }
     .form label{display:block; font-size:12px; color:#555; margin-bottom:6px}
     .form input{
@@ -114,17 +114,6 @@
     }
     .title .icon{font-size:18px}
     .feature p{font-size:14px; color:#444; margin:0}
-
-    /* 社會證明 */
-    .social-proof{
-      display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px
-    }
-    @media (max-width:800px){ .social-proof{grid-template-columns:1fr} }
-    .quote{
-      background:var(--card); border-left:4px solid var(--cta);
-      padding:12px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.06);
-      font-size:14px;
-    }
 
     /* FAQ（無JS） */
     details{
@@ -243,27 +232,35 @@ input[type="email"].invalid{
 
 .cta-secondary{
   display:flex;
+  justify-content:center;   /* 讓按鈕置中 */
   gap:12px;
   margin-top:14px;
 }
 
 .secondary-btn{
-  flex:1;                 /* ← 各占一半 */
-  text-align:center;
-  padding:12px 0;
-  border-radius:12px;
+  display:inline-block;
+  padding:8px 16px;
+  border-radius:10px;
   border:2px solid #2C7292;
   background:#f5f9fb;
   color:#2C7292;
   font-weight:600;
   text-decoration:none;
   transition:.2s;
+  font-size:14px;
 }
 
 .secondary-btn:hover{
   background:#e8f2f6;
   transform:translateY(-1px);
 }
+
+.price-note{
+font-size:14px;
+color:#666;
+margin-top:2px;
+}
+
   </style>
 
 <!-- Google tag (gtag.js) -->
@@ -323,7 +320,7 @@ input[type="email"].invalid{
     <section class="buy-box" aria-label="購買區塊">
       <div>
         <h1>釜山五日行程</h1>
-        <p>終極懶人攻略｜最佳動線｜圖影導覽｜導航連結｜帶著手機輕鬆玩</p>
+        <p>不用做功課｜照著走就能玩</p>
         <div class="badges">
           <span class="badge">📍 一鍵導航</span>
           <span class="badge">🧭 最佳動線</span>
@@ -332,18 +329,15 @@ input[type="email"].invalid{
           <span class="badge">🧾 票券連結</span>
         </div>
         <p class="price">NT$399</p>
-        <div class="secure">🔒 安全付款｜立即寄送 PDF｜永久使用</div>
+        <p class="price-note">付款後立即取得完整 PDF｜永久使用</p>
       </div>
 
       <div>
           <div class="form" style="margin-top:12px; text-align:center">
-            <a href="order.html" class="btn buy-now big-btn" data-event="busanPDF_clickbuy" data-item="cta">立即購買</a>
+            <a href="order.html" class="btn buy-now big-btn" data-event="busanPDF_clickbuy" data-item="cta">立即購買PDF</a>
             <div class="cta-secondary">
               <a class="secondary-btn" href="https://www.instagram.com/reels/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="busanPDF_TrialIG">
-                🎬 30秒試看
-              </a>
-              <a class="secondary-btn" data-event="busanPDF_TrialPDF" href="./download/JieJourneys_BusanGuide_Sample.pdf" target="_blank" rel="noopener noreferrer">
-                📄 試閱內容
+                🎬 30秒看攻略怎麼用
               </a>
             </div>
           </div>          
@@ -396,16 +390,6 @@ input[type="email"].invalid{
       </div>
     </section>
 
-    <!-- 社會證明（可先放假文案） -->
-    <section class="section" aria-label="使用者好評">
-      <h2>使用者回饋</h2>
-      <div class="social-proof">
-        <div class="quote">「按著地圖走完全不迷路，餐廳都很好吃！」— IG粉絲</div>
-        <div class="quote">「PDF很清楚，直接複製 day-by-day 用。」— 旅伴 Kelly</div>
-        <div class="quote">「導航＋Reels教學很香，新手也安心。」— 小紅書用戶</div>
-      </div>
-    </section>
-
     <!-- FAQ 無JS折疊 -->
     <section id="faq" class="section" aria-label="常見問題">
       <h2>常見問題</h2>
@@ -439,7 +423,7 @@ input[type="email"].invalid{
       <div class="secure">🔒 即時寄送 PDF</div>
     </div>
     <div class="price">NT$399</div>
-    <a href="order.html" class="btn buy-now" data-event="busanPDF_clickbuy1" data-item="cta">立即購買</a>
+    <a href="order.html" class="btn buy-now" data-event="busanPDF_clickbuy1" data-item="cta">立即購買PDF</a>
   </div>  
   <footer id="contact" style="padding:16px;text-align:center;font-size:14px;line-height:1.6;background:#f8fafc;border-top:1px solid #e5e7eb;">
     <div><strong>JieJourneys</strong></div>
