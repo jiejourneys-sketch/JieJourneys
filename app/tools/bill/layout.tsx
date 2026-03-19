@@ -60,7 +60,7 @@ export default function BillLayout({
       <AnalyticsEvents />
       <header className="app-header">
         <nav className="app-nav">
-          <Link href="/tools/bill" className="brand" aria-label="回首頁" data-event="logotosite">
+          <Link href="/" className="brand" aria-label="回官網首頁" data-event="logotosite">
             <span className="brand-logo" aria-hidden="true">
               <Image src="/logo.jpg" alt="" width={34} height={34} priority />
             </span>
