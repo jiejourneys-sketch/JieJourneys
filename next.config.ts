@@ -9,11 +9,8 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      { source: '/tools/bill', destination: 'https://jiejourneys-bill.vercel.app' },
-      { source: '/tools/bill/:path*', destination: 'https://jiejourneys-bill.vercel.app/:path*' },
-      { source: '/book', destination: 'https://jiejourneys-bill.vercel.app/book' },
-      { source: '/book/:path*', destination: 'https://jiejourneys-bill.vercel.app/book/:path*' },
-      { source: '/api/:path*', destination: 'https://jiejourneys-bill.vercel.app/api/:path*' },
+      { source: '/tools/bill', destination: 'https://jiejourneys-bill.vercel.app/tools/bill' },
+      { source: '/tools/bill/:path*', destination: 'https://jiejourneys-bill.vercel.app/tools/bill/:path*' },
       { source: '/', destination: '/index.html' },
       { source: '/contact', destination: '/contact.html' },
       { source: '/contact/', destination: '/contact.html' },
