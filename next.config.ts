@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      { source: '/tools/bill', destination: 'https://jiejourneys-bill.vercel.app' },
+      { source: '/tools/bill/:path*', destination: 'https://jiejourneys-bill.vercel.app/:path*' },
       { source: '/', destination: '/index.html' },
       { source: '/contact', destination: '/contact.html' },
       { source: '/contact/', destination: '/contact.html' },
