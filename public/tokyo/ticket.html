@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JieJourneys(旅杰)-日本東京自由行票券攻略</title>
+<meta name="description" content="JieJourneys(旅杰)日本東京自由行-一頁整理所有日本東京票券，包含教學短片、行程建議與購票連結，幫你在最短時間內選好票券。">
+  <!-- favicon / touch icon -->
+  <link rel="icon" href="../assets/logo.jpg" />
+  <link rel="apple-touch-icon" href="../assets/logo.jpg" />
+    <!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_TW">
+<meta property="og:site_name" content="JieJourneys(旅杰)">
+<meta property="og:title" content="JieJourneys(旅杰)日本東京自由行-日本東京自由行票券攻略">
+<meta property="og:description" content="JieJourneys(旅杰)-一頁整理所有日本東京票券，包含教學短片、行程建議與購票連結，幫你在最短時間內選好票券。">
+<meta property="og:url" content="https://www.jiejourneys.com/tokyo/ticket.html">
+<meta property="og:image" content="https://www.jiejourneys.com/assets/logo.jpg">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="JieJourneys(旅杰)日本東京自由行-日本東京自由行票券攻略">
+<meta name="twitter:description" content="JieJourneys(旅杰)-一頁整理所有日本東京票券，包含教學短片、行程建議與購票連結，幫你在最短時間內選好票券。">
+<meta name="twitter:image" content="https://www.jiejourneys.com/assets/logo.jpg">
+
+<link rel="canonical" href="https://www.jiejourneys.com/tokyo/ticket.html">
+
+  <style>
+    :root{
+      --brand:#000000;
+      --ink:#1f2937;
+      --bg:#f7fafc;
+      --card:#fff;
+      --muted:#64748b;
+      --ring:rgba(0,0,0,.08);
+      --cta:#1f7a8c;
+      --cta-hover:#176070;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family: ui-sans-serif,system-ui,"Noto Sans TC",Arial,Helvetica,sans-serif;
+      background:var(--bg); color:var(--ink); line-height:1.6;
+    }
+
+    /* ========= Header（與 tokyo.html 完全一致） ========= */
+    header{
+      background:#fff;
+      box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    nav{
+      max-width:960px;
+      margin:auto;
+      padding:12px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .brand{display:flex;align-items:center;gap:10px;color:var(--brand);font-weight:800;text-decoration:none}
+    .brand img{width:34px;height:34px;border-radius:8px;object-fit:cover}
+
+    .back-link,
+    .home-link {
+      text-decoration: none;
+      color: #1f7a8c;
+      font-weight: 600;
+      background: #f0f9fb;
+      border: 1.5px solid #1f7a8c;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+    }
+    .back-link:hover,
+    .home-link:hover { background:#1f7a8c; color:#fff; }
+
+    /* ========= Main（與 tokyo.html 同寬） ========= */
+    main{max-width:720px;margin:auto;padding:24px 16px}
+    h1{margin:0;color:var(--brand);font-size:22px}
+    p.sub{color:#64748b;margin:4px 0 16px}
+
+    /* 區域 tabs：保留簡單切換 */
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 14px }
+    .tab{
+      border:1px solid var(--ring); background:#fff;
+      padding:8px 12px; border-radius:999px; cursor:pointer;
+    }
+    .tab.active{ background:#0f172a; color:#fff; border-color:#0f172a }
+
+    /* 住宿卡片：手機 1 欄、桌面 2 欄；卡片高度統一 */
+    .stay-list{ display:grid; grid-template-columns:1fr; gap:12px }
+    @media (min-width:820px){ .stay-list{ grid-template-columns:1fr 1fr } }
+
+/* 最終版：無縮圖 */
+.stay-card{
+  display:grid; grid-template-columns:1fr;
+  gap:8px; padding:12px;
+  border:2px solid #1f7a8c; border-radius:14px; background:var(--card);
+  min-height:110px;
+}
+
+
+    .title{
+      margin:0 0 4px; font-weight:700; font-size:16px;
+      display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;
+    }
+    .meta{
+      color:var(--muted); font-size:14px; margin:0 0 8px;
+      display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;
+    }
+
+    .btn{
+      text-decoration:none; font-size:14px;
+      padding:6px 10px; border-radius:10px; border:1.5px solid var(--ring);
+      background:#fff; display:inline-block; flex:0 0 auto;
+    }
+    .btn.primary{ background:var(--cta); color:#fff; border-color:var(--cta) }
+    .btn.primary:hover{ background:var(--cta-hover) }
+
+    footer{ text-align:center; color:#94a3b8; font-size:14px; margin:36px 0 }
+    
+/* === 移除卡片圖片，版面自動收斂 === */
+.stay-card{
+  grid-template-columns: 1fr;  /* 原本有縮圖的左欄取消 */
+  gap: 8px;
+  min-height: 110px;           /* 統一卡片高度，想更緊可改 96px */
+}
+.thumb{ display: none !important; }  /* 不顯示縮圖 */
+
+/* 標題/區域各限一行，避免忽高忽低 */
+.title, .meta{
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* 連結列單行，超出可滑動，卡片高度不被撐高 */
+.actions{
+  white-space: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.desc{
+  font-size:14px; color:#475569; line-height:1.5; margin:2px 0 8px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+
+.btn{ cursor:pointer; transition:background .15s, border-color .15s, transform .15s; }
+.btn:hover{ background:#f0f9fb; border-color:#1f7a8c; transform:translateY(-1px); }
+.btn:focus-visible{ outline:3px solid rgba(31,122,140,.35); outline-offset:2px; }
+
+/* 章節標題的間距（上 0、下 12px） */
+main h1{ margin:0 0 12px; }
+
+/* 第二層標題（例如“釜山住宿精選”）給一點上間距，再給下 12px */
+main h2{ margin:24px 0 12px; }
+
+/* 保險：影片介紹的標題後面緊接第一個列表，補一點間距 */
+main h1 + .stay-list{ margin-top:8px; }
+
+/* 修正右上按鈕在小螢幕會爆出去 */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  flex-shrink: 1;     /* 允許縮小 */
+  overflow: hidden;  /* 防止爆出去 */
+}
+
+.nav-actions a {
+  padding: 6px 10px;
+  font-size: 14px;
+  white-space: nowrap; /* 不換行 */
+  flex-shrink: 1;      /* 允許縮小 */
+  min-width: 0;
+}
+
+
+  </style>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-NCTMJ4F5XP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-NCTMJ4F5XP');
+</script>
+
+<script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BreadcrumbList",
+   "itemListElement":[
+     {"@type":"ListItem","position":1,"name":"JieJourneys(旅杰)","item":"https://www.jiejourneys.com/"},
+     {"@type":"ListItem","position":2,"name":"日本東京行程","item":"https://www.jiejourneys.com/tokyo/"},
+     {"@type":"ListItem","position":3,"name":"日本東京票券","item":"https://www.jiejourneys.com/tokyo/ticket.html"}
+   ]}
+  </script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebPage",
+   "name":"日本東京票券｜JieJourneys(旅杰)",
+   "url":"https://www.jiejourneys.com/tokyo/ticket.html"}
+  </script>  
+  
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "JieJourneys",
+      "alternateName": "旅杰",
+      "url": "https://www.jiejourneys.com/",
+      "logo": "https://www.jiejourneys.com/assets/logo.jpg",
+      "sameAs": [
+        "https://www.instagram.com/jiejourneys",
+        "https://www.youtube.com/@jiejourneys",
+        "https://www.threads.net/@jiejourneys"
+      ]
+    }
+    </script>
+    
+    <script>
+      window.va = window.va || function () {
+        (window.vaq = window.vaq || []).push(arguments);
+      };
+      </script>
+      <script defer src="/_vercel/insights/script.js"></script>  
+
+      <script>
+        document.addEventListener('click', function (e) {
+          let el = e.target;
+        
+          while (el && el !== document) {
+            if (el.dataset && el.dataset.event) {
+              const eventName = el.dataset.event;
+        
+              if (window.va) {
+                va(eventName);
+              }
+        
+              break;
+            }
+            el = el.parentElement;
+          }
+        });
+        </script>
+
+</head>
+<body>
+  <!-- Header（完全同 tokyo.html） -->
+  <header>
+    <nav>
+      <a href="/" class="brand" aria-label="回首頁"
+      data-event="tokyoticket_logo" data-item="brand">
+     <img src="../assets/logo.jpg" alt="JieJourneys(旅杰) Logo">
+     <span>JieJourneys｜旅杰</span>
+   </a>
+   
+      <!-- 回上一頁：因為本頁在 /tokyo/，上一頁就是同資料夾的 index.html -->
+      <div class="nav-actions">
+      <a href="/tokyo/" class="home-link"
+   data-event="tokyoticket_back" data-item="back">← 上一頁</a>
+      <!-- 回首頁 -->
+      <a href="/" class="home-link"
+   data-event="tokyoticket_backhome" data-item="home">回首頁</a>
+  </div>
+    </nav>
+  </header>
+
+  <!-- Main -->
+  <main>
+    <h1>日本東京｜票券購買</h1>
+
+    <!-- 區域切換 -->
+    <div class="tabs" id="areaTabs">
+  <button class="tab active" data-area="all">全部</button>
+  <button class="tab" data-area="展望台">展望台</button>
+  <button class="tab" data-area="主題類">主題類</button>
+  <button class="tab" data-area="親子類">親子類</button>
+  <button class="tab" data-area="水族館">水族館</button>
+</div>
+
+
+    <!-- 清單 -->
+    <section class="stay-list" id="stayList">
+        <article class="stay-card" data-area="展望台"
+         data-title="SHIBUYA SKY">
+            <div>
+            <h3 class="title">SHIBUYA SKY</h3>
+            <p class="meta">展望台</p>
+            <div class="actions">
+              <a class="btn primary" href="https://www.kkday.com/zh-tw/product/133300-shibuya-sky-observatory-e-ticket-tokyo?cid=22312"
+                 target="_blank" rel="noopener noreferrer" data-event="tokyoticket_ShibuyaSkyKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+              <a class="btn" href="https://www.klook.com/zh-TW/activity/70672-shibuya-sky-tokyo/?aid=93798"
+                 target="_blank" rel="noopener noreferrer" data-event="tokyoticket_ShibuyaSkyKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                 <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/shibuya-sky-136018827/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                 target="_blank" rel="noopener noreferrer" data-event="tokyoticket_ShibuyaSkyTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+            </div>
+        </div>
+          </article>
+  
+            <article class="stay-card" data-area="展望台"
+             data-title="晴空塔">
+                <div>
+                <h3 class="title">晴空塔</h3>
+                <p class="meta">展望台</p>
+                <div class="actions">
+                  <a class="btn primary" href="https://www.kkday.com/zh-tw/product/10759-tokyo-skytree-observatory-advance-ticket-japan?cid=22312"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SkyTreeKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                  <a class="btn" href="https://www.klook.com/zh-TW/activity/41352-tokyo-skytree/?aid=93798"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SkyTreeKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                     <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/tokyo-skytree-91422/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                     target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SkyTreeTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                </div>
+            </div>
+              </article>
+
+                <article class="stay-card" data-area="展望台"
+                 data-title="六本木之丘">
+                    <div>
+                    <h3 class="title">六本木之丘</h3>
+                    <p class="meta">展望台</p>
+                    <div class="actions">
+                      <a class="btn primary" href="https://www.kkday.com/zh-tw/product/18946-tokyo-city-view-ticket-roppongi-hills-observatory?cid=22312"
+                         target="_blank" rel="noopener noreferrer" data-event="tokyoticket_RoppongiKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                      <a class="btn" href="https://www.klook.com/zh-TW/activity/15762-roppongi-hills-observatory-deck-tokyo/?aid=93798"
+                         target="_blank" rel="noopener noreferrer" data-event="tokyoticket_RoppongiKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                         <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/tokyo-city-view-149935797/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                         target="_blank" rel="noopener noreferrer" data-event="tokyoticket_RoppongiTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                    </div>
+                </div>
+                  </article>
+
+                  <article class="stay-card" data-area="展望台"
+                  data-title="東京鐵塔">
+                     <div>
+                     <h3 class="title">東京鐵塔</h3>
+                     <p class="meta">展望台</p>
+                     <div class="actions">
+                       <a class="btn primary" href="https://www.kkday.com/zh-tw/product/12271-japan-tokyo-tower-observatory-e-ticket?cid=22312"
+                          target="_blank" rel="noopener noreferrer" data-event="tokyoticket_TokyoTowerKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                       <a class="btn" href="https://www.klook.com/zh-TW/activity/4911-tokyo-tower-main-observatory-ticket-tokyo/?aid=93798"
+                          target="_blank" rel="noopener noreferrer" data-event="tokyoticket_TokyoTowerKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                          <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/tokyo-tower-78880/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                          target="_blank" rel="noopener noreferrer" data-event="tokyoticket_TokyoTowerTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                     </div>
+                 </div>
+                   </article>
+
+                    <article class="stay-card" data-area="主題類"
+                    data-title="東京迪士尼">
+                       <div>
+                       <h3 class="title">東京迪士尼</h3>
+                       <p class="meta">主題類</p>
+                       <div class="actions">
+                         <a class="btn primary" href="https://www.kkday.com/zh-tw/product/19252-tokyo-disney-resort-disneyland-disneysea?cid=22312"
+                            target="_blank" rel="noopener noreferrer" data-event="tokyoticket_DisneyKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                         <a class="btn" href="https://www.klook.com/zh-TW/activity/695-tokyo-disney-resort-1-day-pass-tokyo/?aid=93798"
+                            target="_blank" rel="noopener noreferrer" data-event="tokyoticket_DisneyKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                            <a class="btn" href="https://tw.trip.com/travel-guide/attraction/urayasu/tokyo-disneyland-10758189/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                            target="_blank" rel="noopener noreferrer" data-event="tokyoticket_DisneyTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                       </div>
+                   </div>
+                     </article>
+
+                     <article class="stay-card" data-area="主題類"
+                     data-title="哈利波特影城">
+                        <div>
+                        <h3 class="title">哈利波特影城</h3>
+                        <p class="meta">主題類</p>
+                        <div class="actions">
+                          <a class="btn primary" href="https://www.kkday.com/zh-tw/product/144383-warner-bros-studio-tour-tokyo-the-making-of-harry-potter-ticket?cid=22312"
+                             target="_blank" rel="noopener noreferrer" data-event="tokyoticket_HarryPotterKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                          <a class="btn" href="https://www.klook.com/zh-TW/activity/84374-warner-bros-studio-tour-tokyo-making-harry-potter/?aid=93798"
+                             target="_blank" rel="noopener noreferrer" data-event="tokyoticket_HarryPotterKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                             <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/the-making-of-harry-potter-warner-bros-studio-tour-tokyo-136452473/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                             target="_blank" rel="noopener noreferrer" data-event="tokyoticket_HarryPotterTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                        </div>
+                    </div>
+                      </article>
+
+                      <article class="stay-card" data-area="主題類"
+                      data-title="TeamLab Planets">
+                         <div>
+                         <h3 class="title">TeamLab Planets</h3>
+                         <p class="meta">主題類</p>
+                         <div class="actions">
+                           <a class="btn primary" href="https://www.kkday.com/zh-tw/product/22396-japan-teamlab-planets-tokyo-ticket?cid=22312"
+                              target="_blank" rel="noopener noreferrer" data-event="tokyoticket_TeamLabKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                           <a class="btn" href="https://www.klook.com/zh-TW/activity/25300-teamlab-planets-toyosu-tokyo-ticket/?aid=93798"
+                              target="_blank" rel="noopener noreferrer" data-event="tokyoticket_TeamLabKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                              <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/teamlab-planets-tokyo-61909015/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                              target="_blank" rel="noopener noreferrer" data-event="tokyoticket_TeamLabTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                         </div>
+                     </div>
+                       </article>
+
+                       <article class="stay-card" data-area="主題類"
+                       data-title="TeamLab Borderless">
+                          <div>
+                          <h3 class="title">TeamLab Borderless</h3>
+                          <p class="meta">主題類</p>
+                          <div class="actions">
+                            <a class="btn primary" href="https://www.klook.com/zh-TW/activity/20707-teamlab-borderless-admission-ticket-tokyo/?aid=93798"
+                               target="_blank" rel="noopener noreferrer" data-event="tokyoticket_BorderlessKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                               <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/teamlab-borderless-mori-building-digital-art-museum-142107812/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                               target="_blank" rel="noopener noreferrer" data-event="tokyoticket_BorderlessTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                          </div>
+                      </div>
+                        </article>
+
+                        <article class="stay-card" data-area="主題類"
+                        data-title="便便博物館">
+                           <div>
+                           <h3 class="title">便便博物館</h3>
+                           <p class="meta">主題類</p>
+                           <div class="actions">
+                             <a class="btn primary" href="https://www.kkday.com/zh-tw/product/144021-unko-museum-tokyo-admission-ticket-japan?cid=22312"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_UnkoMuseumKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                             <a class="btn" href="https://www.klook.com/zh-TW/activity/26899-unko-museum-ticket-tokyo/?aid=93798"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_UnkoMuseumKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                                <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/unko-museum-tokyo-141383200/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_UnkoMuseumTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                           </div>
+                       </div>
+                         </article>
+
+                        <article class="stay-card" data-area="親子類"
+                        data-title="迷你世界博物館">
+                           <div>
+                           <h3 class="title">迷你世界博物館</h3>
+                           <p class="meta">親子類</p>
+                           <div class="actions">
+                            <a class="btn primary" href="https://www.kkday.com/zh-tw/product/115532-small-worlds-tokyo-admission-passport-japan?cid=22312"
+                              target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SmallWorldsKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                                <a class="btn" href="https://www.klook.com/zh-TW/activity/66249-small-worlds-tokyo-admission-passport/?aid=93798"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SmallWorldsKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                                <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/small-worlds-miniature-museum-84442589/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SmallWorldsTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                           </div>
+                       </div>
+                         </article>
+                         
+                         <article class="stay-card" data-area="親子類"
+                         data-title="樂高樂園">
+                            <div>
+                            <h3 class="title">樂高樂園</h3>
+                            <p class="meta">親子類</p>
+                            <div class="actions">
+                             <a class="btn primary" href="https://www.kkday.com/zh-tw/product/9852-japan-legoland-discovery-center-tokyo-and-madame-tussauds-ticket?cid=22312"
+                               target="_blank" rel="noopener noreferrer" data-event="tokyoticket_LegolandKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                                 <a class="btn" href="https://www.klook.com/zh-TW/activity/5563-legoland-discovery-center-tokyo/?aid=93798"
+                                 target="_blank" rel="noopener noreferrer" data-event="tokyoticket_LegolandKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                                 <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/legoland-discovery-center-tokyo-18029735/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                                 target="_blank" rel="noopener noreferrer" data-event="tokyoticket_LegolandTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                            </div>
+                        </div>
+                          </article>
+
+                          <article class="stay-card" data-area="親子類"
+                          data-title="三麗鷗彩虹樂園">
+                             <div>
+                             <h3 class="title">三麗鷗彩虹樂園</h3>
+                             <p class="meta">親子類</p>
+                             <div class="actions">
+                              <a class="btn primary" href="https://www.kkday.com/zh-tw/product/10896-tokyo-sanrio-puroland-ticket?cid=22312"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_LegolandKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                                  <a class="btn" href="https://www.klook.com/zh-TW/activity/2276-sanrio-puroland-tokyo/?aid=93798"
+                                  target="_blank" rel="noopener noreferrer" data-event="tokyoticket_LegolandKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                                  <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tama/sanrio-puroland-10759099/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                                  target="_blank" rel="noopener noreferrer" data-event="tokyoticket_LegolandTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                             </div>
+                         </div>
+                           </article>
+
+                      <article class="stay-card" data-area="水族館"
+                      data-title="墨田水族館">
+                         <div>
+                         <h3 class="title">墨田水族館</h3>
+                         <p class="meta">水族館</p>
+                         <div class="actions">
+                           <a class="btn primary" href="https://www.kkday.com/zh-tw/product/149602-sumida-aquarium-admission-tickets-tokyo-skytree?cid=22312"
+                              target="_blank" rel="noopener noreferrer" data-event="tokyoticket_AquariumKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                           <a class="btn" href="https://www.klook.com/zh-TW/activity/59360-tokyo-skytree-sumida-aquarium-combo-ticket/?aid=93798"
+                              target="_blank" rel="noopener noreferrer" data-event="tokyoticket_AquariumKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                              <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/sumida-aquarium-24301029/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                              target="_blank" rel="noopener noreferrer" data-event="tokyoticket_AquariumTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                         </div>
+                     </div>
+                       </article>
+
+                       <article class="stay-card" data-area="水族館"
+                       data-title="東京銀座藝術水族館">
+                          <div>
+                          <h3 class="title">東京銀座藝術水族館</h3>
+                          <p class="meta">水族館</p>
+                          <div class="actions">
+                            <a class="btn primary" href="https://www.klook.com/zh-TW/activity/73977-art-aquarium-ticket-tokyo/?aid=93798"
+                               target="_blank" rel="noopener noreferrer" data-event="tokyoticket_GinzaAquariumKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                               <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/art-aquarium-museum-136642347/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                               target="_blank" rel="noopener noreferrer" data-event="tokyoticket_GinzaAquariumTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                          </div>
+                      </div>
+                        </article>
+
+                        <article class="stay-card" data-area="水族館"
+                        data-title="東京品川水族館">
+                           <div>
+                           <h3 class="title">東京品川水族館</h3>
+                           <p class="meta">水族館</p>
+                           <div class="actions">
+                             <a class="btn primary" href="https://www.kkday.com/zh-tw/product/18689-tokyo-maxell-aqua-park-shinagawa-ticket-japan?cid=22312"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_MaxellAquaKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                             <a class="btn" href="https://www.klook.com/zh-TW/activity/5609-aqua-park-shinagawa-ticket-tokyo/?aid=93798"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_MaxellAquaKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                                <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/maxell-aqua-park-shinagawa-18699600/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                                target="_blank" rel="noopener noreferrer" data-event="tokyoticket_MaxellAquaTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                           </div>
+                       </div>
+                         </article>
+
+                         <article class="stay-card" data-area="水族館"
+                         data-title="池袋陽光水族館">
+                            <div>
+                            <h3 class="title">池袋陽光水族館</h3>
+                            <p class="meta">水族館</p>
+                            <div class="actions">
+                              <a class="btn primary" href="https://www.kkday.com/zh-tw/product/166262-sunshine-aquarium-60-observation-deck-park-ikebukuro-tokyo?cid=22312"
+                                 target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SunshineAquaKKday" data-platform="KKDAY" data-section="ticket_card">KKDAY</a>
+                              <a class="btn" href="https://www.klook.com/zh-TW/activity/14547-sunshine-aquarium-ticket-tokyo/?aid=93798"
+                                 target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SunshineAquaKLOOK" data-platform="KLOOK" data-section="ticket_card">KLOOK</a>
+                                 <a class="btn" href="https://tw.trip.com/travel-guide/attraction/tokyo/sunshine-aquarium-18699584/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738"
+                                 target="_blank" rel="noopener noreferrer" data-event="tokyoticket_SunshineAquaTrip" data-platform="Trip" data-section="ticket_card">Trip</a>
+                            </div>
+                        </div>
+                          </article>
+
+    </section>
+  </main>
+
+  <footer>JieJourneys © <span id="year"></span></footer>
+ 
+    <script>
+        // 年份
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+  const tabs = document.querySelectorAll('.tab');
+  const cards = document.querySelectorAll('#stayList .stay-card');
+  let area = 'all';
+
+  tabs.forEach(t => t.onclick = () => {
+    tabs.forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    area = t.dataset.area;
+
+    cards.forEach(c => {
+      c.style.display = (area === 'all' || c.dataset.area === area) ? 'grid' : 'none';
+    });
+
+    // 送出 tab 切換事件
+    if (typeof gtag === 'function') {
+      gtag('event', 'tokyo_ticket_tab', { page_path: location.pathname, area });
+    }
+  });
+</script>
+
+ 
+<script>
+    document.addEventListener('click', function (e) {
+      const el = e.target.closest('[data-event]');
+      if (!el || typeof gtag !== 'function') return;
+    
+      const card = el.closest('[data-video],[data-hotel],.stay-card');
+      const titleText = card?.querySelector('.title')?.textContent?.trim() || '';
+    
+      gtag('event', el.dataset.event, {
+        page_path: location.pathname,
+        platform : el.dataset.platform || '',
+        label    : el.dataset.label || '',
+        item     : el.dataset.item || card?.dataset.item || '',
+        section  : el.dataset.section || card?.dataset.section || '',
+        // 影片
+        video    : card?.dataset.video || '',
+        title    : card?.dataset.title || titleText,
+        // 票券/住宿可忽略這兩個（留著無妨）
+        hotel    : card?.dataset.hotel || '',
+        area     : card?.dataset.area || '',
+        url      : el.href || ''
+      });
+    }, { capture:true });
+    </script>
+    
+    <script>
+      document.querySelectorAll('#stayList .stay-card').forEach(card=>{
+        if(!card.dataset.item){
+          const name = card.dataset.title || card.querySelector('.title')?.textContent || card.dataset.area || '';
+          card.dataset.item = name.trim().toLowerCase()
+            .replace(/\s+/g,'-').replace(/[^\w\-]+/g,'').replace(/\-+/g,'-');
+        }
+      });
+      </script>
+      
+  
+
+</body>
+</html>
