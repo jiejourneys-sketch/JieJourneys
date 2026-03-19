@@ -3,7 +3,6 @@ import path from 'path'
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
-  basePath: '/tools/bill',
   webpack: (config, { dev }) => {
     if (dev) config.cache = false
     return config
