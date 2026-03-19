@@ -1,12 +1,4 @@
 {
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Accept-Ranges", "value": "none" }
-      ]
-    }
-  ],
   "rewrites": [
     { "source": "/tools/bill", "destination": "https://jiejourneys-bill.vercel.app" },
     { "source": "/tools/bill/(.*)", "destination": "https://jiejourneys-bill.vercel.app/$1" },
