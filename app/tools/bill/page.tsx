@@ -10,6 +10,7 @@ export default function Home() {
   const [books, setBooks] = useState<BookRow[]>([])
   const [recentBookIds, setRecentBookIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const howToUrl = process.env.NEXT_PUBLIC_BILL_HOWTO_URL || ''
 
   useEffect(() => {
     const RECENT_KEY = 'bill_recent_book_ids_v1'
@@ -113,6 +114,34 @@ export default function Home() {
       >
         提醒：帳本若連續 1 年沒有更新，系統會自動刪除該帳本及其明細。
       </p>
+
+      <div
+        className="card"
+        style={{
+          marginTop: 12,
+          borderColor: 'rgba(31,122,140,.35)',
+          background: '#fff'
+        }}
+      >
+        <div style={{ fontWeight: 900, color: '#16324f', marginBottom: 6 }}>不會用？看 30 秒教學</div>
+        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>
+          之後我會放 IG Reels，一步一步教你怎麼建立帳本、新增成員與記帳。
+        </div>
+        <a
+          href={howToUrl || 'https://www.instagram.com/'}
+          target="_blank"
+          rel="noreferrer"
+          className="btn secondary"
+          style={{ display: 'inline-block', width: 'auto', textDecoration: 'none', padding: '10px 14px' }}
+          data-event="howtovideo"
+          aria-disabled={!howToUrl}
+          onClick={(e) => {
+            if (!howToUrl) e.preventDefault()
+          }}
+        >
+          {howToUrl ? '前往 IG Reels 教學' : '教學影片準備中'}
+        </a>
+      </div>
     </div>
   )
 }
