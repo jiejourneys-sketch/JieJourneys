@@ -1,0 +1,571 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+
+type MemberRow = { id: string; name: string }
+type ExpenseRow = {
+  id: string
+  book_id: string
+  amount: number
+  description: string
+  occurred_at?: string
+  note?: string | null
+}
+type SplitRow = {
+  expense_id: string
+  member_id: string
+  amount: number
+  shared_amount?: number
+  exclusive_amount?: number
+}
+type PayerRow = { expense_id: string; member_id: string; amount: number }
+type Mode = 'all' | 'some'
+
+const nint = (v: string | undefined) => Math.round(Number(v || 0) || 0)
+
+function toDateParts(dtLocal: string) {
+  const [d, t] = String(dtLocal || '').split('T')
+  return { dateOnly: d || '', timeOnly: t || '' }
+}
+
+function combineDateTime(dateOnly: string, timeOnly: string) {
+  if (!dateOnly) return ''
+  const t = timeOnly || '12:00'
+  return `${dateOnly}T${t}`
+}
+
+function toDatetimeLocal(iso: string | undefined) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`
+}
+
+export default function EditExpenseForm({
+  bookId,
+  expense,
+  members,
+  splits,
+  payers
+}: {
+  bookId: string
+  expense: ExpenseRow
+  members: MemberRow[]
+  splits: SplitRow[]
+  payers: PayerRow[]
+}) {
+  const router = useRouter()
+
+  const initDateLocal = toDatetimeLocal(expense.occurred_at) || toDatetimeLocal(new Date().toISOString())
+  const initParts = toDateParts(initDateLocal)
+  const [date, setDate] = useState(initDateLocal)
+  const [dateOnly, setDateOnly] = useState(initParts.dateOnly)
+  const [timeOnly, setTimeOnly] = useState(initParts.timeOnly)
+  const [description, setDescription] = useState(expense.description || '')
+  const [amount, setAmount] = useState(String(expense.amount ?? ''))
+  const [note, setNote] = useState(expense.note || '')
+  const [saving, setSaving] = useState(false)
+
+  const memberOptions = useMemo(() => members || [], [members])
+  const byId = useMemo(
+    () => new Map(memberOptions.map((m) => [m.id, m.name] as const)),
+    [memberOptions]
+  )
+  const total = useMemo(() => nint(amount), [amount])
+
+  // Payers
+  const [editingPayers, setEditingPayers] = useState(false)
+  const [payerIds, setPayerIds] = useState<Set<string>>(
+    () => new Set((payers || []).map((p) => p.member_id))
+  )
+  const [payerAmounts, setPayerAmounts] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {}
+    for (const p of payers || []) m[p.member_id] = String(p.amount ?? '')
+    return m
+  })
+
+  const effectivePayerIds = useMemo(
+    () => new Set(payerIds),
+    [payerIds]
+  )
+
+  const payerDisplay = useMemo(() => {
+    const ids = [...effectivePayerIds]
+    return ids.length ? ids.map((id) => byId.get(id) || '未知').join('、') : '未選擇'
+  }, [byId, effectivePayerIds])
+
+  const computedPayerAmounts = useMemo(() => {
+    const ids = [...effectivePayerIds].sort()
+    if (!ids.length || total <= 0) return {}
+
+    const manualIds = ids.filter(
+      (id) => payerAmounts[id] !== undefined && payerAmounts[id] !== ''
+    )
+    const manualSum = manualIds.reduce((sum, id) => sum + nint(payerAmounts[id]), 0)
+    const autoIds = ids.filter((id) => !manualIds.includes(id))
+
+    const remaining = total - manualSum
+
+    const result: Record<string, number> = {}
+
+    manualIds.forEach((id) => {
+      result[id] = nint(payerAmounts[id])
+    })
+
+    if (autoIds.length > 0) {
+      const base = Math.floor(remaining / autoIds.length)
+      const rem = remaining - base * autoIds.length
+      autoIds.forEach((id, idx) => {
+        result[id] = base + (idx < rem ? 1 : 0)
+      })
+    }
+
+    return result
+  }, [effectivePayerIds, payerAmounts, total])
+
+  const payerAllocated = useMemo(
+    () => Object.values(computedPayerAmounts).reduce((s, v) => s + v, 0),
+    [computedPayerAmounts]
+  )
+  const payerRemaining = total - payerAllocated
+
+  // Splits
+  const [editingSplit, setEditingSplit] = useState(false)
+  const [splitterIds, setSplitterIds] = useState<Set<string>>(
+    () => new Set((splits || []).map((s) => s.member_id))
+  )
+  const [sharedOverrides, setSharedOverrides] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {}
+    for (const s of splits || []) {
+      const v = s.shared_amount != null ? s.shared_amount : s.amount
+      m[s.member_id] = String(v ?? 0)
+    }
+    return m
+  })
+  const [exclusiveAmounts, setExclusiveAmounts] = useState<Record<string, string>>(() => {
+    const m: Record<string, string> = {}
+    for (const s of splits || []) {
+      const v = Number(s.exclusive_amount ?? 0)
+      if (v > 0) m[s.member_id] = String(v)
+    }
+    return m
+  })
+  const [lockedSharedIds, setLockedSharedIds] = useState<Set<string>>(
+    () => new Set((splits || []).map((s) => s.member_id))
+  )
+
+  const effectiveSplitterIds = useMemo(
+    () => new Set(splitterIds),
+    [splitterIds]
+  )
+
+  const splitDisplay = useMemo(() => {
+    const ids = [...effectiveSplitterIds]
+    if (ids.length === memberOptions.length) return '所有人均分'
+    return ids.map((id) => byId.get(id) || '未知').join('、')
+  }, [byId, effectiveSplitterIds, memberOptions.length])
+
+  const computedSplit = useMemo(() => {
+    const ids = [...effectiveSplitterIds].sort()
+    const exclusiveSum = ids.reduce((sum, id) => sum + nint(exclusiveAmounts[id]), 0)
+    const sharedPool = total - exclusiveSum
+    const lockedSharedSum = ids.reduce((sum, id) => {
+      if (!lockedSharedIds.has(id)) return sum
+      return sum + nint(sharedOverrides[id])
+    }, 0)
+    const unlocked = ids.filter((id) => !lockedSharedIds.has(id))
+    const remaining = sharedPool - lockedSharedSum
+    const base = unlocked.length ? Math.floor(remaining / unlocked.length) : 0
+    const rem = unlocked.length ? remaining - base * unlocked.length : 0
+    const shared: Record<string, number> = {}
+    const exclusive: Record<string, number> = {}
+    ids.forEach((id) => {
+      exclusive[id] = nint(exclusiveAmounts[id])
+      if (lockedSharedIds.has(id)) shared[id] = nint(sharedOverrides[id])
+    })
+    unlocked.forEach((id, idx) => {
+      shared[id] = base + (idx < rem ? 1 : 0)
+    })
+    const totalByMember: Record<string, number> = {}
+    ids.forEach((id) => (totalByMember[id] = (shared[id] || 0) + (exclusive[id] || 0)))
+    return { shared, exclusive, totalByMember, exclusiveSum, sharedPool }
+  }, [effectiveSplitterIds, exclusiveAmounts, lockedSharedIds, sharedOverrides, total])
+
+  const splitAllocated = Object.values(computedSplit.totalByMember).reduce((s, v) => s + v, 0)
+  const splitRemaining = total - splitAllocated
+
+  const submit = async () => {
+    if (!description.trim() || !amount) return alert('請填完整')
+    const n = Number(amount)
+    if (!Number.isFinite(n) || n <= 0) return alert('金額不正確')
+    if (effectivePayerIds.size === 0) return alert('請至少選 1 位付款者')
+    if (effectiveSplitterIds.size === 0) return alert('請至少選 1 位分攤者')
+
+    const payerSum = Object.values(computedPayerAmounts).reduce((s, v) => s + v, 0)
+    if (payerSum !== total) return alert('付款者金額加總必須等於帳目金額')
+    const splitSum = Object.values(computedSplit.totalByMember).reduce((s, v) => s + v, 0)
+    if (splitSum !== total) return alert('分攤金額加總必須等於帳目金額')
+
+    setSaving(true)
+    const occurredAt = new Date(combineDateTime(dateOnly, timeOnly) || date).toISOString()
+
+    const { error: uErr } = await supabase
+      .from('expenses')
+      .update({
+        description: description.trim(),
+        amount: total,
+        occurred_at: occurredAt,
+        note: note.trim() || null
+      })
+      .eq('id', expense.id)
+
+    if (uErr) {
+      console.error(uErr)
+      setSaving(false)
+      alert('更新失敗')
+      return
+    }
+
+    const payerRows = [...effectivePayerIds].sort().map((memberId) => ({
+      expense_id: expense.id,
+      member_id: memberId,
+      amount: computedPayerAmounts[memberId] || 0
+    }))
+    const { error: pdErr } = await supabase.from('expense_payers').delete().eq('expense_id', expense.id)
+    if (pdErr) {
+      console.error(pdErr)
+      setSaving(false)
+      alert('更新付款者失敗')
+      return
+    }
+    const { error: piErr } = await supabase.from('expense_payers').insert(payerRows)
+    if (piErr) {
+      console.error(piErr)
+      setSaving(false)
+      alert('更新付款者失敗')
+      return
+    }
+
+    const splitRows = [...effectiveSplitterIds].sort().map((memberId) => ({
+      expense_id: expense.id,
+      member_id: memberId,
+      shared_amount: computedSplit.shared[memberId] || 0,
+      exclusive_amount: computedSplit.exclusive[memberId] || 0,
+      amount: computedSplit.totalByMember[memberId] || 0
+    }))
+    const { error: sdErr } = await supabase.from('expense_splits').delete().eq('expense_id', expense.id)
+    if (sdErr) {
+      console.error(sdErr)
+      setSaving(false)
+      alert('更新分攤失敗')
+      return
+    }
+    const { error: siErr } = await supabase.from('expense_splits').insert(splitRows)
+    if (siErr) {
+      console.error(siErr)
+      setSaving(false)
+      alert('更新分攤失敗')
+      return
+    }
+
+    setSaving(false)
+    window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
+    router.push(`/tools/bill/book/${bookId}`)
+    router.refresh()
+  }
+
+  const deleteThisExpense = async () => {
+    if (!confirm(`刪除帳目「${description}」？`)) return
+    setSaving(true)
+    const { error } = await supabase.from('expenses').delete().eq('id', expense.id)
+    if (error) {
+      console.error(error)
+      setSaving(false)
+      alert('刪除失敗')
+      return
+    }
+    setSaving(false)
+    window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
+    router.push(`/tools/bill/book/${bookId}`)
+    router.refresh()
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div>
+        <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>日期</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <input
+            className="field"
+            type="date"
+            value={dateOnly}
+            onChange={(e) => {
+              const next = e.target.value
+              setDateOnly(next)
+              setDate(combineDateTime(next, timeOnly))
+            }}
+            style={{ flex: 1, minWidth: 170, marginBottom: 0 }}
+          />
+          <input
+            className="field"
+            type="time"
+            value={timeOnly}
+            onChange={(e) => {
+              const next = e.target.value
+              setTimeOnly(next)
+              setDate(combineDateTime(dateOnly, next))
+            }}
+            style={{ width: 130, marginBottom: 0 }}
+          />
+        </div>
+      </div>
+
+      <div>
+        <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>項目</div>
+        <input className="field" value={description} onChange={(e) => setDescription(e.target.value)} />
+      </div>
+
+      <div>
+        <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>金額</div>
+        <input
+          className="field"
+          inputMode="numeric"
+          value={amount}
+          onChange={(e) => {
+            setAmount(e.target.value)
+            setPayerAmounts({})
+            setSharedOverrides({})
+            setExclusiveAmounts({})
+            setLockedSharedIds(new Set())
+          }}
+        />
+      </div>
+
+      <div>
+        <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>付款者（可多人）</div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="field" style={{ display: 'flex', alignItems: 'center', marginBottom: 0, flex: 1 }}>{payerDisplay}</div>
+          <button className="pill-link" style={{ border: 'none', cursor: 'pointer' }} type="button" onClick={() => setEditingPayers(true)}>編輯</button>
+        </div>
+
+        {editingPayers && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setEditingPayers(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-title">付款者</div>
+                <button className="modal-close" onClick={() => setEditingPayers(false)}>關閉</button>
+              </div>
+              <div className="modal-body">
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>總金額：${total}</div>
+                  <div style={{ fontSize: 13, color: payerRemaining === 0 ? '#059669' : '#b91c1c' }}>
+                    尚有 ${payerRemaining} 未分配
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>
+                  勾選付款者後會自動平均，修改金額時會重新計算剩餘。
+                </div>
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {memberOptions.map((m) => {
+                    const checked = effectivePayerIds.has(m.id)
+                    return (
+                      <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = new Set(payerIds)
+                            if (e.target.checked) next.add(m.id)
+                            else next.delete(m.id)
+                            setPayerIds(next)
+                            setPayerAmounts({})
+                          }}
+                        />
+                        <span style={{ width: 140 }}>{m.name}</span>
+                        {checked ? (
+                          <>
+                            <input
+                              className="field"
+                              style={{ height: 40, marginBottom: 0 }}
+                              inputMode="numeric"
+                              value={
+                                payerAmounts[m.id] ??
+                                (checked ? String(computedPayerAmounts[m.id] ?? '') : '')
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value
+                                setPayerAmounts((prev) => {
+                                  const next = { ...prev, [m.id]: v }
+                                  const ids = [...effectivePayerIds].sort()
+                                  if (ids.length === 2) {
+                                    const otherId = ids[0] === m.id ? ids[1] : ids[0]
+                                    delete next[otherId]
+                                    return next
+                                  }
+                                  if (ids.length >= 3) {
+                                    const manualCount = ids.filter(
+                                      (id) => next[id] !== undefined && next[id] !== ''
+                                    ).length
+                                    if (manualCount === ids.length) {
+                                      const candidate = ids.find((id) => id !== m.id)
+                                      if (candidate) delete next[candidate]
+                                    }
+                                  }
+                                  return next
+                                })
+                              }}
+                            />
+                          </>
+                        ) : null}
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button className="pill-link" style={{ border: 'none', cursor: 'pointer' }} type="button" onClick={() => setEditingPayers(false)}>完成</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>分攤者</div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="field" style={{ display: 'flex', alignItems: 'center', marginBottom: 0, flex: 1 }}>{splitDisplay}</div>
+          <button className="pill-link" style={{ border: 'none', cursor: 'pointer' }} type="button" onClick={() => setEditingSplit(true)}>編輯</button>
+        </div>
+
+        {editingSplit && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setEditingSplit(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-title">分攤設定</div>
+                <button className="modal-close" onClick={() => setEditingSplit(false)}>關閉</button>
+              </div>
+              <div className="modal-body">
+                <div style={{ fontSize: 13, color: splitRemaining === 0 ? '#059669' : '#b91c1c', marginTop: 4 }}>
+                  尚未分配：{splitRemaining}
+                  <span style={{ marginLeft: 8, color: '#6b7280' }}>（總金額：{total}）</span>
+                </div>
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {memberOptions.map((m) => {
+                    const checked = effectiveSplitterIds.has(m.id)
+                    const sharedLocked = lockedSharedIds.has(m.id)
+                    return (
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = new Set(splitterIds)
+                            if (e.target.checked) next.add(m.id)
+                            else next.delete(m.id)
+                            setSplitterIds(next)
+                            setLockedSharedIds(new Set())
+                            setSharedOverrides({})
+                            setExclusiveAmounts((prev) => {
+                              const copy = { ...prev }
+                              if (!e.target.checked) delete copy[m.id]
+                              return copy
+                            })
+                          }}
+                        />
+                        <span style={{ minWidth: 60 }}>{m.name}</span>
+                        {checked ? (
+                          <>
+                            <input
+                              className="field"
+                              style={{ height: 38, marginBottom: 0, width: 90, padding: '0 10px' }}
+                              inputMode="numeric"
+                              placeholder="平均"
+                              value={
+                                sharedLocked ? (sharedOverrides[m.id] ?? '') : String(computedSplit.shared[m.id] ?? 0)
+                              }
+                              onChange={(e) => {
+                                const v = e.target.value
+                                setSharedOverrides((prev) => {
+                                  const next = { ...prev, [m.id]: v }
+                                  const ids = [...effectiveSplitterIds].sort()
+                                  if (ids.length === 2) {
+                                    const otherId = ids[0] === m.id ? ids[1] : ids[0]
+                                    delete next[otherId]
+                                  }
+                                  return next
+                                })
+                                setLockedSharedIds((prev) => {
+                                  const ids = [...effectiveSplitterIds].sort()
+                                  if (ids.length === 2) return new Set([m.id])
+                                  const next = new Set(prev)
+                                  next.add(m.id)
+                                  if (ids.length >= 3) {
+                                    const lockedCount = ids.filter((id) => next.has(id)).length
+                                    if (lockedCount === ids.length) {
+                                      const candidate = ids.find((id) => id !== m.id)
+                                      if (candidate) next.delete(candidate)
+                                    }
+                                  }
+                                  return next
+                                })
+                              }}
+                            />
+                            <input
+                              className="field"
+                              style={{ height: 38, marginBottom: 0, width: 90, padding: '0 10px' }}
+                              inputMode="numeric"
+                              placeholder="額外"
+                              value={exclusiveAmounts[m.id] ?? ''}
+                              onChange={(e) => {
+                                const v = e.target.value
+                                setExclusiveAmounts((prev) => {
+                                  const next = { ...prev }
+                                  if (!v) delete next[m.id]
+                                  else next[m.id] = v
+                                  return next
+                                })
+                              }}
+                            />
+                            <div style={{ width: 70, textAlign: 'right', fontWeight: 800 }}>
+                              {computedSplit.totalByMember[m.id] ?? 0}
+                            </div>
+                          </>
+                        ) : <div style={{ color: '#9ca3af', fontSize: 13 }}>未分攤</div>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button className="pill-link" style={{ border: 'none', cursor: 'pointer' }} type="button" onClick={() => setEditingSplit(false)}>完成</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>備註</div>
+        <textarea className="field" value={note} onChange={(e) => setNote(e.target.value)} style={{ height: 110, paddingTop: 12, resize: 'vertical' }} />
+      </div>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button className="btn" onClick={submit} disabled={saving} style={{ flex: 1 }}>
+          {saving ? '儲存中...' : '儲存'}
+        </button>
+        <button
+          className="danger-link"
+          onClick={deleteThisExpense}
+          disabled={saving}
+          style={{ padding: '12px 14px', borderRadius: 10, fontSize: 14, flexShrink: 0 }}
+        >
+          刪除
+        </button>
+      </div>
+    </div>
+  )
+}
