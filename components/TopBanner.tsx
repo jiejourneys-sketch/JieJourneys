@@ -1,0 +1,68 @@
+export default function TopBanner() {
+  return (
+    <div className="top-banner">
+      <div className="banner-content">
+        <div className="promo-grid">
+          <div>
+            <strong>KKday 優惠碼：</strong>
+            <a
+              href="https://www.kkday.com/zh-tw/?cid=22312"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="promo_KKDAY"
+              className="code-link"
+            >
+              <span className="code">KKJIE94 ↗</span>
+            </a>
+          </div>
+          <div>
+            <strong>Klook 優惠碼：</strong>
+            <a
+              href="https://www.klook.com/zh-TW/?aid=93798"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="promo_KLOOK"
+              className="code-link"
+            >
+              <span className="code">JieJourneys ↗</span>
+            </a>
+          </div>
+          <div>
+            <strong>eSIM 優惠碼：</strong>
+            <a
+              href="https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="promo_esimconnect"
+              className="code-link"
+            >
+              <span className="code">JieJourneys ↗</span>
+            </a>
+          </div>
+          <div>
+            <strong>訂房：</strong>
+            <a
+              href="https://tw.trip.com/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="promo_Trip"
+              className="code-link"
+            >
+              <span className="code">Trip ↗</span>
+            </a>
+            &nbsp;
+            <a
+              href="https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hl=zh-tw"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="promo_Agoda"
+              className="code-link"
+            >
+              <span className="code">Agoda ↗</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
