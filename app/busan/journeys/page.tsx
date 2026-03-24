@@ -57,7 +57,7 @@ export default function BusanJourneysPage() {
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/busan/journeys/assets/jiaonang.JPG" alt="景點精選照片" />
+              <img className="thumb" src="/busan/journeys/assets/haian.png" alt="景點精選照片" />
               <div className="title"><span className="icon">📌</span> 景點精選</div>
               <p>膠囊列車、甘川洞、松島纜車、海雲台、白淺灘、廣安里。</p>
             </article>

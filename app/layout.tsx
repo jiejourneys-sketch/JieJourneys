@@ -77,7 +77,9 @@ export default function RootLayout({
             `,
           }}
         />
-        <Script defer src="/_vercel/insights/script.js" strategy="afterInteractive" />
+        {process.env.VERCEL === '1' && (
+          <Script defer src="/_vercel/insights/script.js" strategy="afterInteractive" />
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
