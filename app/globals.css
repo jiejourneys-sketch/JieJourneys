@@ -58,7 +58,7 @@ header {
   align-items: center;
   gap: 10px;
   font-weight: 800;
-  color: var(--brand);
+  color: #000;
 }
 .brand img {
   width: 36px;
