@@ -356,12 +356,9 @@ header {
   border: 1.6px solid #1f7a8c;
   border-radius: 10px;
   font-weight: 600;
-  color: #1f7a8c;
+  color: #000;
   background: #fff;
   transition: all 0.15s ease;
-}
-.tools-row a.tool-bill-link {
-  color: #000;
 }
 .tools-row a:hover {
   background: #f0f9fb;

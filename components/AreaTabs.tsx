@@ -9,6 +9,7 @@ type Props = {
   activeTab: string
   onTabChange: (value: string) => void
   gtagEvent?: string
+  showActive?: boolean
 }
 
 export default function AreaTabs({
@@ -16,6 +17,7 @@ export default function AreaTabs({
   activeTab,
   onTabChange,
   gtagEvent,
+  showActive = true,
 }: Props) {
   const handleClick = (value: string) => {
     onTabChange(value)
@@ -34,7 +36,7 @@ export default function AreaTabs({
         <button
           key={value}
           type="button"
-          className={`tab ${activeTab === value ? 'active' : ''}`}
+          className={`tab ${showActive && activeTab === value ? 'active' : ''}`}
           data-area={dataArea}
           onClick={() => handleClick(value)}
         >

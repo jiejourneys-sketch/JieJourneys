@@ -29,6 +29,7 @@ type Props = {
 
 export default function CityTabbedList({ tabs, cards, tabEvent }: Props) {
   const [activeTab, setActiveTab] = useState('all')
+  const [hasSelectedTab, setHasSelectedTab] = useState(false)
 
   const shownCards = useMemo(
     () => cards.filter((card) => activeTab === 'all' || card.area === activeTab),
@@ -37,7 +38,16 @@ export default function CityTabbedList({ tabs, cards, tabEvent }: Props) {
 
   return (
     <>
-      <AreaTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} gtagEvent={tabEvent} />
+      <AreaTabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(value) => {
+          setActiveTab(value)
+          setHasSelectedTab(true)
+        }}
+        gtagEvent={tabEvent}
+        showActive={hasSelectedTab}
+      />
       <section className="stay-list" id="stayList">
         {shownCards.map((card) => {
           const dataProps: Record<string, string> = { 'data-area': card.area }

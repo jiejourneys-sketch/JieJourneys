@@ -39,7 +39,7 @@ export default function HomePage() {
               熱門攻略
             </Link>
             <Link href="#tools" data-event="home_tools" data-item="tools">
-              工具
+              旅遊資源
             </Link>
             <Link href="#follow" data-event="home_follow" data-item="follow">
               追蹤我們
@@ -63,13 +63,31 @@ export default function HomePage() {
           <PopularGrid />
         </section>
 
-        <section id="tools" className="section" aria-label="工具">
-          <h2>工具</h2>
-          <p className="sub">旅行規劃好幫手</p>
+        <section id="tools" className="section" aria-label="旅遊資源">
+          <h2>旅遊資源</h2>
+          <p className="sub">自由行需要的工具、優惠與服務整理</p>
           <div className="tools-row">
-            <Link href="/tools/bill" className="tool-bill-link" data-event="home_tool_bill" data-item="tool">
+            <Link href="/tools/bill" className="tool-bill-link" data-event="sitetobill" data-item="tool">
               旅杰分帳
             </Link>
+            <a
+              href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="wamazingbuy"
+              data-item="tool"
+            >
+              日本購物(合作)
+            </a>
+            <a
+              href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=2i98k457"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="wamazingsnow"
+              data-item="tool"
+            >
+              滑雪預訂(合作)
+            </a>
           </div>
         </section>
 

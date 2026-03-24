@@ -14,7 +14,7 @@ export default function SiteHeader() {
             熱門攻略
           </Link>
           <Link href="/#tools" data-event="home_tools" data-item="tools">
-            工具
+            旅遊資源
           </Link>
           <Link href="/#follow" data-event="home_follow" data-item="follow">
             追蹤我們
