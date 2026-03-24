@@ -10,23 +10,24 @@
   --danger:#b91c1c;
   --dangerBg:#fee2e2;
 }
-*{box-sizing:border-box}
-html,body{margin:0;padding:0}
-body{
+.bill-app *{box-sizing:border-box}
+.bill-app{
+  margin:0;
+  padding:0;
   font-family: ui-sans-serif,system-ui,"Noto Sans TC",Arial,Helvetica,sans-serif;
   color:var(--ink);
   line-height:1.6;
   background:var(--bg);
 }
 
-header.app-header{
+.bill-app header.app-header{
   background:#fff;
   box-shadow:0 2px 6px rgba(0,0,0,0.06);
   position:sticky;
   top:0;
   z-index:50;  /* 高於 date-time-row(15)，往下滑時不被遮擋 */
 }
-nav.app-nav{
+.bill-app nav.app-nav{
   max-width:960px;
   margin:auto;
   padding:12px 16px;
@@ -36,7 +37,7 @@ nav.app-nav{
   gap:8px;
   min-width:0;
 }
-.brand{
+.bill-app .brand{
   display:flex;
   align-items:center;
   gap:10px;
@@ -45,7 +46,7 @@ nav.app-nav{
   text-decoration:none;
   min-width:0;
 }
-.brand-logo{
+.bill-app .brand-logo{
   width:34px;height:34px;
   border-radius:8px;
   background:#eef2f7;
@@ -56,16 +57,17 @@ nav.app-nav{
   color:var(--brand);
   overflow:hidden;
 }
-.brand-logo img{width:34px;height:34px; object-fit:contain;}
-.brand-text{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.nav-actions{
+.bill-app .brand-logo img{width:34px;height:34px; object-fit:contain;}
+.bill-app .brand-text{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.bill-app .brand-text{color:#000;}
+.bill-app .nav-actions{
   display:flex;
   gap:8px;
   min-width:0;
   flex-shrink:1;
   overflow:hidden;
 }
-.nav-actions a{
+.bill-app .nav-actions a{
   text-decoration:none;
   color:var(--brand);
   font-weight:600;
@@ -79,28 +81,28 @@ nav.app-nav{
   min-width:0;
   font-size:14px;
 }
-.nav-actions a:hover{
+.bill-app .nav-actions a:hover{
   background:var(--brand);
   color:#fff;
 }
 
-main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
+.bill-app main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
 
-.tool-title{
+.bill-app .tool-title{
   margin: 0 0 8px;
   text-align: center;
   font-size: 36px;
   font-weight: 700;
-  color: #16324f;
+  color: #000;
 }
-.tool-desc{
+.bill-app .tool-desc{
   margin: 0 0 12px;
   text-align: center;
   font-size: 20px;
   color: #6b7280;
 }
 
-.btn-ig{
+.bill-app .btn-ig{
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -115,14 +117,14 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   text-decoration: none;
   transition: all 0.15s ease;
 }
-.btn-ig:hover{
+.bill-app .btn-ig:hover{
   background: #e0f2f1;
   border-color: #0d9488;
   color: #0d9488;
 }
-.btn-ig-icon{font-size: 18px}
+.bill-app .btn-ig-icon{font-size: 18px}
 
-.card{
+.bill-app .card{
   background: var(--card);
   border-radius: 24px;
   padding: 20px;
@@ -130,7 +132,7 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   overflow: visible;
   min-width: 0; /* 防止 flex 子元素 overflow */
 }
-.field{
+.bill-app .field{
   width: 100%;
   height: 48px;
   padding: 0 18px;
@@ -143,8 +145,8 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   margin-bottom: 10px;
   background:#fff;
 }
-.field::placeholder{color:#8a94a6}
-.btn{
+.bill-app .field::placeholder{color:#8a94a6}
+.bill-app .btn{
   width:100%;
   padding:12px;
   border-radius:10px;
@@ -154,33 +156,33 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   font-size:15px;
   cursor:pointer;
 }
-.btn:hover{background:#0b5e58}
-.btn.secondary{
+.bill-app .btn:hover{background:#0b5e58}
+.bill-app .btn.secondary{
   background:#f0f9fb;
   color:var(--brand);
   border:1.5px solid var(--brand);
 }
-.btn.secondary:hover{background:var(--brand);color:#fff}
+.bill-app .btn.secondary:hover{background:var(--brand);color:#fff}
 
-.list-title{
+.bill-app .list-title{
   margin-top:36px;
   margin-bottom:14px;
   font-size:24px;
   font-weight:700;
   text-align:left;
 }
-.grid{
+.bill-app .grid{
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 @media (max-width:640px){
-  .grid{grid-template-columns: repeat(2, 1fr);}
+  .bill-app .grid{grid-template-columns: repeat(2, 1fr);}
 }
-.book-card-wrapper{
+.bill-app .book-card-wrapper{
   position:relative;
 }
-.book-card{
+.bill-app .book-card{
   display:block;
   background:#ffffff;
   border-radius:16px;
@@ -192,8 +194,8 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   min-height:100px;
   transition:0.2s;
 }
-.book-card:hover{transform:translateY(-2px)}
-.book-card-menu-btn{
+.bill-app .book-card:hover{transform:translateY(-2px)}
+.bill-app .book-card-menu-btn{
   position:absolute;
   top:8px;
   right:8px;
@@ -212,15 +214,15 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   padding:0;
   transition:background .15s, color .15s;
 }
-.book-card-menu-btn:hover:not(:disabled){
+.bill-app .book-card-menu-btn:hover:not(:disabled){
   background:#f3f4f6;
   color:#1f2937;
 }
-.book-card-menu-btn:disabled{
+.bill-app .book-card-menu-btn:disabled{
   cursor:not-allowed;
   opacity:0.6;
 }
-.book-card-dropdown{
+.bill-app .book-card-dropdown{
   position:absolute;
   top:44px;
   right:8px;
@@ -232,7 +234,7 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   z-index:20;
   min-width:100px;
 }
-.book-card-dropdown-item{
+.bill-app .book-card-dropdown-item{
   display:block;
   width:100%;
   padding:10px 16px;
@@ -244,24 +246,24 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   text-align:left;
   transition:background .15s;
 }
-.book-card-dropdown-item:hover:not(:disabled){
+.bill-app .book-card-dropdown-item:hover:not(:disabled){
   background:#f9fafb;
 }
-.book-card-dropdown-item--danger{
+.bill-app .book-card-dropdown-item--danger{
   color:var(--danger);
 }
-.book-card-dropdown-item--danger:hover:not(:disabled){
+.bill-app .book-card-dropdown-item--danger:hover:not(:disabled){
   background:var(--dangerBg);
 }
-.book-card-dropdown-item:disabled{
+.bill-app .book-card-dropdown-item:disabled{
   cursor:not-allowed;
   opacity:0.7;
 }
-.book-icon{font-size:18px;margin-bottom:12px}
-.book-name{font-size:15px;font-weight:600;line-height:1.4;word-break:break-word}
-.empty-text{color:#9ca3af;margin:8px 0 0}
+.bill-app .book-icon{font-size:18px;margin-bottom:12px}
+.bill-app .book-name{font-size:15px;font-weight:600;line-height:1.4;word-break:break-word}
+.bill-app .empty-text{color:#9ca3af;margin:8px 0 0}
 
-.book-header{
+.bill-app .book-header{
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -272,20 +274,20 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   border:2px solid #2c7a86;
   background:#fff;
 }
-.book-header.book-header--book{
+.bill-app .book-header.book-header--book{
   display:grid;
   grid-template-columns: 1fr auto auto;
   align-items:center;
   gap:12px;
 }
-.book-header.book-header--book h2{
+.bill-app .book-header.book-header--book h2{
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-.book-header h2{margin:0;font-size:18px;font-weight:800}
-.book-header p{margin:4px 0 0;font-size:14px;color:#6b7280}
-.pill-link{
+.bill-app .book-header h2{margin:0;font-size:18px;font-weight:800}
+.bill-app .book-header p{margin:4px 0 0;font-size:14px;color:#6b7280}
+.bill-app .pill-link{
   text-decoration:none;
   color:var(--brand);
   font-weight:600;
@@ -296,17 +298,17 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   transition: all .15s ease;
   white-space:nowrap;
 }
-.pill-link:hover{background:var(--brand);color:#fff}
+.bill-app .pill-link:hover{background:var(--brand);color:#fff}
 
 /* 結算模式切換：分段式按鈕 */
-.settlement-mode-toggle{
+.bill-app .settlement-mode-toggle{
   display:inline-flex;
   background:#f1f5f9;
   border-radius:10px;
   padding:3px;
   gap:2px;
 }
-.settlement-mode-toggle button{
+.bill-app .settlement-mode-toggle button{
   padding:6px 12px;
   border:none;
   border-radius:8px;
@@ -316,23 +318,23 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   transition:background .15s, color .15s;
   color:var(--muted);
 }
-.settlement-mode-toggle button:hover{
+.bill-app .settlement-mode-toggle button:hover{
   color:var(--brand);
 }
-.settlement-mode-toggle button.active{
+.bill-app .settlement-mode-toggle button.active{
   background:#fff;
   color:var(--brand);
   box-shadow:0 1px 3px rgba(0,0,0,.08);
 }
 
-.row{
+.bill-app .row{
   display:flex;
   gap:10px;
   align-items:center;
 }
-.row .field{margin-bottom:0}
+.bill-app .row .field{margin-bottom:0}
 
-.member-item{
+.bill-app .member-item{
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -341,7 +343,7 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   background:#f9fafb;
   margin-top:10px;
 }
-.member-left{
+.bill-app .member-left{
   display:flex;
   align-items:center;
   gap:10px;
@@ -349,7 +351,7 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   color:#111827;
   font-weight:500;
 }
-.danger-link{
+.bill-app .danger-link{
   padding:6px 10px;
   border-radius:8px;
   background:var(--dangerBg);
@@ -360,7 +362,7 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
 }
 
 /* Modal */
-.modal-overlay{
+.bill-app .modal-overlay{
   position:fixed;
   inset:0;
   background:rgba(15, 23, 42, 0.42);
@@ -370,7 +372,7 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   padding:16px;
   z-index:50;
 }
-.modal{
+.bill-app .modal{
   width:min(720px, 100%);
   background:#fff;
   border-radius:18px;
@@ -382,18 +384,18 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   display:flex;
   flex-direction:column;
 }
-.modal-header{
+.bill-app .modal-header{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:10px;
   margin-bottom:12px;
 }
-.modal-title{
+.bill-app .modal-title{
   font-weight:800;
   color:#16324f;
 }
-.modal-close{
+.bill-app .modal-close{
   border:none;
   background:#f1f5f9;
   color:#334155;
@@ -401,11 +403,11 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   padding:8px 10px;
   cursor:pointer;
 }
-.modal-body{
+.bill-app .modal-body{
   overflow:auto;
   padding-right:2px;
 }
-.modal-actions{
+.bill-app .modal-actions{
   display:flex;
   gap:10px;
   justify-content:flex-end;
@@ -416,8 +418,8 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
 
 /* Bottom sheet feel on small screens */
 @media (max-width:520px){
-  .modal-overlay{padding:10px;}
-  .modal{
+  .bill-app .modal-overlay{padding:10px;}
+  .bill-app .modal{
     width:100%;
     border-left:none;
     border-right:none;
@@ -428,7 +430,7 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
 }
 
 /* iOS datetime-local can be very wide */
-.field[type="datetime-local"]{
+.bill-app .field[type="datetime-local"]{
   font-size:13px;
   padding-right:52px; /* leave room for native picker UI */
   max-width:100%;
@@ -436,21 +438,21 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   text-overflow:ellipsis;
 }
 @media (max-width:520px){
-  .field[type="datetime-local"]{
+  .bill-app .field[type="datetime-local"]{
     font-size:12px;
     padding-right:56px;
   }
 }
 
 /* 日期時間列：防止 overflow，行動裝置上下排列 */
-.date-time-row{
+.bill-app .date-time-row{
   position:relative;
   z-index:15;
   overflow:hidden;
   min-width:0;
   max-width:100%;
 }
-.date-time-inputs{
+.bill-app .date-time-inputs{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
@@ -460,39 +462,39 @@ main.app-main{max-width:720px;margin:auto;padding:24px 16px;min-width:0}
   min-width:0;
   overflow:hidden;
 }
-.date-time-inputs .field{
+.bill-app .date-time-inputs .field{
   margin-bottom:0;
   max-width:100%;
   min-width:0;
   box-sizing:border-box;
 }
-.date-time-inputs .field[type="date"],
-.date-time-inputs .field[type="time"]{
+.bill-app .date-time-inputs .field[type="date"],
+.bill-app .date-time-inputs .field[type="time"]{
   width:100%;
 }
-.field-time{
+.bill-app .field-time{
   position:relative;
   z-index:2;
 }
 /* 每個 input 包一層，強制約束原生 date/time 最小寬度導致的 overflow */
-.date-time-inputs .date-time-field-wrap{
+.bill-app .date-time-inputs .date-time-field-wrap{
   flex:1 1 120px;
   min-width:0;
   overflow:hidden;
   display:flex;
 }
-.date-time-inputs .date-time-field-wrap .field{
+.bill-app .date-time-inputs .date-time-field-wrap .field{
   flex:1 1 0;
   min-width:0;
 }
 /* 行動裝置改上下排列，各佔滿寬且不超出 */
 @media (max-width:520px){
-  .date-time-inputs{
+  .bill-app .date-time-inputs{
     flex-direction:column;
     align-items:stretch;
     width:100%;
   }
-  .date-time-inputs .date-time-field-wrap{
+  .bill-app .date-time-inputs .date-time-field-wrap{
     flex:0 0 auto !important;
     width:100% !important;
     max-width:100% !important;

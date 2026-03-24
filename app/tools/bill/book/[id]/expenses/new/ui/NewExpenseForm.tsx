@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
 import { supabase } from '@/lib/supabase'
@@ -45,11 +45,9 @@ export default function NewExpenseForm({
   const router = useRouter()
   const buildBillPath = useBuildBillPath()
 
-  const initDateLocal = nowDatetimeLocal()
-  const initParts = toDateParts(initDateLocal)
-  const [date, setDate] = useState(initDateLocal)
-  const [dateOnly, setDateOnly] = useState(initParts.dateOnly)
-  const [timeOnly, setTimeOnly] = useState(initParts.timeOnly)
+  const [date, setDate] = useState('')
+  const [dateOnly, setDateOnly] = useState('')
+  const [timeOnly, setTimeOnly] = useState('')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [note, setNote] = useState('')
@@ -80,25 +78,33 @@ export default function NewExpenseForm({
     () => new Set(payerIds),
     [payerIds]
   )
+  const orderedPayerIds = useMemo(
+    () => memberOptions.filter((m) => effectivePayerIds.has(m.id)).map((m) => m.id),
+    [memberOptions, effectivePayerIds]
+  )
 
   const effectiveSplitterIds = useMemo(
     () => new Set(splitterIds),
     [splitterIds]
   )
+  const orderedSplitterIds = useMemo(
+    () => memberOptions.filter((m) => effectiveSplitterIds.has(m.id)).map((m) => m.id),
+    [memberOptions, effectiveSplitterIds]
+  )
 
   const payerDisplay = useMemo(() => {
-    const ids = [...effectivePayerIds]
+    const ids = orderedPayerIds
     return ids.length ? ids.map((id) => byId.get(id) || '未知').join('、') : '未選擇'
-  }, [byId, effectivePayerIds])
+  }, [byId, orderedPayerIds])
 
   const splitDisplay = useMemo(() => {
-    const ids = [...effectiveSplitterIds]
+    const ids = orderedSplitterIds
     if (ids.length === memberOptions.length) return '所有人均分'
     return ids.map((id) => byId.get(id) || '未知').join('、')
-  }, [byId, effectiveSplitterIds, memberOptions.length])
+  }, [byId, orderedSplitterIds, memberOptions.length])
 
   const computedPayerAmounts = useMemo(() => {
-    const ids = [...effectivePayerIds].sort()
+    const ids = orderedPayerIds
     if (!ids.length || total <= 0) return {}
 
     // 使用者有輸入的金額（元）→ 轉為 cents
@@ -125,7 +131,7 @@ export default function NewExpenseForm({
     }
 
     return result
-  }, [effectivePayerIds, payerAmounts, total])
+  }, [orderedPayerIds, payerAmounts, total])
 
   const payerAllocated = useMemo(
     () => Object.values(computedPayerAmounts).reduce((s, v) => s + v, 0),
@@ -134,7 +140,7 @@ export default function NewExpenseForm({
   const payerRemaining = total - payerAllocated
 
   const computedSplit = useMemo(() => {
-    const ids = [...effectiveSplitterIds].sort()
+    const ids = orderedSplitterIds
     const exclusiveSum = ids.reduce((sum, id) => sum + toCents(Number(exclusiveAmounts[id]) || 0), 0)
     const sharedPool = total - exclusiveSum
     const lockedSharedSum = ids.reduce((sum, id) => {
@@ -157,10 +163,18 @@ export default function NewExpenseForm({
     const totalByMember: Record<string, number> = {}
     ids.forEach((id) => (totalByMember[id] = (shared[id] || 0) + (exclusive[id] || 0)))
     return { shared, exclusive, totalByMember, exclusiveSum, sharedPool }
-  }, [effectiveSplitterIds, exclusiveAmounts, lockedSharedIds, sharedOverrides, total])
+  }, [orderedSplitterIds, exclusiveAmounts, lockedSharedIds, sharedOverrides, total])
 
   const splitAllocated = Object.values(computedSplit.totalByMember).reduce((s, v) => s + v, 0)
   const splitRemaining = total - splitAllocated
+
+  useEffect(() => {
+    const initDateLocal = nowDatetimeLocal()
+    const initParts = toDateParts(initDateLocal)
+    setDate(initDateLocal)
+    setDateOnly(initParts.dateOnly)
+    setTimeOnly(initParts.timeOnly)
+  }, [])
 
   const submit = async () => {
     if (!description.trim() || !amount) return alert('請填完整')
@@ -199,7 +213,7 @@ export default function NewExpenseForm({
 
     const expenseId = inserted?.id as string
 
-    const payerRows = [...effectivePayerIds].sort().map((memberId) => ({
+    const payerRows = orderedPayerIds.map((memberId) => ({
       expense_id: expenseId,
       member_id: memberId,
       amount: computedPayerAmounts[memberId] || 0
@@ -207,7 +221,7 @@ export default function NewExpenseForm({
     const { error: pErr } = await supabase.from('expense_payers').insert(payerRows)
     if (pErr) console.error(pErr)
 
-    const splitRows = [...effectiveSplitterIds].sort().map((memberId) => ({
+    const splitRows = orderedSplitterIds.map((memberId) => ({
       expense_id: expenseId,
       member_id: memberId,
       shared_amount: computedSplit.shared[memberId] || 0,
@@ -346,7 +360,7 @@ export default function NewExpenseForm({
                                 const v = e.target.value
                                 setPayerAmounts((prev) => {
                                   const next = { ...prev, [m.id]: v }
-                                  const ids = [...effectivePayerIds].sort()
+                                  const ids = orderedPayerIds
 
                                   // 兩個付款者：你改 A，B 立刻吃剩餘（B 變成自動）
                                   if (ids.length === 2) {
@@ -461,7 +475,7 @@ export default function NewExpenseForm({
                                 const v = e.target.value
                                 setSharedOverrides((prev) => {
                                   const next = { ...prev, [m.id]: v }
-                                  const ids = [...effectiveSplitterIds].sort()
+                                  const ids = orderedSplitterIds
                                   if (ids.length === 2) {
                                     const otherId = ids[0] === m.id ? ids[1] : ids[0]
                                     delete next[otherId]
@@ -469,7 +483,7 @@ export default function NewExpenseForm({
                                   return next
                                 })
                                 setLockedSharedIds((prev) => {
-                                  const ids = [...effectiveSplitterIds].sort()
+                                  const ids = orderedSplitterIds
                                   if (ids.length === 2) return new Set([m.id])
                                   const next = new Set(prev)
                                   next.add(m.id)

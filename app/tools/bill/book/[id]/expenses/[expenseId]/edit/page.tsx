@@ -13,7 +13,7 @@ export default async function EditExpensePage({
   const [{ data: book }, { data: members }, { data: expense }, { data: splits }, { data: payers }] =
     await Promise.all([
       supabase.from('books').select('*').eq('id', bookId).single(),
-      supabase.from('members').select('*').eq('book_id', bookId),
+      supabase.from('members').select('*').eq('book_id', bookId).order('created_at', { ascending: true }),
       supabase.from('expenses').select('*').eq('id', expenseId).single(),
       supabase.from('expense_splits').select('*').eq('expense_id', expenseId),
       supabase.from('expense_payers').select('*').eq('expense_id', expenseId)

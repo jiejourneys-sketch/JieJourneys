@@ -13,14 +13,14 @@ export default function SiteHeader() {
           <Link href="/#popular" data-event="home_gonglue" data-item="popular">
             熱門攻略
           </Link>
+          <Link href="/#tools" data-event="home_tools" data-item="tools">
+            工具
+          </Link>
           <Link href="/#follow" data-event="home_follow" data-item="follow">
             追蹤我們
           </Link>
           <Link href="/#about" data-event="home_about" data-item="about">
             關於
-          </Link>
-          <Link href="/#faq" data-event="home_questions" data-item="faq">
-            常見問題
           </Link>
           <Link href="/contact/" data-event="home_contact" data-item="contact">
             聯絡我們

@@ -271,12 +271,12 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
             </div>
             <div className="modal-body">
               <div style={{ color: '#64748b', fontSize: 13 }}>
-                紅色＝還要付｜綠色＝會收回
+                綠色＝還要付｜紅色＝會收回
                 <br />
-                轉帳建議：把「還要付」的人付給「會收回」的人，大家就打平
+                轉帳建議：把「還要付」的人付給「會收回」的人，達到平衡
               </div>
               <div style={{ marginTop: 10, padding: 10, background: '#f8fafc', borderRadius: 10, fontSize: 13 }}>
-                兩種模式下每個人的最終應付與應收差額皆相同且正確，較推薦最少轉帳模式。
+                兩種模式下每個人的最終應付與應收差額皆相同且正確
               </div>
 
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>

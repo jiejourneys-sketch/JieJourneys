@@ -94,14 +94,18 @@ export default function EditExpenseForm({
     () => new Set(payerIds),
     [payerIds]
   )
+  const orderedPayerIds = useMemo(
+    () => memberOptions.filter((m) => effectivePayerIds.has(m.id)).map((m) => m.id),
+    [memberOptions, effectivePayerIds]
+  )
 
   const payerDisplay = useMemo(() => {
-    const ids = [...effectivePayerIds]
+    const ids = orderedPayerIds
     return ids.length ? ids.map((id) => byId.get(id) || '未知').join('、') : '未選擇'
-  }, [byId, effectivePayerIds])
+  }, [byId, orderedPayerIds])
 
   const computedPayerAmounts = useMemo(() => {
-    const ids = [...effectivePayerIds].sort()
+    const ids = orderedPayerIds
     if (!ids.length || total <= 0) return {}
 
     const manualIds = ids.filter(
@@ -127,7 +131,7 @@ export default function EditExpenseForm({
     }
 
     return result
-  }, [effectivePayerIds, payerAmounts, total])
+  }, [orderedPayerIds, payerAmounts, total])
 
   const payerAllocated = useMemo(
     () => Object.values(computedPayerAmounts).reduce((s, v) => s + v, 0),
@@ -164,15 +168,19 @@ export default function EditExpenseForm({
     () => new Set(splitterIds),
     [splitterIds]
   )
+  const orderedSplitterIds = useMemo(
+    () => memberOptions.filter((m) => effectiveSplitterIds.has(m.id)).map((m) => m.id),
+    [memberOptions, effectiveSplitterIds]
+  )
 
   const splitDisplay = useMemo(() => {
-    const ids = [...effectiveSplitterIds]
+    const ids = orderedSplitterIds
     if (ids.length === memberOptions.length) return '所有人均分'
     return ids.map((id) => byId.get(id) || '未知').join('、')
-  }, [byId, effectiveSplitterIds, memberOptions.length])
+  }, [byId, orderedSplitterIds, memberOptions.length])
 
   const computedSplit = useMemo(() => {
-    const ids = [...effectiveSplitterIds].sort()
+    const ids = orderedSplitterIds
     const exclusiveSum = ids.reduce((sum, id) => sum + toCents(Number(exclusiveAmounts[id]) || 0), 0)
     const sharedPool = total - exclusiveSum
     const lockedSharedSum = ids.reduce((sum, id) => {
@@ -195,7 +203,7 @@ export default function EditExpenseForm({
     const totalByMember: Record<string, number> = {}
     ids.forEach((id) => (totalByMember[id] = (shared[id] || 0) + (exclusive[id] || 0)))
     return { shared, exclusive, totalByMember, exclusiveSum, sharedPool }
-  }, [effectiveSplitterIds, exclusiveAmounts, lockedSharedIds, sharedOverrides, total])
+  }, [orderedSplitterIds, exclusiveAmounts, lockedSharedIds, sharedOverrides, total])
 
   const splitAllocated = Object.values(computedSplit.totalByMember).reduce((s, v) => s + v, 0)
   const splitRemaining = total - splitAllocated
@@ -239,7 +247,7 @@ export default function EditExpenseForm({
       return
     }
 
-    const payerRows = [...effectivePayerIds].sort().map((memberId) => ({
+    const payerRows = orderedPayerIds.map((memberId) => ({
       expense_id: expense.id,
       member_id: memberId,
       amount: computedPayerAmounts[memberId] || 0
@@ -259,7 +267,7 @@ export default function EditExpenseForm({
       return
     }
 
-    const splitRows = [...effectiveSplitterIds].sort().map((memberId) => ({
+    const splitRows = orderedSplitterIds.map((memberId) => ({
       expense_id: expense.id,
       member_id: memberId,
       shared_amount: computedSplit.shared[memberId] || 0,
@@ -291,8 +299,8 @@ export default function EditExpenseForm({
     const afterLog = {
       name: description.trim() || '',
       amount: total,
-      payer: [...effectivePayerIds].map((id) => byId.get(id) || '未知').join('、') || undefined,
-      participants: [...effectiveSplitterIds].length === memberOptions.length ? '所有人均分' : [...effectiveSplitterIds].sort().map((id) => byId.get(id) || '未知').join('、') || undefined
+      payer: orderedPayerIds.map((id) => byId.get(id) || '未知').join('、') || undefined,
+      participants: orderedSplitterIds.length === memberOptions.length ? '所有人均分' : orderedSplitterIds.map((id) => byId.get(id) || '未知').join('、') || undefined
     }
     await insertChangeLog(bookId, 'edit', expense.description || '未命名', beforeLog.amount, total, expense.id, beforeLog, afterLog)
 
@@ -439,7 +447,7 @@ export default function EditExpenseForm({
                                 const v = e.target.value
                                 setPayerAmounts((prev) => {
                                   const next = { ...prev, [m.id]: v }
-                                  const ids = [...effectivePayerIds].sort()
+                                  const ids = orderedPayerIds
 
                                   if (ids.length === 2) {
                                     const otherId = ids[0] === m.id ? ids[1] : ids[0]
@@ -547,7 +555,7 @@ export default function EditExpenseForm({
                                 const v = e.target.value
                                 setSharedOverrides((prev) => {
                                   const next = { ...prev, [m.id]: v }
-                                  const ids = [...effectiveSplitterIds].sort()
+                                  const ids = orderedSplitterIds
                                   if (ids.length === 2) {
                                     const otherId = ids[0] === m.id ? ids[1] : ids[0]
                                     delete next[otherId]
@@ -555,7 +563,7 @@ export default function EditExpenseForm({
                                   return next
                                 })
                                 setLockedSharedIds((prev) => {
-                                  const ids = [...effectiveSplitterIds].sort()
+                                  const ids = orderedSplitterIds
                                   if (ids.length === 2) {
                                     return new Set([m.id])
                                   }

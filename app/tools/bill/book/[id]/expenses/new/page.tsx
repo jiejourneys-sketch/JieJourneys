@@ -19,6 +19,7 @@ export default async function NewExpensePage({
     .from('members')
     .select('*')
     .eq('book_id', id)
+    .order('created_at', { ascending: true })
 
   if (!book) return <div>Loading...</div>
 

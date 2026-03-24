@@ -38,11 +38,11 @@ export default function HomePage() {
             <Link href="#popular" data-event="home_gonglue" data-item="popular">
               熱門攻略
             </Link>
-            <Link href="#follow" data-event="home_follow" data-item="follow">
-              追蹤我們
-            </Link>
             <Link href="#tools" data-event="home_tools" data-item="tools">
               工具
+            </Link>
+            <Link href="#follow" data-event="home_follow" data-item="follow">
+              追蹤我們
             </Link>
             <Link href="#about" data-event="home_about" data-item="about">
               關於
@@ -67,7 +67,7 @@ export default function HomePage() {
           <h2>工具</h2>
           <p className="sub">旅行規劃好幫手</p>
           <div className="tools-row">
-            <Link href="/tools/bill" data-event="home_tool_bill" data-item="tool">
+            <Link href="/tools/bill" className="tool-bill-link" data-event="home_tool_bill" data-item="tool">
               旅杰分帳
             </Link>
           </div>
