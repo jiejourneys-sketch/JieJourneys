@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: '/index.html', destination: '/', permanent: false },
+      { source: '/book', destination: '/tools/bill/book', permanent: false },
+      { source: '/book/:path*', destination: '/tools/bill/book/:path*', permanent: false },
     ]
   },
   webpack: (config, { dev }) => {
@@ -11,14 +13,7 @@ const nextConfig: NextConfig = {
     return config
   },
   async rewrites() {
-    return [
-      { source: '/tools/bill', destination: 'https://jiejourneys-bill.vercel.app' },
-      { source: '/tools/bill/:path*', destination: 'https://jiejourneys-bill.vercel.app/:path*' },
-      { source: '/book', destination: 'https://jiejourneys-bill.vercel.app/book' },
-      { source: '/book/:path*', destination: 'https://jiejourneys-bill.vercel.app/book/:path*' },
-      { source: '/api/:path*', destination: 'https://jiejourneys-bill.vercel.app/api/:path*' },
-      // 首頁、聯絡由 app 處理
-    ]
+    return []
   },
 }
 

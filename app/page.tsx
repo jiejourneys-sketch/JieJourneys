@@ -5,7 +5,6 @@ import { useEffect } from 'react'
 import TopBanner from '@/components/TopBanner'
 import SearchBox from '@/components/SearchBox'
 import PopularGrid from '@/components/PopularGrid'
-import FAQ from '@/components/FAQ'
 import Footer from '@/components/Footer'
 
 export default function HomePage() {
@@ -42,11 +41,11 @@ export default function HomePage() {
             <Link href="#follow" data-event="home_follow" data-item="follow">
               追蹤我們
             </Link>
+            <Link href="#tools" data-event="home_tools" data-item="tools">
+              工具
+            </Link>
             <Link href="#about" data-event="home_about" data-item="about">
               關於
-            </Link>
-            <Link href="#faq" data-event="home_questions" data-item="faq">
-              常見問題
             </Link>
             <Link href="/contact/" data-event="home_contact" data-item="contact">
               聯絡我們
@@ -62,6 +61,16 @@ export default function HomePage() {
           <p className="sub">點擊國家卡片，會有連結總整理</p>
           <SearchBox />
           <PopularGrid />
+        </section>
+
+        <section id="tools" className="section" aria-label="工具">
+          <h2>工具</h2>
+          <p className="sub">旅行規劃好幫手</p>
+          <div className="tools-row">
+            <Link href="/tools/bill" data-event="home_tool_bill" data-item="tool">
+              旅杰分帳
+            </Link>
+          </div>
         </section>
 
         <section id="follow" className="section" aria-label="追蹤我們">
@@ -113,12 +122,6 @@ export default function HomePage() {
           <div className="about">
             我們專做「打開就能用」的旅行攻略，把複雜資訊整理成清楚的路線與連結，讓你最快掌握重點。
           </div>
-        </section>
-
-        <section id="faq" className="section" aria-label="常見問題">
-          <h2>常見問題</h2>
-          <p className="sub">關於 JieJourneys(旅杰)的說明</p>
-          <FAQ />
         </section>
 
         <div className="business-card">

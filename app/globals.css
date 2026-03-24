@@ -343,6 +343,29 @@ a.card {
   transform: translateY(-2px);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
 }
+.tools-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.tools-row a {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.6px solid #1f7a8c;
+  border-radius: 10px;
+  font-weight: 600;
+  color: #1f7a8c;
+  background: #fff;
+  transition: all 0.15s ease;
+}
+.tools-row a:hover {
+  background: #f0f9fb;
+  color: #155c6a;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
 
 .about {
   border: 2px solid #1f7a8c;
