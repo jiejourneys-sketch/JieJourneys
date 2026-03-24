@@ -556,7 +556,15 @@ a.link-item {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.link-item:hover {
+@media (hover: hover) and (pointer: fine) {
+  .link-item:hover {
+    background: #f0fafb;
+    border-color: #176070;
+    box-shadow: 0 4px 10px rgba(31, 122, 140, 0.1);
+    transform: translateY(-2px);
+  }
+}
+.link-item:active {
   background: #f0fafb;
   border-color: #176070;
   box-shadow: 0 4px 10px rgba(31, 122, 140, 0.1);

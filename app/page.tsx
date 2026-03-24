@@ -67,9 +67,16 @@ export default function HomePage() {
           <h2>旅遊資源</h2>
           <p className="sub">自由行需要的工具、優惠與服務整理</p>
           <div className="tools-row">
-            <Link href="/tools/bill" className="tool-bill-link" data-event="sitetobill" data-item="tool">
+            <a
+              href="/tools/bill"
+              className="tool-bill-link"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="sitetobill"
+              data-item="tool"
+            >
               旅杰分帳
-            </Link>
+            </a>
             <a
               href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
               target="_blank"
