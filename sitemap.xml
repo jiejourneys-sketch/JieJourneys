@@ -2,18 +2,26 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- 主站 -->
   <url><loc>https://www.jiejourneys.com/</loc></url>
-  <url><loc>https://www.jiejourneys.com/contact.html</loc></url>
+  <url><loc>https://www.jiejourneys.com/contact</loc></url>
 
   <!-- 釜山區 -->
   <url><loc>https://www.jiejourneys.com/busan/</loc></url>
-  <url><loc>https://www.jiejourneys.com/busan/hotel.html</loc></url>
-  <url><loc>https://www.jiejourneys.com/busan/ticket.html</loc></url>
-  <url><loc>https://www.jiejourneys.com/busan/transport.html</loc></url>
-  <url><loc>https://www.jiejourneys.com/busan/video.html</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/hotel</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/ticket</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/video</loc></url>
 
   <!-- 北越區 -->
   <url><loc>https://www.jiejourneys.com/northvietnam/</loc></url>
-  <url><loc>https://www.jiejourneys.com/northvietnam/hotel.html</loc></url>
-  <url><loc>https://www.jiejourneys.com/northvietnam/ticket.html</loc></url>
-  <url><loc>https://www.jiejourneys.com/northvietnam/transport.html</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/hotel</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/ticket</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/video</loc></url>
+
+  <!-- 東京區 -->
+  <url><loc>https://www.jiejourneys.com/tokyo/</loc></url>
+  <url><loc>https://www.jiejourneys.com/tokyo/hotel</loc></url>
+  <url><loc>https://www.jiejourneys.com/tokyo/ticket</loc></url>
+  <url><loc>https://www.jiejourneys.com/tokyo/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/tokyo/video</loc></url>
 </urlset>
