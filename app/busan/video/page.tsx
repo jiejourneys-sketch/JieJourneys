@@ -1,6 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
+import type { CityCard } from '@/components/CityTabbedList'
 
 export default function BusanVideoPage() {
   const tabs = [
@@ -11,7 +12,7 @@ export default function BusanVideoPage() {
     { value: '釜山通行證', label: '釜山通行證', dataArea: '釜山通行證' },
   ]
 
-  const cards = [
+  const cards: CityCard[] = [
     {
       title: '韓國釜山｜適合你？',
       meta: '認識釜山',
