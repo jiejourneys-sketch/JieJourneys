@@ -1,11 +1,4 @@
 {
-  "rewrites": [
-    { "source": "/tools/bill", "destination": "https://jiejourneys-bill.vercel.app" },
-    { "source": "/tools/bill/(.*)", "destination": "https://jiejourneys-bill.vercel.app/$1" },
-    { "source": "/book", "destination": "https://jiejourneys-bill.vercel.app/book" },
-    { "source": "/book/(.*)", "destination": "https://jiejourneys-bill.vercel.app/book/$1" },
-    { "source": "/api/(.*)", "destination": "https://jiejourneys-bill.vercel.app/api/$1" }
-  ],
   "redirects": [
     { "source": "/index.html", "destination": "/", "permanent": true },
     { "source": "/:path+/index.html", "destination": "/:path+/", "permanent": true },
