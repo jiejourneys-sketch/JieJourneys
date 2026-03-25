@@ -32,7 +32,7 @@ export default function BusanJourneysPage() {
                 立即取得PDF
               </a>
               <div className="cta-secondary">
-                <a className="secondary-btn" href="https://www.instagram.com/reels/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="busanPDF_TrialIG">
+                <a className="secondary-btn" href="https://www.instagram.com/reel/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="busanPDF_TrialIG">
                   🎬 30秒看怎麼用
                 </a>
               </div>
