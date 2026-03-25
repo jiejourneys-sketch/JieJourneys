@@ -84,7 +84,7 @@ export default function HomePage() {
               data-event="wamazingbuy"
               data-item="tool"
             >
-              日本購物(合作)
+              日本線上購物(合作)
             </a>
             <a
               href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=2i98k457"
@@ -93,7 +93,7 @@ export default function HomePage() {
               data-event="wamazingsnow"
               data-item="tool"
             >
-              滑雪預訂(合作)
+              日本滑雪預訂(合作)
             </a>
           </div>
         </section>
