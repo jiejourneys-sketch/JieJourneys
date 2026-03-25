@@ -1,7 +1,7 @@
 'use client'
 
-/** Logo 一律從 bill 子網域載入，避免 rewrite 情境下 /logo.jpg 404 */
-const LOGO_URL = 'https://bill.jiejourneys.com/logo.jpg'
+/** 整合進官網後，直接使用本專案 public/logo.jpg */
+const LOGO_URL = '/logo.jpg'
 
 export default function BillLogo() {
   return (
