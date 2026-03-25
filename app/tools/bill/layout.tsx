@@ -53,7 +53,7 @@ export default function RootLayout({
             `}</Script>
           </>
         ) : null}
-        <BillPathProvider>
+        <BillPathProvider initialBasePath="/tools/bill">
         <AnalyticsEvents />
         <header className="app-header">
           <nav className="app-nav">

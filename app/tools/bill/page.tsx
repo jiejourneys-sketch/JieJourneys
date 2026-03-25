@@ -120,19 +120,6 @@ export default function Home() {
       <h1 className="tool-title">旅杰分帳</h1>
       <p className="tool-desc">最簡單的旅行分帳工具</p>
 
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <a
-          href="https://www.instagram.com/jiejourneys/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-ig"
-          data-event="billIG"
-        >
-          <span className="btn-ig-icon">🎬</span>
-          30秒看怎麼用
-        </a>
-      </div>
-
       <div className="card">
         <BillLink
           href="/book/new"

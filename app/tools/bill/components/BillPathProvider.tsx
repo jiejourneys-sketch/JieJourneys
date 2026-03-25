@@ -14,12 +14,22 @@ const BillPathContext = createContext<{
   buildBillPath: (p) => (p.startsWith('/') ? p : `/${p}`)
 })
 
-export function BillPathProvider({ children }: { children: React.ReactNode }) {
-  const [basePath] = useState(() =>
-    typeof window !== 'undefined'
-      ? getBillBasePathFromLocation(window.location.host, window.location.pathname)
-      : ''
-  )
+type Props = {
+  children: React.ReactNode
+  /**
+   * 讓 SSR 與 hydration 一致，避免 /tools/bill 下的連結 href 不一致。
+   * 在本專案的路由結構中，Bill app 掛在 /tools/bill，因此預設為該 basePath。
+   */
+  initialBasePath?: string
+}
+
+export function BillPathProvider({ children, initialBasePath = '/tools/bill' }: Props) {
+  const [basePath] = useState(() => {
+    if (typeof window === 'undefined') return initialBasePath
+    // client 仍允許依照實際 host/pathname 推導，但會與 initialBasePath 保持一致（/tools/bill 頁面）
+    const inferred = getBillBasePathFromLocation(window.location.host, window.location.pathname)
+    return inferred || initialBasePath
+  })
 
   const value = useMemo(
     () => ({
