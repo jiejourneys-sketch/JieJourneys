@@ -384,6 +384,80 @@
       max-height 0.3s ease;
   }
 
+  .mobileSheetDragging {
+    transition: none !important;
+  }
+
+  /* 頂列：全寬可拖曳；灰條視覺置中於整條 bar（不受右側 × 影響） */
+  .mobileSheetChrome {
+    position: relative;
+    flex-shrink: 0;
+    min-height: 48px;
+    touch-action: none;
+  }
+
+  .mobileSheetDragZone {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+
+  .mobileSheetDragging .mobileSheetDragZone {
+    cursor: grabbing;
+  }
+
+  .mobileSheetHandleBar {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    pointer-events: none;
+    width: 56px;
+    height: 6px;
+    border-radius: 999px;
+    background: #0ea5e9;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85);
+    flex-shrink: 0;
+  }
+
+  .mobileSheetCloseBtn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: #0369a1;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 400;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobileSheetCloseBtn:active {
+    background: rgba(14, 165, 233, 0.18);
+  }
+
+  .mobileSheetCloseBtn:focus-visible {
+    outline: 2px solid rgba(31, 122, 140, 0.45);
+    outline-offset: 2px;
+  }
+
   .mobileSheetExpanded {
     height: 55vh;
     max-height: 55vh;
@@ -400,8 +474,8 @@
     max-height: 10vh;
   }
 
-  .mobileSheetCollapsed .mobileSheetHandle {
-    margin: 6px auto 4px;
+  .mobileSheetCollapsed .mobileSheetChrome {
+    min-height: 44px;
   }
 
   /* 外層不捲動；單卡或雙卡視窗由子層捲動 */
@@ -425,11 +499,11 @@
     overflow: hidden;
   }
 
-  /* 向上滑解鎖後：可視高度約兩張卡片，內容繼續捲動 */
+  /* 展開後列表填滿 bar 下方空間，一拉開即可看到整塊列表區（僅內容過長時才需捲動） */
   .mobileSheetDualViewport {
     flex: 1;
     min-height: 0;
-    max-height: min(46vh, 520px);
+    max-height: none;
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -437,11 +511,16 @@
     scrollbar-color: rgba(31, 122, 140, 0.35) transparent;
   }
 
+  /* 子元素預設 touch-action:auto 會搶手勢；一律 none，連結仍可用點擊開啟 */
   .mobileSheetSingleWrap {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    touch-action: pan-y;
+    touch-action: none;
+  }
+
+  .mobileSheetSingleWrap * {
+    touch-action: none;
   }
 
   .mobileSheetSingleHint {
@@ -503,24 +582,9 @@
     text-overflow: ellipsis;
   }
 
-  .mobileSheetHandleButton {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    min-height: 48px;
-    padding: 8px 0 10px;
-    margin: 0;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    touch-action: manipulation;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .mobileSheetHandleButton:focus-visible {
+  .mobileSheetDragZone:focus-visible {
     outline: 2px solid rgba(31, 122, 140, 0.45);
-    outline-offset: 2px;
+    outline-offset: -2px;
+    border-radius: 8px;
   }
 }

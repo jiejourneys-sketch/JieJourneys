@@ -13,17 +13,17 @@ import AreaTabs, { type TabItem } from '@/components/AreaTabs'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import { fireMapMarkerGtag, mapBarCardDataEvent } from '@/lib/mapGtag'
-import styles from './map.module.css'
+import styles from '@/app/tokyo/map/map.module.css'
 import {
-  TOKYO_MAP_CENTER,
-  tokyoMapPlaces,
-  type PlaceCategory,
-  type TokyoMapPlace,
-} from '@/data/tokyoMapPlaces'
+  NORTH_VIETNAM_MAP_CENTER,
+  northVietnamMapPlaces,
+  type NorthVietnamMapPlace,
+  type NorthVietnamPlaceCategory,
+} from '@/data/northVietnamMapPlaces'
 
-type Filter = 'all' | PlaceCategory
+type Filter = 'all' | NorthVietnamPlaceCategory
 
-const MAP_GTAG_PREFIX = 'tokyomap'
+const MAP_GTAG_PREFIX = 'northvietnammap'
 
 const DESKTOP_MQ = '(min-width: 960px)'
 const MOBILE_MAP_MQ = '(max-width: 959px)'
@@ -64,7 +64,6 @@ function useSiteHeaderHeightPx() {
   return h
 }
 
-/** 景點：高對比亮青針（白邊加粗，地圖上較好辨識） */
 const SPOT_MARKER_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
   <path fill="#0ea5e9" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"
@@ -75,7 +74,6 @@ const SPOT_MARKER_SVG = encodeURIComponent(
     .trim(),
 )
 
-/** 住宿：亮紅牆＋琥珀屋頂＋加粗白邊（與景點藍系對比強） */
 const HOTEL_MARKER_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
   <path fill="#dc2626" stroke="#ffffff" stroke-width="4" d="M5 17h28v18H5z"/>
@@ -85,7 +83,7 @@ const HOTEL_MARKER_SVG = encodeURIComponent(
     .trim(),
 )
 
-function mapMarkerIcon(place: TokyoMapPlace): google.maps.Icon {
+function mapMarkerIcon(place: NorthVietnamMapPlace): google.maps.Icon {
   const g = google.maps
   if (place.category === 'hotel') {
     return {
@@ -107,11 +105,12 @@ const MAP_TABS: TabItem[] = [
   { value: 'hotel', label: '住宿', dataArea: 'hotel' },
 ]
 
-const CATEGORY_LABEL: Record<PlaceCategory, string> = {
+const CATEGORY_LABEL: Record<NorthVietnamPlaceCategory, string> = {
   spot: '景點',
   hotel: '住宿',
 }
 
+/** 與東京地圖共用，避免重複插入 script */
 const SCRIPT_ID = 'gmaps-js'
 
 function mapsNavigateUrl(lat: number, lng: number) {
@@ -123,14 +122,12 @@ function isDesktopViewport() {
   return window.matchMedia(DESKTOP_MQ).matches
 }
 
-/** 手機 bottom sheet 吸附高度（與 CSS 10vh / 55vh 對齊） */
 function getMobileSheetMetrics() {
   if (typeof window === 'undefined') return { collapsedPx: 72, expandedPx: 400 }
   const h = window.innerHeight
   return { collapsedPx: Math.round(h * 0.1), expandedPx: Math.round(h * 0.55) }
 }
 
-/** 桌機右欄：卡片大致置中 */
 function scrollCardIntoScrollContainer(container: HTMLElement, card: HTMLElement) {
   const cRect = container.getBoundingClientRect()
   const eRect = card.getBoundingClientRect()
@@ -139,7 +136,6 @@ function scrollCardIntoScrollContainer(container: HTMLElement, card: HTMLElement
   container.scrollBy({ top: delta, behavior: 'smooth' })
 }
 
-/** 手機 bottom sheet：盡量讓整張卡片落在可視區（高於視窗時改為頂對齊） */
 function scrollCardFullyIntoView(
   container: HTMLElement,
   card: HTMLElement,
@@ -165,9 +161,9 @@ function scrollCardFullyIntoView(
 type FocusSource = 'marker' | 'list'
 
 type MapPlaceCardProps = {
-  place: TokyoMapPlace
+  place: NorthVietnamMapPlace
   selected: boolean
-  onPick: (p: TokyoMapPlace, source: FocusSource) => void
+  onPick: (p: NorthVietnamMapPlace, source: FocusSource) => void
   cardRef: (el: HTMLElement | null) => void
   gtagPrefix: string
 }
@@ -238,7 +234,7 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix }: MapPlace
                 href={mapsNavigateUrl(place.lat, place.lng)}
                 target="_blank"
                 rel="noopener noreferrer"
-                data-event="tokyomap_spot_nav"
+                data-event="northvietnammap_spot_nav"
                 data-platform="GoogleMaps"
                 data-section="map_bar"
                 onClick={(e) => e.stopPropagation()}
@@ -283,7 +279,7 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
   })
 }
 
-export default function TokyoMapClient() {
+export default function NorthVietnamMapClient() {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
   const mapElRef = useRef<HTMLDivElement>(null)
@@ -315,9 +311,7 @@ export default function TokyoMapClient() {
 
   const isMobileMapLayout = useMobileMapLayout()
   const siteHeaderPx = useSiteHeaderHeightPx()
-  /** 手機 bottom sheet：expanded = 55vh（或單卡 auto），collapsed = 10vh */
   const [mobileSheetExpanded, setMobileSheetExpanded] = useState(true)
-  /** false：地標點選後只顯示一張卡；true：可捲動列表（約兩張卡高的視窗） */
   const [mobileSheetBrowseDual, setMobileSheetBrowseDual] = useState(true)
   const [sheetDragging, setSheetDragging] = useState(false)
   const [sheetDragHeightPx, setSheetDragHeightPx] = useState<number | null>(null)
@@ -328,22 +322,22 @@ export default function TokyoMapClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const filteredPlaces = useMemo(() => {
-    if (filter === 'all') return tokyoMapPlaces
-    return tokyoMapPlaces.filter((p) => p.category === filter)
+    if (filter === 'all') return northVietnamMapPlaces
+    return northVietnamMapPlaces.filter((p) => p.category === filter)
   }, [filter])
 
   const spotPlaces = useMemo(() => {
     if (filter === 'hotel') return []
-    return tokyoMapPlaces.filter((p) => p.category === 'spot')
+    return northVietnamMapPlaces.filter((p) => p.category === 'spot')
   }, [filter])
 
   const hotelPlaces = useMemo(() => {
     if (filter === 'spot') return []
-    return tokyoMapPlaces.filter((p) => p.category === 'hotel')
+    return northVietnamMapPlaces.filter((p) => p.category === 'hotel')
   }, [filter])
 
   const selectedPlace = useMemo(
-    () => (selectedId ? tokyoMapPlaces.find((p) => p.id === selectedId) ?? null : null),
+    () => (selectedId ? northVietnamMapPlaces.find((p) => p.id === selectedId) ?? null : null),
     [selectedId],
   )
 
@@ -355,7 +349,7 @@ export default function TokyoMapClient() {
 
   showSingleMobileCardRef.current = showSingleMobileCard
 
-  const focusPlace = useCallback((place: TokyoMapPlace, source: FocusSource = 'list') => {
+  const focusPlace = useCallback((place: NorthVietnamMapPlace, source: FocusSource = 'list') => {
     setSelectedId(place.id)
     if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
       setMobileSheetExpanded(true)
@@ -400,7 +394,7 @@ export default function TokyoMapClient() {
   }, [])
 
   const syncMarkers = useCallback(
-    (places: TokyoMapPlace[]) => {
+    (places: NorthVietnamMapPlace[]) => {
       const map = mapRef.current
       if (!map || !window.google?.maps) return
       clearMarkers()
@@ -434,8 +428,8 @@ export default function TokyoMapClient() {
         await loadGoogleMapsScript(apiKey)
         if (cancelled || !mapElRef.current) return
         const map = new google.maps.Map(mapElRef.current, {
-          center: TOKYO_MAP_CENTER,
-          zoom: 12,
+          center: NORTH_VIETNAM_MAP_CENTER,
+          zoom: 7,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
@@ -475,7 +469,6 @@ export default function TokyoMapClient() {
     return () => window.clearTimeout(t)
   }, [mapReady])
 
-  /** 手機：操作地圖 → bottom sheet 收合為 10vh */
   useEffect(() => {
     if (!mapReady || !mapRef.current || !isMobileMapLayout) return
     const map = mapRef.current
@@ -516,7 +509,7 @@ export default function TokyoMapClient() {
     if (!mapReady || !mapRef.current || !isMobileMapLayout) return
     const t = window.setTimeout(() => {
       google.maps.event.trigger(mapRef.current!, 'resize')
-    }, 320)
+    }, 300)
     return () => window.clearTimeout(t)
   }, [mobileSheetExpanded, mapReady, isMobileMapLayout])
 
@@ -540,7 +533,6 @@ export default function TokyoMapClient() {
     return () => window.clearTimeout(t)
   }, [mobileSheetBrowseDual, selectedId])
 
-  /** 行動裝置：單卡區需非 passive 的 touchmove，否則向上滑常被瀏覽器吃掉 */
   useEffect(() => {
     if (!isMobileMapLayout || !showSingleMobileCard) return
     const el = singleSwipeWrapRef.current
@@ -605,7 +597,6 @@ export default function TokyoMapClient() {
     const d = sheetDragSessionRef.current
     if (!d || e.pointerId !== d.pointerId) return
 
-    /* 單卡模式：手指向上拖超過閾值即開完整列表（即使 sheet 已貼 max-height 也能觸發） */
     if (showSingleMobileCardRef.current) {
       const pullUp = d.startY - e.clientY
       if (pullUp > 32) {
@@ -645,10 +636,15 @@ export default function TokyoMapClient() {
     const moved = Math.abs(finalH - d.startHeightPx) > 8
     sheetLiveHeightRef.current = null
     const mid = (d.collapsedPx + d.expandedPx) / 2
+    const singleAtStart = singleCardWhenSheetDragStartedRef.current
+    singleCardWhenSheetDragStartedRef.current = false
     if (!moved) {
       setMobileSheetExpanded((prev) => !prev)
     } else {
       setMobileSheetExpanded(finalH >= mid)
+    }
+    if (singleAtStart && moved && finalH > d.startHeightPx + 12) {
+      setMobileSheetBrowseDual(true)
     }
     setSheetDragHeightPx(null)
   }, [])
@@ -751,7 +747,7 @@ export default function TokyoMapClient() {
 
   return (
     <>
-      <CitySubpageHeader backHref="/tokyo" eventPrefix="tokyomap" />
+      <CitySubpageHeader backHref="/northvietnam" eventPrefix="northvietnammap" />
       <main
         className={`transport-main ${styles.mapPage}`}
         style={
@@ -761,7 +757,7 @@ export default function TokyoMapClient() {
         }
       >
         <div className={styles.topBar}>
-          <h1>東京地圖</h1>
+          <h1>越南北越｜景點・住宿地圖</h1>
           <div className={styles.introBlock}>
             <AreaTabs
               tabs={MAP_TABS}
@@ -775,7 +771,7 @@ export default function TokyoMapClient() {
                   mapClickSuppressUntilRef.current = Date.now() + 450
                 }
               }}
-              gtagEvent="tokyo_map_tab"
+              gtagEvent="northvietnam_map_tab"
               showActive
             />
           </div>
@@ -873,7 +869,7 @@ export default function TokyoMapClient() {
               aria-label={
                 mobileSheetExpanded ? '拖曳調整高度，鬆手吸附；點一下切換收合' : '向上拖曳展開；點一下切換'
               }
-              data-event="tokyomap_mobile_sheet_drag"
+              data-event="northvietnammap_mobile_sheet_drag"
               data-item="sheet_drag"
               onPointerDown={onMobileSheetDragPointerDown}
               onPointerMove={onMobileSheetDragPointerMove}
@@ -891,7 +887,7 @@ export default function TokyoMapClient() {
               type="button"
               className={styles.mobileSheetCloseBtn}
               aria-label="關閉面板"
-              data-event="tokyomap_mobile_sheet_close"
+              data-event="northvietnammap_mobile_sheet_close"
               data-item="sheet_close"
               onClick={onMobileSheetClose}
               onPointerDown={(e) => e.stopPropagation()}
@@ -929,7 +925,7 @@ export default function TokyoMapClient() {
                   <button
                     type="button"
                     className={styles.mobileSheetSingleHint}
-                    data-event="tokyomap_mobile_sheet_more"
+                    data-event="northvietnammap_mobile_sheet_more"
                     data-item="single_hint"
                     onClick={() => setMobileSheetBrowseDual(true)}
                   >

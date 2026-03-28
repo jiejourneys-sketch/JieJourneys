@@ -12,6 +12,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import AreaTabs, { type TabItem } from '@/components/AreaTabs'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
+import { fireMapMarkerGtag, mapBarCardDataEvent } from '@/lib/mapGtag'
 import styles from '@/app/tokyo/map/map.module.css'
 import {
   BUSAN_MAP_CENTER,
@@ -21,6 +22,8 @@ import {
 } from '@/data/busanMapPlaces'
 
 type Filter = 'all' | BusanPlaceCategory
+
+const MAP_GTAG_PREFIX = 'busanmap'
 
 const DESKTOP_MQ = '(min-width: 960px)'
 const MOBILE_MAP_MQ = '(max-width: 959px)'
@@ -63,18 +66,19 @@ function useSiteHeaderHeightPx() {
 
 const SPOT_MARKER_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
-  <path fill="#1f7a8c" stroke="#fff" stroke-width="2" stroke-linejoin="round"
+  <path fill="#0ea5e9" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"
     d="M20 2C10.6 2 3 9.6 3 19c0 11 17 27 17 27s17-16 17-27C37 9.6 29.4 2 20 2z"/>
-  <circle cx="20" cy="19" r="5.5" fill="#fff"/>
+  <circle cx="20" cy="19" r="6" fill="#ffffff"/>
+  <circle cx="20" cy="19" r="2.8" fill="#0369a1"/>
 </svg>`.replace(/\s+/g, ' ')
     .trim(),
 )
 
 const HOTEL_MARKER_SVG = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
-  <path fill="#c2410c" stroke="#fff" stroke-width="2" d="M5 17h28v18H5z"/>
-  <path fill="#ea580c" stroke="#fff" stroke-width="2" stroke-linejoin="round" d="M3 17L19 8l16 9"/>
-  <rect x="14" y="24" width="10" height="11" rx="1" fill="#fff7ed"/>
+  <path fill="#dc2626" stroke="#ffffff" stroke-width="4" d="M5 17h28v18H5z"/>
+  <path fill="#fbbf24" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" d="M3 17L19 8l16 9"/>
+  <rect x="14" y="24" width="10" height="11" rx="1.5" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"/>
 </svg>`.replace(/\s+/g, ' ')
     .trim(),
 )
@@ -84,14 +88,14 @@ function mapMarkerIcon(place: BusanMapPlace): google.maps.Icon {
   if (place.category === 'hotel') {
     return {
       url: `data:image/svg+xml;charset=UTF-8,${HOTEL_MARKER_SVG}`,
-      scaledSize: new g.Size(22, 22),
-      anchor: new g.Point(11, 20),
+      scaledSize: new g.Size(30, 30),
+      anchor: new g.Point(15, 27),
     }
   }
   return {
     url: `data:image/svg+xml;charset=UTF-8,${SPOT_MARKER_SVG}`,
-    scaledSize: new g.Size(24, 28),
-    anchor: new g.Point(12, 28),
+    scaledSize: new g.Size(28, 33),
+    anchor: new g.Point(14, 33),
   }
 }
 
@@ -116,6 +120,12 @@ function mapsNavigateUrl(lat: number, lng: number) {
 function isDesktopViewport() {
   if (typeof window === 'undefined') return false
   return window.matchMedia(DESKTOP_MQ).matches
+}
+
+function getMobileSheetMetrics() {
+  if (typeof window === 'undefined') return { collapsedPx: 72, expandedPx: 400 }
+  const h = window.innerHeight
+  return { collapsedPx: Math.round(h * 0.1), expandedPx: Math.round(h * 0.55) }
 }
 
 function scrollCardIntoScrollContainer(container: HTMLElement, card: HTMLElement) {
@@ -155,15 +165,23 @@ type MapPlaceCardProps = {
   selected: boolean
   onPick: (p: BusanMapPlace, source: FocusSource) => void
   cardRef: (el: HTMLElement | null) => void
+  gtagPrefix: string
 }
 
-function MapPlaceCard({ place, selected, onPick, cardRef }: MapPlaceCardProps) {
+function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix }: MapPlaceCardProps) {
   return (
     <article
       ref={cardRef}
       className={`stay-card ${styles.hCardDesktop} ${selected ? styles.hCardActive : ''}`}
       role="button"
       tabIndex={0}
+      data-event={mapBarCardDataEvent(gtagPrefix, place.id)}
+      data-item={place.id}
+      data-section="map_bar"
+      data-label="bar"
+      data-title={place.name}
+      data-area={place.category === 'hotel' ? '住宿' : '景點'}
+      {...(place.category === 'hotel' ? { 'data-hotel': place.name } : {})}
       onClick={() => onPick(place, 'list')}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -218,7 +236,7 @@ function MapPlaceCard({ place, selected, onPick, cardRef }: MapPlaceCardProps) {
                 rel="noopener noreferrer"
                 data-event="busanmap_spot_nav"
                 data-platform="GoogleMaps"
-                data-section="map_card"
+                data-section="map_bar"
                 onClick={(e) => e.stopPropagation()}
               >
                 導航
@@ -277,18 +295,26 @@ export default function BusanMapClient() {
   const mapMoveFromFocusRef = useRef(false)
   const mapLayoutIdleRef = useRef(false)
   const mapClickSuppressUntilRef = useRef(0)
-  const sheetPointerDownRef = useRef<{ y: number; id: number } | null>(null)
-  const sheetDragMovedRef = useRef(false)
-  const suppressHandleClickRef = useRef(false)
-  const sheetTapHandledRef = useRef(false)
-  const handleTouchStartYRef = useRef<number | null>(null)
-  const handleTouchMovedRef = useRef(false)
+  const mobileSheetRef = useRef<HTMLDivElement>(null)
+  const sheetDragSessionRef = useRef<{
+    pointerId: number
+    startY: number
+    startHeightPx: number
+    collapsedPx: number
+    expandedPx: number
+  } | null>(null)
+  const sheetLiveHeightRef = useRef<number | null>(null)
   const singleSwipeStartRef = useRef<number | null>(null)
+  const singleSwipeWrapRef = useRef<HTMLDivElement | null>(null)
+  const showSingleMobileCardRef = useRef(false)
+  const singleCardWhenSheetDragStartedRef = useRef(false)
 
   const isMobileMapLayout = useMobileMapLayout()
   const siteHeaderPx = useSiteHeaderHeightPx()
   const [mobileSheetExpanded, setMobileSheetExpanded] = useState(true)
   const [mobileSheetBrowseDual, setMobileSheetBrowseDual] = useState(true)
+  const [sheetDragging, setSheetDragging] = useState(false)
+  const [sheetDragHeightPx, setSheetDragHeightPx] = useState<number | null>(null)
 
   const [filter, setFilter] = useState<Filter>('all')
   const [mapReady, setMapReady] = useState(false)
@@ -320,6 +346,8 @@ export default function BusanMapClient() {
     !!selectedPlace &&
     !mobileSheetBrowseDual &&
     (spotPlaces.length > 0 || hotelPlaces.length > 0)
+
+  showSingleMobileCardRef.current = showSingleMobileCard
 
   const focusPlace = useCallback((place: BusanMapPlace, source: FocusSource = 'list') => {
     setSelectedId(place.id)
@@ -378,7 +406,10 @@ export default function BusanMapClient() {
           icon: mapMarkerIcon(p),
           zIndex: p.category === 'spot' ? 3 : 2,
         })
-        marker.addListener('click', () => focusPlace(p, 'marker'))
+        marker.addListener('click', () => {
+          fireMapMarkerGtag(MAP_GTAG_PREFIX, p)
+          focusPlace(p, 'marker')
+        })
         markersRef.current.push(marker)
       }
     },
@@ -502,88 +533,130 @@ export default function BusanMapClient() {
     return () => window.clearTimeout(t)
   }, [mobileSheetBrowseDual, selectedId])
 
-  const onSheetHandlePointerDown = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.pointerType === 'touch') return
-    sheetPointerDownRef.current = { y: e.clientY, id: e.pointerId }
-    sheetDragMovedRef.current = false
-  }, [])
+  useEffect(() => {
+    if (!isMobileMapLayout || !showSingleMobileCard) return
+    const el = singleSwipeWrapRef.current
+    if (!el) return
+    let startY: number | null = null
 
-  const onSheetHandlePointerMove = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.pointerType === 'touch') return
-    const d = sheetPointerDownRef.current
-    if (!d || d.id !== e.pointerId) return
-    if (Math.abs(e.clientY - d.y) > 10) sheetDragMovedRef.current = true
-  }, [])
-
-  const onSheetHandlePointerUp = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.pointerType === 'touch') return
-    const d = sheetPointerDownRef.current
-    if (!d || d.id !== e.pointerId) return
-    const dy = e.clientY - d.y
-    sheetPointerDownRef.current = null
-    if (sheetDragMovedRef.current && Math.abs(dy) >= 28) {
-      suppressHandleClickRef.current = true
-      if (dy < 0) setMobileSheetExpanded(true)
-      else setMobileSheetExpanded(false)
+    const onStart = (ev: TouchEvent) => {
+      if (ev.touches.length !== 1) return
+      startY = ev.touches[0].clientY
     }
-    sheetDragMovedRef.current = false
-  }, [])
-
-  const onSheetHandlePointerCancel = useCallback((e: ReactPointerEvent<HTMLButtonElement>) => {
-    if (e.pointerType === 'touch') return
-    sheetPointerDownRef.current = null
-    sheetDragMovedRef.current = false
-  }, [])
-
-  const onSheetHandleTouchStart = useCallback((e: ReactTouchEvent<HTMLButtonElement>) => {
-    if (e.touches.length !== 1) return
-    handleTouchStartYRef.current = e.touches[0].clientY
-    handleTouchMovedRef.current = false
-  }, [])
-
-  const onSheetHandleTouchMove = useCallback((e: ReactTouchEvent<HTMLButtonElement>) => {
-    if (handleTouchStartYRef.current == null || e.touches.length !== 1) return
-    const y = e.touches[0].clientY
-    if (Math.abs(y - handleTouchStartYRef.current) > 12) handleTouchMovedRef.current = true
-  }, [])
-
-  const onSheetHandleTouchEnd = useCallback((e: ReactTouchEvent<HTMLButtonElement>) => {
-    const startY = handleTouchStartYRef.current
-    handleTouchStartYRef.current = null
-    if (startY == null) return
-    const t = e.changedTouches[0]
-    const endY = t?.clientY
-    if (endY === undefined) {
-      handleTouchMovedRef.current = false
-      return
+    const onMove = (ev: TouchEvent) => {
+      if (startY == null || ev.touches.length !== 1) return
+      const y = ev.touches[0].clientY
+      if (startY - y > 18) {
+        setMobileSheetBrowseDual(true)
+        startY = null
+        return
+      }
+      if (Math.abs(y - startY) > 8) ev.preventDefault()
     }
-    const dy = endY - startY
-    const moved = handleTouchMovedRef.current
-    handleTouchMovedRef.current = false
-    if (moved && Math.abs(dy) >= 28) {
-      sheetTapHandledRef.current = true
-      if (dy < 0) setMobileSheetExpanded(true)
-      else setMobileSheetExpanded(false)
-      return
+    const onEnd = () => {
+      startY = null
     }
+
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd)
+    el.addEventListener('touchcancel', onEnd)
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchcancel', onEnd)
+    }
+  }, [isMobileMapLayout, showSingleMobileCard, selectedPlace?.id])
+
+  const onMobileSheetDragPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return
+    const sheet = mobileSheetRef.current
+    if (!sheet) return
+    singleCardWhenSheetDragStartedRef.current = showSingleMobileCardRef.current
+    const { collapsedPx, expandedPx } = getMobileSheetMetrics()
+    const startHeightPx = Math.round(sheet.getBoundingClientRect().height)
+    sheetDragSessionRef.current = {
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      startHeightPx,
+      collapsedPx,
+      expandedPx,
+    }
+    sheetLiveHeightRef.current = startHeightPx
+    setSheetDragHeightPx(startHeightPx)
+    setSheetDragging(true)
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      /* noop */
+    }
+  }, [])
+
+  const onMobileSheetDragPointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = sheetDragSessionRef.current
+    if (!d || e.pointerId !== d.pointerId) return
+
+    if (showSingleMobileCardRef.current) {
+      const pullUp = d.startY - e.clientY
+      if (pullUp > 32) {
+        singleCardWhenSheetDragStartedRef.current = false
+        setMobileSheetBrowseDual(true)
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId)
+        } catch {
+          /* noop */
+        }
+        sheetDragSessionRef.current = null
+        setSheetDragging(false)
+        sheetLiveHeightRef.current = null
+        setSheetDragHeightPx(null)
+        return
+      }
+    }
+
+    const delta = d.startY - e.clientY
+    const next = Math.round(d.startHeightPx + delta)
+    const clamped = Math.min(d.expandedPx, Math.max(d.collapsedPx, next))
+    sheetLiveHeightRef.current = clamped
+    setSheetDragHeightPx(clamped)
+  }, [])
+
+  const endMobileSheetDrag = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = sheetDragSessionRef.current
+    if (!d || e.pointerId !== d.pointerId) return
+    sheetDragSessionRef.current = null
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      /* noop */
+    }
+    setSheetDragging(false)
+    const finalH = sheetLiveHeightRef.current ?? d.startHeightPx
+    const moved = Math.abs(finalH - d.startHeightPx) > 8
+    sheetLiveHeightRef.current = null
+    const mid = (d.collapsedPx + d.expandedPx) / 2
+    const singleAtStart = singleCardWhenSheetDragStartedRef.current
+    singleCardWhenSheetDragStartedRef.current = false
     if (!moved) {
-      sheetTapHandledRef.current = true
-      setMobileSheetExpanded((v) => !v)
+      setMobileSheetExpanded((prev) => !prev)
+    } else {
+      setMobileSheetExpanded(finalH >= mid)
     }
+    if (singleAtStart && moved && finalH > d.startHeightPx + 12) {
+      setMobileSheetBrowseDual(true)
+    }
+    setSheetDragHeightPx(null)
   }, [])
 
-  const onSheetHandleClick = useCallback((e: ReactMouseEvent<HTMLButtonElement>) => {
-    if (sheetTapHandledRef.current) {
-      sheetTapHandledRef.current = false
-      e.preventDefault()
-      return
-    }
-    if (suppressHandleClickRef.current) {
-      suppressHandleClickRef.current = false
-      e.preventDefault()
-      return
-    }
-    setMobileSheetExpanded((v) => !v)
+  const onMobileSheetClose = useCallback((e: ReactMouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation()
+    e.preventDefault()
+    sheetDragSessionRef.current = null
+    sheetLiveHeightRef.current = null
+    setSheetDragging(false)
+    setSheetDragHeightPx(null)
+    setMobileSheetExpanded(false)
   }, [])
 
   const onMobileSinglePointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
@@ -593,7 +666,7 @@ export default function BusanMapClient() {
   const onMobileSinglePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (mobileSheetBrowseDual || singleSwipeStartRef.current == null) return
-      if (singleSwipeStartRef.current - e.clientY > 24) {
+      if (singleSwipeStartRef.current - e.clientY > 20) {
         setMobileSheetBrowseDual(true)
         singleSwipeStartRef.current = null
       }
@@ -615,7 +688,7 @@ export default function BusanMapClient() {
       if (mobileSheetBrowseDual || singleSwipeStartRef.current == null) return
       if (e.touches.length !== 1) return
       const y = e.touches[0].clientY
-      if (singleSwipeStartRef.current - y > 24) {
+      if (singleSwipeStartRef.current - y > 20) {
         setMobileSheetBrowseDual(true)
         singleSwipeStartRef.current = null
       }
@@ -651,11 +724,11 @@ export default function BusanMapClient() {
             zIndex: 10,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: '#2563eb',
+              scale: 11,
+              fillColor: '#0ea5e9',
               fillOpacity: 1,
-              strokeColor: '#fff',
-              strokeWeight: 2,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
             },
           })
         } else {
@@ -735,6 +808,7 @@ export default function BusanMapClient() {
                         place={place}
                         selected={selectedId === place.id}
                         onPick={focusPlace}
+                        gtagPrefix={MAP_GTAG_PREFIX}
                         cardRef={(el) => {
                           desktopCardRefs.current[place.id] = el
                         }}
@@ -757,6 +831,7 @@ export default function BusanMapClient() {
                         place={place}
                         selected={selectedId === place.id}
                         onPick={focusPlace}
+                        gtagPrefix={MAP_GTAG_PREFIX}
                         cardRef={(el) => {
                           desktopCardRefs.current[place.id] = el
                         }}
@@ -770,39 +845,63 @@ export default function BusanMapClient() {
         </div>
 
         <div
-          className={`${styles.mobileSheet} ${
+          ref={mobileSheetRef}
+          className={`${styles.mobileSheet} ${sheetDragging ? styles.mobileSheetDragging : ''} ${
             !mobileSheetExpanded
               ? styles.mobileSheetCollapsed
               : showSingleMobileCard
                 ? styles.mobileSheetExpandedSingle
                 : styles.mobileSheetExpanded
           }`}
+          style={
+            sheetDragHeightPx != null
+              ? ({ height: sheetDragHeightPx, maxHeight: sheetDragHeightPx } as CSSProperties)
+              : undefined
+          }
           aria-label="地點列表（手機）"
         >
-          <button
-            type="button"
-            className={styles.mobileSheetHandleButton}
-            aria-expanded={mobileSheetExpanded}
-            aria-label={mobileSheetExpanded ? '收合列表' : '展開列表'}
-            data-event="busanmap_mobile_sheet_toggle"
-            data-item="sheet_handle"
-            onClick={onSheetHandleClick}
-            onPointerDown={onSheetHandlePointerDown}
-            onPointerMove={onSheetHandlePointerMove}
-            onPointerUp={onSheetHandlePointerUp}
-            onPointerCancel={onSheetHandlePointerCancel}
-            onTouchStart={onSheetHandleTouchStart}
-            onTouchMove={onSheetHandleTouchMove}
-            onTouchEnd={onSheetHandleTouchEnd}
-          >
-            <span className={styles.mobileSheetHandle} aria-hidden />
-          </button>
+          <div className={styles.mobileSheetChrome}>
+            <div
+              className={styles.mobileSheetDragZone}
+              role="button"
+              tabIndex={0}
+              aria-expanded={mobileSheetExpanded}
+              aria-label={
+                mobileSheetExpanded ? '拖曳調整高度，鬆手吸附；點一下切換收合' : '向上拖曳展開；點一下切換'
+              }
+              data-event="busanmap_mobile_sheet_drag"
+              data-item="sheet_drag"
+              onPointerDown={onMobileSheetDragPointerDown}
+              onPointerMove={onMobileSheetDragPointerMove}
+              onPointerUp={endMobileSheetDrag}
+              onPointerCancel={endMobileSheetDrag}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setMobileSheetExpanded((v) => !v)
+                }
+              }}
+            />
+            <span className={styles.mobileSheetHandleBar} aria-hidden />
+            <button
+              type="button"
+              className={styles.mobileSheetCloseBtn}
+              aria-label="關閉面板"
+              data-event="busanmap_mobile_sheet_close"
+              data-item="sheet_close"
+              onClick={onMobileSheetClose}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <span aria-hidden>×</span>
+            </button>
+          </div>
           <div ref={mobileSheetBodyRef} className={styles.mobileSheetBody}>
             {mobileSheetExpanded ? (
               spotPlaces.length === 0 && hotelPlaces.length === 0 ? (
                 <div className={styles.mobileSheetEmpty}>目前沒有可顯示的地點</div>
               ) : showSingleMobileCard && selectedPlace ? (
                 <div
+                  ref={singleSwipeWrapRef}
                   className={styles.mobileSheetSingleWrap}
                   onPointerDown={onMobileSinglePointerDown}
                   onPointerMove={onMobileSinglePointerMove}
@@ -818,6 +917,7 @@ export default function BusanMapClient() {
                     place={selectedPlace}
                     selected
                     onPick={focusPlace}
+                    gtagPrefix={MAP_GTAG_PREFIX}
                     cardRef={(el) => {
                       mobileCardRefs.current[selectedPlace.id] = el
                     }}
@@ -829,7 +929,7 @@ export default function BusanMapClient() {
                     data-item="single_hint"
                     onClick={() => setMobileSheetBrowseDual(true)}
                   >
-                    向上滑可看更多，或點此瀏覽列表（約兩張卡片）
+                    向上滑可看更多，或點此瀏覽完整列表
                   </button>
                 </div>
               ) : (
@@ -849,6 +949,7 @@ export default function BusanMapClient() {
                               place={place}
                               selected={selectedId === place.id}
                               onPick={focusPlace}
+                              gtagPrefix={MAP_GTAG_PREFIX}
                               cardRef={(el) => {
                                 mobileCardRefs.current[place.id] = el
                               }}
@@ -871,6 +972,7 @@ export default function BusanMapClient() {
                               place={place}
                               selected={selectedId === place.id}
                               onPick={focusPlace}
+                              gtagPrefix={MAP_GTAG_PREFIX}
                               cardRef={(el) => {
                                 mobileCardRefs.current[place.id] = el
                               }}

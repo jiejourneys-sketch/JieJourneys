@@ -46,22 +46,22 @@ const TICKET_SPOT_IDS = [
  * 參考：OSM／官方地址／地標中心；Small Worlds 為江東區有明 1-3-33（非台場 Aomi）
  */
 const TICKET_SPOT_COORDS: Record<(typeof TICKET_SPOT_IDS)[number], { lat: number; lng: number }> = {
-  'shibuya-sky': { lat: 35.6582857, lng: 139.7022617 },
+  'shibuya-sky': { lat: 35.6586719, lng: 139.7019848 },
   'tokyo-skytree': { lat: 35.7100627, lng: 139.8107004 },
-  'roppongi-hills': { lat: 35.660174, lng: 139.729267 },
-  'tokyo-tower': { lat: 35.658621, lng: 139.745438 },
-  'tokyo-disneyland': { lat: 35.632972, lng: 139.880811 },
-  'harry-potter-tokyo': { lat: 35.643222, lng: 139.825806 },
-  'teamlab-planets': { lat: 35.649148, lng: 139.789803 },
-  'teamlab-borderless': { lat: 35.657523, lng: 139.736218 },
-  'unko-museum': { lat: 35.625074, lng: 139.775301 },
-  'small-worlds-tokyo': { lat: 35.638056, lng: 139.788333 },
-  'legoland-discovery-odaiba': { lat: 35.626112, lng: 139.774668 },
-  'sanrio-puroland': { lat: 35.625833, lng: 139.426311 },
-  'sumida-aquarium': { lat: 35.710102, lng: 139.810593 },
-  'ginza-art-aquarium': { lat: 35.671938, lng: 139.764669 },
-  'maxell-aqua-park-shinagawa': { lat: 35.627938, lng: 139.738507 },
-  'sunshine-aquarium': { lat: 35.728942, lng: 139.719285 },
+  'roppongi-hills': { lat: 35.6600712, lng: 139.7292907 },
+  'tokyo-tower': { lat: 35.6585805, lng: 139.7454329 },
+  'tokyo-disneyland': { lat: 35.6328964, lng: 139.8803943 },
+  'harry-potter-tokyo': { lat: 35.745183, lng: 139.6460909 },
+  'teamlab-planets': { lat: 35.6491207, lng: 139.7897739 },
+  'teamlab-borderless': { lat: 35.6620689, lng: 139.7432671 },
+  'unko-museum': { lat: 35.6255273, lng: 139.776413 },
+  'small-worlds-tokyo': { lat: 35.6379228, lng: 139.7883556 },
+  'legoland-discovery-odaiba': { lat: 35.6288365, lng: 139.776083 },
+  'sanrio-puroland': { lat: 35.624512, lng: 139.429293 },
+  'sumida-aquarium': { lat: 35.7099301, lng: 139.8095855 },
+  'ginza-art-aquarium': { lat: 35.6713698, lng: 139.7657375 },
+  'maxell-aqua-park-shinagawa': { lat: 35.6282839, lng: 139.7352393 },
+  'sunshine-aquarium': { lat: 35.7289254, lng: 139.7201573 },
 }
 
 function ticketCardsToSpots(): TokyoMapPlace[] {

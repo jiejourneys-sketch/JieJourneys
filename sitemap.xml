@@ -10,12 +10,14 @@
   <url><loc>https://www.jiejourneys.com/busan/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/busan/transport</loc></url>
   <url><loc>https://www.jiejourneys.com/busan/video</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/map</loc></url>
 
   <!-- 北越區 -->
   <url><loc>https://www.jiejourneys.com/northvietnam/</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/hotel</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/map</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/video</loc></url>
 
   <!-- 東京區 -->
@@ -24,4 +26,15 @@
   <url><loc>https://www.jiejourneys.com/tokyo/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/tokyo/transport</loc></url>
   <url><loc>https://www.jiejourneys.com/tokyo/video</loc></url>
+  <url><loc>https://www.jiejourneys.com/tokyo/map</loc></url>
+
+  <!-- 大阪區 -->
+  <url><loc>https://www.jiejourneys.com/osaka/</loc></url>
+  <url><loc>https://www.jiejourneys.com/osaka/hotel</loc></url>
+  <url><loc>https://www.jiejourneys.com/osaka/ticket</loc></url>
+  <url><loc>https://www.jiejourneys.com/osaka/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/osaka/video</loc></url>
+
+  <!-- 其他國家總覽 -->
+  <url><loc>https://www.jiejourneys.com/countries/</loc></url>
 </urlset>
