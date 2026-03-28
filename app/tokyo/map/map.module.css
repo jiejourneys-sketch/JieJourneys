@@ -1,0 +1,526 @@
+/* 東京地圖頁：JieJourneys 配色／圓角／按鈕沿用全域 */
+
+.mapPage {
+  --map-header-offset: var(--navH, 64px);
+  --map-breakpoint: 960px;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - var(--map-header-offset));
+  max-width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 0 16px 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+.topBar {
+  flex-shrink: 0;
+  padding-top: 16px;
+  padding-bottom: 10px;
+}
+
+.mapPage h1 {
+  margin: 0 0 10px;
+  color: var(--brand);
+  font-size: 22px;
+}
+
+.introBlock {
+  margin: 0;
+}
+
+.splitWrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+@media (min-width: 960px) {
+  .splitWrap {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 16px;
+    min-height: calc(100dvh - var(--map-header-offset) - 120px);
+    max-height: calc(100dvh - var(--map-header-offset) - 100px);
+  }
+}
+
+.mapColumn {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+@media (min-width: 960px) {
+  .mapColumn {
+    flex: 0 0 70%;
+    max-width: 70%;
+    min-height: 480px;
+  }
+}
+
+.mapColumnInner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+}
+
+.mapShellWrap {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 960px) {
+  .mapShellWrap {
+    min-height: 220px;
+  }
+}
+
+.mapShell {
+  flex: 1;
+  min-height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid #1f7a8c;
+  background: var(--card);
+  box-shadow: 0 4px 14px var(--ring);
+}
+
+.mapCanvas {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+}
+
+.mapFallback {
+  height: 100%;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+  background: var(--bg);
+}
+
+.listColumn {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .listColumn {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 30%;
+    max-width: 30%;
+    min-width: 0;
+    background: var(--card);
+    border-radius: 14px;
+    border: 2px solid rgba(31, 122, 140, 0.25);
+    box-shadow: 0 4px 14px var(--ring);
+    overflow: hidden;
+  }
+}
+
+.desktopListScroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 12px 16px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 122, 140, 0.4) transparent;
+}
+
+.desktopCardsSection {
+  margin-bottom: 20px;
+}
+
+.desktopCardsSection:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--brand);
+  letter-spacing: 0.02em;
+}
+
+.rowSpot .sectionTitle {
+  color: #1f7a8c;
+}
+
+.rowHotel .sectionTitle {
+  color: #c2410c;
+}
+
+.sectionLabel {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.desktopCardStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+:global(.stay-card).hCardDesktop {
+  flex: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  text-align: left;
+  border-color: rgba(31, 122, 140, 0.35);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+:global(.stay-card).hCardDesktop :global(.actions) {
+  flex-wrap: wrap;
+}
+
+.mobileMainSpacer {
+  display: none;
+}
+
+.mobileSheet {
+  display: none;
+}
+
+.mobileSheetHandle {
+  width: 48px;
+  height: 5px;
+  margin: 10px auto 8px;
+  border-radius: 999px;
+  background: rgba(31, 122, 140, 0.3);
+  flex-shrink: 0;
+}
+
+.mobileSheetHeader {
+  padding: 0 14px 8px;
+  flex-shrink: 0;
+}
+
+.mobileSheetTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--brand);
+}
+
+.mobileSheetScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 14px 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(31, 122, 140, 0.4) transparent;
+}
+
+.mobileSheetSections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+:global(.stay-card).hCardDesktop:focus-visible {
+  outline: 3px solid rgba(31, 122, 140, 0.35);
+  outline-offset: 2px;
+}
+
+:global(.stay-card).hCardActive {
+  border-color: #1f7a8c;
+  box-shadow: 0 6px 20px rgba(31, 122, 140, 0.2);
+  transform: translateY(-1px);
+}
+
+.catPill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f0f9fb;
+  color: var(--cta);
+  margin-bottom: 4px;
+}
+
+.btnDisabled {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: default;
+}
+
+@media (max-width: 959px) {
+  .mapPage {
+    padding: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-width: none;
+    min-height: calc(100dvh - var(--map-header-offset));
+    position: relative;
+  }
+
+  /* 浮在整張地圖上方（地圖仍為整屏 − 僅網站 Header） */
+  .topBar {
+    position: fixed;
+    top: var(--map-header-offset);
+    left: 0;
+    right: 0;
+    z-index: 60;
+    flex-shrink: 0;
+    padding: 8px max(12px, env(safe-area-inset-left, 12px)) 8px
+      max(12px, env(safe-area-inset-right, 12px));
+    background: var(--card);
+    border-bottom: 1px solid rgba(31, 122, 140, 0.15);
+    box-shadow: 0 2px 14px rgba(15, 23, 42, 0.08);
+  }
+
+  .mapPage h1 {
+    font-size: 17px;
+    margin: 0 0 6px;
+    line-height: 1.25;
+  }
+
+  .mobileMainSpacer {
+    display: block;
+    flex-shrink: 0;
+    height: calc(100dvh - var(--map-header-offset));
+    pointer-events: none;
+  }
+
+  /* 地圖：100dvh − 網站 Header，不被 sheet 縮排（sheet 疊在上層） */
+  .splitWrap {
+    position: fixed;
+    top: var(--map-header-offset);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: calc(100dvh - var(--map-header-offset));
+    max-height: calc(100dvh - var(--map-header-offset));
+    z-index: 1;
+    flex: none;
+    min-height: 0;
+  }
+
+  .mapColumn {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .mapColumnInner {
+    height: 100%;
+  }
+
+  .mapShellWrap {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+  }
+
+  .mapShell {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .mapCanvas {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .mapFallback {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .mobileSheet {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100vw;
+    z-index: 100;
+    margin: 0;
+    background: var(--card);
+    border-radius: 14px 14px 0 0;
+    border: 1px solid rgba(31, 122, 140, 0.22);
+    border-bottom: none;
+    box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.12);
+    box-sizing: border-box;
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transition:
+      height 0.3s ease,
+      max-height 0.3s ease;
+  }
+
+  .mobileSheetExpanded {
+    height: 55vh;
+    max-height: 55vh;
+  }
+
+  /* 地標點選後：僅一張卡片，高度依內容（不超過螢幕比例） */
+  .mobileSheetExpandedSingle {
+    height: auto;
+    max-height: 55vh;
+  }
+
+  .mobileSheetCollapsed {
+    height: 10vh;
+    max-height: 10vh;
+  }
+
+  .mobileSheetCollapsed .mobileSheetHandle {
+    margin: 6px auto 4px;
+  }
+
+  /* 外層不捲動；單卡或雙卡視窗由子層捲動 */
+  .mobileSheetBody {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0 12px 10px;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobileSheetExpandedSingle .mobileSheetBody {
+    flex: none;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobileSheetCollapsed .mobileSheetBody {
+    padding: 2px 12px 6px;
+    overflow: hidden;
+  }
+
+  /* 向上滑解鎖後：可視高度約兩張卡片，內容繼續捲動 */
+  .mobileSheetDualViewport {
+    flex: 1;
+    min-height: 0;
+    max-height: min(46vh, 520px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(31, 122, 140, 0.35) transparent;
+  }
+
+  .mobileSheetSingleWrap {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .mobileSheetSingleHint {
+    margin: 10px 0 0;
+    padding: 10px 12px;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--muted);
+    line-height: 1.4;
+    border: none;
+    border-radius: 10px;
+    background: #f1f5f9;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobileSheetSingleHint:active {
+    opacity: 0.88;
+  }
+
+  .mobileSheetEmpty {
+    margin: 0;
+    padding: 12px 10px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    line-height: 1.45;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed rgba(31, 122, 140, 0.25);
+  }
+
+  .mobileSheetCollapsed .mobileSheetEmpty {
+    padding: 6px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobileSheetBody :global(.stay-card) {
+    margin: 0;
+  }
+
+  .mobileSheetPeekName {
+    margin: 0;
+    padding: 2px 6px 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--brand);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobileSheetHandleButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    padding: 8px 0 10px;
+    margin: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobileSheetHandleButton:focus-visible {
+    outline: 2px solid rgba(31, 122, 140, 0.45);
+    outline-offset: 2px;
+  }
+}
