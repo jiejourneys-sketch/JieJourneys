@@ -19,6 +19,9 @@ export type CityCard = {
   datasetKey?: 'video' | 'hotel' | 'title'
   datasetValue?: string
   actions: CityCardAction[]
+  /** 與「地圖」分享連結對應的座標（供 /tokyo/map 等使用） */
+  lat?: number
+  lng?: number
 }
 
 type Props = {
