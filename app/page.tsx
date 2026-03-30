@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useEffect } from 'react'
 import TopBanner from '@/components/TopBanner'
-import SearchBox from '@/components/SearchBox'
 import PopularGrid from '@/components/PopularGrid'
 import Footer from '@/components/Footer'
 
@@ -31,7 +30,7 @@ export default function HomePage() {
       <header>
         <nav className="nav">
           <Link href="/" className="brand" aria-label="回首頁" data-event="home_logo" data-item="brand">
-            <img src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" />
+            <img src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
             <span>JieJourneys｜旅杰</span>
           </Link>
           <div className="menu">
@@ -59,7 +58,6 @@ export default function HomePage() {
         <section id="popular" className="section" aria-label="熱門攻略">
           <h2>熱門攻略</h2>
           <p className="sub">點擊國家卡片，會有連結總整理</p>
-          <SearchBox />
           <PopularGrid />
         </section>
 

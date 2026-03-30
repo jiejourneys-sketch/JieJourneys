@@ -9,9 +9,18 @@ import type {
   WheelEvent as ReactWheelEvent,
 } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import AreaTabs, { type TabItem } from '@/components/AreaTabs'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
+import {
+  CITY_MAP_CATEGORY_LABEL,
+  CITY_MAP_CATEGORY_TOGGLE_ITEMS,
+  DEFAULT_CITY_MAP_CATEGORY_ON,
+  cityMapCategoriesAllOn,
+  cityMapSoloCategory,
+  type CityMapPlaceCategory,
+} from '@/lib/cityMapPlaceCategory'
+import { cityMapMarkerIcon, cityMapMarkerZIndex } from '@/lib/cityMapMarkers'
+import { getGtag } from '@/lib/gtag'
 import { fireMapMarkerGtag, mapBarCardDataEvent } from '@/lib/mapGtag'
 import styles from './map.module.css'
 import {
@@ -19,11 +28,18 @@ import {
   tokyoMapPlaces,
   type PlaceCategory,
   type TokyoMapPlace,
-} from '@/data/tokyoMapPlaces'
-
-type Filter = 'all' | PlaceCategory
+} from '@/data/tokyo/map/places'
 
 const MAP_GTAG_PREFIX = 'tokyomap'
+
+const CATEGORY_LABEL = CITY_MAP_CATEGORY_LABEL
+
+function tokyoMapMarkerIcon(place: TokyoMapPlace): google.maps.Icon {
+  return cityMapMarkerIcon(place.category as CityMapPlaceCategory, google.maps)
+}
+
+/** 「地圖」按鈕 `data-event` 預設（每筆可用 `mapButtonMapEvent` 覆寫） */
+const MAP_SPOT_GOOGLE_MAPS_BUTTON_EVENT = 'tokyomap_spot_map'
 
 const DESKTOP_MQ = '(min-width: 960px)'
 const MOBILE_MAP_MQ = '(max-width: 959px)'
@@ -64,58 +80,30 @@ function useSiteHeaderHeightPx() {
   return h
 }
 
-/** 景點：高對比亮青針（白邊加粗，地圖上較好辨識） */
-const SPOT_MARKER_SVG = encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="48" viewBox="0 0 40 48">
-  <path fill="#0ea5e9" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"
-    d="M20 2C10.6 2 3 9.6 3 19c0 11 17 27 17 27s17-16 17-27C37 9.6 29.4 2 20 2z"/>
-  <circle cx="20" cy="19" r="6" fill="#ffffff"/>
-  <circle cx="20" cy="19" r="2.8" fill="#0369a1"/>
-</svg>`.replace(/\s+/g, ' ')
-    .trim(),
-)
-
-/** 住宿：亮紅牆＋琥珀屋頂＋加粗白邊（與景點藍系對比強） */
-const HOTEL_MARKER_SVG = encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
-  <path fill="#dc2626" stroke="#ffffff" stroke-width="4" d="M5 17h28v18H5z"/>
-  <path fill="#fbbf24" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" d="M3 17L19 8l16 9"/>
-  <rect x="14" y="24" width="10" height="11" rx="1.5" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"/>
-</svg>`.replace(/\s+/g, ' ')
-    .trim(),
-)
-
-function mapMarkerIcon(place: TokyoMapPlace): google.maps.Icon {
-  const g = google.maps
-  if (place.category === 'hotel') {
-    return {
-      url: `data:image/svg+xml;charset=UTF-8,${HOTEL_MARKER_SVG}`,
-      scaledSize: new g.Size(30, 30),
-      anchor: new g.Point(15, 27),
-    }
-  }
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${SPOT_MARKER_SVG}`,
-    scaledSize: new g.Size(28, 33),
-    anchor: new g.Point(14, 33),
-  }
-}
-
-const MAP_TABS: TabItem[] = [
-  { value: 'all', label: '全部', dataArea: 'all' },
-  { value: 'spot', label: '景點', dataArea: 'spot' },
-  { value: 'hotel', label: '住宿', dataArea: 'hotel' },
-]
-
-const CATEGORY_LABEL: Record<PlaceCategory, string> = {
-  spot: '景點',
-  hotel: '住宿',
-}
-
 const SCRIPT_ID = 'gmaps-js'
 
-function mapsNavigateUrl(lat: number, lng: number) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`
+/** 以目前景點 lat/lng 開啟 Google 地圖釘點（非導航路線） */
+function googleMapsPinUrl(lat: number, lng: number) {
+  return `https://www.google.com/maps?q=${lat},${lng}`
+}
+
+/** 與 data 內佔位連結 path 一致；含此字串時仍用 lat/lng 釘點，直到你換成真實 goo.gl 代碼 */
+const MAP_URL_PLACEHOLDER_TOKEN = 'PASTE_YOUR_MAPS_LINK'
+
+function spotMapButtonHref(place: TokyoMapPlace): string {
+  const url = place.spotGoogleMapsUrl?.trim()
+  if (url && !url.includes(MAP_URL_PLACEHOLDER_TOKEN)) return url
+  return googleMapsPinUrl(place.lat, place.lng)
+}
+
+function mapBarMapButtonEvent(place: TokyoMapPlace): string {
+  const e = place.mapButtonMapEvent?.trim()
+  return e || MAP_SPOT_GOOGLE_MAPS_BUTTON_EVENT
+}
+
+function mapBarMapButtonLabel(place: TokyoMapPlace): string {
+  const t = place.mapButtonLabel?.trim()
+  return t || '地圖'
 }
 
 function isDesktopViewport() {
@@ -184,7 +172,7 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix }: MapPlace
       data-section="map_bar"
       data-label="bar"
       data-title={place.name}
-      data-area={place.category === 'hotel' ? '住宿' : '景點'}
+      data-area={CATEGORY_LABEL[place.category]}
       {...(place.category === 'hotel' ? { 'data-hotel': place.name } : {})}
       onClick={() => onPick(place, 'list')}
       onKeyDown={(e) => {
@@ -198,56 +186,115 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix }: MapPlace
         <span className={styles.catPill}>{CATEGORY_LABEL[place.category]}</span>
         <h3 className="title">{place.name}</h3>
         <p className="desc">{place.description}</p>
-        <div className="actions">
-          {place.hotelActions && place.hotelActions.length > 0
-            ? place.hotelActions.map((a) => (
-                <a
-                  key={`${a.label}-${a.href}`}
-                  href={a.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-event={a.event}
-                  data-platform={a.platform}
-                  data-section={a.section}
-                  className={a.className ?? 'btn'}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {a.label}
-                </a>
-              ))
-            : null}
-          {place.spotActions && place.spotActions.length > 0 ? (
-            <>
-              {place.spotActions.map((a) => (
-                <a
-                  key={`${a.label}-${a.href}`}
-                  href={a.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-event={a.event}
-                  data-platform={a.platform}
-                  data-section={a.section}
-                  className={a.className ?? 'btn'}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {a.label}
-                </a>
-              ))}
+        {place.hotelActions && place.hotelActions.length > 0 ? (
+          <div className="actions">
+            {place.hotelActions.map((a) => (
               <a
-                className="btn"
-                href={mapsNavigateUrl(place.lat, place.lng)}
+                key={`${a.label}-${a.href}`}
+                href={a.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                data-event="tokyomap_spot_nav"
-                data-platform="GoogleMaps"
-                data-section="map_bar"
+                data-event={a.mapEvent ?? a.event}
+                data-item={place.id}
+                data-platform={a.platform}
+                data-section={a.mapSection ?? 'map_bar'}
+                className={a.className ?? 'btn'}
                 onClick={(e) => e.stopPropagation()}
               >
-                導航
+                {a.label}
               </a>
-            </>
-          ) : null}
-        </div>
+            ))}
+          </div>
+        ) : null}
+        {place.spotActionRows && place.spotActionRows.length > 0 ? (
+          <div className={styles.mapActionsStacked}>
+            {place.spotActionRows.map((row, ri) => (
+              <div key={`row-${ri}`} className={styles.mapActionRow}>
+                {row.map((a) => (
+                  <a
+                    key={`${a.label}-${a.href}`}
+                    href={a.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-event={a.mapEvent ?? a.event}
+                    data-item={place.id}
+                    data-platform={a.platform}
+                    data-section={a.mapSection ?? 'map_bar'}
+                    className={a.className ?? 'btn'}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {a.label}
+                  </a>
+                ))}
+                {ri === 0 ? (
+                  <a
+                    className="btn"
+                    href={spotMapButtonHref(place)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-event={mapBarMapButtonEvent(place)}
+                    data-item={place.id}
+                    data-platform="GoogleMaps"
+                    data-section="map_bar"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {mapBarMapButtonLabel(place)}
+                  </a>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : place.spotActions && place.spotActions.length > 0 ? (
+          <div className="actions">
+            {place.spotActions.map((a) => (
+              <a
+                key={`${a.label}-${a.href}`}
+                href={a.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event={a.mapEvent ?? a.event}
+                data-item={place.id}
+                data-platform={a.platform}
+                data-section={a.mapSection ?? 'map_bar'}
+                className={a.className ?? 'btn'}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {a.label}
+              </a>
+            ))}
+            <a
+              className="btn"
+              href={spotMapButtonHref(place)}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event={mapBarMapButtonEvent(place)}
+              data-item={place.id}
+              data-platform="GoogleMaps"
+              data-section="map_bar"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {mapBarMapButtonLabel(place)}
+            </a>
+          </div>
+        ) : place.category !== 'hotel' &&
+          !(place.spotActions && place.spotActions.length > 0) &&
+          !(place.spotActionRows && place.spotActionRows.length > 0) ? (
+          <div className="actions">
+            <a
+              className="btn"
+              href={spotMapButtonHref(place)}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event={mapBarMapButtonEvent(place)}
+              data-item={place.id}
+              data-platform="GoogleMaps"
+              data-section="map_bar"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {mapBarMapButtonLabel(place)}
+            </a>
+          </div>
+        ) : null}
       </div>
     </article>
   )
@@ -322,36 +369,94 @@ export default function TokyoMapClient() {
   const [sheetDragging, setSheetDragging] = useState(false)
   const [sheetDragHeightPx, setSheetDragHeightPx] = useState<number | null>(null)
 
-  const [filter, setFilter] = useState<Filter>('all')
+  const [categoryOn, setCategoryOn] =
+    useState<Record<PlaceCategory, boolean>>(DEFAULT_CITY_MAP_CATEGORY_ON)
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const filteredPlaces = useMemo(() => {
-    if (filter === 'all') return tokyoMapPlaces
-    return tokyoMapPlaces.filter((p) => p.category === filter)
-  }, [filter])
+  const allCategoriesOn = cityMapCategoriesAllOn(categoryOn)
 
-  const spotPlaces = useMemo(() => {
-    if (filter === 'hotel') return []
-    return tokyoMapPlaces.filter((p) => p.category === 'spot')
-  }, [filter])
+  const filteredPlaces = useMemo(
+    () => tokyoMapPlaces.filter((p) => categoryOn[p.category]),
+    [categoryOn],
+  )
 
-  const hotelPlaces = useMemo(() => {
-    if (filter === 'spot') return []
-    return tokyoMapPlaces.filter((p) => p.category === 'hotel')
-  }, [filter])
+  const spotPlaces = useMemo(
+    () => filteredPlaces.filter((p) => p.category === 'spot'),
+    [filteredPlaces],
+  )
+
+  const freePlaces = useMemo(
+    () => filteredPlaces.filter((p) => p.category === 'free'),
+    [filteredPlaces],
+  )
+
+  const foodPlaces = useMemo(
+    () => filteredPlaces.filter((p) => p.category === 'food'),
+    [filteredPlaces],
+  )
+
+  const hotelPlaces = useMemo(
+    () => filteredPlaces.filter((p) => p.category === 'hotel'),
+    [filteredPlaces],
+  )
+
+  const tokyoListSections = useMemo(
+    () => [
+      {
+        places: spotPlaces,
+        title: CATEGORY_LABEL.spot,
+        sectionLabel: '票券頁相同連結',
+        rowClass: styles.rowSpot,
+        aria: CATEGORY_LABEL.spot,
+      },
+      {
+        places: freePlaces,
+        title: CATEGORY_LABEL.free,
+        sectionLabel: '',
+        rowClass: styles.rowFree,
+        aria: CATEGORY_LABEL.free,
+      },
+      {
+        places: foodPlaces,
+        title: CATEGORY_LABEL.food,
+        sectionLabel: '',
+        rowClass: styles.rowFood,
+        aria: CATEGORY_LABEL.food,
+      },
+      {
+        places: hotelPlaces,
+        title: CATEGORY_LABEL.hotel,
+        sectionLabel: '與住宿頁相同連結',
+        rowClass: styles.rowHotel,
+        aria: CATEGORY_LABEL.hotel,
+      },
+    ],
+    [spotPlaces, freePlaces, foodPlaces, hotelPlaces],
+  )
+
+  const hasAnyListPlaces = useMemo(
+    () =>
+      spotPlaces.length > 0 ||
+      freePlaces.length > 0 ||
+      foodPlaces.length > 0 ||
+      hotelPlaces.length > 0,
+    [spotPlaces, freePlaces, foodPlaces, hotelPlaces],
+  )
 
   const selectedPlace = useMemo(
     () => (selectedId ? tokyoMapPlaces.find((p) => p.id === selectedId) ?? null : null),
     [selectedId],
   )
 
+  useEffect(() => {
+    if (!selectedId) return
+    if (!filteredPlaces.some((p) => p.id === selectedId)) setSelectedId(null)
+  }, [filteredPlaces, selectedId])
+
   const showSingleMobileCard =
-    mobileSheetExpanded &&
-    !!selectedPlace &&
-    !mobileSheetBrowseDual &&
-    (spotPlaces.length > 0 || hotelPlaces.length > 0)
+    mobileSheetExpanded && !!selectedPlace && !mobileSheetBrowseDual && hasAnyListPlaces
 
   showSingleMobileCardRef.current = showSingleMobileCard
 
@@ -408,9 +513,9 @@ export default function TokyoMapClient() {
         const marker = new google.maps.Marker({
           map,
           position: { lat: p.lat, lng: p.lng },
-          title: `${p.category === 'hotel' ? '住宿' : '景點'}｜${p.name}`,
-          icon: mapMarkerIcon(p),
-          zIndex: p.category === 'spot' ? 3 : 2,
+          title: `${CATEGORY_LABEL[p.category]}｜${p.name}`,
+          icon: tokyoMapMarkerIcon(p),
+          zIndex: cityMapMarkerZIndex(p.category as CityMapPlaceCategory),
         })
         marker.addListener('click', () => {
           fireMapMarkerGtag(MAP_GTAG_PREFIX, p)
@@ -465,7 +570,7 @@ export default function TokyoMapClient() {
   useEffect(() => {
     if (!mapReady) return
     syncMarkers(filteredPlaces)
-  }, [filter, mapReady, filteredPlaces, syncMarkers])
+  }, [mapReady, filteredPlaces, syncMarkers])
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
@@ -527,7 +632,7 @@ export default function TokyoMapClient() {
   useEffect(() => {
     const el = mobileScrollContainerRef.current
     if (el) el.scrollTop = 0
-  }, [filter])
+  }, [categoryOn])
 
   useEffect(() => {
     if (!mobileSheetBrowseDual || !selectedId) return
@@ -763,21 +868,76 @@ export default function TokyoMapClient() {
         <div className={styles.topBar}>
           <h1>東京地圖</h1>
           <div className={styles.introBlock}>
-            <AreaTabs
-              tabs={MAP_TABS}
-              activeTab={filter}
-              onTabChange={(v) => {
-                setFilter(v as Filter)
-                setSelectedId(null)
-                setMobileSheetBrowseDual(true)
-                if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
-                  setMobileSheetExpanded(true)
-                  mapClickSuppressUntilRef.current = Date.now() + 450
-                }
-              }}
-              gtagEvent="tokyo_map_tab"
-              showActive
-            />
+            <div
+              className="tabs"
+              id="tokyoMapCategoryToggles"
+              role="group"
+              aria-label="地圖分類：全部可切換全開／全關；四類可複選"
+            >
+              <button
+                type="button"
+                className={`tab ${allCategoriesOn ? 'active' : ''}`}
+                data-area="all"
+                onClick={() => {
+                  setCategoryOn((prev) => {
+                    const next = cityMapCategoriesAllOn(prev)
+                      ? { spot: false, free: false, food: false, hotel: false }
+                      : { ...DEFAULT_CITY_MAP_CATEGORY_ON }
+                    const fn = getGtag()
+                    if (typeof fn === 'function') {
+                      fn('event', 'tokyo_map_tab', {
+                        area: cityMapCategoriesAllOn(next) ? 'all' : 'none',
+                        page_path: location.pathname,
+                      })
+                    }
+                    return next
+                  })
+                  setSelectedId(null)
+                  setMobileSheetBrowseDual(true)
+                  if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
+                    setMobileSheetExpanded(true)
+                    mapClickSuppressUntilRef.current = Date.now() + 450
+                  }
+                }}
+              >
+                全部
+              </button>
+              {CITY_MAP_CATEGORY_TOGGLE_ITEMS.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`tab ${categoryOn[key] ? 'active' : ''}`}
+                  aria-pressed={categoryOn[key]}
+                  data-area={key}
+                  onClick={() => {
+                    setCategoryOn((prev) => {
+                      const next = cityMapCategoriesAllOn(prev)
+                        ? cityMapSoloCategory(key)
+                        : { ...prev, [key]: !prev[key] }
+                      const fn = getGtag()
+                      if (typeof fn === 'function') {
+                        const area = (['spot', 'free', 'food', 'hotel'] as const)
+                          .filter((k) => next[k])
+                          .join(',')
+                        fn('event', 'tokyo_map_tab', {
+                          area: area || 'none',
+                          page_path: location.pathname,
+                        })
+                      }
+                      return next
+                    })
+                    setSelectedId(null)
+                    setMobileSheetBrowseDual(true)
+                    if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
+                      setMobileSheetExpanded(true)
+                      mapClickSuppressUntilRef.current = Date.now() + 450
+                    }
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -798,52 +958,34 @@ export default function TokyoMapClient() {
 
           <aside className={styles.listColumn} aria-label="地點列表（桌機）">
             <div ref={desktopListScrollRef} className={styles.desktopListScroll}>
-              {spotPlaces.length > 0 ? (
-                <section
-                  className={`${styles.desktopCardsSection} ${styles.rowSpot}`}
-                  aria-label="景點"
-                >
-                  <h2 className={styles.sectionTitle}>景點</h2>
-                  <p className={styles.sectionLabel}>票券頁相同連結</p>
-                  <div className={styles.desktopCardStack}>
-                    {spotPlaces.map((place) => (
-                      <MapPlaceCard
-                        key={`d-${place.id}`}
-                        place={place}
-                        selected={selectedId === place.id}
-                        onPick={focusPlace}
-                        gtagPrefix={MAP_GTAG_PREFIX}
-                        cardRef={(el) => {
-                          desktopCardRefs.current[place.id] = el
-                        }}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-              {hotelPlaces.length > 0 ? (
-                <section
-                  className={`${styles.desktopCardsSection} ${styles.rowHotel}`}
-                  aria-label="住宿"
-                >
-                  <h2 className={styles.sectionTitle}>住宿</h2>
-                  <p className={styles.sectionLabel}>與住宿頁相同連結</p>
-                  <div className={styles.desktopCardStack}>
-                    {hotelPlaces.map((place) => (
-                      <MapPlaceCard
-                        key={`d-${place.id}`}
-                        place={place}
-                        selected={selectedId === place.id}
-                        onPick={focusPlace}
-                        gtagPrefix={MAP_GTAG_PREFIX}
-                        cardRef={(el) => {
-                          desktopCardRefs.current[place.id] = el
-                        }}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
+              {tokyoListSections.map((s) =>
+                s.places.length > 0 ? (
+                  <section
+                    key={`desk-${s.aria}`}
+                    className={`${styles.desktopCardsSection} ${s.rowClass}`}
+                    aria-label={s.aria}
+                  >
+                    <h2 className={styles.sectionTitle}>{s.title}</h2>
+                    {s.sectionLabel ? (
+                      <p className={styles.sectionLabel}>{s.sectionLabel}</p>
+                    ) : null}
+                    <div className={styles.desktopCardStack}>
+                      {s.places.map((place) => (
+                        <MapPlaceCard
+                          key={`d-${place.id}`}
+                          place={place}
+                          selected={selectedId === place.id}
+                          onPick={focusPlace}
+                          gtagPrefix={MAP_GTAG_PREFIX}
+                          cardRef={(el) => {
+                            desktopCardRefs.current[place.id] = el
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ) : null,
+              )}
             </div>
           </aside>
         </div>
@@ -901,7 +1043,7 @@ export default function TokyoMapClient() {
           </div>
           <div ref={mobileSheetBodyRef} className={styles.mobileSheetBody}>
             {mobileSheetExpanded ? (
-              spotPlaces.length === 0 && hotelPlaces.length === 0 ? (
+              !hasAnyListPlaces ? (
                 <div className={styles.mobileSheetEmpty}>目前沒有可顯示的地點</div>
               ) : showSingleMobileCard && selectedPlace ? (
                 <div
@@ -939,52 +1081,34 @@ export default function TokyoMapClient() {
               ) : (
                 <div ref={mobileScrollContainerRef} className={styles.mobileSheetDualViewport}>
                   <div className={styles.mobileSheetSections}>
-                    {spotPlaces.length > 0 ? (
-                      <section
-                        className={`${styles.desktopCardsSection} ${styles.rowSpot}`}
-                        aria-label="景點"
-                      >
-                        <h2 className={styles.sectionTitle}>景點</h2>
-                        <p className={styles.sectionLabel}>票券頁相同連結</p>
-                        <div className={styles.desktopCardStack}>
-                          {spotPlaces.map((place) => (
-                            <MapPlaceCard
-                              key={`m-${place.id}`}
-                              place={place}
-                              selected={selectedId === place.id}
-                              onPick={focusPlace}
-                              gtagPrefix={MAP_GTAG_PREFIX}
-                              cardRef={(el) => {
-                                mobileCardRefs.current[place.id] = el
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </section>
-                    ) : null}
-                    {hotelPlaces.length > 0 ? (
-                      <section
-                        className={`${styles.desktopCardsSection} ${styles.rowHotel}`}
-                        aria-label="住宿"
-                      >
-                        <h2 className={styles.sectionTitle}>住宿</h2>
-                        <p className={styles.sectionLabel}>與住宿頁相同連結</p>
-                        <div className={styles.desktopCardStack}>
-                          {hotelPlaces.map((place) => (
-                            <MapPlaceCard
-                              key={`m-${place.id}`}
-                              place={place}
-                              selected={selectedId === place.id}
-                              onPick={focusPlace}
-                              gtagPrefix={MAP_GTAG_PREFIX}
-                              cardRef={(el) => {
-                                mobileCardRefs.current[place.id] = el
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </section>
-                    ) : null}
+                    {tokyoListSections.map((s) =>
+                      s.places.length > 0 ? (
+                        <section
+                          key={`mob-${s.aria}`}
+                          className={`${styles.desktopCardsSection} ${s.rowClass}`}
+                          aria-label={s.aria}
+                        >
+                          <h2 className={styles.sectionTitle}>{s.title}</h2>
+                          {s.sectionLabel ? (
+                            <p className={styles.sectionLabel}>{s.sectionLabel}</p>
+                          ) : null}
+                          <div className={styles.desktopCardStack}>
+                            {s.places.map((place) => (
+                              <MapPlaceCard
+                                key={`m-${place.id}`}
+                                place={place}
+                                selected={selectedId === place.id}
+                                onPick={focusPlace}
+                                gtagPrefix={MAP_GTAG_PREFIX}
+                                cardRef={(el) => {
+                                  mobileCardRefs.current[place.id] = el
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </section>
+                      ) : null,
+                    )}
                   </div>
                 </div>
               )

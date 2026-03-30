@@ -8,10 +8,6 @@ const nextConfig: NextConfig = {
       { source: '/book/:path*', destination: '/tools/bill/book/:path*', permanent: false },
     ]
   },
-  webpack: (config, { dev }) => {
-    if (dev) config.cache = false
-    return config
-  },
   async rewrites() {
     return []
   },

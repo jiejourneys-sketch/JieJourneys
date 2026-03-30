@@ -1,7 +1,7 @@
 import type { TabItem } from '@/components/AreaTabs'
 import type { CityCard } from '@/components/CityTabbedList'
 
-/** 與 /tokyo/ticket 相同；地圖景點亦由此同步連結。 */
+/** 與 /tokyo/ticket 相同；地圖組裝見 `data/tokyo/map/places.ts`。 */
 export const tokyoTicketTabs: TabItem[] = [
   { value: 'all', label: '全部', dataArea: 'all' },
   { value: '展望台', label: '展望台', dataArea: '展望台' },
@@ -78,11 +78,11 @@ export const tokyoTicketCards = [
     ],
   },
   {
-    title: '六本木之丘',
+    title: '六本木展望台',
     meta: '展望台',
     area: '展望台',
     datasetKey: 'title',
-    datasetValue: '六本木之丘',
+    datasetValue: '六本木展望台',
     actions: [
       {
         label: 'KKDAY',
@@ -295,6 +295,39 @@ export const tokyoTicketCards = [
         href: 'https://tw.trip.com/travel-guide/attraction/tokyo/unko-museum-tokyo-141383200/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738',
         className: 'btn',
         event: 'tokyoticket_UnkoMuseumTrip',
+        platform: 'Trip',
+        section: 'ticket_card',
+      },
+    ],
+  },
+  {
+    title: '新宿御苑',
+    meta: '親子類',
+    area: '親子類',
+    datasetKey: 'title',
+    datasetValue: '新宿御苑',
+    actions: [
+      {
+        label: 'KKDAY',
+        href: 'https://www.kkday.com/zh-tw/product/573708?cid=22312',
+        className: 'btn primary',
+        event: 'tokyoticket_ShinjukuGardensKKday',
+        platform: 'KKDAY',
+        section: 'ticket_card',
+      },
+      {
+        label: 'KLOOK',
+        href: 'https://www.klook.com/zh-TW/activity/174227-shinjuku-gyoen/?aid=93798',
+        className: 'btn',
+        event: 'tokyoticket_ShinjukuGardensKLOOK',
+        platform: 'KLOOK',
+        section: 'ticket_card',
+      },
+      {
+        label: 'Trip',
+        href: 'https://tw.trip.com/travel-guide/attraction/tokyo/shinjuku-gyoen-national-garden-78895?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D14729556',
+        className: 'btn',
+        event: 'tokyoticket_ShinjukuGardensTrip',
         platform: 'Trip',
         section: 'ticket_card',
       },

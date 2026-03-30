@@ -168,6 +168,14 @@
   color: #c2410c;
 }
 
+.rowFree .sectionTitle {
+  color: #15803d;
+}
+
+.rowFood .sectionTitle {
+  color: #2563eb;
+}
+
 .sectionLabel {
   margin: 0 0 10px;
   font-size: 12px;
@@ -197,6 +205,20 @@
 
 :global(.stay-card).hCardDesktop :global(.actions) {
   flex-wrap: wrap;
+}
+
+.mapActionsStacked {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.mapActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .mobileMainSpacer {

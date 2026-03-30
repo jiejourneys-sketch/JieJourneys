@@ -9,6 +9,7 @@ export default function PopularGrid() {
         data-event="home_card_busan"
         data-item="busan"
         data-section="popular"
+        data-tags="韓國 釜山 busan korea"
         aria-label="前往釜山攻略頁面"
       >
         <img className="thumb" src="/assets/busan.png" alt="釜山 Busan" />
@@ -17,29 +18,45 @@ export default function PopularGrid() {
         </div>
       </Link>
       <Link
-        href="/northvietnam"
-        className="card"
-        data-event="home_card_northvietnam"
-        data-item="hanoi"
-        data-section="popular"
-        aria-label="前往河內攻略頁面"
-      >
-        <img className="thumb" src="/assets/hanoi.png" alt="河內 Hanoi" />
-        <div className="card-body">
-          <h3>越南｜北越</h3>
-        </div>
-      </Link>
-      <Link
         href="/tokyo"
         className="card"
         data-event="home_card_tokyo"
         data-item="tokyo"
         data-section="popular"
+        data-tags="日本 東京 tokyo japan"
         aria-label="前往東京攻略頁面"
       >
         <img className="thumb" src="/assets/tokyo.png" alt="東京 Tokyo" />
         <div className="card-body">
           <h3>日本｜東京</h3>
+        </div>
+      </Link>
+      <Link
+        href=""
+        className="card"
+        data-event="home_card_osaka"
+        data-item="osaka"
+        data-section="popular"
+        data-tags="日本 大阪 osaka japan"
+        aria-label="前往大阪攻略頁面"
+      >
+        <img className="thumb" src="/assets/osaka.png" alt="大阪 Osaka" />
+        <div className="card-body">
+          <h3>大阪(製作中)</h3>
+        </div>
+      </Link>
+      <Link
+        href="/countries"
+        className="card"
+        data-event="home_card_countries"
+        data-item="countries"
+        data-section="popular"
+        data-tags="其他國家 越南 東南亞 更多國家 地區"
+        aria-label="前往其他國家與地區攻略列表"
+      >
+        <img className="thumb" src="/assets/other.png" alt="其他國家與地區" />
+        <div className="card-body">
+          <h3>其他國家</h3>
         </div>
       </Link>
     </div>

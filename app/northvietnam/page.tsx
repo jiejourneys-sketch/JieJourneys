@@ -7,7 +7,7 @@ import Footer from '@/components/Footer'
 export default function NorthVietnamPage() {
   return (
     <>
-      <CitySubpageHeader backHref="/" eventPrefix="northvietnam" />
+      <CitySubpageHeader backHref="/countries" eventPrefix="northvietnam" />
       <main className="busan-main">
         <h1>越南｜北越</h1>
         <p className="sub">完整連結快速選單</p>
@@ -31,6 +31,10 @@ export default function NorthVietnamPage() {
           <Link className="link-item" href="/northvietnam/transport" data-event="northvietnam_transport" data-item="transport" data-section="quick">
             <img className="link-icon" src="/assets/jiaotong.png" alt="交通" />
             <div className="link-text">通訊 / 交通</div>
+          </Link>
+          <Link className="link-item" href="/northvietnam/map" data-event="northvietnam_map" data-item="map" data-section="quick">
+            <img className="link-icon" src="/assets/ditu.png" alt="地圖" />
+            <div className="link-text">旅杰北越地圖</div>
           </Link>
         </div>
       </main>

@@ -10,6 +10,16 @@ export type CityCardAction = {
   event?: string
   platform?: string
   section?: string
+  /** 僅影響地圖卡片按鈕分排：設在「新一排的第一顆」上（勿設在第一顆）。/busan/ticket 仍為單排。 */
+  mapNextRow?: boolean
+  /**
+   * 僅地圖方塊內 `<a>` 的 `data-event`（完整字串）。
+   * 票券頁也會出現的按鈕：請**保留** `event`（給 `/ticket`），另加 `mapEvent`（給地圖）才能兩邊分開計。
+   * 只有地圖才有的按鈕：可只寫 `mapEvent`，或只寫 `event`（地圖會用 `mapEvent ?? event`）。
+   */
+  mapEvent?: string
+  /** 僅地圖方塊內連結的 `data-section`；未填則為 `map_bar`。 */
+  mapSection?: string
 }
 
 export type CityCard = {

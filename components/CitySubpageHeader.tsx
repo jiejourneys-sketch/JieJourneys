@@ -19,7 +19,7 @@ export default function CitySubpageHeader({ backHref, eventPrefix = 'page' }: Pr
           data-event={`${eventPrefix}_logo`}
           data-item="brand"
         >
-          <img src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" />
+          <img src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
           <span>JieJourneys｜旅杰</span>
         </Link>
         <div className="nav-actions">

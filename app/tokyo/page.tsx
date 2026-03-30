@@ -32,6 +32,16 @@ export default function TokyoPage() {
             <img className="link-icon" src="/assets/jiaotong.png" alt="交通" />
             <div className="link-text">通訊 / 交通</div>
           </Link>
+                    <Link
+            className="link-item"
+            href="/tokyo/map"
+            data-event="tokyo_map"
+            data-item="map"
+            data-section="quick"
+          >
+            <img className="link-icon" src="/assets/ditu.png" alt="地圖" />
+            <div className="link-text">旅杰東京地圖</div>
+          </Link>
           <div className="link-item pass-card" data-section="quick">
             <img className="link-icon" src="/assets/ditu.png" alt="東京迪士尼" />
             <div className="pass-row">
