@@ -149,7 +149,7 @@ export default function MemberManager({ bookId }: { bookId: string }) {
         />
         <button
           className="btn"
-          style={{ width: 120, flexShrink: 0 }}
+          style={{ minWidth: '6em', flexShrink: 0, whiteSpace: 'nowrap' }}
           onClick={addMember}
           disabled={!canAdd}
         >

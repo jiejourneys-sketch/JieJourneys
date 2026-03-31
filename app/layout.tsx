@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import GtagCapture from '@/components/GtagCapture'
+import RwdOverflowWarning from '@/components/RwdOverflowWarning'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -121,6 +122,7 @@ export default function RootLayout({
           }}
         />
         <GtagCapture />
+        <RwdOverflowWarning />
         {children}
       </body>
     </html>

@@ -432,7 +432,9 @@ export default function EditExpenseForm({
                             setPayerAmounts({})
                           }}
                         />
-                        <span style={{ width: 140 }}>{m.name}</span>
+                        <span style={{ flex: '1 1 40%', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {m.name}
+                        </span>
                         {checked ? (
                           <>
                             <input
@@ -545,7 +547,7 @@ export default function EditExpenseForm({
                           <>
                             <input
                               className="field"
-                              style={{ height: 38, marginBottom: 0, width: 90, padding: '0 10px' }}
+                              style={{ height: 38, marginBottom: 0, width: '24%', maxWidth: '30%', padding: '0 10px' }}
                               inputMode="numeric"
                               placeholder="平均"
                               value={
@@ -582,7 +584,7 @@ export default function EditExpenseForm({
                             />
                             <input
                               className="field"
-                              style={{ height: 38, marginBottom: 0, width: 90, padding: '0 10px' }}
+                              style={{ height: 38, marginBottom: 0, width: '24%', maxWidth: '30%', padding: '0 10px' }}
                               inputMode="numeric"
                               placeholder="額外"
                               value={exclusiveAmounts[m.id] ?? ''}
@@ -596,7 +598,7 @@ export default function EditExpenseForm({
                                 })
                               }}
                             />
-                            <div style={{ width: 70, textAlign: 'right', fontWeight: 800 }}>
+                            <div style={{ width: '20%', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
                               {formatCents(computedSplit.totalByMember[m.id] ?? 0)}
                             </div>
                           </>

@@ -26,8 +26,10 @@ body {
   background: var(--bg);
   line-height: 1.55;
 }
-img {
+img,
+video {
   max-width: 100%;
+  height: auto;
   display: block;
 }
 a {
@@ -105,8 +107,8 @@ header {
 }
 .nav-city .nav-actions {
   flex: 0 0 auto;
-  flex-wrap: nowrap;
-  overflow: hidden;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 .nav-city .nav-actions .home-link {
   flex-shrink: 1;
@@ -164,6 +166,15 @@ header {
     flex: 0 0 auto;
     font-size: 14px;
     padding: 6px 10px;
+  }
+}
+@media (max-width: 430px) {
+  .nav.nav-city {
+    flex-wrap: wrap;
+  }
+  .nav-city .nav-actions {
+    flex-wrap: wrap;
+    overflow: visible;
   }
 }
 
@@ -434,10 +445,16 @@ footer {
 
 .promo-grid {
   display: grid;
-  grid-template-columns: repeat(2, max-content);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-content: center;
   gap: 4px 8px;
   margin: auto;
+}
+@media (max-width: 360px) {
+  .promo-grid {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
 }
 
 .top-banner {
@@ -624,7 +641,7 @@ a.link-item {
 .pass-btn:not(.primary) {
   color: #0000ee;
 }
-@media (max-width: 420px) {
+@media (max-width: 430px) {
   .pass-row {
     flex-wrap: wrap;
     gap: 8px;
@@ -729,6 +746,16 @@ a.link-item {
   overflow-x: auto;
   gap: 8px;
   padding-bottom: 2px;
+}
+.stay-card .actions > a {
+  min-width: 0;
+}
+@media (max-width: 430px) {
+  .stay-card .actions {
+    flex-wrap: wrap;
+    white-space: normal;
+    overflow-x: visible;
+  }
 }
 .stay-card .desc {
   font-size: 14px;

@@ -223,16 +223,24 @@ export default function MemberPlanDetails({
     .summary b{color:#16324f;}
     .section{margin-bottom:16px;}
     .section h3{margin:0 0 8px; font-size:15px; font-weight:800; color:#16324f;}
-    table{width:100%; border-collapse:collapse; font-size:14px;}
+    table{width:100%; border-collapse:collapse; font-size:14px; table-layout:fixed;}
     th,td{padding:8px 10px; border-bottom:1px solid #e2e8f0; text-align:left;}
     th{color:#64748b; font-weight:700; font-size:12px;}
     .num{text-align:right !important; font-variant-numeric:tabular-nums;}
+    .col-date{width:28%;}
+    .col-amt{width:22%;}
+    td:nth-child(2){word-break:break-word;}
     tr.total td{font-weight:800; background:#f1f5f9; border-bottom:none;}
     .empty{color:#94a3b8; font-size:13px;}
     @media print{
       body{background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
       .head{border-color:#cbd5e1;}
       @page{margin:12mm; size:A4;}
+    }
+    @media (max-width:360px){
+      th,td{padding:7px 8px;}
+      .col-date{width:32%;}
+      .col-amt{width:26%;}
     }
   </style>
 </head>
@@ -256,7 +264,7 @@ export default function MemberPlanDetails({
     <div class="section">
       <h3>消費</h3>
       <table>
-        <thead><tr><th style="width:100px;">日期</th><th>項目</th><th class="num" style="width:80px;">金額</th></tr></thead>
+        <thead><tr><th class="col-date">日期</th><th>項目</th><th class="num col-amt">金額</th></tr></thead>
         <tbody>
           ${rowsSpend || '<tr><td colspan="3" class="empty">沒有消費紀錄</td></tr>'}
           <tr class="total"><td></td><td>總額</td><td class="num">${formatCents(shareTotal)}</td></tr>
@@ -266,7 +274,7 @@ export default function MemberPlanDetails({
     <div class="section">
       <h3>已付</h3>
       <table>
-        <thead><tr><th style="width:100px;">日期</th><th>項目</th><th class="num" style="width:80px;">金額</th></tr></thead>
+        <thead><tr><th class="col-date">日期</th><th>項目</th><th class="num col-amt">金額</th></tr></thead>
         <tbody>
           ${rowsPaid || '<tr><td colspan="3" class="empty">沒有付款紀錄</td></tr>'}
           <tr class="total"><td></td><td>總額</td><td class="num">${formatCents(paidTotal)}</td></tr>
@@ -399,7 +407,7 @@ export default function MemberPlanDetails({
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
                   className="btn secondary"
-                  style={{ width: 160 }}
+                  style={{ flex: '1 1 160px', maxWidth: '100%' }}
                   type="button"
                   onClick={downloadExcel}
                   data-event="downloadbillexcel"
@@ -408,7 +416,7 @@ export default function MemberPlanDetails({
                 </button>
                 <button
                   className="btn secondary"
-                  style={{ width: 160 }}
+                  style={{ flex: '1 1 160px', maxWidth: '100%' }}
                   type="button"
                   onClick={downloadPdf}
                   data-event="downloadbillpdf"
