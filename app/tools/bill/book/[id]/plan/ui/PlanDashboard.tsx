@@ -3,7 +3,8 @@
 import BillLink from '@/app/tools/bill/components/BillLink'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { formatCents } from '@/lib/amount'
+import { formatWithCurrency } from '@/lib/amount'
+import { convertCents, getCurrencySymbol, type ExchangeRates } from '@/lib/currency'
 import { computeMinTransactions, computeCentralizedSettlement } from '@/lib/settlement'
 
 type SettlementMode = 'least' | 'simple'
@@ -12,13 +13,22 @@ type ExpenseRow = {
   id: string
   amount: number
   description: string
+  currency?: string
   occurred_at?: string
   created_at?: string
 }
 type PayerRow = { expense_id: string; member_id: string; amount: number }
 type SplitRow = { expense_id: string; member_id: string; amount: number }
 
-export default function PlanDashboard({ bookId }: { bookId: string }) {
+export default function PlanDashboard({
+  bookId,
+  baseCurrency,
+  exchangeRates
+}: {
+  bookId: string
+  baseCurrency: string
+  exchangeRates: ExchangeRates
+}) {
   const [members, setMembers] = useState<MemberRow[]>([])
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [payers, setPayers] = useState<PayerRow[]>([])
@@ -33,35 +43,19 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
       setError(null)
 
       const [{ data: mData, error: mErr }, { data: eData, error: eErr }] = await Promise.all([
-        supabase
-          .from('members')
-          .select('id,name')
-          .eq('book_id', bookId)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('expenses')
-          .select('id,amount,description,occurred_at,created_at')
-          .eq('book_id', bookId)
-          .order('created_at', { ascending: false })
+        supabase.from('members').select('id,name').eq('book_id', bookId).order('created_at', { ascending: true }),
+        supabase.from('expenses').select('id,amount,description,currency,occurred_at,created_at').eq('book_id', bookId).order('created_at', { ascending: false })
       ])
 
       if (!alive) return
-      if (mErr || eErr) {
-        console.error(mErr || eErr)
-        setError('讀取資料失敗')
-        return
-      }
+      if (mErr || eErr) { console.error(mErr || eErr); setError('讀取資料失敗'); return }
 
       const nextMembers = (mData as MemberRow[]) || []
       const nextExpenses = (eData as ExpenseRow[]) || []
       setMembers(nextMembers)
       setExpenses(nextExpenses)
 
-      if (!nextExpenses.length) {
-        setPayers([])
-        setSplits([])
-        return
-      }
+      if (!nextExpenses.length) { setPayers([]); setSplits([]); return }
 
       const ids = nextExpenses.map((e) => e.id)
       const [{ data: pData, error: pErr }, { data: sData, error: sErr }] = await Promise.all([
@@ -95,8 +89,15 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
 
   const computed = useMemo(() => {
     const byMemberId = new Map(members.map((m) => [m.id, m.name] as const))
+    const expCurrencyMap = new Map(expenses.map((e) => [e.id, e.currency || baseCurrency]))
 
-    const total = expenses.reduce((s, e) => s + Number(e.amount || 0), 0)
+    const convertAmt = (cents: number, expenseId: string) =>
+      convertCents(cents, expCurrencyMap.get(expenseId) || baseCurrency, baseCurrency, baseCurrency, exchangeRates)
+
+    const total = expenses.reduce((s, e) => {
+      const c = convertAmt(Number(e.amount || 0), e.id)
+      return isNaN(c) ? s : s + c
+    }, 0)
 
     const paidById = new Map<string, number>()
     const shareById = new Map<string, number>()
@@ -117,21 +118,26 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
     for (const e of expenses) {
       const pRows = payersByExpense.get(e.id) || []
       for (const p of pRows) {
-        paidById.set(p.member_id, (paidById.get(p.member_id) || 0) + Number(p.amount || 0))
+        const c = convertAmt(Number(p.amount || 0), e.id)
+        if (!isNaN(c)) paidById.set(p.member_id, (paidById.get(p.member_id) || 0) + c)
       }
       const sRows = splitsByExpense.get(e.id) || []
       if (sRows.length) {
         for (const s of sRows) {
-          shareById.set(s.member_id, (shareById.get(s.member_id) || 0) + Number(s.amount || 0))
+          const c = convertAmt(Number(s.amount || 0), e.id)
+          if (!isNaN(c)) shareById.set(s.member_id, (shareById.get(s.member_id) || 0) + c)
         }
       } else {
-        const n = members.length
-        if (n) {
-          const base = Math.floor(Number(e.amount || 0) / n)
-          const rem = Number(e.amount || 0) - base * n
-          members.forEach((m, idx) => {
-            shareById.set(m.id, (shareById.get(m.id) || 0) + base + (idx < rem ? 1 : 0))
-          })
+        const expCents = convertAmt(Number(e.amount || 0), e.id)
+        if (!isNaN(expCents)) {
+          const n = members.length
+          if (n) {
+            const base = Math.floor(expCents / n)
+            const rem = expCents - base * n
+            members.forEach((m, idx) => {
+              shareById.set(m.id, (shareById.get(m.id) || 0) + base + (idx < rem ? 1 : 0))
+            })
+          }
         }
       }
     }
@@ -149,49 +155,27 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
         : computeMinTransactions(rows)
 
     return { total, members: rows, settlements, byMemberId }
-  }, [expenses, members, payers, splits, settlementMode])
+  }, [expenses, members, payers, splits, settlementMode, baseCurrency, exchangeRates])
+
+  const fmt = (cents: number) => formatWithCurrency(cents, baseCurrency)
 
   return (
     <div>
       {error ? <div style={{ color: 'red' }}>{error}</div> : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="card">
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 10,
-              flexWrap: 'wrap'
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ fontWeight: 800, color: '#16324f' }}>結帳建議</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <div className="settlement-mode-toggle">
-                <button
-                  type="button"
-                  className={settlementMode === 'least' ? 'active' : ''}
-                  onClick={() => setSettlementMode('least')}
-                  title="轉帳次數最少"
-                >
+                <button type="button" className={settlementMode === 'least' ? 'active' : ''} onClick={() => setSettlementMode('least')} title="轉帳次數最少">
                   最少轉帳
                 </button>
-                <button
-                  type="button"
-                  className={settlementMode === 'simple' ? 'active' : ''}
-                  onClick={() => setSettlementMode('simple')}
-                  title="集中付給主要收款者"
-                >
+                <button type="button" className={settlementMode === 'simple' ? 'active' : ''} onClick={() => setSettlementMode('simple')} title="集中付給主要收款者">
                   集中結算
                 </button>
               </div>
-              <button
-                className="pill-link"
-                style={{ border: 'none', cursor: 'pointer' }}
-                type="button"
-                onClick={() => setShowExplain(true)}
-                data-event="howtocalculate"
-              >
+              <button className="pill-link" style={{ border: 'none', cursor: 'pointer' }} type="button" onClick={() => setShowExplain(true)} data-event="howtocalculate">
                 怎麼算
               </button>
             </div>
@@ -200,21 +184,14 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
             <div style={{ color: '#64748b', fontSize: 13 }}>已結清</div>
           ) : (
             <div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
-                共 {computed.settlements.length} 筆轉帳
-              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>共 {computed.settlements.length} 筆轉帳</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {computed.settlements.map((s, idx) => (
-                <div
-                  key={`${s.fromId}-${s.toId}-${idx}`}
-                  style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}
-                >
-                  <div style={{ minWidth: 0, fontWeight: 700 }}>
-                    {s.fromName} → {s.toName}
+                {computed.settlements.map((s, idx) => (
+                  <div key={`${s.fromId}-${s.toId}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ minWidth: 0, fontWeight: 700 }}>{s.fromName} → {s.toName}</div>
+                    <div style={{ fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{fmt(s.amount)}</div>
                   </div>
-                  <div style={{ fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{formatCents(s.amount)}</div>
-                </div>
-              ))}
+                ))}
               </div>
             </div>
           )}
@@ -225,28 +202,22 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
           <div style={{ color: '#64748b', fontSize: 13, marginBottom: 8 }}>點名字看自己的消費明細</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {computed.members.map((m) => {
-              const color = m.balance >= 0 ? '#dc2626' : '#059669'  /* 正值紅、負值綠 */
+              const color = m.balance >= 0 ? '#dc2626' : '#059669'
               return (
                 <BillLink
                   key={m.id}
                   href={`/book/${bookId}/plan/${m.id}`}
                   className="member-item"
-                  style={{
-                    textDecoration: 'none',
-                    background: '#fff',
-                    border: '1px solid rgba(0,0,0,0.06)',
-                    marginTop: 0
-                  }}
+                  style={{ textDecoration: 'none', background: '#fff', border: '1px solid rgba(0,0,0,0.06)', marginTop: 0 }}
                 >
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 800, color: '#0f172a' }}>{m.name}</div>
                     <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
-                      消費：{formatCents(m.share)}　已付：{formatCents(m.paid)}
+                      消費：{fmt(m.share)}　已付：{fmt(m.paid)}
                     </div>
                   </div>
                   <div style={{ fontWeight: 900, color, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                    {m.balance >= 0 ? '+' : ''}
-                    {formatCents(m.balance)}
+                    {m.balance >= 0 ? '+' : ''}{fmt(m.balance)}
                   </div>
                 </BillLink>
               )
@@ -256,18 +227,11 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
       </div>
 
       {showExplain ? (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setShowExplain(false)}
-        >
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setShowExplain(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">結帳怎麼算</div>
-              <button className="modal-close" onClick={() => setShowExplain(false)}>
-                關閉
-              </button>
+              <button className="modal-close" onClick={() => setShowExplain(false)}>關閉</button>
             </div>
             <div className="modal-body">
               <div style={{ color: '#64748b', fontSize: 13 }}>
@@ -275,70 +239,50 @@ export default function PlanDashboard({ bookId }: { bookId: string }) {
                 <br />
                 轉帳建議：把「還要付」的人付給「會收回」的人，達到平衡
               </div>
+              {expenses.some((e) => e.currency && e.currency !== baseCurrency) && (
+                <div style={{ marginTop: 8, padding: 10, background: '#fef9c3', borderRadius: 8, fontSize: 12, color: '#92400e' }}>
+                  此帳本含多種貨幣，金額已依帳本匯率設定換算為 {getCurrencySymbol(baseCurrency)}{baseCurrency} 顯示
+                </div>
+              )}
               <div style={{ marginTop: 10, padding: 10, background: '#f8fafc', borderRadius: 10, fontSize: 13 }}>
                 兩種模式下每個人的最終應付與應收差額皆相同且正確
               </div>
-
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {computed.members.map((m) => {
-                  const color = m.balance >= 0 ? '#dc2626' : '#059669'  /* 正值紅、負值綠 */
+                  const color = m.balance >= 0 ? '#dc2626' : '#059669'
                   return (
-                    <div
-                      key={m.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'baseline',
-                        gap: 12
-                      }}
-                    >
+                    <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
                       <div style={{ fontWeight: 800, color: '#0f172a' }}>{m.name}</div>
                       <div style={{ color: '#64748b', fontSize: 13, textAlign: 'right' }}>
-                        費用 {formatCents(m.share)}｜已付 {formatCents(m.paid)}｜差額{' '}
+                        費用 {fmt(m.share)}｜已付 {fmt(m.paid)}｜差額{' '}
                         <span style={{ fontWeight: 900, color, fontVariantNumeric: 'tabular-nums' }}>
-                          {m.balance >= 0 ? '+' : ''}
-                          {formatCents(m.balance)}
+                          {m.balance >= 0 ? '+' : ''}{fmt(m.balance)}
                         </span>
                       </div>
                     </div>
                   )
                 })}
               </div>
-
               <div style={{ marginTop: 14, fontWeight: 800, color: '#16324f' }}>轉帳建議</div>
               {computed.settlements.length === 0 ? (
                 <div style={{ color: '#64748b', fontSize: 13, marginTop: 6 }}>已結清，不需要轉帳。</div>
               ) : (
                 <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {computed.settlements.map((s, idx) => (
-                    <div
-                      key={`ex-${s.fromId}-${s.toId}-${idx}`}
-                      style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}
-                    >
-                      <div style={{ fontWeight: 700 }}>
-                        {s.fromName} → {s.toName}
-                      </div>
-                      <div style={{ fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{formatCents(s.amount)}</div>
+                    <div key={`ex-${s.fromId}-${s.toId}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ fontWeight: 700 }}>{s.fromName} → {s.toName}</div>
+                      <div style={{ fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{fmt(s.amount)}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
             <div className="modal-actions">
-              <button
-                className="pill-link"
-                style={{ border: 'none', cursor: 'pointer' }}
-                type="button"
-                onClick={() => setShowExplain(false)}
-              >
-                完成
-              </button>
+              <button className="pill-link" style={{ border: 'none', cursor: 'pointer' }} type="button" onClick={() => setShowExplain(false)}>完成</button>
             </div>
           </div>
         </div>
       ) : null}
-
     </div>
   )
 }
-

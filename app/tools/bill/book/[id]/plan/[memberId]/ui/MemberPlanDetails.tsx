@@ -2,11 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { formatCents } from '@/lib/amount'
+import { formatCents, formatWithCurrency } from '@/lib/amount'
+import { convertCents, type ExchangeRates } from '@/lib/currency'
 
-type ExpenseRow = { id: string; amount: number; description: string; occurred_at?: string; created_at?: string }
+type ExpenseRow = { id: string; amount: number; currency?: string; description: string; occurred_at?: string; created_at?: string }
 type PayerRow = { expense_id: string; member_id: string; amount: number }
 type SplitRow = { expense_id: string; member_id: string; amount: number }
+
+type Line = {
+  expenseId: string
+  title: string
+  date: string
+  amount: number
+  currency: string
+}
 
 function dayKey(iso: string | undefined) {
   if (!iso) return ''
@@ -21,12 +30,16 @@ export default function MemberPlanDetails({
   bookId,
   memberId,
   memberName,
-  bookName
+  bookName,
+  baseCurrency,
+  exchangeRates
 }: {
   bookId: string
   memberId: string
   memberName: string
   bookName: string
+  baseCurrency: string
+  exchangeRates: ExchangeRates
 }) {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [payers, setPayers] = useState<PayerRow[]>([])
@@ -43,27 +56,17 @@ export default function MemberPlanDetails({
 
       const { data: eData, error: eErr } = await supabase
         .from('expenses')
-        .select('id,amount,description,occurred_at,created_at')
+        .select('id,amount,currency,description,occurred_at,created_at')
         .eq('book_id', bookId)
         .order('created_at', { ascending: false })
 
       if (!alive) return
-      if (eErr) {
-        console.error(eErr)
-        setError('讀取帳目失敗')
-        setLoading(false)
-        return
-      }
+      if (eErr) { console.error(eErr); setError('讀取帳目失敗'); setLoading(false); return }
 
       const nextExpenses = (eData as ExpenseRow[]) || []
       setExpenses(nextExpenses)
 
-      if (!nextExpenses.length) {
-        setPayers([])
-        setSplits([])
-        setLoading(false)
-        return
-      }
+      if (!nextExpenses.length) { setPayers([]); setSplits([]); setLoading(false); return }
 
       const ids = nextExpenses.map((e) => e.id)
       const [{ data: pData, error: pErr }, { data: sData, error: sErr }] = await Promise.all([
@@ -98,39 +101,52 @@ export default function MemberPlanDetails({
   const { paidTotal, shareTotal, balance, paidLines, shareLines } = useMemo(() => {
     const expById = new Map(expenses.map((e) => [e.id, e] as const))
 
+    const convertAmt = (cents: number, expenseId: string) => {
+      const expCur = expById.get(expenseId)?.currency || baseCurrency
+      return convertCents(cents, expCur, baseCurrency, baseCurrency, exchangeRates)
+    }
+
     const paidRows = payers.filter((p) => p.member_id === memberId).filter((p) => Number(p.amount || 0) !== 0)
     const shareRows = splits.filter((s) => s.member_id === memberId).filter((s) => Number(s.amount || 0) !== 0)
 
-    const paidTotal = paidRows.reduce((s, r) => s + Number(r.amount || 0), 0)
-    const shareTotal = shareRows.reduce((s, r) => s + Number(r.amount || 0), 0)
+    const paidLines: Line[] = paidRows
+      .map((r) => {
+        const e = expById.get(r.expense_id)
+        return {
+          expenseId: r.expense_id,
+          title: e?.description || '（已刪除）',
+          date: dayKey(e?.occurred_at || e?.created_at),
+          amount: Number(r.amount || 0),
+          currency: e?.currency || baseCurrency
+        }
+      })
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+
+    const shareLines: Line[] = shareRows
+      .map((r) => {
+        const e = expById.get(r.expense_id)
+        return {
+          expenseId: r.expense_id,
+          title: e?.description || '（已刪除）',
+          date: dayKey(e?.occurred_at || e?.created_at),
+          amount: Number(r.amount || 0),
+          currency: e?.currency || baseCurrency
+        }
+      })
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+
+    const paidTotal = paidLines.reduce((s, x) => {
+      const c = convertAmt(x.amount, x.expenseId)
+      return isNaN(c) ? s : s + c
+    }, 0)
+    const shareTotal = shareLines.reduce((s, x) => {
+      const c = convertAmt(x.amount, x.expenseId)
+      return isNaN(c) ? s : s + c
+    }, 0)
     const balance = paidTotal - shareTotal
 
-    const paidLines = paidRows
-      .map((r) => {
-        const e = expById.get(r.expense_id)
-        return {
-          expenseId: r.expense_id,
-          title: e?.description || '（已刪除）',
-          date: dayKey(e?.occurred_at || e?.created_at),
-          amount: Number(r.amount || 0)
-        }
-      })
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-
-    const shareLines = shareRows
-      .map((r) => {
-        const e = expById.get(r.expense_id)
-        return {
-          expenseId: r.expense_id,
-          title: e?.description || '（已刪除）',
-          date: dayKey(e?.occurred_at || e?.created_at),
-          amount: Number(r.amount || 0)
-        }
-      })
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-
     return { paidTotal, shareTotal, balance, paidLines, shareLines }
-  }, [expenses, memberId, payers, splits])
+  }, [expenses, memberId, payers, splits, baseCurrency, baseCurrency, exchangeRates])
 
   const periodLabel = useMemo(() => {
     const dates = [...paidLines, ...shareLines]
@@ -143,31 +159,37 @@ export default function MemberPlanDetails({
     return min === max ? min : `${min} ~ ${max}`
   }, [paidLines, shareLines])
 
-  const balColor = balance >= 0 ? '#dc2626' : '#059669'  /* 正值紅、負值綠 */
+  const balColor = balance >= 0 ? '#dc2626' : '#059669'
 
   const downloadExcel = async () => {
     const XLSX = await import('xlsx')
     const aoa: (string | number)[][] = []
     aoa.push([`${memberName}｜消費明細`])
     aoa.push([bookName])
+    aoa.push([`金額顯示貨幣：${baseCurrency}`])
     aoa.push([])
 
     aoa.push(['消費'])
-    aoa.push(['日期', '項目', '金額'])
-    shareLines.forEach((x) => aoa.push([x.date || '', x.title, formatCents(x.amount)]))
-    aoa.push(['', '總額', formatCents(shareTotal)])
+    aoa.push(['日期', '項目', '原始金額', '貨幣', `換算 ${baseCurrency}`])
+    shareLines.forEach((x) => {
+      const converted = convertCents(x.amount, x.currency, baseCurrency, baseCurrency, exchangeRates)
+      aoa.push([x.date || '', x.title, formatCents(x.amount), x.currency, isNaN(converted) ? '' : formatCents(converted)])
+    })
+    aoa.push(['', '總額', '', '', formatCents(shareTotal)])
 
     aoa.push([])
     aoa.push(['已付'])
-    aoa.push(['日期', '項目', '金額'])
-    paidLines.forEach((x) => aoa.push([x.date || '', x.title, formatCents(x.amount)]))
-    aoa.push(['', '總額', formatCents(paidTotal)])
+    aoa.push(['日期', '項目', '原始金額', '貨幣', `換算 ${baseCurrency}`])
+    paidLines.forEach((x) => {
+      const converted = convertCents(x.amount, x.currency, baseCurrency, baseCurrency, exchangeRates)
+      aoa.push([x.date || '', x.title, formatCents(x.amount), x.currency, isNaN(converted) ? '' : formatCents(converted)])
+    })
+    aoa.push(['', '總額', '', '', formatCents(paidTotal)])
 
     const ws = XLSX.utils.aoa_to_sheet(aoa)
-    // basic column widths
     type ColSpec = { wch: number }
     type SheetWithCols = Record<string, unknown> & { '!cols'?: ColSpec[] }
-    ;(ws as SheetWithCols)['!cols'] = [{ wch: 12 }, { wch: 34 }, { wch: 10 }]
+    ;(ws as SheetWithCols)['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 10 }, { wch: 6 }, { wch: 12 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '明細')
     XLSX.writeFile(wb, `${memberName}-消費明細.xlsx`)
@@ -177,32 +199,29 @@ export default function MemberPlanDetails({
 
   const downloadPdf = async () => {
     const esc = (s: string) =>
-      String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
+      String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-    const rowsPaid = paidLines
-      .map(
-        (x) => `
-        <tr>
-          <td>${esc(x.date || '')}</td>
-          <td>${esc(x.title)}</td>
-          <td class="num">${formatCents(x.amount)}</td>
-        </tr>`
-      )
-      .join('')
-    const rowsSpend = shareLines
-      .map(
-        (x) => `
-        <tr>
-          <td>${esc(x.date || '')}</td>
-          <td>${esc(x.title)}</td>
-          <td class="num">${formatCents(x.amount)}</td>
-        </tr>`
-      )
-      .join('')
+    const fmtLine = (x: Line) => {
+      if (x.currency === baseCurrency) return formatWithCurrency(x.amount, x.currency)
+      const converted = convertCents(x.amount, x.currency, baseCurrency, baseCurrency, exchangeRates)
+      const orig = formatWithCurrency(x.amount, x.currency)
+      if (isNaN(converted)) return orig
+      return `${formatWithCurrency(converted, baseCurrency)} <span style="color:#94a3b8;font-size:11px">(${orig})</span>`
+    }
+
+    const rowsPaid = paidLines.map((x) => `
+      <tr>
+        <td>${esc(x.date || '')}</td>
+        <td>${esc(x.title)}</td>
+        <td class="num">${fmtLine(x)}</td>
+      </tr>`).join('')
+
+    const rowsSpend = shareLines.map((x) => `
+      <tr>
+        <td>${esc(x.date || '')}</td>
+        <td>${esc(x.title)}</td>
+        <td class="num">${fmtLine(x)}</td>
+      </tr>`).join('')
 
     const html = `<!doctype html>
 <html>
@@ -228,20 +247,11 @@ export default function MemberPlanDetails({
     th{color:#64748b; font-weight:700; font-size:12px;}
     .num{text-align:right !important; font-variant-numeric:tabular-nums;}
     .col-date{width:28%;}
-    .col-amt{width:22%;}
+    .col-amt{width:26%;}
     td:nth-child(2){word-break:break-word;}
     tr.total td{font-weight:800; background:#f1f5f9; border-bottom:none;}
     .empty{color:#94a3b8; font-size:13px;}
-    @media print{
-      body{background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
-      .head{border-color:#cbd5e1;}
-      @page{margin:12mm; size:A4;}
-    }
-    @media (max-width:360px){
-      th,td{padding:7px 8px;}
-      .col-date{width:32%;}
-      .col-amt{width:26%;}
-    }
+    @media print{body{background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact;} @page{margin:12mm; size:A4;}}
   </style>
 </head>
 <body>
@@ -257,9 +267,9 @@ export default function MemberPlanDetails({
       </div>
     </div>
     <div class="summary">
-      <span>消費：<b>${formatCents(shareTotal)}</b></span>
-      <span>已付：<b>${formatCents(paidTotal)}</b></span>
-      <span>差額：<b style="color:${balance >= 0 ? '#dc2626' : '#059669'}">${balance >= 0 ? '+' : ''}${formatCents(balance)}</b></span>
+      <span>消費：<b>${formatWithCurrency(shareTotal, baseCurrency)}</b></span>
+      <span>已付：<b>${formatWithCurrency(paidTotal, baseCurrency)}</b></span>
+      <span>差額：<b style="color:${balance >= 0 ? '#dc2626' : '#059669'}">${balance >= 0 ? '+' : ''}${formatWithCurrency(balance, baseCurrency)}</b></span>
     </div>
     <div class="section">
       <h3>消費</h3>
@@ -267,7 +277,7 @@ export default function MemberPlanDetails({
         <thead><tr><th class="col-date">日期</th><th>項目</th><th class="num col-amt">金額</th></tr></thead>
         <tbody>
           ${rowsSpend || '<tr><td colspan="3" class="empty">沒有消費紀錄</td></tr>'}
-          <tr class="total"><td></td><td>總額</td><td class="num">${formatCents(shareTotal)}</td></tr>
+          <tr class="total"><td></td><td>總額</td><td class="num">${formatWithCurrency(shareTotal, baseCurrency)}</td></tr>
         </tbody>
       </table>
     </div>
@@ -277,35 +287,23 @@ export default function MemberPlanDetails({
         <thead><tr><th class="col-date">日期</th><th>項目</th><th class="num col-amt">金額</th></tr></thead>
         <tbody>
           ${rowsPaid || '<tr><td colspan="3" class="empty">沒有付款紀錄</td></tr>'}
-          <tr class="total"><td></td><td>總額</td><td class="num">${formatCents(paidTotal)}</td></tr>
+          <tr class="total"><td></td><td>總額</td><td class="num">${formatWithCurrency(paidTotal, baseCurrency)}</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-  <script>
-    window.onload=function(){setTimeout(function(){window.print()},80)};
-  </script>
+  <script>window.onload=function(){setTimeout(function(){window.print()},80)};</script>
 </body>
 </html>`
+
     const iframe = document.createElement('iframe')
     iframe.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;border:0;z-index:99999;background:#fff'
     document.body.appendChild(iframe)
     const doc = iframe.contentDocument
-    if (!doc) {
-      iframe.remove()
-      return
-    }
-    doc.open()
-    doc.write(html)
-    doc.close()
-    iframe.onload = () => {
-      iframe.contentWindow?.focus()
-      iframe.contentWindow?.print()
-    }
-    const removeIframe = () => {
-      if (iframe.parentNode) iframe.remove()
-      window.removeEventListener('afterprint', removeIframe)
-    }
+    if (!doc) { iframe.remove(); return }
+    doc.open(); doc.write(html); doc.close()
+    iframe.onload = () => { iframe.contentWindow?.focus(); iframe.contentWindow?.print() }
+    const removeIframe = () => { if (iframe.parentNode) iframe.remove(); window.removeEventListener('afterprint', removeIframe) }
     window.addEventListener('afterprint', removeIframe)
     setTimeout(removeIframe, 30000)
     supabase.from('download_logs').insert({ book_id: bookId, member_id: memberId, format: 'pdf' }).then(() => {})
@@ -318,15 +316,17 @@ export default function MemberPlanDetails({
 
       {!loading && !error ? (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontWeight: 800, color: '#16324f' }}>{memberName}</div>
-            <div style={{ fontWeight: 900, color: balColor, fontVariantNumeric: 'tabular-nums' }}>
-              {balance >= 0 ? '+' : ''}
-              {formatCents(balance)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontWeight: 900, color: balColor, fontVariantNumeric: 'tabular-nums' }}>
+                {balance >= 0 ? '+' : ''}
+                {formatWithCurrency(balance, baseCurrency)}
+              </div>
             </div>
           </div>
           <div style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>
-            消費：{formatCents(shareTotal)}　已付：{formatCents(paidTotal)}
+            消費：{formatWithCurrency(shareTotal, baseCurrency)}　已付：{formatWithCurrency(paidTotal, baseCurrency)}
           </div>
           <div style={{ marginTop: 10 }}>
             <button
@@ -346,17 +346,25 @@ export default function MemberPlanDetails({
               <div style={{ color: '#94a3b8', fontSize: 13 }}>沒有消費紀錄</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {shareLines.map((x) => (
-                  <div key={`s-${x.expenseId}-${x.amount}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{x.title}</div>
-                      <div style={{ fontSize: 12, color: '#94a3b8' }}>{x.date}</div>
+                {shareLines.map((x) => {
+                  const converted = convertCents(x.amount, x.currency, baseCurrency, baseCurrency, exchangeRates)
+                  return (
+                    <div key={`s-${x.expenseId}-${x.amount}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{x.title}</div>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{x.date}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                        <div style={{ fontWeight: 900, color: '#16324f' }}>
+                          {isNaN(converted) ? formatWithCurrency(x.amount, x.currency) : formatWithCurrency(converted, baseCurrency)}
+                        </div>
+                        {x.currency !== baseCurrency && !isNaN(converted) && (
+                          <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatWithCurrency(x.amount, x.currency)}</div>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ fontWeight: 900, color: '#16324f', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                      {formatCents(x.amount)}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -367,27 +375,25 @@ export default function MemberPlanDetails({
               <div style={{ color: '#94a3b8', fontSize: 13 }}>沒有付款紀錄</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {paidLines.map((x) => (
-                  <div
-                    key={`p-${x.expenseId}-${x.amount}`}
-                    style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{x.title}</div>
-                      <div style={{ fontSize: 12, color: '#94a3b8' }}>{x.date}</div>
+                {paidLines.map((x) => {
+                  const converted = convertCents(x.amount, x.currency, baseCurrency, baseCurrency, exchangeRates)
+                  return (
+                    <div key={`p-${x.expenseId}-${x.amount}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{x.title}</div>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{x.date}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                        <div style={{ fontWeight: 900, color: '#16324f' }}>
+                          {isNaN(converted) ? formatWithCurrency(x.amount, x.currency) : formatWithCurrency(converted, baseCurrency)}
+                        </div>
+                        {x.currency !== baseCurrency && !isNaN(converted) && (
+                          <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatWithCurrency(x.amount, x.currency)}</div>
+                        )}
+                      </div>
                     </div>
-                    <div
-                      style={{
-                        fontWeight: 900,
-                        color: '#16324f',
-                        whiteSpace: 'nowrap',
-                        fontVariantNumeric: 'tabular-nums'
-                      }}
-                    >
-                      {formatCents(x.amount)}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -399,28 +405,14 @@ export default function MemberPlanDetails({
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">下載消費明細</div>
-              <button className="modal-close" onClick={() => setShowDownload(false)}>
-                關閉
-              </button>
+              <button className="modal-close" onClick={() => setShowDownload(false)}>關閉</button>
             </div>
             <div className="modal-body">
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button
-                  className="btn secondary"
-                  style={{ flex: '1 1 160px', maxWidth: '100%' }}
-                  type="button"
-                  onClick={downloadExcel}
-                  data-event="downloadbillexcel"
-                >
+                <button className="btn secondary" style={{ flex: '1 1 160px', maxWidth: '100%' }} type="button" onClick={downloadExcel} data-event="downloadbillexcel">
                   Excel（.xlsx）
                 </button>
-                <button
-                  className="btn secondary"
-                  style={{ flex: '1 1 160px', maxWidth: '100%' }}
-                  type="button"
-                  onClick={downloadPdf}
-                  data-event="downloadbillpdf"
-                >
+                <button className="btn secondary" style={{ flex: '1 1 160px', maxWidth: '100%' }} type="button" onClick={downloadPdf} data-event="downloadbillpdf">
                   PDF
                 </button>
               </div>
@@ -429,9 +421,7 @@ export default function MemberPlanDetails({
               </div>
             </div>
             <div className="modal-actions">
-              <button className="pill-link" style={{ border: 'none', cursor: 'pointer' }} type="button" onClick={() => setShowDownload(false)}>
-                完成
-              </button>
+              <button className="pill-link" style={{ border: 'none', cursor: 'pointer' }} type="button" onClick={() => setShowDownload(false)}>完成</button>
             </div>
           </div>
         </div>
@@ -439,4 +429,3 @@ export default function MemberPlanDetails({
     </div>
   )
 }
-

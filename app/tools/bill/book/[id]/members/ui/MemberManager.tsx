@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { logAudit } from '@/lib/audit'
 
@@ -16,7 +16,6 @@ export default function MemberManager({ bookId }: { bookId: string }) {
   const [error, setError] = useState<string | null>(null)
 
   const canAdd = useMemo(() => name.trim().length > 0 && !saving, [name, saving])
-  const editRowRef = useRef<HTMLDivElement | null>(null)
 
   const fetchMembers = async () => {
     setLoading(true)
@@ -43,17 +42,6 @@ export default function MemberManager({ bookId }: { bookId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId])
 
-  useEffect(() => {
-    if (!editingId) return
-    const onPointerDown = (e: PointerEvent) => {
-      if (editRowRef.current && !editRowRef.current.contains(e.target as Node)) {
-        cancelEdit()
-      }
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [editingId])
-
   const addMember = async () => {
     if (!canAdd) return
     setSaving(true)
@@ -77,9 +65,7 @@ export default function MemberManager({ bookId }: { bookId: string }) {
     setName('')
     setSaving(false)
     await fetchMembers()
-    window.dispatchEvent(
-      new CustomEvent('bill:membersChanged', { detail: { bookId } })
-    )
+    window.dispatchEvent(new CustomEvent('bill:membersChanged', { detail: { bookId } }))
   }
 
   const startEdit = (m: MemberRow) => {
@@ -95,22 +81,23 @@ export default function MemberManager({ bookId }: { bookId: string }) {
   const saveEdit = async (m: MemberRow) => {
     const trimmed = editingName.trim()
     if (!trimmed) return alert('名字不能為空')
+    if (trimmed === m.name) { cancelEdit(); return }
 
     setSaving(true)
     setError(null)
-    const beforeData = { id: m.id, book_id: bookId, name: m.name }
-    const afterData = { id: m.id, book_id: bookId, name: trimmed }
     const { error } = await supabase
       .from('members')
       .update({ name: trimmed })
       .eq('id', m.id)
+
     if (error) {
       console.error(error)
-      setError('更新失敗')
+      setError(`更新失敗：${error.message || '未知錯誤'}`)
       setSaving(false)
       return
     }
-    logAudit('members', 'update', m.id, bookId, beforeData, afterData)
+
+    logAudit('members', 'update', m.id, bookId, { id: m.id, name: m.name }, { id: m.id, name: trimmed })
     setSaving(false)
     cancelEdit()
     await fetchMembers()
@@ -118,7 +105,7 @@ export default function MemberManager({ bookId }: { bookId: string }) {
   }
 
   const deleteMember = async (m: MemberRow) => {
-    if (!confirm(`確定刪除成員「${m.name}」？此成員的支出紀錄也會一併移除。`)) return
+    if (!confirm(`確定刪除成員「${m.name}」？`)) return
     setSaving(true)
     setError(null)
     const { error } = await supabase.from('members').delete().eq('id', m.id)
@@ -143,9 +130,7 @@ export default function MemberManager({ bookId }: { bookId: string }) {
           placeholder="暱稱"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') addMember()
-          }}
+          onKeyDown={(e) => { if (e.key === 'Enter') addMember() }}
         />
         <button
           className="btn"
@@ -158,25 +143,15 @@ export default function MemberManager({ bookId }: { bookId: string }) {
 
       {error && <div style={{ color: 'red', marginTop: 10 }}>{error}</div>}
       {loading ? (
-        <p className="empty-text" style={{ textAlign: 'left' }}>
-          讀取中...
-        </p>
+        <p className="empty-text" style={{ textAlign: 'left' }}>讀取中...</p>
       ) : members.length === 0 ? (
-        <p className="empty-text" style={{ textAlign: 'left' }}>
-          尚未加入成員
-        </p>
+        <p className="empty-text" style={{ textAlign: 'left' }}>尚未加入成員</p>
       ) : (
         <div style={{ marginTop: 6 }}>
           {members.map((m) => (
-            <div
-              key={m.id}
-              ref={editingId === m.id ? editRowRef : null}
-              className="member-item"
-              style={editingId === m.id ? { flexWrap: 'wrap', gap: 8 } : undefined}
-            >
-              <div className="member-left" style={{ minWidth: 0, flex: 1 }}>
-                <span style={{ fontSize: 18 }}>👤</span>
-                {editingId === m.id ? (
+            <div key={m.id} className="member-item">
+              {editingId === m.id ? (
+                <>
                   <input
                     className="field"
                     style={{ height: 38, marginBottom: 0, flex: 1, minWidth: 0 }}
@@ -186,40 +161,50 @@ export default function MemberManager({ bookId }: { bookId: string }) {
                       if (e.key === 'Enter') saveEdit(m)
                       if (e.key === 'Escape') cancelEdit()
                     }}
-                    autoFocus
                   />
-                ) : (
-                  <span>{m.name}</span>
-                )}
-              </div>
-              {editingId === m.id ? (
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                  <button
-                    className="pill-link"
-                    style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 13 }}
-                    onClick={() => saveEdit(m)}
-                    disabled={saving}
-                  >
-                    儲存
-                  </button>
-                  <button
-                    className="danger-link"
-                    style={{ padding: '6px 12px', fontSize: 13 }}
-                    onClick={() => deleteMember(m)}
-                    disabled={saving}
-                  >
-                    刪除
-                  </button>
-                </div>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                    <button
+                      className="pill-link"
+                      style={{ border: 'none', cursor: 'pointer', padding: '6px 12px', fontSize: 13 }}
+                      onClick={() => saveEdit(m)}
+                      disabled={saving}
+                    >
+                      儲存
+                    </button>
+                    <button
+                      style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#94a3b8', padding: '0 4px', lineHeight: 1 }}
+                      onClick={cancelEdit}
+                      disabled={saving}
+                      aria-label="取消"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </>
               ) : (
-                <button
-                  className="pill-link"
-                  style={{ border: 'none', cursor: 'pointer' }}
-                  onClick={() => startEdit(m)}
-                  disabled={saving}
-                >
-                  編輯
-                </button>
+                <>
+                  <div className="member-left" style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{ fontSize: 18 }}>👤</span>
+                    <span>{m.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <button
+                      className="pill-link"
+                      style={{ border: 'none', cursor: 'pointer' }}
+                      onClick={() => startEdit(m)}
+                      disabled={saving}
+                    >
+                      編輯
+                    </button>
+                    <button
+                      className="danger-link"
+                      onClick={() => deleteMember(m)}
+                      disabled={saving}
+                    >
+                      刪除
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           ))}
@@ -228,4 +213,3 @@ export default function MemberManager({ bookId }: { bookId: string }) {
     </div>
   )
 }
-

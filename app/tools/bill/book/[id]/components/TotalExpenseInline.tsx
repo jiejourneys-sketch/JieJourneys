@@ -1,45 +1,47 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { formatCents } from '@/lib/amount'
+import { formatWithCurrency } from '@/lib/amount'
+import { convertCents, type ExchangeRates } from '@/lib/currency'
 
-type ExpenseRow = { amount: number }
+type ExpenseRow = { amount: number; currency?: string }
 
-export default function TotalExpenseInline({ bookId }: { bookId: string }) {
-  const [total, setTotal] = useState<number>(0)
+export default function TotalExpenseInline({
+  bookId,
+  baseCurrency,
+  exchangeRates
+}: {
+  bookId: string
+  baseCurrency: string
+  exchangeRates: ExchangeRates
+}) {
+  const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     let alive = true
 
-    const fetchTotal = async () => {
+    const fetchData = async () => {
       setLoading(true)
       const { data, error } = await supabase
         .from('expenses')
-        .select('amount')
+        .select('amount,currency')
         .eq('book_id', bookId)
 
       if (!alive) return
-      if (error) {
-        console.error(error)
-        setTotal(0)
-        setLoading(false)
-        return
-      }
-
-      const rows = (data as ExpenseRow[]) || []
-      setTotal(rows.reduce((s, r) => s + Number(r.amount || 0), 0))
+      if (error) { console.error(error); setExpenses([]); setLoading(false); return }
+      setExpenses((data as ExpenseRow[]) || [])
       setLoading(false)
     }
 
     const onChanged = (ev: Event) => {
       const bookIdFromEvent = (ev as CustomEvent)?.detail?.bookId
       if (bookIdFromEvent && bookIdFromEvent !== bookId) return
-      fetchTotal()
+      fetchData()
     }
 
-    fetchTotal()
+    fetchData()
     window.addEventListener('bill:expenseAdded', onChanged)
     window.addEventListener('bill:expensesChanged', onChanged)
     return () => {
@@ -51,8 +53,29 @@ export default function TotalExpenseInline({ bookId }: { bookId: string }) {
 
   const text = useMemo(() => {
     if (loading) return '總支出：…'
-    return `總支出：${formatCents(total)}`
-  }, [loading, total])
+    if (!expenses.length) return `總支出：${formatWithCurrency(0, baseCurrency)}`
+
+    let convertedTotal = 0
+    let hasUnconverted = false
+
+    for (const e of expenses) {
+      const cur = e.currency || baseCurrency
+      const cents = Number(e.amount || 0)
+      if (cur === baseCurrency) {
+        convertedTotal += cents
+      } else {
+        const converted = convertCents(cents, cur, baseCurrency, baseCurrency, exchangeRates)
+        if (isNaN(converted)) {
+          hasUnconverted = true
+        } else {
+          convertedTotal += converted
+        }
+      }
+    }
+
+    const suffix = hasUnconverted ? '（部分未換算）' : ''
+    return `總支出：${formatWithCurrency(convertedTotal, baseCurrency)}${suffix}`
+  }, [loading, expenses, baseCurrency, exchangeRates])
 
   return (
     <div style={{ color: '#64748b', fontSize: 15, fontWeight: 800, whiteSpace: 'nowrap' }}>
@@ -60,4 +83,3 @@ export default function TotalExpenseInline({ bookId }: { bookId: string }) {
     </div>
   )
 }
-

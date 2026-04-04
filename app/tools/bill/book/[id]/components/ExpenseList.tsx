@@ -1,27 +1,27 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import BillLink from '@/app/tools/bill/components/BillLink'
 import { supabase } from '@/lib/supabase'
-import { formatCents } from '@/lib/amount'
+import { formatWithCurrency } from '@/lib/amount'
+import { convertCents, type ExchangeRates } from '@/lib/currency'
 
 type MemberRow = { id: string; name: string }
-type SplitRow = { expense_id: string; member_id: string; amount: number }
 type PayerRow = { expense_id: string; member_id: string; amount: number }
 type ExpenseRow = {
   id: string
   book_id: string
   amount: number
+  currency?: string
   description: string
   occurred_at?: string
   created_at?: string
   note?: string | null
 }
 
-export default function ExpenseList({ bookId }: { bookId: string }) {
+export default function ExpenseList({ bookId, baseCurrency, exchangeRates }: { bookId: string; baseCurrency: string; exchangeRates: ExchangeRates }) {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([])
   const [members, setMembers] = useState<MemberRow[]>([])
-  const [splits, setSplits] = useState<SplitRow[]>([])
   const [payers, setPayers] = useState<PayerRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,17 +53,6 @@ export default function ExpenseList({ bookId }: { bookId: string }) {
 
     if (nextExpenses.length) {
       const ids = nextExpenses.map((e) => e.id)
-      const { data: sData, error: sErr } = await supabase
-        .from('expense_splits')
-        .select('*')
-        .in('expense_id', ids)
-      if (sErr) {
-        console.error(sErr)
-        setSplits([])
-      } else {
-        setSplits((sData as SplitRow[]) || [])
-      }
-
       const { data: pData, error: pErr } = await supabase
         .from('expense_payers')
         .select('*')
@@ -75,7 +64,6 @@ export default function ExpenseList({ bookId }: { bookId: string }) {
         setPayers((pData as PayerRow[]) || [])
       }
     } else {
-      setSplits([])
       setPayers([])
     }
     setLoading(false)
@@ -106,50 +94,6 @@ export default function ExpenseList({ bookId }: { bookId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId])
 
-  // Editing is handled by /book/[id]/expenses/[expenseId]/edit
-
-  // Reserved for future 分攤摘要 display
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const splitSummaryByExpenseId = useMemo(() => {
-    const byId = new Map(members.map((m) => [m.id, m.name] as const))
-    const grouped = new Map<string, SplitRow[]>()
-    for (const s of splits) {
-      const arr = grouped.get(s.expense_id) || []
-      arr.push(s)
-      grouped.set(s.expense_id, arr)
-    }
-
-    const summary = new Map<string, string>()
-    for (const e of expenses) {
-      const rows = grouped.get(e.id) || []
-      if (rows.length === 0) {
-        summary.set(e.id, '所有人均分')
-        continue
-      }
-
-      const participants = rows.map((r) => r.member_id)
-      const names = participants.map((id) => byId.get(id) || '未知')
-
-      const amounts = rows.map((r) => Number(r.amount || 0))
-      const max = Math.max(...amounts)
-      const min = Math.min(...amounts)
-      const isEqualish = max - min <= 100
-
-      if (isEqualish) {
-        if (participants.length === members.length) summary.set(e.id, '所有人均分')
-        else summary.set(e.id, `${names.join('、')}均分`)
-      } else {
-        const parts = rows
-          .slice(0, 3)
-          .map((r) => `${byId.get(r.member_id) || '未知'}${formatCents(r.amount)}`)
-          .join('、')
-        const more = rows.length > 3 ? `…+${rows.length - 3}` : ''
-        summary.set(e.id, `自訂：${parts}${more}`)
-      }
-    }
-    return summary
-  }, [expenses, members, splits])
-
   const payerSummaryByExpenseId = useMemo(() => {
     const byMemberId = new Map(members.map((m) => [m.id, m.name] as const))
     const grouped = new Map<string, PayerRow[]>()
@@ -160,15 +104,15 @@ export default function ExpenseList({ bookId }: { bookId: string }) {
     }
     const out = new Map<string, string>()
     for (const e of expenses) {
+      const cur = e.currency || baseCurrency
       const rows = (grouped.get(e.id) || []).slice().sort((a, b) => b.amount - a.amount)
       if (rows.length === 0) {
         out.set(e.id, '未知')
         continue
       }
-
       if (rows.length === 1) {
         const r = rows[0]
-        out.set(e.id, `${byMemberId.get(r.member_id) || '未知'}${formatCents(r.amount)}`)
+        out.set(e.id, `${byMemberId.get(r.member_id) || '未知'} ${formatWithCurrency(r.amount, cur)}`)
       } else {
         const first = rows[0]
         const name = byMemberId.get(first.member_id) || '多人'
@@ -176,7 +120,7 @@ export default function ExpenseList({ bookId }: { bookId: string }) {
       }
     }
     return out
-  }, [expenses, members, payers])
+  }, [expenses, members, payers, baseCurrency])
 
   const expenseGroups = useMemo(() => {
     const groups = new Map<string, ExpenseRow[]>()
@@ -229,58 +173,54 @@ export default function ExpenseList({ bookId }: { bookId: string }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {expenseGroups.map(([day, list]) => (
             <div key={day}>
-              <div
-                style={{
-                  color: '#64748b',
-                  fontWeight: 700,
-                  marginBottom: 8
-                }}
-              >
+              <div style={{ color: '#64748b', fontWeight: 700, marginBottom: 8 }}>
                 {day}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {list.map((e) => (
-                  <BillLink
-                    key={e.id}
-                    className="member-item"
-                    href={`/book/${bookId}/expenses/${e.id}/edit`}
-                    style={{
-                      background: '#fff',
-                      border: '1px solid rgba(0,0,0,0.06)',
-                      marginTop: 0
-                    }}
-                  >
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 700, color: '#16324f' }}>
-                        {e.description}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#6b7280' }}>
-                        付款：{payerSummaryByExpenseId.get(e.id) || '未知'}
-                      </div>
-                      {/* 分攤摘要太擁擠，先不顯示 */}
-                      {e.note ? (
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                          {e.note}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div
+                {list.map((e) => {
+                  const cur = e.currency || baseCurrency
+                  const converted = cur !== baseCurrency
+                    ? convertCents(e.amount, cur, baseCurrency, baseCurrency, exchangeRates)
+                    : null
+                  return (
+                    <BillLink
+                      key={e.id}
+                      className="member-item"
+                      href={`/book/${bookId}/expenses/${e.id}/edit`}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        whiteSpace: 'nowrap'
+                        background: '#fff',
+                        border: '1px solid rgba(0,0,0,0.06)',
+                        marginTop: 0
                       }}
                     >
-                      <div style={{ fontWeight: 800 }}>
-                        {formatCents(e.amount)}
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 700, color: '#16324f' }}>
+                          {e.description}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>
+                          付款：{payerSummaryByExpenseId.get(e.id) || '未知'}
+                        </div>
+                        {e.note ? (
+                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                            {e.note}
+                          </div>
+                        ) : null}
                       </div>
-                      {/* 刪除移到編輯頁 */}
-                    </div>
-                  </BillLink>
-                ))}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: 800 }}>
+                          {formatWithCurrency(e.amount, cur)}
+                        </div>
+                        {converted !== null && !isNaN(converted) && (
+                          <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                            {formatWithCurrency(converted, baseCurrency)}
+                          </div>
+                        )}
+                      </div>
+                    </BillLink>
+                  )
+                })}
               </div>
             </div>
           ))}
@@ -289,4 +229,3 @@ export default function ExpenseList({ bookId }: { bookId: string }) {
     </div>
   )
 }
-

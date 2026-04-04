@@ -14,6 +14,9 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingBookId, setEditingBookId] = useState<string | null>(null)
+  const [editingBookName, setEditingBookName] = useState('')
+  const [renamingBookId, setRenamingBookId] = useState<string | null>(null)
 
   useEffect(() => {
     const loadRecent = () => {
@@ -83,11 +86,53 @@ export default function Home() {
     }
   }, [openMenuId])
 
+  const startBookEdit = (bookId: string, currentName: string) => {
+    setOpenMenuId(null)
+    setEditingBookId(bookId)
+    setEditingBookName(currentName)
+  }
+
+  const cancelBookEdit = () => {
+    setEditingBookId(null)
+    setEditingBookName('')
+  }
+
+  const saveBookName = async (bookId: string) => {
+    const trimmed = editingBookName.trim()
+    if (!trimmed) return alert('名稱不能為空')
+    const current = books.find((b) => b.id === bookId)
+    if (current && trimmed === current.name) {
+      cancelBookEdit()
+      return
+    }
+
+    setRenamingBookId(bookId)
+    const { error } = await supabase.from('books').update({ name: trimmed }).eq('id', bookId)
+    setRenamingBookId(null)
+    if (error) {
+      console.error(error)
+      alert('更新失敗，請稍後再試')
+      return
+    }
+    setBooks((prev) => prev.map((b) => (b.id === bookId ? { ...b, name: trimmed } : b)))
+    cancelBookEdit()
+  }
+
   const handleDeleteBook = async (bookId: string, bookName: string) => {
     if (!confirm(`確定要刪除帳本「${bookName}」嗎？此操作無法復原。`)) return
 
     setDeletingId(bookId)
     setOpenMenuId(null)
+
+    // 先取出所有帳目 ID，再逐層刪除子資料
+    const { data: expData } = await supabase.from('expenses').select('id').eq('book_id', bookId)
+    const expIds = (expData || []).map((e: { id: string }) => e.id)
+    if (expIds.length) {
+      await supabase.from('expense_payers').delete().in('expense_id', expIds)
+      await supabase.from('expense_splits').delete().in('expense_id', expIds)
+    }
+    await supabase.from('expenses').delete().eq('book_id', bookId)
+    await supabase.from('members').delete().eq('book_id', bookId)
 
     const { error } = await supabase.from('books').delete().eq('id', bookId)
 
@@ -98,7 +143,6 @@ export default function Home() {
       return
     }
 
-    // 從最近使用清單移除
     try {
       const raw = window.localStorage.getItem(RECENT_KEY)
       const parsed = raw ? (JSON.parse(raw) as unknown) : []
@@ -153,32 +197,98 @@ export default function Home() {
           <div className="grid">
             {books.map((b) => (
               <div key={b.id} className="book-card-wrapper">
-                <BillLink
-                  href={`/book/${b.id}`}
-                  className="book-card"
-                  style={{ opacity: deletingId === b.id ? 0.6 : 1 }}
-                >
-                  <div className="book-icon">📒</div>
-                  <div className="book-name">{b.name}</div>
-                </BillLink>
-                <button
-                  type="button"
-                  className="book-card-menu-btn"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setOpenMenuId(openMenuId === b.id ? null : b.id)
-                  }}
-                  disabled={deletingId === b.id}
-                  aria-label="更多選項"
-                >
-                  ⋯
-                </button>
+                {editingBookId === b.id ? (
+                  <div
+                    className="book-card book-card-rename"
+                    role="group"
+                    aria-label="重新命名帳本"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="book-card-rename__icon" aria-hidden>
+                      📒
+                    </div>
+                    <label className="book-card-rename__label" htmlFor={`book-rename-${b.id}`}>
+                      帳本名稱
+                    </label>
+                    <input
+                      id={`book-rename-${b.id}`}
+                      className="book-card-rename__input"
+                      value={editingBookName}
+                      onChange={(e) => setEditingBookName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void saveBookName(b.id)
+                        if (e.key === 'Escape') cancelBookEdit()
+                      }}
+                      disabled={renamingBookId === b.id}
+                      maxLength={120}
+                      autoComplete="off"
+                      autoFocus
+                    />
+                    <div className="book-card-rename__actions">
+                      <button
+                        type="button"
+                        className="book-card-rename__save"
+                        onClick={() => void saveBookName(b.id)}
+                        disabled={renamingBookId === b.id || !editingBookName.trim()}
+                      >
+                        {renamingBookId === b.id ? '儲存中…' : '儲存'}
+                      </button>
+                      <button
+                        type="button"
+                        className="book-card-rename__cancel"
+                        onClick={cancelBookEdit}
+                        disabled={renamingBookId === b.id}
+                        aria-label="取消"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M18 6L6 18M6 6l12 12"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <BillLink
+                    href={`/book/${b.id}`}
+                    className="book-card"
+                    style={{ opacity: deletingId === b.id ? 0.6 : 1 }}
+                  >
+                    <div className="book-icon">📒</div>
+                    <div className="book-name">{b.name}</div>
+                  </BillLink>
+                )}
+                {editingBookId !== b.id && (
+                  <button
+                    type="button"
+                    className="book-card-menu-btn"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setOpenMenuId(openMenuId === b.id ? null : b.id)
+                    }}
+                    disabled={deletingId === b.id}
+                    aria-label="更多選項"
+                  >
+                    ⋯
+                  </button>
+                )}
                 {openMenuId === b.id && (
                   <div
                     className="book-card-dropdown"
                     onClick={(e) => e.stopPropagation()}
                   >
+                    <button
+                      type="button"
+                      className="book-card-dropdown-item"
+                      onClick={() => startBookEdit(b.id, b.name)}
+                      disabled={deletingId === b.id}
+                    >
+                      改名
+                    </button>
                     <button
                       type="button"
                       className="book-card-dropdown-item book-card-dropdown-item--danger"

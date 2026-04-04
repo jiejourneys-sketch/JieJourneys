@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
 import { supabase } from '@/lib/supabase'
-import { toCents, formatCents } from '@/lib/amount'
+import { toCents, formatCents, formatWithCurrency } from '@/lib/amount'
+import { CURRENCIES, type CurrencyInfo } from '@/lib/currency'
 import { logAudit } from '@/lib/audit'
 import { insertChangeLog } from '@/lib/changeLog'
 
@@ -13,6 +14,7 @@ type ExpenseRow = {
   id: string
   book_id: string
   amount: number
+  currency?: string
   description: string
   occurred_at?: string
   note?: string | null
@@ -51,13 +53,17 @@ export default function EditExpenseForm({
   expense,
   members,
   splits,
-  payers
+  payers,
+  bookCurrency,
+  customCurrencies = []
 }: {
   bookId: string
   expense: ExpenseRow
   members: MemberRow[]
   splits: SplitRow[]
   payers: PayerRow[]
+  bookCurrency: string
+  customCurrencies?: CurrencyInfo[]
 }) {
   const buildBillPath = useBuildBillPath()
   const router = useRouter()
@@ -69,6 +75,7 @@ export default function EditExpenseForm({
   const [timeOnly, setTimeOnly] = useState(initParts.timeOnly)
   const [description, setDescription] = useState(expense.description || '')
   const [amount, setAmount] = useState(formatCents(expense.amount ?? 0))
+  const [currency, setCurrency] = useState<string>(expense.currency || bookCurrency)
   const [note, setNote] = useState(expense.note || '')
   const [saving, setSaving] = useState(false)
 
@@ -90,10 +97,7 @@ export default function EditExpenseForm({
     return m
   })
 
-  const effectivePayerIds = useMemo(
-    () => new Set(payerIds),
-    [payerIds]
-  )
+  const effectivePayerIds = useMemo(() => new Set(payerIds), [payerIds])
   const orderedPayerIds = useMemo(
     () => memberOptions.filter((m) => effectivePayerIds.has(m.id)).map((m) => m.id),
     [memberOptions, effectivePayerIds]
@@ -107,21 +111,16 @@ export default function EditExpenseForm({
   const computedPayerAmounts = useMemo(() => {
     const ids = orderedPayerIds
     if (!ids.length || total <= 0) return {}
-
     const manualIds = ids.filter(
       (id) => payerAmounts[id] !== undefined && payerAmounts[id] !== ''
     )
     const manualSum = manualIds.reduce((sum, id) => sum + toCents(Number(payerAmounts[id]) || 0), 0)
     const autoIds = ids.filter((id) => !manualIds.includes(id))
-
     const remaining = total - manualSum
-
     const result: Record<string, number> = {}
-
     manualIds.forEach((id) => {
       result[id] = toCents(Number(payerAmounts[id]) || 0)
     })
-
     if (autoIds.length > 0) {
       const base = Math.floor(remaining / autoIds.length)
       const rem = remaining - base * autoIds.length
@@ -129,7 +128,6 @@ export default function EditExpenseForm({
         result[id] = base + (idx < rem ? 1 : 0)
       })
     }
-
     return result
   }, [orderedPayerIds, payerAmounts, total])
 
@@ -164,10 +162,7 @@ export default function EditExpenseForm({
     () => new Set((splits || []).map((s) => s.member_id))
   )
 
-  const effectiveSplitterIds = useMemo(
-    () => new Set(splitterIds),
-    [splitterIds]
-  )
+  const effectiveSplitterIds = useMemo(() => new Set(splitterIds), [splitterIds])
   const orderedSplitterIds = useMemo(
     () => memberOptions.filter((m) => effectiveSplitterIds.has(m.id)).map((m) => m.id),
     [memberOptions, effectiveSplitterIds]
@@ -214,6 +209,10 @@ export default function EditExpenseForm({
     if (!Number.isFinite(n) || n < 0) return alert('金額不正確')
     if (effectivePayerIds.size === 0) return alert('請至少選 1 位付款者')
     if (effectiveSplitterIds.size === 0) return alert('請至少選 1 位分攤者')
+    if (orderedPayerIds.length === 0)
+      return alert('所選付款者已不在目前帳本成員中，請重新選擇付款者')
+    if (orderedSplitterIds.length === 0)
+      return alert('所選分攤者已不在目前帳本成員中，請重新選擇分攤者')
 
     const payerSum = Object.values(computedPayerAmounts).reduce((s, v) => s + v, 0)
     if (payerSum !== total) return alert('付款者金額加總必須等於帳目金額')
@@ -226,6 +225,7 @@ export default function EditExpenseForm({
     const afterData = {
       description: description.trim(),
       amount: total,
+      currency,
       occurred_at: occurredAt,
       note: note.trim() || null
     }
@@ -235,6 +235,7 @@ export default function EditExpenseForm({
       .update({
         description: description.trim(),
         amount: total,
+        currency,
         occurred_at: occurredAt,
         note: note.trim() || null
       })
@@ -252,18 +253,29 @@ export default function EditExpenseForm({
       member_id: memberId,
       amount: computedPayerAmounts[memberId] || 0
     }))
-    const { error: pdErr } = await supabase.from('expense_payers').delete().eq('expense_id', expense.id)
-    if (pdErr) {
-      console.error(pdErr)
-      setSaving(false)
-      alert('更新付款者失敗')
-      return
+    // 避免「整批 delete 被 RLS 擋下却回傳成功」導致 insert 撞 unique：只刪除未再選取的列，其餘用 upsert
+    const nextPayerSet = new Set(orderedPayerIds)
+    for (const memberId of (payers || []).map((p) => p.member_id)) {
+      if (nextPayerSet.has(memberId)) continue
+      const { error: pdErr } = await supabase
+        .from('expense_payers')
+        .delete()
+        .eq('expense_id', expense.id)
+        .eq('member_id', memberId)
+      if (pdErr) {
+        console.error(pdErr)
+        setSaving(false)
+        alert(`更新付款者失敗：${pdErr.message || '請稍後再試'}`)
+        return
+      }
     }
-    const { error: piErr } = await supabase.from('expense_payers').insert(payerRows)
+    const { error: piErr } = await supabase
+      .from('expense_payers')
+      .upsert(payerRows, { onConflict: 'expense_id,member_id' })
     if (piErr) {
       console.error(piErr)
       setSaving(false)
-      alert('更新付款者失敗')
+      alert(`更新付款者失敗：${piErr.message || '請稍後再試'}`)
       return
     }
 
@@ -274,18 +286,28 @@ export default function EditExpenseForm({
       exclusive_amount: computedSplit.exclusive[memberId] || 0,
       amount: computedSplit.totalByMember[memberId] || 0
     }))
-    const { error: sdErr } = await supabase.from('expense_splits').delete().eq('expense_id', expense.id)
-    if (sdErr) {
-      console.error(sdErr)
-      setSaving(false)
-      alert('更新分攤失敗')
-      return
+    const nextSplitSet = new Set(orderedSplitterIds)
+    for (const memberId of (splits || []).map((s) => s.member_id)) {
+      if (nextSplitSet.has(memberId)) continue
+      const { error: sdErr } = await supabase
+        .from('expense_splits')
+        .delete()
+        .eq('expense_id', expense.id)
+        .eq('member_id', memberId)
+      if (sdErr) {
+        console.error(sdErr)
+        setSaving(false)
+        alert(`更新分攤失敗：${sdErr.message || '請稍後再試'}`)
+        return
+      }
     }
-    const { error: siErr } = await supabase.from('expense_splits').insert(splitRows)
+    const { error: siErr } = await supabase
+      .from('expense_splits')
+      .upsert(splitRows, { onConflict: 'expense_id,member_id' })
     if (siErr) {
       console.error(siErr)
       setSaving(false)
-      alert('更新分攤失敗')
+      alert(`更新分攤失敗：${siErr.message || '請稍後再試'}`)
       return
     }
 
@@ -315,11 +337,23 @@ export default function EditExpenseForm({
     if (!confirm(`刪除帳目「${description}」？`)) return
     setSaving(true)
     const beforeData = { ...expense }
-    const { error } = await supabase.from('expenses').delete().eq('id', expense.id)
+    // 先刪子資料，避免 FK 限制阻擋刪除
+    await supabase.from('expense_payers').delete().eq('expense_id', expense.id)
+    await supabase.from('expense_splits').delete().eq('expense_id', expense.id)
+    const { data: deleted, error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', expense.id)
+      .select('id')
     if (error) {
       console.error(error)
       setSaving(false)
-      alert('刪除失敗')
+      alert(`刪除失敗：${error.message}`)
+      return
+    }
+    if (!deleted || deleted.length === 0) {
+      setSaving(false)
+      alert('刪除失敗：資料庫未授權此操作。\n請至 Supabase → Authentication → Policies，確認 expenses 表有允許 DELETE 的 RLS 政策。')
       return
     }
     logAudit('expenses', 'delete', expense.id, bookId, beforeData, null)
@@ -376,19 +410,42 @@ export default function EditExpenseForm({
 
       <div>
         <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>金額</div>
-        <input
-          className="field"
-          inputMode="numeric"
-          value={amount}
-          onChange={(e) => {
-            setAmount(e.target.value)
-            // 修改總金額時，重算分配，確保剩餘為 0
-            setPayerAmounts({})
-            setSharedOverrides({})
-            setExclusiveAmounts({})
-            setLockedSharedIds(new Set())
-          }}
-        />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            className="field"
+            inputMode="numeric"
+            value={amount}
+            onChange={(e) => {
+              setAmount(e.target.value)
+              setPayerAmounts({})
+              setSharedOverrides({})
+              setExclusiveAmounts({})
+              setLockedSharedIds(new Set())
+            }}
+            style={{ flex: 1, marginBottom: 0 }}
+          />
+          <select
+            className="field"
+            style={{ width: 'auto', marginBottom: 0 }}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.symbol} {c.code}
+              </option>
+            ))}
+            {customCurrencies.length > 0 && (
+              <optgroup label="自訂貨幣">
+                {customCurrencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </div>
       </div>
 
       <div>
@@ -407,9 +464,9 @@ export default function EditExpenseForm({
               </div>
               <div className="modal-body">
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>總金額：{formatCents(total)}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700 }}>總金額：{formatWithCurrency(total, currency)}</div>
                   <div style={{ fontSize: 13, color: payerRemaining === 0 ? '#059669' : '#b91c1c' }}>
-                    尚有 {formatCents(payerRemaining)} 未分配
+                    尚有 {formatWithCurrency(payerRemaining, currency)} 未分配
                   </div>
                 </div>
                 <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>
@@ -427,7 +484,6 @@ export default function EditExpenseForm({
                             const next = new Set(payerIds)
                             if (e.target.checked) next.add(m.id)
                             else next.delete(m.id)
-                            // 每次勾選變更時，重算所有付款金額：清掉手動輸入
                             setPayerIds(next)
                             setPayerAmounts({})
                           }}
@@ -436,42 +492,37 @@ export default function EditExpenseForm({
                           {m.name}
                         </span>
                         {checked ? (
-                          <>
-                            <input
-                              className="field"
-                              style={{ height: 40, marginBottom: 0 }}
-                              inputMode="numeric"
-                              value={
-                                payerAmounts[m.id] ??
-                                (checked ? formatCents(computedPayerAmounts[m.id] ?? 0) : '')
-                              }
-                              onChange={(e) => {
-                                const v = e.target.value
-                                setPayerAmounts((prev) => {
-                                  const next = { ...prev, [m.id]: v }
-                                  const ids = orderedPayerIds
-
-                                  if (ids.length === 2) {
-                                    const otherId = ids[0] === m.id ? ids[1] : ids[0]
-                                    delete next[otherId]
-                                    return next
-                                  }
-
-                                  if (ids.length >= 3) {
-                                    const manualCount = ids.filter(
-                                      (id) => next[id] !== undefined && next[id] !== ''
-                                    ).length
-                                    if (manualCount === ids.length) {
-                                      const candidate = ids.find((id) => id !== m.id)
-                                      if (candidate) delete next[candidate]
-                                    }
-                                  }
-
+                          <input
+                            className="field"
+                            style={{ height: 40, marginBottom: 0 }}
+                            inputMode="numeric"
+                            value={
+                              payerAmounts[m.id] ??
+                              (checked ? formatCents(computedPayerAmounts[m.id] ?? 0) : '')
+                            }
+                            onChange={(e) => {
+                              const v = e.target.value
+                              setPayerAmounts((prev) => {
+                                const next = { ...prev, [m.id]: v }
+                                const ids = orderedPayerIds
+                                if (ids.length === 2) {
+                                  const otherId = ids[0] === m.id ? ids[1] : ids[0]
+                                  delete next[otherId]
                                   return next
-                                })
-                              }}
-                            />
-                          </>
+                                }
+                                if (ids.length >= 3) {
+                                  const manualCount = ids.filter(
+                                    (id) => next[id] !== undefined && next[id] !== ''
+                                  ).length
+                                  if (manualCount === ids.length) {
+                                    const candidate = ids.find((id) => id !== m.id)
+                                    if (candidate) delete next[candidate]
+                                  }
+                                }
+                                return next
+                              })
+                            }}
+                          />
                         ) : null}
                       </label>
                     )
@@ -495,44 +546,30 @@ export default function EditExpenseForm({
 
         {editingSplit && (
           <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setEditingSplit(false)}>
-            <div
-              className="modal"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <div className="modal-title">分攤設定</div>
                 <button className="modal-close" onClick={() => setEditingSplit(false)}>關閉</button>
               </div>
               <div className="modal-body">
                 <div style={{ fontSize: 13, color: splitRemaining === 0 ? '#059669' : '#b91c1c', marginTop: 4 }}>
-                  尚未分配：{formatCents(splitRemaining)}
-                  <span style={{ marginLeft: 8, color: '#6b7280' }}>（總金額：{formatCents(total)}）</span>
+                  尚未分配：{formatWithCurrency(splitRemaining, currency)}
+                  <span style={{ marginLeft: 8, color: '#6b7280' }}>（總金額：{formatWithCurrency(total, currency)}）</span>
                 </div>
                 <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {memberOptions.map((m) => {
                     const checked = effectiveSplitterIds.has(m.id)
                     const sharedLocked = lockedSharedIds.has(m.id)
                     return (
-                      <div
-                        key={m.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          fontSize: 14
-                        }}
-                      >
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                         <input
                           type="checkbox"
                           checked={checked}
                           onChange={(e) => {
                             const next = new Set(splitterIds)
                             if (e.target.checked) next.add(m.id)
-                            else {
-                              next.delete(m.id)
-                            }
+                            else next.delete(m.id)
                             setSplitterIds(next)
-                            // 每次勾選變更時，強制全部重算平均：清掉手動共享分配
                             setLockedSharedIds(new Set())
                             setSharedOverrides({})
                             setExclusiveAmounts((prev) => {
@@ -566,9 +603,7 @@ export default function EditExpenseForm({
                                 })
                                 setLockedSharedIds((prev) => {
                                   const ids = orderedSplitterIds
-                                  if (ids.length === 2) {
-                                    return new Set([m.id])
-                                  }
+                                  if (ids.length === 2) return new Set([m.id])
                                   const next = new Set(prev)
                                   next.add(m.id)
                                   if (ids.length >= 3) {
@@ -599,7 +634,7 @@ export default function EditExpenseForm({
                               }}
                             />
                             <div style={{ width: '20%', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                              {formatCents(computedSplit.totalByMember[m.id] ?? 0)}
+                              {formatWithCurrency(computedSplit.totalByMember[m.id] ?? 0, currency)}
                             </div>
                           </>
                         ) : <div style={{ color: '#9ca3af', fontSize: 13 }}>未分攤</div>}
@@ -629,12 +664,7 @@ export default function EditExpenseForm({
           className="danger-link"
           onClick={deleteThisExpense}
           disabled={saving}
-          style={{
-            padding: '12px 14px',
-            borderRadius: 10,
-            fontSize: 14,
-            flexShrink: 0
-          }}
+          style={{ padding: '12px 14px', borderRadius: 10, fontSize: 14, flexShrink: 0 }}
         >
           刪除
         </button>
@@ -642,4 +672,3 @@ export default function EditExpenseForm({
     </div>
   )
 }
-

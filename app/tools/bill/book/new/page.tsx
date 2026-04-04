@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
 import BillHomeLink from '@/app/tools/bill/components/BillHomeLink'
 import { supabase } from '@/lib/supabase'
+import { CURRENCIES } from '@/lib/currency'
 
 export default function NewBookPage() {
   const router = useRouter()
   const buildBillPath = useBuildBillPath()
   const [name, setName] = useState('')
+  const [baseCurrency, setBaseCurrency] = useState('TWD')
   const [saving, setSaving] = useState(false)
 
   const create = async () => {
@@ -19,7 +21,7 @@ export default function NewBookPage() {
     setSaving(true)
     const { data, error } = await supabase
       .from('books')
-      .insert([{ name: trimmed }])
+      .insert([{ name: trimmed, base_currency: baseCurrency, exchange_rates: {} }])
       .select()
       .single()
     setSaving(false)
@@ -60,6 +62,36 @@ export default function NewBookPage() {
             if (e.key === 'Enter') create()
           }}
         />
+
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>結算貨幣</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>最後算清楚用的貨幣，建議選自己的本國貨幣</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {CURRENCIES.map((c) => (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => setBaseCurrency(c.code)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  border: baseCurrency === c.code ? '2px solid #2c7a86' : '2px solid #d9dee5',
+                  background: baseCurrency === c.code ? '#e6f4f6' : '#fff',
+                  color: baseCurrency === c.code ? '#2c7a86' : '#374151',
+                  fontWeight: baseCurrency === c.code ? 700 : 400,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                {c.symbol} {c.name}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>
+            可在帳本設定裡修改
+          </div>
+        </div>
+
         <button className="btn" onClick={create} disabled={saving}>
           {saving ? '建立中...' : '建立'}
         </button>
@@ -67,4 +99,3 @@ export default function NewBookPage() {
     </div>
   )
 }
-

@@ -1,5 +1,6 @@
 import BillLink from '@/app/tools/bill/components/BillLink'
 import { supabase } from '@/lib/supabase'
+import { resolveExchangeRates } from '@/lib/serverRates'
 import PlanDashboard from './ui/PlanDashboard'
 import TotalExpenseInline from '../components/TotalExpenseInline'
 import RememberBook from '../components/RememberBook'
@@ -19,6 +20,10 @@ export default async function PlanPage({
 
   if (!book) return <div>Loading...</div>
 
+  const baseCurrency = (book.base_currency as string) || 'TWD'
+  const storedRates = (book.exchange_rates as Record<string, number>) || {}
+  const exchangeRates = await resolveExchangeRates(baseCurrency, storedRates)
+
   return (
     <div>
       <RememberBook bookId={id} />
@@ -33,11 +38,10 @@ export default async function PlanPage({
           <h2>費用明細</h2>
         </div>
         <div />
-        <TotalExpenseInline bookId={id} />
+        <TotalExpenseInline bookId={id} baseCurrency={baseCurrency} exchangeRates={exchangeRates} />
       </div>
 
-      <PlanDashboard bookId={id} />
+      <PlanDashboard bookId={id} baseCurrency={baseCurrency} exchangeRates={exchangeRates} />
     </div>
   )
 }
-

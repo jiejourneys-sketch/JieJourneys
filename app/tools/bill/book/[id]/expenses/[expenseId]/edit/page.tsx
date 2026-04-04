@@ -30,6 +30,8 @@ export default async function EditExpensePage({
 
   if (!book || !expense) return <div>Loading...</div>
 
+  const baseCurrency = (book.base_currency as string) || 'TWD'
+
   return (
     <div>
       <div
@@ -48,6 +50,8 @@ export default async function EditExpensePage({
           members={members || []}
           splits={splits || []}
           payers={payers || []}
+          bookCurrency={baseCurrency}
+          customCurrencies={(book.custom_currencies as { code: string; symbol: string; name: string }[]) || []}
         />
       </div>
 
@@ -74,4 +78,3 @@ export default async function EditExpensePage({
     </div>
   )
 }
-

@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { resolveExchangeRates } from '@/lib/serverRates'
 import ExpenseSummary from './components/ExpenseSummary'
 import BillLink from '@/app/tools/bill/components/BillLink'
 import BillHomeLink from '@/app/tools/bill/components/BillHomeLink'
@@ -14,14 +15,22 @@ export default async function Page({
 }) {
   const { id } = await params
 
-  // 取得 book
   const { data: book } = await supabase
     .from('books')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (!book) return <div>Loading...</div>
+  if (!book) return (
+    <div>
+      <p style={{ color: '#6b7280', marginBottom: 12 }}>找不到帳本，可能已被刪除。</p>
+      <a href="/tools/bill" style={{ color: '#2C7292', fontWeight: 700 }}>← 回清單</a>
+    </div>
+  )
+
+  const baseCurrency = (book.base_currency as string) || 'TWD'
+  const storedRates = (book.exchange_rates as Record<string, number>) || {}
+  const exchangeRates = await resolveExchangeRates(baseCurrency, storedRates)
 
   return (
     <div>
@@ -33,16 +42,21 @@ export default async function Page({
         <BillHomeLink className="pill-link">
           ← 回清單
         </BillHomeLink>
-        <BillLink href={`/book/${id}/members`} className="pill-link" data-event="addbillmember">
-          + 成員
-        </BillLink>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <BillLink href={`/book/${id}/settings`} className="pill-link" data-event="billcurrency">
+            貨幣設定
+          </BillLink>
+          <BillLink href={`/book/${id}/members`} className="pill-link" data-event="addbillmember">
+            + 成員
+          </BillLink>
+        </div>
       </div>
 
       <div className="book-header book-header--book">
         <div style={{ minWidth: 0 }}>
           <h2>{book.name}</h2>
         </div>
-        <TotalExpenseInline bookId={id} />
+        <TotalExpenseInline bookId={id} baseCurrency={baseCurrency} exchangeRates={exchangeRates} />
         <ShareBookButton
           style={{
             padding: '6px 12px',
@@ -53,11 +67,16 @@ export default async function Page({
       </div>
 
       <div className="card">
-        <ExpenseSummary bookId={id} showSettlements={false} />
+        <ExpenseSummary
+          bookId={id}
+          showSettlements={false}
+          baseCurrency={baseCurrency}
+          exchangeRates={exchangeRates}
+        />
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
-        <ExpenseList bookId={id} />
+        <ExpenseList bookId={id} baseCurrency={baseCurrency} exchangeRates={exchangeRates} />
       </div>
     </div>
   )

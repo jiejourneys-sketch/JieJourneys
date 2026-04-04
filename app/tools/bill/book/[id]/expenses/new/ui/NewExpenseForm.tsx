@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
 import { supabase } from '@/lib/supabase'
-import { toCents, formatCents } from '@/lib/amount'
+import { toCents, formatCents, formatWithCurrency } from '@/lib/amount'
+import { CURRENCIES, LAST_CURRENCY_STORAGE_KEY, type CurrencyInfo } from '@/lib/currency'
 import { logAudit } from '@/lib/audit'
 
 type MemberRow = { id: string; name: string }
@@ -14,7 +15,6 @@ function pad2(n: number) {
 }
 
 function toDateParts(dtLocal: string) {
-  // dtLocal: YYYY-MM-DDTHH:mm (local)
   const [d, t] = String(dtLocal || '').split('T')
   return {
     dateOnly: d || '',
@@ -37,10 +37,14 @@ function nowDatetimeLocal() {
 
 export default function NewExpenseForm({
   bookId,
-  members
+  members,
+  bookCurrency,
+  customCurrencies = []
 }: {
   bookId: string
   members: MemberRow[]
+  bookCurrency: string
+  customCurrencies?: CurrencyInfo[]
 }) {
   const router = useRouter()
   const buildBillPath = useBuildBillPath()
@@ -50,6 +54,12 @@ export default function NewExpenseForm({
   const [timeOnly, setTimeOnly] = useState('')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(LAST_CURRENCY_STORAGE_KEY) || bookCurrency
+    }
+    return bookCurrency
+  })
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -74,19 +84,13 @@ export default function NewExpenseForm({
   )
   const total = useMemo(() => toCents(Number(amount) || 0), [amount])
 
-  const effectivePayerIds = useMemo(
-    () => new Set(payerIds),
-    [payerIds]
-  )
+  const effectivePayerIds = useMemo(() => new Set(payerIds), [payerIds])
   const orderedPayerIds = useMemo(
     () => memberOptions.filter((m) => effectivePayerIds.has(m.id)).map((m) => m.id),
     [memberOptions, effectivePayerIds]
   )
 
-  const effectiveSplitterIds = useMemo(
-    () => new Set(splitterIds),
-    [splitterIds]
-  )
+  const effectiveSplitterIds = useMemo(() => new Set(splitterIds), [splitterIds])
   const orderedSplitterIds = useMemo(
     () => memberOptions.filter((m) => effectiveSplitterIds.has(m.id)).map((m) => m.id),
     [memberOptions, effectiveSplitterIds]
@@ -106,22 +110,16 @@ export default function NewExpenseForm({
   const computedPayerAmounts = useMemo(() => {
     const ids = orderedPayerIds
     if (!ids.length || total <= 0) return {}
-
-    // 使用者有輸入的金額（元）→ 轉為 cents
     const manualIds = ids.filter(
       (id) => payerAmounts[id] !== undefined && payerAmounts[id] !== ''
     )
     const manualSum = manualIds.reduce((sum, id) => sum + toCents(Number(payerAmounts[id]) || 0), 0)
     const autoIds = ids.filter((id) => !manualIds.includes(id))
-
     const remaining = total - manualSum
-
     const result: Record<string, number> = {}
-
     manualIds.forEach((id) => {
       result[id] = toCents(Number(payerAmounts[id]) || 0)
     })
-
     if (autoIds.length > 0) {
       const base = Math.floor(remaining / autoIds.length)
       const rem = remaining - base * autoIds.length
@@ -129,7 +127,6 @@ export default function NewExpenseForm({
         result[id] = base + (idx < rem ? 1 : 0)
       })
     }
-
     return result
   }, [orderedPayerIds, payerAmounts, total])
 
@@ -176,6 +173,13 @@ export default function NewExpenseForm({
     setTimeOnly(initParts.timeOnly)
   }, [])
 
+  // Save last used currency to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LAST_CURRENCY_STORAGE_KEY, currency)
+    }
+  }, [currency])
+
   const submit = async () => {
     if (!description.trim() || !amount) return alert('請填完整')
     const n = Number(amount)
@@ -198,6 +202,7 @@ export default function NewExpenseForm({
         book_id: bookId,
         description: description.trim(),
         amount: total,
+        currency,
         occurred_at: occurredAt,
         note: note.trim() || null
       })
@@ -280,20 +285,43 @@ export default function NewExpenseForm({
 
       <div>
         <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 6 }}>金額</div>
-        <input
-          className="field"
-          inputMode="numeric"
-          value={amount}
-          onChange={(e) => {
-            setAmount(e.target.value)
-            // 總金額改變時，重算分配，避免出現殘留金額
-            setPayerAmounts({})
-            setSharedOverrides({})
-            setExclusiveAmounts({})
-            setLockedSharedIds(new Set())
-          }}
-          placeholder="例如：100 或 100.5（元）"
-        />
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            className="field"
+            inputMode="numeric"
+            value={amount}
+            onChange={(e) => {
+              setAmount(e.target.value)
+              setPayerAmounts({})
+              setSharedOverrides({})
+              setExclusiveAmounts({})
+              setLockedSharedIds(new Set())
+            }}
+            placeholder="例如：100 或 100.5"
+            style={{ flex: 1, marginBottom: 0 }}
+          />
+          <select
+            className="field"
+            style={{ width: 'auto', marginBottom: 0 }}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.symbol} {c.code}
+              </option>
+            ))}
+            {customCurrencies.length > 0 && (
+              <optgroup label="自訂貨幣">
+                {customCurrencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </div>
       </div>
 
       <div>
@@ -308,10 +336,7 @@ export default function NewExpenseForm({
         </div>
         {editingPayers && (
           <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setEditingPayers(false)}>
-            <div
-              className="modal"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <div className="modal-title">付款者</div>
                 <button className="modal-close" onClick={() => setEditingPayers(false)}>關閉</button>
@@ -319,10 +344,10 @@ export default function NewExpenseForm({
               <div className="modal-body">
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'space-between' }}>
                   <div style={{ fontSize: 16, fontWeight: 700 }}>
-                    總金額：{formatCents(total)}
+                    總金額：{formatWithCurrency(total, currency)}
                   </div>
                   <div style={{ fontSize: 13, color: payerRemaining === 0 ? '#059669' : '#b91c1c' }}>
-                    尚有 {formatCents(payerRemaining)} 未分配
+                    尚有 {formatWithCurrency(payerRemaining, currency)} 未分配
                   </div>
                 </div>
                 <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>
@@ -340,7 +365,6 @@ export default function NewExpenseForm({
                             const next = new Set(payerIds)
                             if (e.target.checked) next.add(m.id)
                             else next.delete(m.id)
-                            // 每次勾選變更時，重算所有金額：清掉手動輸入
                             setPayerIds(next)
                             setPayerAmounts({})
                           }}
@@ -349,45 +373,38 @@ export default function NewExpenseForm({
                           {m.name}
                         </span>
                         {checked ? (
-                          <>
-                            <input
-                              className="field"
-                              style={{ height: 40, marginBottom: 0 }}
-                              inputMode="numeric"
-                              value={
-                                payerAmounts[m.id] ??
-                                (checked ? formatCents(computedPayerAmounts[m.id] ?? 0) : '')
-                              }
-                              onChange={(e) => {
-                                const v = e.target.value
-                                setPayerAmounts((prev) => {
-                                  const next = { ...prev, [m.id]: v }
-                                  const ids = orderedPayerIds
-
-                                  // 兩個付款者：你改 A，B 立刻吃剩餘（B 變成自動）
-                                  if (ids.length === 2) {
-                                    const otherId = ids[0] === m.id ? ids[1] : ids[0]
-                                    delete next[otherId]
-                                    return next
-                                  }
-
-                                  // >=3：若全部都手動，強制留 1 個自動補齊
-                                  if (ids.length >= 3) {
-                                    const manualCount = ids.filter(
-                                      (id) => next[id] !== undefined && next[id] !== ''
-                                    ).length
-                                    if (manualCount === ids.length) {
-                                      const candidate = ids.find((id) => id !== m.id)
-                                      if (candidate) delete next[candidate]
-                                    }
-                                  }
-
+                          <input
+                            className="field"
+                            style={{ height: 40, marginBottom: 0 }}
+                            inputMode="numeric"
+                            value={
+                              payerAmounts[m.id] ??
+                              (checked ? formatCents(computedPayerAmounts[m.id] ?? 0) : '')
+                            }
+                            onChange={(e) => {
+                              const v = e.target.value
+                              setPayerAmounts((prev) => {
+                                const next = { ...prev, [m.id]: v }
+                                const ids = orderedPayerIds
+                                if (ids.length === 2) {
+                                  const otherId = ids[0] === m.id ? ids[1] : ids[0]
+                                  delete next[otherId]
                                   return next
-                                })
-                              }}
-                              placeholder="0"
-                            />
-                          </>
+                                }
+                                if (ids.length >= 3) {
+                                  const manualCount = ids.filter(
+                                    (id) => next[id] !== undefined && next[id] !== ''
+                                  ).length
+                                  if (manualCount === ids.length) {
+                                    const candidate = ids.find((id) => id !== m.id)
+                                    if (candidate) delete next[candidate]
+                                  }
+                                }
+                                return next
+                              })
+                            }}
+                            placeholder="0"
+                          />
                         ) : null}
                       </label>
                     )
@@ -415,43 +432,29 @@ export default function NewExpenseForm({
 
         {editingSplit && (
           <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setEditingSplit(false)}>
-            <div
-              className="modal"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <div className="modal-title">分攤設定</div>
                 <button className="modal-close" onClick={() => setEditingSplit(false)}>關閉</button>
               </div>
               <div className="modal-body">
                 <div style={{ fontSize: 13, color: splitRemaining === 0 ? '#059669' : '#b91c1c', marginTop: 4 }}>
-                  尚未分配：{formatCents(splitRemaining)}
-                  <span style={{ marginLeft: 8, color: '#6b7280' }}>（總金額：{formatCents(total)}）</span>
+                  尚未分配：{formatWithCurrency(splitRemaining, currency)}
+                  <span style={{ marginLeft: 8, color: '#6b7280' }}>（總金額：{formatWithCurrency(total, currency)}）</span>
                 </div>
                 <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {memberOptions.map((m) => {
                     const checked = effectiveSplitterIds.has(m.id)
                     const sharedLocked = lockedSharedIds.has(m.id)
                     return (
-                      <div
-                        key={m.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          fontSize: 14
-                        }}
-                      >
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
                         <input
                           type="checkbox"
                           checked={checked}
                           onChange={(e) => {
                             const next = new Set(splitterIds)
                             if (e.target.checked) next.add(m.id)
-                            else {
-                              next.delete(m.id)
-                            }
-                            // 每次勾選變更時，強制全部重算平均：清掉手動共享分配
+                            else next.delete(m.id)
                             setSplitterIds(next)
                             setLockedSharedIds(new Set())
                             setSharedOverrides({})
@@ -489,7 +492,6 @@ export default function NewExpenseForm({
                                   if (ids.length === 2) return new Set([m.id])
                                   const next = new Set(prev)
                                   next.add(m.id)
-                                  // 若全部人都被鎖定，強制留 1 個自動補齊
                                   if (ids.length >= 3) {
                                     const lockedCount = ids.filter((id) => next.has(id)).length
                                     if (lockedCount === ids.length) {
@@ -518,7 +520,7 @@ export default function NewExpenseForm({
                               }}
                             />
                             <div style={{ width: '20%', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                              {formatCents(computedSplit.totalByMember[m.id] ?? 0)}
+                              {formatWithCurrency(computedSplit.totalByMember[m.id] ?? 0, currency)}
                             </div>
                           </>
                         ) : (
@@ -548,4 +550,3 @@ export default function NewExpenseForm({
     </div>
   )
 }
-
