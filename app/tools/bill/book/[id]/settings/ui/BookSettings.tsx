@@ -87,6 +87,21 @@ export default function BookSettings({
     setRates((prev) => ({ ...prev, [code]: formatRate(rate) }))
   }
 
+  const handleBaseCurrencyChange = (newBase: string) => {
+    const oldRateOfNewBase = parseFloat(rates[newBase] ?? '')
+    if (oldRateOfNewBase > 0) {
+      const recalculated: Record<string, string> = {}
+      for (const [code, val] of Object.entries(rates)) {
+        if (code === newBase) continue
+        const r = parseFloat(val)
+        if (r > 0) recalculated[code] = formatRate(r / oldRateOfNewBase)
+      }
+      recalculated[baseCurrency] = formatRate(1 / oldRateOfNewBase)
+      setRates(recalculated)
+    }
+    setBaseCurrency(newBase)
+  }
+
   const applyAll = () => {
     if (!suggested) return
     const next: Record<string, string> = { ...rates }
@@ -167,7 +182,7 @@ export default function BookSettings({
               <button
                 key={c.code}
                 type="button"
-                onClick={() => setBaseCurrency(c.code)}
+                onClick={() => handleBaseCurrencyChange(c.code)}
                 style={{
                   padding: '6px 14px',
                   borderRadius: 20,
@@ -289,9 +304,9 @@ export default function BookSettings({
       <div>
         <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 8 }}>自訂貨幣</div>
 
-        {customCurrencies.length > 0 && (
+        {customCurrencies.filter((c) => c.code !== baseCurrency).length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-            {customCurrencies.map((c) => (
+            {customCurrencies.filter((c) => c.code !== baseCurrency).map((c) => (
               <div key={c.code} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#374151', flex: 1 }}>{c.name}</div>
                 <input
@@ -321,17 +336,9 @@ export default function BookSettings({
           <input
             className="field"
             style={{ flex: 1, height: 38, marginBottom: 0 }}
-            placeholder="貨幣名稱（如：菲律賓披索）"
+            placeholder="貨幣名稱（如：英鎊）"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-          />
-          <input
-            className="field"
-            style={{ width: 100, height: 38, marginBottom: 0 }}
-            inputMode="decimal"
-            placeholder="匯率"
-            value={newRate}
-            onChange={(e) => setNewRate(e.target.value)}
           />
           <button
             className="pill-link"
@@ -341,6 +348,24 @@ export default function BookSettings({
             + 新增
           </button>
         </div>
+        {newName.trim() && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
+            <span style={{ fontSize: 13, color: '#6b7280', whiteSpace: 'nowrap' }}>
+              1 {newName.trim()} =
+            </span>
+            <input
+              className="field"
+              style={{ width: 110, height: 38, marginBottom: 0 }}
+              inputMode="decimal"
+              placeholder="金額"
+              value={newRate}
+              onChange={(e) => setNewRate(e.target.value)}
+            />
+            <span style={{ fontSize: 13, color: '#6b7280', whiteSpace: 'nowrap' }}>
+              {getCurrencySymbol(baseCurrency) === baseCurrency ? baseCurrency : `${getCurrencySymbol(baseCurrency)} ${baseCurrency}`}
+            </span>
+          </div>
+        )}
       </div>
 
       <button className="btn" onClick={save} disabled={saving || saved}>
