@@ -161,25 +161,28 @@ export default function BookSettings({
         <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>結算貨幣</div>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>最後算清楚用的貨幣，建議選本國貨幣</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {CURRENCIES.map((c) => (
-            <button
-              key={c.code}
-              type="button"
-              onClick={() => setBaseCurrency(c.code)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 20,
-                border: baseCurrency === c.code ? '2px solid #2c7a86' : '2px solid #d9dee5',
-                background: baseCurrency === c.code ? '#e6f4f6' : '#fff',
-                color: baseCurrency === c.code ? '#2c7a86' : '#374151',
-                fontWeight: baseCurrency === c.code ? 700 : 400,
-                fontSize: 14,
-                cursor: 'pointer',
-              }}
-            >
-              {c.symbol} {c.name}
-            </button>
-          ))}
+          {[...CURRENCIES, ...customCurrencies].map((c) => {
+            const isCustom = !CURRENCIES.some((b) => b.code === c.code)
+            return (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => setBaseCurrency(c.code)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  border: baseCurrency === c.code ? '2px solid #2c7a86' : '2px solid #d9dee5',
+                  background: baseCurrency === c.code ? '#e6f4f6' : '#fff',
+                  color: baseCurrency === c.code ? '#2c7a86' : '#374151',
+                  fontWeight: baseCurrency === c.code ? 700 : 400,
+                  fontSize: 14,
+                  cursor: 'pointer',
+                }}
+              >
+                {isCustom ? c.name : `${c.symbol} ${c.name}`}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -243,7 +246,7 @@ export default function BookSettings({
                     }
                   />
                   <span style={{ fontSize: 14, color: '#374151' }}>
-                    {getCurrencySymbol(baseCurrency)} {baseCurrency}
+                    {getCurrencySymbol(baseCurrency) === baseCurrency ? baseCurrency : `${getCurrencySymbol(baseCurrency)} ${baseCurrency}`}
                   </span>
                 </div>
 
@@ -300,7 +303,7 @@ export default function BookSettings({
                   onChange={(e) => setRates((prev) => ({ ...prev, [c.code]: e.target.value }))}
                 />
                 <span style={{ fontSize: 13, color: '#6b7280', whiteSpace: 'nowrap' }}>
-                  {getCurrencySymbol(baseCurrency)} {baseCurrency}
+                  {getCurrencySymbol(baseCurrency) === baseCurrency ? baseCurrency : `${getCurrencySymbol(baseCurrency)} ${baseCurrency}`}
                 </span>
                 <button
                   className="pill-link"
