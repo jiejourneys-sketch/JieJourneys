@@ -275,15 +275,15 @@
   background:#fff;
 }
 .bill-app .book-header.book-header--book{
-  display:grid;
-  grid-template-columns: 1fr auto auto;
-  align-items:center;
-  gap:12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
 }
 .bill-app .book-header.book-header--book h2{
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
+  margin:0;
 }
 .bill-app .book-header h2{margin:0;font-size:18px;font-weight:800}
 .bill-app .book-header p{margin:4px 0 0;font-size:14px;color:#6b7280}

@@ -53,17 +53,11 @@ export default async function Page({
       </div>
 
       <div className="book-header book-header--book">
-        <div style={{ minWidth: 0 }}>
-          <h2>{book.name}</h2>
+        <h2>{book.name}</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <TotalExpenseInline bookId={id} baseCurrency={baseCurrency} exchangeRates={exchangeRates} />
+          <ShareBookButton style={{ padding: '6px 12px', fontSize: 14, borderRadius: 8 }} />
         </div>
-        <TotalExpenseInline bookId={id} baseCurrency={baseCurrency} exchangeRates={exchangeRates} />
-        <ShareBookButton
-          style={{
-            padding: '6px 12px',
-            fontSize: 14,
-            borderRadius: 8
-          }}
-        />
       </div>
 
       <div className="card">
