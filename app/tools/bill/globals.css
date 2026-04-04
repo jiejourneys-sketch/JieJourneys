@@ -277,6 +277,7 @@
 .bill-app .book-header.book-header--book{
   display:flex;
   flex-direction:column;
+  align-items:stretch;
   gap:8px;
 }
 .bill-app .book-header.book-header--book h2{
