@@ -1,9 +1,27 @@
 import type { Metadata } from 'next'
 
+const title = '釜山景點地圖｜海雲台・南浦洞・西面票券景點與住宿一覽 | JieJourneys(旅杰)'
+const description =
+  '釜山自由行互動地圖：海雲台、廣安里、南浦洞、西面景點與住宿位置一覽，含 KKDAY/KLOOK/Trip 購買連結，一鍵開啟 Google 地圖導航，依分類快速篩選。'
+
 export const metadata: Metadata = {
-  title: '釜山地圖｜票券景點・住宿 | JieJourneys(旅杰)',
-  description:
-    '韓國釜山票券景點與住宿地圖：KKDAY／KLOOK／Trip 等購票連結，景點可一鍵開啟 Google 地圖釘點；分類篩選、標記與 sticky 地圖。（需設定 Google Maps API Key）',
+  title,
+  description,
+  openGraph: {
+    type: 'website',
+    locale: 'zh_TW',
+    siteName: 'JieJourneys(旅杰)',
+    title,
+    description,
+    url: 'https://www.jiejourneys.com/busan/map',
+    images: [{ url: 'https://www.jiejourneys.com/assets/og-share.png', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title,
+    description,
+    images: ['https://www.jiejourneys.com/assets/og-share.png'],
+  },
   alternates: { canonical: 'https://www.jiejourneys.com/busan/map' },
 }
 

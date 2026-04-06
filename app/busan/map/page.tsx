@@ -1,7 +1,16 @@
 'use client'
 
-import BusanMapClient from './BusanMapClient'
+import MapClient from '@/components/map/MapClient'
+import { busanMapPlaces, BUSAN_MAP_CENTER } from '@/data/busan'
 
 export default function BusanMapPage() {
-  return <BusanMapClient />
+  return (
+    <MapClient
+      places={busanMapPlaces}
+      mapCenter={BUSAN_MAP_CENTER}
+      gtagPrefix="busanmap"
+      title="釜山地圖"
+      backHref="/busan"
+    />
+  )
 }

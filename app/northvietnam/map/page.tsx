@@ -1,7 +1,16 @@
 'use client'
 
-import NorthVietnamMapClient from './NorthVietnamMapClient'
+import MapClient from '@/components/map/MapClient'
+import { northVietnamMapPlaces, NORTH_VIETNAM_MAP_CENTER } from '@/data/northvietnam'
 
 export default function NorthVietnamMapPage() {
-  return <NorthVietnamMapClient />
+  return (
+    <MapClient
+      places={northVietnamMapPlaces}
+      mapCenter={NORTH_VIETNAM_MAP_CENTER}
+      gtagPrefix="northvietnammap"
+      title="北越地圖"
+      backHref="/northvietnam"
+    />
+  )
 }
