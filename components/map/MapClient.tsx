@@ -357,6 +357,7 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
   const showSingleMobileCardRef = useRef(false)
   const singleCardWhenSheetDragStartedRef = useRef(false)
   const dualScrollPullStartRef = useRef<number | null>(null)
+  const prevBrowseDualRef = useRef(true)
 
   const isMobileMapLayout = useMobileMapLayout()
   const siteHeaderPx = useSiteHeaderHeightPx()
@@ -639,18 +640,20 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
   }, [categoryOn])
 
   useEffect(() => {
-    if (!mobileSheetBrowseDual || !selectedId) return
+    const wasSingle = !prevBrowseDualRef.current
+    prevBrowseDualRef.current = mobileSheetBrowseDual
+
+    // 只在「單卡 → 雙列」切換時才捲動，避免在雙列點卡片時與 align 衝突
+    if (!mobileSheetBrowseDual || !selectedId || !wasSingle) return
+
     const id = selectedId
     const t = window.setTimeout(() => {
       const el = mobileCardRefs.current[id]
       const c = mobileScrollContainerRef.current
-      if (el && c) {
-        // 選中的卡片置頂，讓用戶能往下繼續瀏覽後面的連結
-        const padding = 14
-        const delta = el.getBoundingClientRect().top - c.getBoundingClientRect().top - padding
-        c.scrollBy({ top: delta, behavior: 'auto' })
-      }
-    }, 80)
+      if (!el || !c) return
+      const delta = el.getBoundingClientRect().top - c.getBoundingClientRect().top - 14
+      c.scrollTop = Math.max(0, c.scrollTop + delta)
+    }, 150)
     return () => window.clearTimeout(t)
   }, [mobileSheetBrowseDual, selectedId])
 
