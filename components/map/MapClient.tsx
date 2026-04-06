@@ -468,11 +468,16 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
     const map = mapRef.current
     if (map) {
       mapMoveFromFocusRef.current = true
-      map.panTo({ lat: place.lat, lng: place.lng })
+      map.setCenter({ lat: place.lat, lng: place.lng })
       map.setZoom(16)
+      // 手機版：讓標記出現在可視區上半段（避免被下方 sheet 遮住）
+      if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
+        const offsetY = Math.round(window.innerHeight * 0.2)
+        map.panBy(0, offsetY)
+      }
       window.setTimeout(() => {
         mapMoveFromFocusRef.current = false
-      }, 650)
+      }, 850)
     }
 
     const align = (behavior: ScrollBehavior = 'smooth') => {
@@ -639,7 +644,12 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
     const t = window.setTimeout(() => {
       const el = mobileCardRefs.current[id]
       const c = mobileScrollContainerRef.current
-      if (el && c) scrollCardFullyIntoView(c, el, 14, 'auto')
+      if (el && c) {
+        // 選中的卡片置頂，讓用戶能往下繼續瀏覽後面的連結
+        const padding = 14
+        const delta = el.getBoundingClientRect().top - c.getBoundingClientRect().top - padding
+        c.scrollBy({ top: delta, behavior: 'auto' })
+      }
     }, 80)
     return () => window.clearTimeout(t)
   }, [mobileSheetBrowseDual, selectedId])
