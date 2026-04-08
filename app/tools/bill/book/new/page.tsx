@@ -97,7 +97,7 @@ export default function NewBookPage() {
         </div>
 
         <button className="btn" onClick={create} disabled={saving}>
-          {saving ? '建立中...' : '建立'}
+          {saving ? '建立中，即將跳轉...' : '建立'}
         </button>
       </div>
     </div>
