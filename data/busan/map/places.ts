@@ -34,7 +34,7 @@ const BUSAN_SPOT_GEO: Record<string, { lat: number; lng: number }> = {
   'Club D Oasis': { lat: 35.1600514, lng: 129.1684719 },
   'Hillspa': { lat: 35.1584686, lng: 129.1753048 },
   'Diamond Bay Yacht｜鑽石灣遊艇': { lat: 35.1327702, lng: 129.1166164 },
-  'Yacht Holic｜水營灣遊艇': { lat: 35.1604828, lng: 129.1412039 },
+  'Yacht Holic｜水營灣遊艇': { lat: 35.146254, lng: 129.11525 },
   'Yacht G｜水營灣遊艇': { lat: 35.1609325, lng: 129.1405238 },
   'GoGo Yacht｜水營灣遊艇': { lat: 35.1604828, lng: 129.1412039 },
   'Yachtwa｜水營灣遊艇': { lat: 35.1597089, lng: 129.1409765 },
@@ -113,7 +113,7 @@ const BUSAN_SPOT_GOOGLE_MAP_URLS: string[] = [
   'https://maps.app.goo.gl/woi34j4htv9YDFH49', // Club D Oasis
   'https://maps.app.goo.gl/jb5NqNsVd4mRcYGg9', // Hillspa
   'https://maps.app.goo.gl/qL8tHTjDAgRpXswx8', // Diamond Bay Yacht｜鑽石灣遊艇
-  'https://maps.app.goo.gl/LJDxs3DT66EBMugq5', // Yacht Holic｜水營灣遊艇
+  'https://maps.app.goo.gl/vTBbr6NQuqgVJMeu7', // Yacht Holic｜水營灣遊艇
   'https://maps.app.goo.gl/b4wXDdxvo2Se1zL47', // Yacht G｜水營灣遊艇
   'https://maps.app.goo.gl/KT1v6jgEeKkdSwVW6', // GoGo Yacht｜水營灣遊艇
   'https://maps.app.goo.gl/2FDz9u1ay9ug5wSC9', // Yachtwa｜水營灣遊艇

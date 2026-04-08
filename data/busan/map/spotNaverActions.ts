@@ -48,7 +48,7 @@ export const BUSAN_MAP_SPOT_NAVER_ACTIONS: Partial<Record<string, CityCardAction
     { label: 'NaverMap', href: 'https://naver.me/xcn3qM9o', mapEvent: 'busanmap_NaverDiamondBayYacht' },
   ],
   'Yacht Holic｜水營灣遊艇': [
-    { label: 'NaverMap', href: 'https://naver.me/Gct6bVe1', mapEvent: 'busanmap_NaverYachtHolic' },
+    { label: 'NaverMap', href: 'https://naver.me/GBF7x95e', mapEvent: 'busanmap_NaverYachtHolic' },
   ],
   'Yacht G｜水營灣遊艇': [
     { label: 'NaverMap', href: 'https://naver.me/Gct6bVe1', mapEvent: 'busanmap_NaverYachtG' },
