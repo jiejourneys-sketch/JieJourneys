@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
 import BillHomeLink from '@/app/tools/bill/components/BillHomeLink'
@@ -13,17 +13,21 @@ export default function NewBookPage() {
   const [name, setName] = useState('')
   const [baseCurrency, setBaseCurrency] = useState('TWD')
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
 
   const create = async () => {
+    if (savingRef.current) return
     const trimmed = name.trim()
     if (!trimmed) return alert('請輸入名稱')
 
+    savingRef.current = true
     setSaving(true)
     const { data, error } = await supabase
       .from('books')
       .insert([{ name: trimmed, base_currency: baseCurrency, exchange_rates: {} }])
       .select()
       .single()
+    savingRef.current = false
     setSaving(false)
 
     if (error) {
