@@ -27,10 +27,10 @@ export default function NewBookPage() {
       .insert([{ name: trimmed, base_currency: baseCurrency, exchange_rates: {} }])
       .select()
       .single()
-    savingRef.current = false
-    setSaving(false)
 
     if (error) {
+      savingRef.current = false
+      setSaving(false)
       console.error(error)
       alert('建立失敗')
       return
