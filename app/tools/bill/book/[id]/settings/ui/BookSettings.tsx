@@ -66,8 +66,11 @@ export default function BookSettings({
   // 每次 baseCurrency 改變就重新拉建議匯率
   useEffect(() => {
     let alive = true
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchingRates(true)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchError(false)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSuggested(null)
 
     fetch(`/api/exchange?base=${baseCurrency}`)

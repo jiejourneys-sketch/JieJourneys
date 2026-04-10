@@ -168,8 +168,11 @@ export default function NewExpenseForm({
   useEffect(() => {
     const initDateLocal = nowDatetimeLocal()
     const initParts = toDateParts(initDateLocal)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDate(initDateLocal)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDateOnly(initParts.dateOnly)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTimeOnly(initParts.timeOnly)
   }, [])
 
