@@ -12,4 +12,4 @@ node_modules/
 next-env.d.ts
 # bill tool (local only, separate repo)
 tools/bill
-app/tools/bill/api/
+app/tools/
