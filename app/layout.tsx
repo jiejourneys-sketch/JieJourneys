@@ -77,6 +77,7 @@ export default function RootLayout({
           `}
         </Script>
         <Script
+          id="vercel-analytics-init"
           dangerouslySetInnerHTML={{
             __html: `
               window.va = window.va || function () {
