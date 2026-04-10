@@ -19,12 +19,16 @@ body {
 }
 html {
   scroll-behavior: smooth;
+  /* 部分手機瀏覽器若用「大型動態視窗高度」量錯，底部區塊會像被砍半；固定允許垂直捲動有助穩定可捲範圍 */
+  overflow-y: scroll;
+  -webkit-text-size-adjust: 100%;
 }
 body {
   font-family: ui-sans-serif, system-ui, Arial, "Noto Sans TC", Helvetica, sans-serif;
   color: var(--ink);
   background: var(--bg);
   line-height: 1.55;
+  overflow-x: clip;
 }
 img,
 video {
@@ -188,6 +192,14 @@ header {
 }
 .section {
   padding: 28px 0;
+  scroll-margin-top: calc(var(--navH) + 12px);
+}
+
+/* Anchor targets inside SEO pages (for CTA jump) */
+.seo-page #stayListTitle,
+.seo-page #videoListTitle,
+.seo-page #ticketListTitle,
+.seo-page #stayList {
   scroll-margin-top: calc(var(--navH) + 12px);
 }
 .section h2 {
@@ -393,6 +405,7 @@ footer {
   color: #475467;
   text-align: center;
   padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   margin-top: 28px;
   font-size: 14px;
   box-shadow: 0 -2px 6px var(--ring);
@@ -517,9 +530,9 @@ footer {
 
 /* === Busan 城市頁 === */
 .busan-main {
-  max-width: 720px;
+  max-width: 820px;
   margin: auto;
-  padding: 24px 16px;
+  padding: 28px 18px;
 }
 .busan-main h1 {
   margin-top: 0;
@@ -683,6 +696,660 @@ a.link-item {
 .transport-main p.sub {
   color: #64748b;
   margin: 4px 0 16px;
+}
+
+/* === SEO Template (內容 + 工具卡片共用版型) === */
+.seo-page {
+  --seo-primary: #0f766e;
+  --seo-ink: #111827;
+  --seo-ink-2: #374151;
+  --seo-ink-3: #4b5563;
+  --seo-line: #e5e7eb;
+  --seo-bg: #ffffff;
+  --seo-bg-soft: #f3f4f6;
+  --seo-bg-tint: #f8fafc;
+  --seo-shadow-sm: 0 6px 18px rgba(15, 23, 42, 0.06);
+  --seo-shadow-md: 0 14px 34px rgba(15, 23, 42, 0.1);
+}
+
+/* 整體版面：內容平台感（統一 section 間距） */
+.seo-page .seo-hero,
+.seo-page .seo-content,
+.seo-page .seo-cta,
+.seo-page #stayListTitle,
+.seo-page #videoListTitle,
+.seo-page #stayList,
+.seo-page .seo-faq {
+  margin-bottom: 56px;
+}
+
+/* Typography hierarchy */
+.seo-page .seo-h1 {
+  margin: 0 0 12px;
+  color: var(--seo-ink);
+  font-size: clamp(30px, 3.2vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+.seo-page .seo-lead {
+  margin: 0 0 24px;
+  color: var(--seo-ink-3);
+  font-size: 16px;
+  line-height: 1.8;
+}
+.seo-page .seo-h2 {
+  margin: 48px 0 14px;
+  color: var(--seo-ink);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1.25;
+}
+.seo-page .seo-h3 {
+  margin: 24px 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--seo-ink-2);
+  line-height: 1.35;
+}
+.seo-page .seo-prose p {
+  margin: 0 0 12px;
+  color: var(--seo-ink-3);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+/* 內文卡片裡的連結：與段落字色區隔＋底線，一眼可知可點 */
+.seo-page .seo-content .seo-prose a {
+  color: var(--seo-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+  font-weight: 600;
+}
+.seo-page .seo-content .seo-prose a:hover {
+  color: #0b5e58;
+  text-decoration-thickness: 2px;
+}
+.seo-page .seo-content .seo-prose a:focus-visible {
+  outline: 2px solid var(--seo-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Hero spacing：H1 → p → video box */
+.seo-page .seo-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  padding: 52px 48px 44px;
+  margin-bottom: 56px;
+  /* 官網封面感：更淡的綠藍灰底 */
+  background: #f7fcfb;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: var(--seo-shadow-md);
+}
+.seo-page .seo-hero::before,
+.seo-page .seo-hero::after {
+  display: none;
+}
+.seo-page .seo-hero::before {
+  top: -260px;
+  left: -220px;
+  background: rgba(20, 184, 166, 0.14);
+}
+.seo-page .seo-hero::after {
+  bottom: -320px;
+  right: -260px;
+  background: rgba(15, 118, 110, 0.12);
+}
+.seo-page .seo-hero > * {
+  position: relative;
+  z-index: 1;
+}
+.seo-page .seo-hero .seo-h1 {
+  margin: 0 0 14px;
+}
+.seo-page .seo-hero .hero-title {
+  display: block;
+  font-size: clamp(36px, 4vw, 44px);
+  line-height: 1.18;
+  letter-spacing: -0.6px;
+}
+.seo-page .seo-hero .hero-subtitle {
+  display: block;
+  margin-top: 10px;
+  font-size: 16px;
+  line-height: 1.6;
+  letter-spacing: -0.1px;
+  color: rgba(55, 65, 81, 0.82);
+  font-weight: 600;
+}
+.seo-page .seo-hero .hero-keyword {
+  font-weight: inherit;
+  color: inherit;
+  text-shadow: none;
+}
+.seo-page .seo-hero .seo-lead {
+  max-width: 600px;
+}
+
+/* Hero/lead 內的連結：跟內文連結同風格（粗體＋底線） */
+.seo-page .seo-lead a {
+  color: var(--seo-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+  font-weight: 600;
+}
+.seo-page .seo-lead a:hover {
+  color: #0b5e58;
+  text-decoration-thickness: 2px;
+}
+.seo-page .seo-lead a:focus-visible {
+  outline: 2px solid var(--seo-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* FAQ 內連結：與內文連結同風格（底線可掃讀） */
+.seo-page .seo-faq a {
+  color: var(--seo-primary);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+  font-weight: 600;
+}
+.seo-page .seo-faq a:hover {
+  color: #0b5e58;
+  text-decoration-thickness: 2px;
+}
+.seo-page .seo-faq a:focus-visible {
+  outline: 2px solid var(--seo-primary);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+.seo-page .seo-hero .hero-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  color: rgba(17, 24, 39, 0.86);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* Hero layout: 左內容 + 右視覺區 */
+.seo-page .seo-hero .hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 30px;
+  align-items: center;
+}
+.seo-page .seo-hero .hero-grid:not(.has-visual) {
+  grid-template-columns: 1fr;
+}
+.seo-page .seo-hero .hero-left {
+  min-width: 0;
+}
+.seo-page .seo-hero .hero-right {
+  display: flex;
+  justify-content: flex-end;
+}
+.seo-page .seo-hero .hero-visual {
+  width: min(380px, 100%);
+  aspect-ratio: 3 / 2;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+.seo-page .seo-hero .hero-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 18px;
+}
+.seo-page .seo-hero .hero-map path {
+  fill: none;
+  stroke: rgba(15, 118, 110, 0.22);
+  stroke-width: 2;
+}
+.seo-page .seo-hero .hero-map circle {
+  fill: rgba(15, 118, 110, 0.22);
+  stroke: rgba(15, 118, 110, 0.35);
+  stroke-width: 1;
+}
+.seo-page .seo-hero .hero-pin {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.55);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.14);
+}
+.seo-page .seo-hero .hero-pin-1 {
+  left: 44%;
+  top: 46%;
+}
+.seo-page .seo-hero .hero-pin-2 {
+  left: 66%;
+  top: 54%;
+  opacity: 0.7;
+}
+
+/* 短影音：橫向 pill 列（非灰卡片） */
+.seo-page .seo-hero .hero-video {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+.seo-page .seo-hero .hero-video-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(17, 24, 39, 0.86);
+}
+.seo-page .seo-hero .hero-video-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Hero CTA button (e.g. 所有票券整理) */
+.seo-page .seo-hero .hero-cta {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.seo-page .seo-hero .hero-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #0f766e;
+  color: #ffffff;
+  font-weight: 750;
+  text-decoration: none;
+  border: 1px solid rgba(15, 118, 110, 0.35);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.seo-page .seo-hero .hero-cta-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+}
+.seo-page .seo-hero .hero-cta-btn:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.35);
+  outline-offset: 3px;
+}
+.seo-page .seo-hero .hero-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: rgba(17, 24, 39, 0.9);
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: var(--seo-shadow-sm);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.seo-page .seo-hero .hero-pill:hover {
+  border-color: rgba(15, 118, 110, 0.35);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+/* SEO 內容區：內容卡片化 */
+.seo-page .seo-content {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 26px 26px 22px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+}
+.seo-page .seo-prose {
+  max-width: 100%;
+}
+.seo-page .seo-content .seo-h2 {
+  margin-top: 0;
+}
+.seo-page .seo-content .seo-prose .seo-h3 {
+  position: relative;
+  padding: 12px 14px 12px 26px;
+  margin: 22px 0 10px;
+  background: var(--seo-bg-tint);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 14px;
+}
+.seo-page .seo-content .seo-prose .seo-h3::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: rgba(15, 118, 110, 0.55);
+}
+.seo-page .seo-content .seo-prose .seo-h3 + p,
+.seo-page .seo-content .seo-prose .seo-h3 + ul,
+.seo-page .seo-content .seo-prose .seo-h3 + ol,
+.seo-page .seo-content .seo-prose .seo-h3 + table {
+  margin-top: 10px;
+}
+.seo-page .seo-prose ul,
+.seo-page .seo-prose ol {
+  margin: 10px 0 14px 20px;
+  padding: 0;
+  color: var(--seo-ink-3);
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+/* Busan video: 快速理解摘要（卡片式，可掃讀） */
+.seo-prose ul,
+.seo-prose ol {
+  margin: 8px 0 12px 18px;
+  padding: 0;
+  color: #475467;
+  line-height: 1.7;
+}
+.seo-prose li + li {
+  margin-top: 4px;
+}
+
+/* table（區域比較表） */
+.seo-page .seo-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--seo-bg);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 12px 0 16px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+.seo-page .seo-prose th,
+.seo-page .seo-prose td {
+  border: 1px solid #e5e7eb;
+  padding: 12px 12px;
+  text-align: left;
+  vertical-align: top;
+  font-size: 14.5px;
+  color: var(--seo-ink-3);
+  line-height: 1.65;
+}
+.seo-page .seo-prose th {
+  background: #f3f4f6;
+  color: var(--seo-ink);
+  font-weight: 700;
+}
+
+/* CTA 區 */
+.seo-page .cta-box {
+  margin: 40px 0;
+  padding: 0;
+  border-radius: 14px;
+  background: #0f766e;
+  color: white;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 34px rgba(15, 118, 110, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+.seo-page .cta-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+.seo-page .cta-box:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.seo-page .cta-box .cta-link {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 650;
+  display: flex;
+  width: 100%;
+  min-height: 56px;
+  padding: 18px 24px;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+.seo-page .cta-box .cta-link:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+/* 飯店卡片工具區：只改住宿頁的 stayList，不影響其他工具頁 */
+.seo-page #stayList.stay-list .stay-card {
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 18px;
+  padding: 20px 20px 18px;
+  background: #ffffff;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+.seo-page #stayList.stay-list .stay-card:hover {
+  border-color: var(--seo-primary);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.1);
+  transform: translateY(-4px);
+}
+.seo-page #stayList.stay-list .stay-card[data-video]:hover {
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.14);
+  transform: translateY(-6px);
+}
+.seo-page #stayList.stay-list .stay-card .title {
+  color: var(--seo-ink);
+  font-size: 18px;
+  letter-spacing: -0.15px;
+}
+.seo-page #stayList.stay-list .stay-card .meta {
+  color: var(--seo-ink-3);
+}
+.seo-page #stayList.stay-list .stay-card .card-note {
+  margin: 8px 0 10px;
+  color: var(--seo-ink-2);
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.seo-page #stayList.stay-list .stay-card .card-accordion {
+  margin: 8px 0 12px;
+}
+.seo-page #stayList.stay-list .stay-card .card-accordion-summary {
+  cursor: pointer;
+  user-select: none;
+  color: rgba(17, 24, 39, 0.82);
+  font-size: 14px;
+  font-weight: 700;
+}
+.seo-page #stayList.stay-list .stay-card .card-accordion-summary:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.25);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+.seo-page #stayList.stay-list .stay-card .card-bullets {
+  margin: 10px 0 0;
+  padding: 0 0 0 18px;
+  color: #6b7280;
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.seo-page #stayList.stay-list .stay-card .card-bullets li + li {
+  margin-top: 6px;
+}
+.seo-page #stayList.stay-list .stay-card .meta {
+  font-size: 14.5px;
+  line-height: 1.65;
+  margin: 0 0 10px;
+}
+
+/* Video cards: note + meta hierarchy */
+.seo-page #stayList.stay-list .stay-card[data-video] .card-note {
+  color: #6b7280;
+  font-size: 14.5px;
+  line-height: 1.7;
+  margin: 6px 0 8px;
+}
+.seo-page #stayList.stay-list .stay-card[data-video] .meta {
+  color: #6b7280;
+  font-size: 13.5px;
+  margin: 0 0 12px;
+}
+
+/* Featured video cards */
+.seo-page #stayList.stay-list .stay-card[data-video="intro-is-busan-for-you"],
+.seo-page #stayList.stay-list .stay-card[data-video="5d4n-ultimate-route"] {
+  border-color: rgba(15, 118, 110, 0.22);
+}
+.seo-page #stayList.stay-list .stay-card[data-video="intro-is-busan-for-you"]::before,
+.seo-page #stayList.stay-list .stay-card[data-video="5d4n-ultimate-route"]::before {
+  content: none;
+  display: none;
+}
+.seo-page #stayList.stay-list .stay-card[data-video] {
+  position: relative;
+}
+.seo-page #stayList.stay-list .stay-card .actions {
+  gap: 10px;
+}
+.seo-page #stayList.stay-list .stay-card .btn {
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  color: rgba(17, 24, 39, 0.92);
+}
+.seo-page #stayList.stay-list .stay-card .btn:hover {
+  border-color: rgba(15, 118, 110, 0.45);
+}
+.seo-page #stayList.stay-list .stay-card .btn.primary {
+  /* Agoda 主 CTA：淡主色底＋深字（高級產品按鈕感） */
+  background: rgba(15, 118, 110, 0.12);
+  border-color: rgba(15, 118, 110, 0.22);
+  color: rgba(17, 24, 39, 0.92);
+  font-weight: 700;
+}
+.seo-page #stayList.stay-list .stay-card .btn.primary:hover {
+  background: rgba(15, 118, 110, 0.18);
+  border-color: rgba(15, 118, 110, 0.35);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+/* FAQ：模組化內容卡片（無漸層、乾淨專業）；筆數由資料決定，列表用 ul/li 自然伸長 */
+.seo-page .seo-faq {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  overflow: visible;
+}
+.seo-page .seo-faq .seo-faq-prose {
+  overflow: visible;
+}
+.seo-page .seo-faq-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.seo-page .seo-faq-item {
+  display: block;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px 18px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+.seo-page .seo-faq-item + .seo-faq-item {
+  margin-top: 18px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .seo-page .seo-faq-item:hover {
+    border-color: rgba(15, 118, 110, 0.35);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+    transform: translateY(-1px);
+  }
+}
+.seo-page .seo-faq-q {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-weight: 700;
+  color: var(--seo-ink);
+}
+.seo-page .seo-faq-qicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  color: rgba(17, 24, 39, 0.85);
+  font-weight: 800;
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+.seo-page .seo-faq-a {
+  margin: 0;
+  color: #4b5563;
+  line-height: 1.75;
+}
+
+@media (max-width: 600px) {
+  .busan-main {
+    padding: 24px 16px;
+  }
+  .seo-page .seo-hero {
+    padding: 20px;
+  }
+  .seo-page .seo-hero .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .seo-page .seo-hero .hero-right {
+    justify-content: flex-start;
+  }
+  /*
+   * 手機長頁：底部留白與 FAQ 有幾筆無關；用 main 統一留可捲空間，
+   * 避免 WebView、動態網址列、safe-area 讓最後一塊內容看起來被砍半。
+   */
+  main.busan-main.transport-main.seo-page {
+    overflow: visible;
+    min-height: min-content;
+    padding-bottom: max(
+      4rem,
+      20vh,
+      calc(2.5rem + env(safe-area-inset-bottom, 0px))
+    );
+  }
 }
 .tabs {
   display: flex;

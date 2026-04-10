@@ -194,7 +194,7 @@ export default function MemberPlanDetails({
     XLSX.utils.book_append_sheet(wb, ws, '明細')
     XLSX.writeFile(wb, `${memberName}-消費明細.xlsx`)
 
-    supabase.from('download_logs').insert({ book_id: bookId, member_id: memberId, format: 'excel' }).then(() => {})
+    supabase.from('download_logs').insert({ book_id: bookId, member_id: memberId, format: 'excel' }).then(() => {}).catch((err) => console.error('download_logs insert failed:', err))
   }
 
   const downloadPdf = async () => {
@@ -306,7 +306,7 @@ export default function MemberPlanDetails({
     const removeIframe = () => { if (iframe.parentNode) iframe.remove(); window.removeEventListener('afterprint', removeIframe) }
     window.addEventListener('afterprint', removeIframe)
     setTimeout(removeIframe, 30000)
-    supabase.from('download_logs').insert({ book_id: bookId, member_id: memberId, format: 'pdf' }).then(() => {})
+    supabase.from('download_logs').insert({ book_id: bookId, member_id: memberId, format: 'pdf' }).then(() => {}).catch((err) => console.error('download_logs insert failed:', err))
   }
 
   return (

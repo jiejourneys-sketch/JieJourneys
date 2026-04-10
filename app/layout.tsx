@@ -1,8 +1,15 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import GtagCapture from '@/components/GtagCapture'
 import RwdOverflowWarning from '@/components/RwdOverflowWarning'
 import './globals.css'
+
+/** 讓 iOS 正確套用 safe-area；避免底部內容被 home 條／工具列視覺裁切 */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+}
 
 export const metadata: Metadata = {
   title: 'JieJourneys(旅杰)-自由行旅遊速成攻略',
@@ -46,7 +53,7 @@ export default function RootLayout({
   return (
     <html lang="zh-Hant">
       <head>
-        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="preload" as="image" href="/assets/logo.jpg" />
         <link rel="preload" as="image" href="/busan/journeys/assets/logo.jpg" />

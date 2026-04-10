@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 
@@ -20,7 +21,7 @@ export default function BusanPage() {
             data-item="guide"
             data-section="quick"
           >
-            <img className="link-icon" src="/assets/gonglue.png" alt="行程PDF" />
+            <Image className="link-icon" src="/assets/gonglue.png" alt="行程PDF" width={48} height={48} />
             <div className="link-text">自由行攻略PDF</div>
           </Link>
 
@@ -31,7 +32,7 @@ export default function BusanPage() {
             data-item="video"
             data-section="quick"
           >
-            <img className="link-icon" src="/assets/video.png" alt="影片" />
+            <Image className="link-icon" src="/assets/video.png" alt="影片" width={48} height={48} />
             <div className="link-text">短影音合輯</div>
           </Link>
 
@@ -42,7 +43,7 @@ export default function BusanPage() {
             data-item="hotel"
             data-section="quick"
           >
-            <img className="link-icon" src="/assets/hotel.png" alt="住宿" />
+            <Image className="link-icon" src="/assets/hotel.png" alt="住宿" width={48} height={48} />
             <div className="link-text">住宿</div>
           </Link>
 
@@ -53,7 +54,7 @@ export default function BusanPage() {
             data-item="ticket"
             data-section="quick"
           >
-            <img className="link-icon" src="/assets/piao.png" alt="票券" />
+            <Image className="link-icon" src="/assets/piao.png" alt="票券" width={48} height={48} />
             <div className="link-text">票券</div>
           </Link>
 
@@ -64,7 +65,7 @@ export default function BusanPage() {
             data-item="transport"
             data-section="quick"
           >
-            <img className="link-icon" src="/assets/jiaotong.png" alt="交通" />
+            <Image className="link-icon" src="/assets/jiaotong.png" alt="交通" width={48} height={48} />
             <div className="link-text">通訊 / 交通</div>
           </Link>
 
@@ -75,12 +76,12 @@ export default function BusanPage() {
             data-item="map"
             data-section="quick"
           >
-            <img className="link-icon" src="/assets/ditu.png" alt="地圖" />
+            <Image className="link-icon" src="/assets/ditu.png" alt="地圖" width={48} height={48} />
             <div className="link-text">旅杰釜山地圖</div>
           </Link>
 
           <div className="link-item pass-card" data-section="quick">
-            <img className="link-icon" src="/assets/ditu.png" alt="通行證" />
+            <Image className="link-icon" src="/assets/ditu.png" alt="通行證" width={48} height={48} />
             <div className="pass-row">
               <div className="pass-title">釜山通行證(釜山Pass)</div>
               <div className="pass-actions">

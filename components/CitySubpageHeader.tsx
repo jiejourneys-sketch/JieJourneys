@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 /** 城市子頁面與主頁專用 Header：品牌 + 「← 上一頁」「回首頁」按鈕，與 HTML 設計一致 */
 type Props = {
@@ -19,7 +20,7 @@ export default function CitySubpageHeader({ backHref, eventPrefix = 'page' }: Pr
           data-event={`${eventPrefix}_logo`}
           data-item="brand"
         >
-          <img src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
+          <Image src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
           <span>JieJourneys｜旅杰</span>
         </Link>
         <div className="nav-actions">

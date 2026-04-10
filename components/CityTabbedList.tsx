@@ -25,6 +25,10 @@ export type CityCardAction = {
 export type CityCard = {
   title: string
   meta: string
+  /** 額外的「推薦語」：用於內容感的卡片說明（可選）。 */
+  note?: string
+  /** 卡片可展開詳解（可選）：3~6 條短重點，供 SEO/快速理解。 */
+  details?: string[]
   area: string
   datasetKey?: 'video' | 'hotel' | 'title'
   datasetValue?: string
@@ -71,7 +75,18 @@ export default function CityTabbedList({ tabs, cards, tabEvent }: Props) {
             <article key={`${card.area}-${card.title}`} className="stay-card" {...dataProps}>
               <div>
                 <h3 className="title">{card.title}</h3>
+                {card.note ? <p className="card-note">{card.note}</p> : null}
                 <p className="meta">{card.meta}</p>
+                {card.details?.length ? (
+                  <details className="card-accordion">
+                    <summary className="card-accordion-summary">展開詳解</summary>
+                    <ul className="card-bullets">
+                      {card.details.map((item, idx) => (
+                        <li key={`${card.title}-${idx}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
                 <div className="actions">
                   {card.actions.map((action) => (
                     <a

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 /** 自由行攻略 PDF 頁專用 Header，與 HTML jj-topbar 完全一致 */
 type Props = {
@@ -16,7 +17,7 @@ export default function JourneysHeader({ backHref, eventPrefix }: Props) {
         data-event={`${eventPrefix}_logo`}
         data-item="brand"
       >
-        <img src="/assets/logo.jpg" alt="JieJourneys Logo" width={40} height={40} style={{ borderRadius: 8, objectFit: 'cover' }} />
+        <Image src="/assets/logo.jpg" alt="JieJourneys Logo" width={40} height={40} style={{ borderRadius: 8, objectFit: 'cover' }} />
         <span className="jj-title">JieJourneys｜旅杰</span>
       </Link>
       <nav className="jj-actions">

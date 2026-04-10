@@ -1,14 +1,31 @@
-import type { Metadata } from 'next'
+import Image from 'next/image'
 import Script from 'next/script'
 import JourneysHeader from '@/components/JourneysHeader'
 
-export const metadata: Metadata = {
-  title: '釜山五日行程 | JieJourneys',
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: '釜山五日行程 PDF',
+  description: '釜山五日自由行完整行程 PDF，含熱門景點最佳動線、美食清單、一鍵導航連結，永久使用。',
+  url: 'https://www.jiejourneys.com/busan/journeys',
+  image: 'https://www.jiejourneys.com/assets/og-share.png',
+  brand: { '@type': 'Brand', name: 'JieJourneys' },
+  offers: {
+    '@type': 'Offer',
+    priceCurrency: 'TWD',
+    price: '399',
+    availability: 'https://schema.org/InStock',
+    url: 'https://www.jiejourneys.com/busan/journeys',
+  },
 }
 
 export default function BusanJourneysPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <JourneysHeader backHref="/busan" eventPrefix="busanPDF" />
 
       <main className="container">
@@ -45,37 +62,37 @@ export default function BusanJourneysPage() {
           <p className="sub">精準濃縮，打開就能用｜圖片動線＋導航連結，照著走就能輕鬆玩</p>
           <div className="features">
             <article className="feature">
-              <img className="thumb" src="/busan/journeys/assets/checklist.png" alt="行前準備清單" />
+              <Image className="thumb" src="/busan/journeys/assets/checklist.png" alt="行前準備清單" width={320} height={180} />
               <div className="title"><span className="icon">🧰</span> 行前準備</div>
               <p>一次處理簽證、住宿、票券、換匯、地圖、交通、規定。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/busan/journeys/assets/gonglue.png" alt="互動檔案與資訊" />
+              <Image className="thumb" src="/busan/journeys/assets/gonglue.png" alt="互動檔案與資訊" width={320} height={180} />
               <div className="title"><span className="icon">🗺️</span> 互動檔案</div>
               <p>最佳動線、地圖連結、圖影導覽、美食連結、營業時間。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/busan/journeys/assets/haian.png" alt="景點精選照片" />
+              <Image className="thumb" src="/busan/journeys/assets/haian.png" alt="景點精選照片" width={320} height={180} />
               <div className="title"><span className="icon">📌</span> 景點精選</div>
               <p>膠囊列車、甘川洞、松島纜車、海雲台、白淺灘、廣安里。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/busan/journeys/assets/meishi.JPG" alt="美食清單照片" />
+              <Image className="thumb" src="/busan/journeys/assets/meishi.JPG" alt="美食清單照片" width={320} height={180} />
               <div className="title"><span className="icon">🍽️</span> 美食清單</div>
               <p>豬肉湯飯、蔘雞湯、韓式炸雞、雪濃湯、烤肉、炸醬麵、海鮮。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/busan/journeys/assets/fengjing.JPG" alt="體驗活動圖像" />
+              <Image className="thumb" src="/busan/journeys/assets/fengjing.JPG" alt="體驗活動圖像" width={320} height={180} />
               <div className="title"><span className="icon">✨</span> 特色體驗</div>
               <p>海景咖啡廳、空中步道、韓服體驗、遊艇、汗蒸幕、海岸列車。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/busan/journeys/assets/gouwu.JPG" alt="購物地點圖像" />
+              <Image className="thumb" src="/busan/journeys/assets/gouwu.JPG" alt="購物地點圖像" width={320} height={180} />
               <div className="title"><span className="icon">🛍️</span> 必逛購物</div>
               <p>Olive Young、DAISO、樂天超市，一次逛好逛滿。</p>
             </article>

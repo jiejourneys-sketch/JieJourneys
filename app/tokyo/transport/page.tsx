@@ -1,6 +1,10 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
+import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoContentSection from '@/components/seo/SeoContentSection'
+import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoCtaSection from '@/components/seo/SeoCtaSection'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -9,6 +13,7 @@ const tabs = [
   { value: '成田機場交通', label: '成田機場交通', dataArea: '成田機場交通' },
   { value: '羽田機場交通', label: '羽田機場交通', dataArea: '羽田機場交通' },
 ]
+
 const cards = [
   { title: 'eSIM卡', meta: '通訊', area: '通訊', datasetKey: 'title' as const, datasetValue: 'eSIM卡', actions: [{ label: '輸入JieJourneys', href: 'https://esimconnect.com.tw/#/access/esimbuy?region=%E6%97%A5%E6%9C%AC&referencecode=jiejourneys', className: 'btn primary recommend', event: 'tokyotransport_esimconnect', platform: 'connect', section: 'comm_card' }, { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131111-japan-4g-unlimited-data-500mb-1gb-esim?cid=22312', className: 'btn', event: 'tokyotransport_esimKKday', platform: 'KKDAY', section: 'comm_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109393-japan-esim-high-speed-internet-qr-code-voucher/?aid=93798', className: 'btn', event: 'tokyotransport_esimKLOOK', platform: 'KLOOK', section: 'comm_card' }, { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/37658069?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D11674280', className: 'btn', event: 'tokyotransport_esimTrip', platform: 'Trip', section: 'comm_card' }] },
   { title: 'SIM卡｜郵寄到府', meta: '通訊', area: '通訊', datasetKey: 'title' as const, datasetValue: 'SIM卡｜郵寄到府', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/126982?cid=22312', className: 'btn primary', event: 'tokyotransport_SimhomeKKday', platform: 'KKDAY', section: 'comm_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/17147-softbank-4g-sim-japan/?aid=93798', className: 'btn', event: 'tokyotransport_SimhomeKLOOK', platform: 'KLOOK', section: 'comm_card' }] },
@@ -34,9 +39,51 @@ export default function TokyoTransportPage() {
   return (
     <>
       <CitySubpageHeader backHref="/tokyo" eventPrefix="tokyotransport" />
-      <main className="busan-main transport-main">
-        <h1>通訊 & 交通</h1>
+      <main className="busan-main transport-main seo-page">
+        <SeoHeroSection
+          badge="東京自由行工具"
+          h1="東京通訊 & 交通｜eSIM、西瓜卡、機場接送一次整理"
+          intro="把東京自由行常用的通訊與交通工具集中在同一頁：依需求切換標籤，快速找到你要的方案與購買連結。"
+          eventPrefix="tokyotransport"
+          showVisual={false}
+          ctaLinks={[
+            { label: '東京短影片攻略', href: 'https://www.jiejourneys.com/tokyo/video', dataEvent: 'tokyotransport_allvideos', platform: 'video' },
+            { label: '東京住宿推薦', href: 'https://www.jiejourneys.com/tokyo/hotel', dataEvent: 'tokyotransport_allhotels', platform: 'hotel' },
+            { label: '東京票券總整理', href: 'https://www.jiejourneys.com/tokyo/ticket', dataEvent: 'tokyotransport_alltickets', platform: 'ticket' },
+          ]}
+        />
+
+        <SeoCtaSection text="" href="#transportListTitle" linkText="直接看整理 ↓" />
+
+        <SeoContentSection title="東京通訊 & 交通怎麼選？">
+          <h3 className="seo-h3">通訊方案：eSIM vs SIM卡 vs WiFi分享器</h3>
+          <p>eSIM免換卡、出發前設定好即可使用，是一個人旅行的最佳選擇；SIM卡分郵寄到府與機場領取兩種，適合不支援eSIM的舊手機；WiFi分享器多人共用最划算，但需隨時攜帶。</p>
+
+          <h3 className="seo-h3">市區交通：西瓜卡 vs 地鐵券 vs JR Pass</h3>
+          <p>西瓜卡（Suica）是最萬用的選擇，地鐵、JR、公車、超商都能刷；東京地鐵券（24/48/72小時）適合短期密集搭乘地鐵；JR Pass 適合行程涵蓋關東多地或需搭新幹線的旅客。</p>
+
+          <h3 className="seo-h3">成田機場進市區</h3>
+          <p>Skyliner 最快；N'EX 可直達新宿、澀谷、東京車站；利木津巴士直達各大飯店；LCB 最便宜但時間較長。選哪個取決於你的住宿地點與時間安排。</p>
+
+          <h3 className="seo-h3">羽田機場進市區</h3>
+          <p>京急電鐵直達品川、淺草方向；單軌電車到濱松町再轉JR；利木津巴士直達飯店，適合行李多的旅客。羽田整體比成田近，交通費用也較低。</p>
+        </SeoContentSection>
+
+        <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyotransport_SEO_spotmap" />
+
+        <h2 className="seo-h2" id="transportListTitle">
+          東京通訊與交通整理（依主題分類）
+        </h2>
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="tokyo_transport_tab" />
+
+        <SeoFaqSection
+          title="東京通訊交通常見問題"
+          items={[
+            { q: '東京自由行要買西瓜卡還是地鐵券？', a: '西瓜卡最萬用，超商、JR、地鐵都能刷，建議一定要有，其實跟PASMO和ICOCA卡都差不多；地鐵券適合在市區遊玩至少2天以上的人。' },
+            { q: '成田機場怎麼到東京市區最快？', a: 'Skyliner 到上野約40分鐘，是最快選項；NEX 可直達新宿/澀谷/東京站，適合住宿在這幾區的旅客。' },
+            { q: '羽田機場進市區哪種最划算？', a: '京急電鐵或單軌電車搭西瓜卡就能進市區，費用最低；如果行李多或深夜抵達，利木津巴士直達飯店更省力。' },
+          ]}
+        />
       </main>
       <Footer />
     </>

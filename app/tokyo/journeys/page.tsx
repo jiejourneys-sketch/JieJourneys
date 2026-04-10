@@ -1,14 +1,31 @@
-import type { Metadata } from 'next'
+import Image from 'next/image'
 import JourneysHeader from '@/components/JourneysHeader'
 import Script from 'next/script'
 
-export const metadata: Metadata = {
-  title: '東京市五日行程 | JieJourneys',
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: '東京市五日行程 PDF',
+  description: '東京五日自由行完整行程 PDF，含熱門景點最佳動線、美食清單、一鍵導航連結，永久使用。',
+  url: 'https://www.jiejourneys.com/tokyo/journeys',
+  image: 'https://www.jiejourneys.com/assets/og-share.png',
+  brand: { '@type': 'Brand', name: 'JieJourneys' },
+  offers: {
+    '@type': 'Offer',
+    priceCurrency: 'TWD',
+    price: '399',
+    availability: 'https://schema.org/InStock',
+    url: 'https://www.jiejourneys.com/tokyo/journeys',
+  },
 }
 
 export default function TokyoJourneysPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <JourneysHeader backHref="/tokyo" eventPrefix="tokyoPDF" />
 
       <main className="container">
@@ -45,37 +62,37 @@ export default function TokyoJourneysPage() {
           <p className="sub">精準濃縮，打開就能用｜圖片動線＋導航連結，照著走就能輕鬆玩</p>
           <div className="features">
             <article className="feature">
-              <img className="thumb" src="/tokyo/journeys/assets/checklist.png" alt="行前準備清單" />
+              <Image className="thumb" src="/tokyo/journeys/assets/checklist.png" alt="行前準備清單" width={320} height={180} />
               <div className="title"><span className="icon">🧰</span> 行前準備</div>
               <p>一次處理入境、住宿、票券、換匯、地圖、交通。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/tokyo/journeys/assets/gonglue.png" alt="互動檔案與資訊" />
+              <Image className="thumb" src="/tokyo/journeys/assets/gonglue.png" alt="互動檔案與資訊" width={320} height={180} />
               <div className="title"><span className="icon">🗺️</span> 互動檔案</div>
               <p>最佳動線、地圖連結、圖影導覽、美食推薦、營業時間。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/tokyo/journeys/assets/jingdian.png" alt="景點精選照片" />
+              <Image className="thumb" src="/tokyo/journeys/assets/jingdian.png" alt="景點精選照片" width={320} height={180} />
               <div className="title"><span className="icon">📌</span> 景點精選</div>
               <p>淺草寺、晴空塔、皇居、上野恩賜公園、阿美橫丁、新宿、原宿、涉谷。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/tokyo/journeys/assets/meishi.png" alt="美食清單照片" />
+              <Image className="thumb" src="/tokyo/journeys/assets/meishi.png" alt="美食清單照片" width={320} height={180} />
               <div className="title"><span className="icon">🍽️</span> 美食清單</div>
               <p>拉麵、壽喜燒、烤肉、壽司、日式丼飯、天婦羅、牛排。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/tokyo/journeys/assets/fengjing.png" alt="體驗活動圖像" />
+              <Image className="thumb" src="/tokyo/journeys/assets/fengjing.png" alt="體驗活動圖像" width={320} height={180} />
               <div className="title"><span className="icon">✨</span> 特色體驗</div>
               <p>登高看夜景、走訪神社、逛商店街、體驗歷史、安排購物路線。</p>
             </article>
 
             <article className="feature">
-              <img className="thumb" src="/tokyo/journeys/assets/gouwu.JPG" alt="購物地點圖像" />
+              <Image className="thumb" src="/tokyo/journeys/assets/gouwu.JPG" alt="購物地點圖像" width={320} height={180} />
               <div className="title"><span className="icon">🛍️</span> 必逛購物</div>
               <p>唐吉訶德、藥妝店、LUMINE EST、Laforet、DAISO、Uniqulo、GU。</p>
             </article>

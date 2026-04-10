@@ -1,33 +1,30 @@
 import type { Metadata } from 'next'
 
+const title = '釜山自由行攻略 2025｜住宿・交通・票券・景點全整理 | JieJourneys(旅杰)'
+const description =
+  '釜山自由行完整攻略：住宿選哪區（海雲台/廣安里/西面）、eSIM 通訊、T-Money 交通、釜山 Pass 票券、景點短影片，一站搞定釜山行前規劃。'
+
 export const metadata: Metadata = {
-  title: 'JieJourneys(旅杰)-韓國釜山自由行速成攻略',
-  description:
-    'JieJourneys(旅杰)釜山自由行-整合短影片示範、住宿/交通建議、票券與互動PDF，助你用最少時間規劃最完整的行程。',
+  title,
+  description,
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
     siteName: 'JieJourneys(旅杰)',
-    title: 'JieJourneys(旅杰)-韓國釜山自由行速成攻略',
-    description:
-      'JieJourneys(旅杰)釜山自由行-整合短影片示範、住宿/交通建議、票券與互動PDF，助你用最少時間規劃最完整的行程。',
-    url: 'https://www.jiejourneys.com/busan/',
+    title,
+    description,
+    url: 'https://www.jiejourneys.com/busan',
     images: [{ url: 'https://www.jiejourneys.com/assets/og-share.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'JieJourneys(旅杰)-韓國釜山自由行速成攻略',
-    description:
-      'JieJourneys(旅杰)釜山自由行-整合短影片示範、住宿/交通建議、票券與互動PDF，助你用最少時間規劃最完整的行程。',
+    title,
+    description,
     images: ['https://www.jiejourneys.com/assets/og-share.png'],
   },
-  alternates: { canonical: 'https://www.jiejourneys.com/busan/' },
+  alternates: { canonical: 'https://www.jiejourneys.com/busan' },
 }
 
-export default function BusanLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function BusanLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }

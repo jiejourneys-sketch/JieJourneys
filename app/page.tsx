@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect } from 'react'
 import TopBanner from '@/components/TopBanner'
 import PopularGrid from '@/components/PopularGrid'
@@ -30,7 +31,7 @@ export default function HomePage() {
       <header>
         <nav className="nav">
           <Link href="/" className="brand" aria-label="回首頁" data-event="home_logo" data-item="brand">
-            <img src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
+            <Image src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
             <span>JieJourneys｜旅杰</span>
           </Link>
           <div className="menu">

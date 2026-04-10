@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import SearchBox from '@/components/SearchBox'
 import Footer from '@/components/Footer'
@@ -28,7 +29,7 @@ export default function CountriesPage() {
               data-tags="越南 北越 河內 hanoi vietnam 下龍"
               aria-label="前往北越攻略頁面"
             >
-              <img className="thumb" src="/assets/hanoi.png" alt="北越 Hanoi" />
+              <Image className="thumb" src="/assets/hanoi.png" alt="北越 Hanoi" width={320} height={180} />
               <div className="card-body">
                 <h3>越南｜北越</h3>
               </div>

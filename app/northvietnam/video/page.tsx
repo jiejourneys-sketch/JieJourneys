@@ -1,6 +1,10 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
+import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoContentSection from '@/components/seo/SeoContentSection'
+import SeoCtaSection from '@/components/seo/SeoCtaSection'
+import SeoFaqSection from '@/components/seo/SeoFaqSection'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -42,9 +46,57 @@ export default function NorthVietnamVideoPage() {
   return (
     <>
       <CitySubpageHeader backHref="/northvietnam" eventPrefix="northvietnamvideo" />
-      <main className="busan-main transport-main">
-        <h1>短影片合輯｜認識河內、下龍灣、陸龍灣、沙壩</h1>
+      <main className="busan-main transport-main seo-page">
+        <SeoHeroSection
+          badge="北越短影片合輯"
+          h1="北越短影片攻略｜河內・下龍灣・沙壩・陸龍灣快速掌握"
+          intro="用短影片幫你搞懂北越自由行：各地怎麼玩、交通怎麼安排、行前準備要做什麼，切換標籤找到你需要的主題。"
+          eventPrefix="northvietnamvideo"
+          showVisual={false}
+          ctaLinks={[
+            { label: '北越住宿推薦', href: 'https://www.jiejourneys.com/northvietnam/hotel', dataEvent: 'northvietnamvideo_allhotels', platform: 'hotel' },
+            { label: '北越票券總整理', href: 'https://www.jiejourneys.com/northvietnam/ticket', dataEvent: 'northvietnamvideo_alltickets', platform: 'ticket' },
+            { label: '通訊&交通攻略', href: 'https://www.jiejourneys.com/northvietnam/transport', dataEvent: 'northvietnamvideo_alltransport', platform: 'transport' },
+          ]}
+        />
+
+        <SeoCtaSection text="" href="#videoListTitle" linkText="直接看影片 ↓" />
+
+        <SeoContentSection title="影片分類快速導覽">
+          <h3 className="seo-h3">越南北越體驗總覽</h3>
+          <p>景點、美食、交通住宿的整體體驗分享，第一次規劃北越行程的人先從這幾支看起，快速建立對河內、沙壩、下龍灣、陸龍灣的整體認識。</p>
+
+          <h3 className="seo-h3">河內攻略</h3>
+          <p>河內古城、火車街、古蹟景點的實拍攻略，分上下集完整帶你逛一圈。河內景點多但不好走路、交通混亂，影片幫你整理哪些地方值得排進行程、哪些可以跳過。</p>
+
+          <h3 className="seo-h3">下龍灣攻略</h3>
+          <p>下龍灣主要體驗是搭遊輪欣賞石灰岩島嶼，還可以參觀驚訝洞（鐘乳石洞）、登英雄島海灘、划小船穿梭灣內。建議安排兩天一夜比較不趕，從河內出發約兩小時可抵達碼頭。影片包含普通遊輪與六星級郵輪兩種體驗供參考。</p>
+
+          <h3 className="seo-h3">陸龍灣攻略</h3>
+          <p>陸龍灣主要景點有華閭古都（歷史遺跡）、白亭寺、長安/三谷（坐小船看河谷美景）、舞洞（爬山俯瞰河谷）。影片有5個景點介紹與選擇攻略，幫你比較不同玩法再做決定。</p>
+
+          <h3 className="seo-h3">沙壩攻略</h3>
+          <p>沙壩風景漂亮，貓貓村和番西邦峰是兩大亮點，但兩個都很耗體力，不建議排在同一天。從河內到沙壩最快也要6小時，交通分包車、臥舖巴士、臥舖火車三種，各有優缺。影片從景點到交通方式、3天2夜行程規劃一次整理。</p>
+
+          <h3 className="seo-h3">行前準備</h3>
+          <p>越南簽證建議越早申請越好，有時審核不通過需要多送幾次。此外還有換匯攻略、河內機場入境流程與機場到市區交通，把這幾支看完出發就不慌。</p>
+        </SeoContentSection>
+
+        <SeoCtaSection text="" href="/northvietnam/map" linkText="熱門景點地圖" newTab dataEvent="northvietnamvideo_SEO_spotmap" />
+
+        <h2 className="seo-h2" id="videoListTitle">
+          北越短影片合輯（依主題分類）
+        </h2>
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="northvietnam_video_tab" />
+
+        <SeoFaqSection
+          title="北越短影片合輯常見問題"
+          items={[
+            { q: '第一次去北越看哪支影片最有用？', a: '建議先看「越南北越最速攻略」建立整體概念，再依你想去的地區（河內、下龍灣、沙壩）切換標籤找對應影片深入了解。' },
+            { q: '沙壩值得去嗎？', a: '沙壩適合喜歡自然風景、健行、慢旅行的人。影片有完整的景點比較和行程建議，可先看「沙壩3天2夜最佳解」和「3種交通方式」再決定。' },
+            { q: '越南簽證要注意什麼？', a: '建議越早申請越好，有時審核會不通過，需要多送幾次，所以不要等到出發前才申請。影片有完整的簽證申請流程教學可以參考。' },
+          ]}
+        />
       </main>
       <Footer />
     </>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 /** 用於城市頁的 header，導航連結指向首頁區塊 */
 export default function SiteHeader() {
@@ -6,7 +7,7 @@ export default function SiteHeader() {
     <header>
       <nav className="nav">
         <Link href="/" className="brand" aria-label="回首頁" data-event="home_logo" data-item="brand">
-          <img src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" />
+          <Image src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
           <span>JieJourneys｜旅杰</span>
         </Link>
         <div className="menu">

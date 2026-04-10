@@ -3,12 +3,11 @@
 import Link from 'next/link'
 import { useState, useCallback } from 'react'
 
-const SUPABASE_URL = 'https://fqhjwakhdizopjnnidni.supabase.co/functions/v1/contact-submit'
-const SUPABASE_ANON =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxaGp3YWtoZGl6b3Bqbm5pZG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0MzcyNzAsImV4cCI6MjA3MTAxMzI3MH0.opToqcaOlh1UVdpXf4Gh9zjl8vWgkr35RPsYHkkaItY'
+type FormStatus = { type: 'success' | 'error'; message: string } | null
 
 export default function ContactPage() {
   const [submitting, setSubmitting] = useState(false)
+  const [status, setStatus] = useState<FormStatus>(null)
 
   const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -17,33 +16,30 @@ export default function ContactPage() {
     const payload = Object.fromEntries(f.entries()) as Record<string, string>
 
     if (payload.email !== payload.confirmEmail) {
-      alert('⚠️ 兩次輸入的 Email 不一致，請檢查。')
+      setStatus({ type: 'error', message: '兩次輸入的 Email 不一致，請檢查。' })
       return
     }
 
     delete payload.confirmEmail
     setSubmitting(true)
+    setStatus(null)
 
     try {
-      const res = await fetch(SUPABASE_URL, {
+      const res = await fetch('/api/contact', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${SUPABASE_ANON}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
       const data = await res.json()
 
       if (data.success) {
-        alert(`✅ 已送出！我們將回覆至：${payload.email}\n請確認 Email 是否正確。`)
+        setStatus({ type: 'success', message: `已送出！我們將回覆至：${payload.email}，請確認 Email 是否正確。` })
         form.reset()
       } else {
-        alert(`⚠️ 送出失敗：${data?.error || 'Unknown error'}`)
+        setStatus({ type: 'error', message: `送出失敗：${data?.error || 'Unknown error'}` })
       }
-    } catch (err) {
-      alert('❌ 系統錯誤，請稍後再試。')
-      console.error(err)
+    } catch {
+      setStatus({ type: 'error', message: '系統錯誤，請稍後再試。' })
     } finally {
       setSubmitting(false)
     }
@@ -79,6 +75,12 @@ export default function ContactPage() {
               <label htmlFor="contact-message">想詢問的問題</label>
               <textarea id="contact-message" name="message" required />
             </div>
+
+            {status && (
+              <p role="alert" className={`contact-status contact-status--${status.type}`}>
+                {status.message}
+              </p>
+            )}
 
             <div className="contact-actions">
               <button type="submit" disabled={submitting}>
