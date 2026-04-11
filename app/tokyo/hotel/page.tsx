@@ -26,7 +26,10 @@ export default function TokyoHotelPage() {
           ]}
         />
 
-<SeoCtaSection text="" href="#stayListTitle" linkText="直接看住宿 ↓" />
+        <h2 className="seo-h2" id="stayListTitle">東京住宿推薦飯店</h2>
+        <CityTabbedList tabs={tokyoHotelTabs} cards={tokyoHotelCards} tabEvent="tokyo_hotel_tab" />
+
+        <SeoCtaSection text="" href="/tokyo/map" linkText="東京住宿推薦地圖" newTab dataEvent="tokyohotel_SEO_map" />
 
         <SeoContentSection title="東京住宿區域怎麼選？">
           <h3 className="seo-h3">上野（機場進市區最方便）</h3>
@@ -77,11 +80,6 @@ export default function TokyoHotelPage() {
             <li>要跑河口湖/富士山：新宿</li>
           </ul>
         </SeoContentSection>
-
-        <SeoCtaSection text="" href="/tokyo/map" linkText="東京住宿推薦地圖" newTab dataEvent="tokyohotel_SEO_map" />
-
-        <h2 className="seo-h2" id="stayListTitle">東京住宿推薦飯店</h2>
-        <CityTabbedList tabs={tokyoHotelTabs} cards={tokyoHotelCards} tabEvent="tokyo_hotel_tab" />
 
         <SeoFaqSection
           title="東京住宿常見問題"

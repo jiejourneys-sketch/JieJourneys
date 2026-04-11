@@ -60,7 +60,13 @@ export default function TokyoVideoPage() {
           ]}
         />
 
-        <SeoCtaSection text="" href="#videoListTitle" linkText="直接看影片 ↓" />
+        <h2 className="seo-h2" id="videoListTitle">
+          東京短影片合輯（依主題分類）
+        </h2>
+
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="tokyo_video_tab" />
+
+        <SeoCtaSection text="" href="/tokyo/map" linkText="熱門景點地圖" newTab dataEvent="tokyovideo_SEO_spotmap" />
 
         <section className="seo-content" aria-label="快速理解摘要">
           <h2 className="seo-h2">東京自由行快速理解</h2>
@@ -200,14 +206,6 @@ export default function TokyoVideoPage() {
             </div>
           </div>
         </section>
-
-        <SeoCtaSection text="" href="/tokyo/map" linkText="熱門景點地圖" newTab dataEvent="tokyovideo_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="videoListTitle">
-          東京短影片合輯（依主題分類）
-        </h2>
-
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="tokyo_video_tab" />
 
         <section className="seo-faq" id="seo-faq" aria-label="FAQ">
           <h2 className="seo-h2">東京短影片合輯常見問題</h2>

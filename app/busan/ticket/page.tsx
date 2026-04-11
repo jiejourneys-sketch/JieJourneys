@@ -38,7 +38,14 @@ export default function BusanTicketPage() {
             },
           ]}
         />
-        <SeoCtaSection text="" href="#ticketListTitle" linkText="直接看票券 ↓" />
+
+<h2 className="seo-h2" id="ticketListTitle">
+          釜山票券推薦（通行證、景點門票一次看懂）
+        </h2>
+
+        <CityTabbedList tabs={busanTicketTabs} cards={busanTicketCards} tabEvent="busan_ticket_tab" />
+
+        <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanticket_SEO_spotmap" />
 
         <SeoContentSection title="釜山票券快速理解">
           <h3 className="seo-h3">👉 最重要：搞懂釜山通行證（Visit Busan Pass）</h3>
@@ -102,14 +109,6 @@ export default function BusanTicketPage() {
             ，落地會更順。
           </p>
         </SeoContentSection>
-
-        <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanticket_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="ticketListTitle">
-          釜山票券推薦（通行證、景點門票一次看懂）
-        </h2>
-
-        <CityTabbedList tabs={busanTicketTabs} cards={busanTicketCards} tabEvent="busan_ticket_tab" />
 
         <SeoFaqSection
           title="釜山票券常見問題"

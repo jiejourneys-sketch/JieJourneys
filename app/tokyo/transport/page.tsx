@@ -53,7 +53,12 @@ export default function TokyoTransportPage() {
           ]}
         />
 
-        <SeoCtaSection text="" href="#transportListTitle" linkText="直接看整理 ↓" />
+        <h2 className="seo-h2" id="transportListTitle">
+          東京通訊與交通整理（依主題分類）
+        </h2>
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="tokyo_transport_tab" />
+
+        <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyotransport_SEO_spotmap" />
 
         <SeoContentSection title="東京通訊 & 交通怎麼選？">
           <h3 className="seo-h3">通訊方案：eSIM vs SIM卡 vs WiFi分享器</h3>
@@ -68,13 +73,6 @@ export default function TokyoTransportPage() {
           <h3 className="seo-h3">羽田機場進市區</h3>
           <p>京急電鐵直達品川、淺草方向；單軌電車到濱松町再轉JR；利木津巴士直達飯店，適合行李多的旅客。羽田整體比成田近，交通費用也較低。</p>
         </SeoContentSection>
-
-        <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyotransport_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="transportListTitle">
-          東京通訊與交通整理（依主題分類）
-        </h2>
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="tokyo_transport_tab" />
 
         <SeoFaqSection
           title="東京通訊交通常見問題"

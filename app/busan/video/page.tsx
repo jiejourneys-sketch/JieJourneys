@@ -350,7 +350,13 @@ export default function BusanVideoPage() {
           ]}
         />
 
-        <SeoCtaSection text="" href="#videoListTitle" linkText="直接看影片 ↓" />
+        <h2 className="seo-h2" id="videoListTitle">
+          釜山短影片合輯（依主題分類）
+        </h2>
+
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="video_tab" />
+
+        <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanvideo_SEO_spotmap" />
 
         <section className="seo-content" aria-label="快速理解摘要">
           <h2 className="seo-h2">釜山自由行快速理解</h2>
@@ -497,14 +503,6 @@ export default function BusanVideoPage() {
 
           </div>
         </section>
-
-        <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanvideo_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="videoListTitle">
-          釜山短影片合輯（依主題分類）
-        </h2>
-
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="video_tab" />
 
         <SeoFaqSection
           title="釜山短影片合輯常見問題"

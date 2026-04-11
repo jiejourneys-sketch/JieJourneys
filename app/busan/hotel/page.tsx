@@ -78,7 +78,12 @@ export default function BusanHotelPage() {
           ]}
         />
 
-<SeoCtaSection text="" href="#stayListTitle" linkText="直接看住宿 ↓" />
+<h2 className="seo-h2" id="stayListTitle">
+          釜山住宿推薦飯店（海雲台／廣安里／西面／南浦洞）
+        </h2>
+        <CityTabbedList tabs={busanHotelTabs} cards={hotelCards} tabEvent="busan_hotel_tab" />
+
+        <SeoCtaSection text="" href="/busan/map" linkText="釜山住宿推薦地圖" newTab dataEvent="busanhotel_SEO_spotmap" />
 
         <SeoContentSection title="釜山住宿區域怎麼選？">
           <h3 className="seo-h3">海雲台（看海＋放鬆）</h3>
@@ -148,13 +153,6 @@ export default function BusanHotelPage() {
             </tbody>
           </table>
         </SeoContentSection>  
-
-        <SeoCtaSection text="" href="/busan/map" linkText="釜山住宿推薦地圖" newTab dataEvent="busanhotel_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="stayListTitle">
-          釜山住宿推薦飯店（海雲台／廣安里／西面／南浦洞）
-        </h2>
-        <CityTabbedList tabs={busanHotelTabs} cards={hotelCards} tabEvent="busan_hotel_tab" />
 
         <SeoFaqSection
           title="釜山住宿常見問題"

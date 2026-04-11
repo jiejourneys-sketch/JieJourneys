@@ -48,7 +48,12 @@ export default function NorthVietnamTransportPage() {
           ]}
         />
 
-        <SeoCtaSection text="" href="#transportListTitle" linkText="直接看整理 ↓" />
+        <h2 className="seo-h2" id="transportListTitle">
+          北越通訊與交通整理（依類別分類）
+        </h2>
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="northvietnam_transport_tab" />
+
+        <SeoCtaSection text="" href="/northvietnam/map" linkText="北越熱門景點地圖" newTab dataEvent="northvietnamtransport_SEO_spotmap" />
 
         <SeoContentSection title="北越通訊 & 交通怎麼選？">
           <h3 className="seo-h3">通訊方案：eSIM vs SIM卡</h3>
@@ -63,11 +68,6 @@ export default function NorthVietnamTransportPage() {
           <h3 className="seo-h3">河內 → 陸龍灣（寧平）</h3>
           <p>陸龍灣多為一日來回，從河內包車或共乘，車程約 2 小時。不一定要住宿，可當天往返。</p>
         </SeoContentSection>
-        <SeoCtaSection text="" href="/northvietnam/map" linkText="北越熱門景點地圖" newTab dataEvent="northvietnamtransport_SEO_spotmap" />
-        <h2 className="seo-h2" id="transportListTitle">
-          北越通訊與交通整理（依類別分類）
-        </h2>
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="northvietnam_transport_tab" />
 
         <SeoFaqSection
           title="北越通訊交通常見問題"

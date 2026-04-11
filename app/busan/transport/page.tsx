@@ -142,8 +142,13 @@ export default function BusanTransportPage() {
             },
           ]}
         />
-        
-        <SeoCtaSection text="" href="#transportListTitle" linkText="直接看通訊&交通↓" />
+
+        <h2 className="seo-h2" id="transportListTitle">
+          釜山通訊&交通整理（eSIM、交通卡、機場接送）
+        </h2>
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="busan_transport_tab" />
+
+        <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busantransport_SEO_spotmap" />
 
         <SeoContentSection title="釜山通訊 & 交通怎麼選？">
           <h3 className="seo-h3">通訊方案：eSIM vs SIM卡 vs WiFi分享器</h3>
@@ -155,12 +160,6 @@ export default function BusanTransportPage() {
           <h3 className="seo-h3">釜山機場進市區</h3>
           <p>金海機場進市區有地鐵輕軌（轉乘一次可到西面/海雲台）或包車接送（適合多人或深夜抵達）。</p>
         </SeoContentSection>
-        <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busantransport_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="transportListTitle">
-          釜山通訊&交通整理（eSIM、交通卡、機場接送）
-        </h2>
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="busan_transport_tab" />
         
 
         <SeoFaqSection

@@ -25,7 +25,10 @@ export default function NorthVietnamTicketPage() {
           ]}
         />
 
-<SeoCtaSection text="" href="#ticketListTitle" linkText="直接看票券 ↓" />
+        <h2 className="seo-h2" id="ticketListTitle">北越票券整理（依類別分類）</h2>
+        <CityTabbedList tabs={northVietnamTicketTabs} cards={northVietnamTicketCards} tabEvent="northvietnam_ticket_tab" />
+
+        <SeoCtaSection text="" href="/northvietnam/map" linkText="北越熱門景點地圖" newTab dataEvent="northvietnamticket_SEO_spotmap" />
 
         <SeoContentSection title="北越各地票券重點整理">
           <h3 className="seo-h3">下龍灣遊輪票</h3>
@@ -40,11 +43,6 @@ export default function NorthVietnamTicketPage() {
           <h3 className="seo-h3">河內景點票券</h3>
           <p>河內以古蹟和市區逛街吃美食為主。主要付費景點包含胡志明陵寢、文廟、還劍湖周邊等，部分可現場購票，熱門導覽體驗建議事前在平台預訂比較保險。</p>
         </SeoContentSection>
-
-        <SeoCtaSection text="" href="/northvietnam/map" linkText="北越熱門景點地圖" newTab dataEvent="northvietnamticket_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="ticketListTitle">北越票券整理（依類別分類）</h2>
-        <CityTabbedList tabs={northVietnamTicketTabs} cards={northVietnamTicketCards} tabEvent="northvietnam_ticket_tab" />
 
         <SeoFaqSection
           title="北越票券常見問題"

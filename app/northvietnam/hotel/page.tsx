@@ -25,7 +25,10 @@ export default function NorthVietnamHotelPage() {
           ]}
         />
 
-<SeoCtaSection text="" href="#stayListTitle" linkText="直接看住宿 ↓" />
+        <h2 className="seo-h2" id="stayListTitle">北越住宿推薦飯店</h2>
+        <CityTabbedList tabs={northVietnamHotelTabs} cards={northVietnamHotelCards} tabEvent="northvietnam_hotel_tab" />
+
+        <SeoCtaSection text="" href="/northvietnam/map" linkText="北越住宿推薦地圖" newTab dataEvent="northvietnamhotel_SEO_map" />
 
         <SeoContentSection title="北越住宿區域怎麼選？">
           <h3 className="seo-h3">河內（旅遊基地）</h3>
@@ -45,11 +48,6 @@ export default function NorthVietnamHotelPage() {
             <li>陸龍灣（寧平）：多為一日來回，通常不需住宿</li>
           </ul>
         </SeoContentSection>
-
-        <SeoCtaSection text="" href="/northvietnam/map" linkText="北越住宿推薦地圖" newTab dataEvent="northvietnamhotel_SEO_map" />
-
-        <h2 className="seo-h2" id="stayListTitle">北越住宿推薦飯店</h2>
-        <CityTabbedList tabs={northVietnamHotelTabs} cards={northVietnamHotelCards} tabEvent="northvietnam_hotel_tab" />
 
         <SeoFaqSection
           title="北越住宿常見問題"

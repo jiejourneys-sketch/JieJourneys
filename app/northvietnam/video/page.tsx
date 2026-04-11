@@ -60,7 +60,12 @@ export default function NorthVietnamVideoPage() {
           ]}
         />
 
-        <SeoCtaSection text="" href="#videoListTitle" linkText="直接看影片 ↓" />
+        <h2 className="seo-h2" id="videoListTitle">
+          北越短影片合輯（依主題分類）
+        </h2>
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="northvietnam_video_tab" />
+
+        <SeoCtaSection text="" href="/northvietnam/map" linkText="熱門景點地圖" newTab dataEvent="northvietnamvideo_SEO_spotmap" />
 
         <SeoContentSection title="影片分類快速導覽">
           <h3 className="seo-h3">越南北越體驗總覽</h3>
@@ -81,13 +86,6 @@ export default function NorthVietnamVideoPage() {
           <h3 className="seo-h3">行前準備</h3>
           <p>越南簽證建議越早申請越好，有時審核不通過需要多送幾次。此外還有換匯攻略、河內機場入境流程與機場到市區交通，把這幾支看完出發就不慌。</p>
         </SeoContentSection>
-
-        <SeoCtaSection text="" href="/northvietnam/map" linkText="熱門景點地圖" newTab dataEvent="northvietnamvideo_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="videoListTitle">
-          北越短影片合輯（依主題分類）
-        </h2>
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="northvietnam_video_tab" />
 
         <SeoFaqSection
           title="北越短影片合輯常見問題"

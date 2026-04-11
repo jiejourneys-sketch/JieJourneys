@@ -25,7 +25,12 @@ export default function TokyoTicketPage() {
           ]}
         />
 
-        <SeoCtaSection text="" href="#ticketListTitle" linkText="直接看票券 ↓" />
+        <h2 className="seo-h2" id="ticketListTitle">
+          東京票券整理（依主題分類）
+        </h2>
+        <CityTabbedList tabs={tokyoTicketTabs} cards={tokyoTicketCards} tabEvent="tokyo_ticket_tab" />
+
+        <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyoticket_SEO_spotmap" />
 
         <SeoContentSection title="東京票券快速理解">
           <h3 className="seo-h3">👉 東京景點票券怎麼分（先抓分類才好挑）</h3>
@@ -48,13 +53,6 @@ export default function TokyoTicketPage() {
             SHIBUYA SKY 的傍晚時段（看夕陽/夜景）通常最搶，建議<strong>14天前線上購票</strong>，行程才不會被票卡住。
           </p>
         </SeoContentSection>
-        <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyoticket_SEO_spotmap" />
-
-        <h2 className="seo-h2" id="ticketListTitle">
-          東京票券整理（依主題分類）
-        </h2>
-        <CityTabbedList tabs={tokyoTicketTabs} cards={tokyoTicketCards} tabEvent="tokyo_ticket_tab" />
-
         <SeoFaqSection
           title="東京票券常見問題"
           items={[
