@@ -36,16 +36,6 @@ function nowDatetimeLocal() {
   )}`
 }
 
-function getInitialDateState() {
-  const dt = nowDatetimeLocal()
-  const parts = toDateParts(dt)
-  return {
-    dt,
-    dateOnly: parts.dateOnly,
-    timeOnly: parts.timeOnly
-  }
-}
-
 export default function NewExpenseForm({
   bookId,
   members,
@@ -60,7 +50,15 @@ export default function NewExpenseForm({
   const router = useRouter()
   const buildBillPath = useBuildBillPath()
 
-  const [initialDateState] = useState(() => getInitialDateState())
+  const [initialDateState] = useState(() => {
+    const dt = nowDatetimeLocal()
+    const parts = toDateParts(dt)
+    return {
+      dt,
+      dateOnly: parts.dateOnly,
+      timeOnly: parts.timeOnly
+    }
+  })
   const [date, setDate] = useState(initialDateState.dt)
   const [dateOnly, setDateOnly] = useState(initialDateState.dateOnly)
   const [timeOnly, setTimeOnly] = useState(initialDateState.timeOnly)
@@ -200,9 +198,27 @@ export default function NewExpenseForm({
     setSaving(true)
     const occurredAt = new Date(combineDateTime(dateOnly, timeOnly) || date).toISOString()
 
-    const { data: inserted, error } = await supabase
-      .from('expenses')
-      .insert({
+    try {
+      const expenseId = await createExpenseWithDetails({
+        bookId,
+        description: description.trim(),
+        amount: total,
+        currency,
+        occurredAt,
+        note: note.trim() || null,
+        payers: orderedPayerIds.map((memberId) => ({
+          member_id: memberId,
+          amount: computedPayerAmounts[memberId] || 0
+        })),
+        splits: orderedSplitterIds.map((memberId) => ({
+          member_id: memberId,
+          shared_amount: computedSplit.shared[memberId] || 0,
+          exclusive_amount: computedSplit.exclusive[memberId] || 0,
+          amount: computedSplit.totalByMember[memberId] || 0
+        }))
+      })
+
+      logAudit('expenses', 'insert', expenseId, bookId, null, {
         book_id: bookId,
         description: description.trim(),
         amount: total,
@@ -210,44 +226,19 @@ export default function NewExpenseForm({
         occurred_at: occurredAt,
         note: note.trim() || null
       })
-      .select('*')
-      .single()
 
-    if (error) {
+      setSaving(false)
+      window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
+      window.dispatchEvent(new CustomEvent('bill:expenseAdded', { detail: { bookId } }))
+      router.push(buildBillPath(`/book/${bookId}`))
+      router.refresh()
+      return
+    } catch (error) {
       console.error(error)
       setSaving(false)
-      alert('新增失敗')
+      alert('新增失敗，請稍後再試')
       return
     }
-
-    const expenseId = inserted?.id as string
-
-    const payerRows = orderedPayerIds.map((memberId) => ({
-      expense_id: expenseId,
-      member_id: memberId,
-      amount: computedPayerAmounts[memberId] || 0
-    }))
-    const { error: pErr } = await supabase.from('expense_payers').insert(payerRows)
-    if (pErr) console.error(pErr)
-
-    const splitRows = orderedSplitterIds.map((memberId) => ({
-      expense_id: expenseId,
-      member_id: memberId,
-      shared_amount: computedSplit.shared[memberId] || 0,
-      exclusive_amount: computedSplit.exclusive[memberId] || 0,
-      amount: computedSplit.totalByMember[memberId] || 0
-    }))
-    const { error: sErr } = await supabase.from('expense_splits').insert(splitRows)
-    if (sErr) console.error(sErr)
-
-    const insertedRow = inserted as Record<string, unknown>
-    logAudit('expenses', 'insert', expenseId, bookId, null, insertedRow)
-
-    setSaving(false)
-    window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
-    window.dispatchEvent(new CustomEvent('bill:expenseAdded', { detail: { bookId } }))
-    router.push(buildBillPath(`/book/${bookId}`))
-    router.refresh()
   }
 
   return (
