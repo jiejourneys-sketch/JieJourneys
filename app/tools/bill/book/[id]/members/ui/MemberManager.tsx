@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { logAudit } from '@/lib/audit'
 
-type MemberRow = { id: string; name: string }
+type MemberRow = { id: string; name: string; is_active?: boolean | null }
 
 export default function MemberManager({ bookId }: { bookId: string }) {
   const [name, setName] = useState('')
@@ -50,7 +50,7 @@ export default function MemberManager({ bookId }: { bookId: string }) {
     const memberName = name.trim()
     const { data: inserted, error } = await supabase
       .from('members')
-      .insert({ book_id: bookId, name: memberName })
+      .insert({ book_id: bookId, name: memberName, is_active: true })
       .select()
       .single()
 
@@ -122,6 +122,59 @@ export default function MemberManager({ bookId }: { bookId: string }) {
     window.dispatchEvent(new CustomEvent('bill:membersChanged', { detail: { bookId } }))
   }
 
+  const handleMemberAction = async (m: MemberRow) => {
+    if (!confirm(`確定處理成員「${m.name}」嗎？`)) return
+    setSaving(true)
+    setError(null)
+
+    const [{ count: payerCount, error: payerErr }, { count: splitCount, error: splitErr }] =
+      await Promise.all([
+        supabase.from('expense_payers').select('*', { count: 'exact', head: true }).eq('member_id', m.id),
+        supabase.from('expense_splits').select('*', { count: 'exact', head: true }).eq('member_id', m.id)
+      ])
+
+    if (payerErr || splitErr) {
+      console.error(payerErr || splitErr)
+      setError('檢查成員紀錄失敗')
+      setSaving(false)
+      return
+    }
+
+    const hasHistory = (payerCount || 0) > 0 || (splitCount || 0) > 0
+
+    if (hasHistory) {
+      const { error } = await supabase.from('members').update({ is_active: false }).eq('id', m.id)
+      if (error) {
+        console.error(error)
+        setError('停用成員失敗')
+        setSaving(false)
+        return
+      }
+      logAudit(
+        'members',
+        'update',
+        m.id,
+        bookId,
+        { id: m.id, name: m.name, is_active: m.is_active ?? true },
+        { id: m.id, name: m.name, is_active: false }
+      )
+    } else {
+      const { error } = await supabase.from('members').delete().eq('id', m.id)
+      if (error) {
+        console.error(error)
+        setError('刪除成員失敗')
+        setSaving(false)
+        return
+      }
+      logAudit('members', 'delete', m.id, bookId, { id: m.id, name: m.name }, null)
+    }
+
+    setSaving(false)
+    cancelEdit()
+    await fetchMembers()
+    window.dispatchEvent(new CustomEvent('bill:membersChanged', { detail: { bookId } }))
+  }
+
   return (
     <div className="card">
       <div className="row">
@@ -186,6 +239,9 @@ export default function MemberManager({ bookId }: { bookId: string }) {
                   <div className="member-left" style={{ minWidth: 0, flex: 1 }}>
                     <span style={{ fontSize: 18 }}>👤</span>
                     <span>{m.name}</span>
+                    {m.is_active === false ? (
+                      <span style={{ fontSize: 12, color: '#b45309', marginLeft: 8 }}>停用中</span>
+                    ) : null}
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button
@@ -198,10 +254,10 @@ export default function MemberManager({ bookId }: { bookId: string }) {
                     </button>
                     <button
                       className="danger-link"
-                      onClick={() => deleteMember(m)}
-                      disabled={saving}
+                      onClick={() => handleMemberAction(m)}
+                      disabled={saving || m.is_active === false}
                     >
-                      刪除
+                      {m.is_active === false ? '已停用' : '刪除 / 停用'}
                     </button>
                   </div>
                 </>

@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
-import { supabase } from '@/lib/supabase'
+import { filterSelectableMembers } from '@/lib/billMembers'
+import { createExpenseWithDetails } from '@/lib/expenseRpc'
 import { toCents, formatCents, formatWithCurrency } from '@/lib/amount'
 import { CURRENCIES, LAST_CURRENCY_STORAGE_KEY, type CurrencyInfo } from '@/lib/currency'
 import { logAudit } from '@/lib/audit'
 
-type MemberRow = { id: string; name: string }
+type MemberRow = { id: string; name: string; is_active?: boolean | null }
 
 function pad2(n: number) {
   return String(n).padStart(2, '0')
@@ -35,6 +36,16 @@ function nowDatetimeLocal() {
   )}`
 }
 
+function getInitialDateState() {
+  const dt = nowDatetimeLocal()
+  const parts = toDateParts(dt)
+  return {
+    dt,
+    dateOnly: parts.dateOnly,
+    timeOnly: parts.timeOnly
+  }
+}
+
 export default function NewExpenseForm({
   bookId,
   members,
@@ -49,9 +60,10 @@ export default function NewExpenseForm({
   const router = useRouter()
   const buildBillPath = useBuildBillPath()
 
-  const [date, setDate] = useState('')
-  const [dateOnly, setDateOnly] = useState('')
-  const [timeOnly, setTimeOnly] = useState('')
+  const [initialDateState] = useState(() => getInitialDateState())
+  const [date, setDate] = useState(initialDateState.dt)
+  const [dateOnly, setDateOnly] = useState(initialDateState.dateOnly)
+  const [timeOnly, setTimeOnly] = useState(initialDateState.timeOnly)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState<string>(() => {
@@ -77,7 +89,7 @@ export default function NewExpenseForm({
   const [exclusiveAmounts, setExclusiveAmounts] = useState<Record<string, string>>({})
   const [lockedSharedIds, setLockedSharedIds] = useState<Set<string>>(() => new Set())
 
-  const memberOptions = useMemo(() => members || [], [members])
+  const memberOptions = useMemo(() => filterSelectableMembers(members || []), [members])
   const byId = useMemo(
     () => new Map(memberOptions.map((m) => [m.id, m.name] as const)),
     [memberOptions]
@@ -164,17 +176,6 @@ export default function NewExpenseForm({
 
   const splitAllocated = Object.values(computedSplit.totalByMember).reduce((s, v) => s + v, 0)
   const splitRemaining = total - splitAllocated
-
-  useEffect(() => {
-    const initDateLocal = nowDatetimeLocal()
-    const initParts = toDateParts(initDateLocal)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDate(initDateLocal)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDateOnly(initParts.dateOnly)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTimeOnly(initParts.timeOnly)
-  }, [])
 
   // Save last used currency to localStorage
   useEffect(() => {

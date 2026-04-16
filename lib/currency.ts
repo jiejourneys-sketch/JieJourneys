@@ -18,6 +18,7 @@ export const CURRENCIES: CurrencyInfo[] = [
   { code: 'PHP', symbol: '₱', name: '菲幣' },
   { code: 'IDR', symbol: 'Rp', name: '印尼盾' },
   { code: 'AUD', symbol: 'A$', name: '澳幣' },
+  { code: 'CNY', symbol: 'CN¥', name: '人民幣' },
 ]
 
 const CURRENCY_MAP = new Map(CURRENCIES.map((c) => [c.code, c]))

@@ -3,13 +3,14 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
-import { supabase } from '@/lib/supabase'
+import { filterSelectableMembers } from '@/lib/billMembers'
+import { deleteExpenseWithDetails, updateExpenseWithDetails } from '@/lib/expenseRpc'
 import { toCents, formatCents, formatWithCurrency } from '@/lib/amount'
 import { CURRENCIES, type CurrencyInfo } from '@/lib/currency'
 import { logAudit } from '@/lib/audit'
 import { insertChangeLog } from '@/lib/changeLog'
 
-type MemberRow = { id: string; name: string }
+type MemberRow = { id: string; name: string; is_active?: boolean | null }
 type ExpenseRow = {
   id: string
   book_id: string
@@ -79,7 +80,17 @@ export default function EditExpenseForm({
   const [note, setNote] = useState(expense.note || '')
   const [saving, setSaving] = useState(false)
 
-  const memberOptions = useMemo(() => members || [], [members])
+  const memberOptions = useMemo(
+    () =>
+      filterSelectableMembers(
+        members || [],
+        new Set([
+          ...(payers || []).map((p) => p.member_id),
+          ...(splits || []).map((s) => s.member_id)
+        ])
+      ),
+    [members, payers, splits]
+  )
   const byId = useMemo(
     () => new Map(memberOptions.map((m) => [m.id, m.name] as const)),
     [memberOptions]

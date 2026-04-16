@@ -128,11 +128,38 @@ export default function Home() {
     const { data: expData } = await supabase.from('expenses').select('id').eq('book_id', bookId)
     const expIds = (expData || []).map((e: { id: string }) => e.id)
     if (expIds.length) {
-      await supabase.from('expense_payers').delete().in('expense_id', expIds)
-      await supabase.from('expense_splits').delete().in('expense_id', expIds)
+      const { error: payerDeleteError } = await supabase.from('expense_payers').delete().in('expense_id', expIds)
+      if (payerDeleteError) {
+        console.error(payerDeleteError)
+        alert('刪除失敗：付款者資料沒有刪乾淨')
+        setDeletingId(null)
+        return
+      }
+
+      const { error: splitDeleteError } = await supabase.from('expense_splits').delete().in('expense_id', expIds)
+      if (splitDeleteError) {
+        console.error(splitDeleteError)
+        alert('刪除失敗：分攤資料沒有刪乾淨')
+        setDeletingId(null)
+        return
+      }
     }
-    await supabase.from('expenses').delete().eq('book_id', bookId)
-    await supabase.from('members').delete().eq('book_id', bookId)
+
+    const { error: expenseDeleteError } = await supabase.from('expenses').delete().eq('book_id', bookId)
+    if (expenseDeleteError) {
+      console.error(expenseDeleteError)
+      alert('刪除失敗：帳目資料沒有刪乾淨')
+      setDeletingId(null)
+      return
+    }
+
+    const { error: memberDeleteError } = await supabase.from('members').delete().eq('book_id', bookId)
+    if (memberDeleteError) {
+      console.error(memberDeleteError)
+      alert('刪除失敗：成員資料沒有刪乾淨')
+      setDeletingId(null)
+      return
+    }
 
     const { error } = await supabase.from('books').delete().eq('id', bookId)
 
