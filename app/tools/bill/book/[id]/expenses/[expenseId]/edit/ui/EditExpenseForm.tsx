@@ -241,145 +241,81 @@ export default function EditExpenseForm({
       note: note.trim() || null
     }
 
-    const { error: uErr } = await supabase
-      .from('expenses')
-      .update({
+    try {
+      await updateExpenseWithDetails(expense.id, {
+        bookId,
         description: description.trim(),
         amount: total,
         currency,
-        occurred_at: occurredAt,
-        note: note.trim() || null
+        occurredAt,
+        note: note.trim() || null,
+        payers: orderedPayerIds.map((memberId) => ({
+          member_id: memberId,
+          amount: computedPayerAmounts[memberId] || 0
+        })),
+        splits: orderedSplitterIds.map((memberId) => ({
+          member_id: memberId,
+          shared_amount: computedSplit.shared[memberId] || 0,
+          exclusive_amount: computedSplit.exclusive[memberId] || 0,
+          amount: computedSplit.totalByMember[memberId] || 0
+        }))
       })
-      .eq('id', expense.id)
 
-    if (uErr) {
-      console.error(uErr)
-      setSaving(false)
-      alert('更新失敗')
-      return
-    }
-
-    const payerRows = orderedPayerIds.map((memberId) => ({
-      expense_id: expense.id,
-      member_id: memberId,
-      amount: computedPayerAmounts[memberId] || 0
-    }))
-    // 避免「整批 delete 被 RLS 擋下却回傳成功」導致 insert 撞 unique：只刪除未再選取的列，其餘用 upsert
-    const nextPayerSet = new Set(orderedPayerIds)
-    for (const memberId of (payers || []).map((p) => p.member_id)) {
-      if (nextPayerSet.has(memberId)) continue
-      const { error: pdErr } = await supabase
-        .from('expense_payers')
-        .delete()
-        .eq('expense_id', expense.id)
-        .eq('member_id', memberId)
-      if (pdErr) {
-        console.error(pdErr)
-        setSaving(false)
-        alert(`更新付款者失敗：${pdErr.message || '請稍後再試'}`)
-        return
+      logAudit('expenses', 'update', expense.id, bookId, beforeData, afterData)
+      const beforeLog = {
+        name: expense.description || '',
+        amount: Number(expense.amount ?? 0),
+        payer: (payers || []).map((p) => byId.get(p.member_id) || '未知').join('、') || undefined,
+        participants: (splits || []).length === memberOptions.length ? '所有人均分' : [...(splits || [])].sort((a, b) => a.member_id.localeCompare(b.member_id)).map((s) => byId.get(s.member_id) || '未知').join('、') || undefined
       }
-    }
-    const { error: piErr } = await supabase
-      .from('expense_payers')
-      .upsert(payerRows, { onConflict: 'expense_id,member_id' })
-    if (piErr) {
-      console.error(piErr)
-      setSaving(false)
-      alert(`更新付款者失敗：${piErr.message || '請稍後再試'}`)
-      return
-    }
-
-    const splitRows = orderedSplitterIds.map((memberId) => ({
-      expense_id: expense.id,
-      member_id: memberId,
-      shared_amount: computedSplit.shared[memberId] || 0,
-      exclusive_amount: computedSplit.exclusive[memberId] || 0,
-      amount: computedSplit.totalByMember[memberId] || 0
-    }))
-    const nextSplitSet = new Set(orderedSplitterIds)
-    for (const memberId of (splits || []).map((s) => s.member_id)) {
-      if (nextSplitSet.has(memberId)) continue
-      const { error: sdErr } = await supabase
-        .from('expense_splits')
-        .delete()
-        .eq('expense_id', expense.id)
-        .eq('member_id', memberId)
-      if (sdErr) {
-        console.error(sdErr)
-        setSaving(false)
-        alert(`更新分攤失敗：${sdErr.message || '請稍後再試'}`)
-        return
+      const afterLog = {
+        name: description.trim() || '',
+        amount: total,
+        payer: orderedPayerIds.map((id) => byId.get(id) || '未知').join('、') || undefined,
+        participants: orderedSplitterIds.length === memberOptions.length ? '所有人均分' : orderedSplitterIds.map((id) => byId.get(id) || '未知').join('、') || undefined
       }
-    }
-    const { error: siErr } = await supabase
-      .from('expense_splits')
-      .upsert(splitRows, { onConflict: 'expense_id,member_id' })
-    if (siErr) {
-      console.error(siErr)
+      await insertChangeLog(bookId, 'edit', expense.description || '未命名', beforeLog.amount, total, expense.id, beforeLog, afterLog)
+
       setSaving(false)
-      alert(`更新分攤失敗：${siErr.message || '請稍後再試'}`)
+      window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
+      window.dispatchEvent(new CustomEvent('bill:changeLogsChanged', { detail: { bookId } }))
+      router.push(buildBillPath(`/book/${bookId}`))
+      router.refresh()
+      return
+    } catch (error) {
+      console.error(error)
+      setSaving(false)
+      alert('更新失敗，請稍後再試')
       return
     }
-
-    logAudit('expenses', 'update', expense.id, bookId, beforeData, afterData)
-    const beforeLog = {
-      name: expense.description || '',
-      amount: Number(expense.amount ?? 0),
-      payer: (payers || []).map((p) => byId.get(p.member_id) || '未知').join('、') || undefined,
-      participants: (splits || []).length === memberOptions.length ? '所有人均分' : [...(splits || [])].sort((a, b) => a.member_id.localeCompare(b.member_id)).map((s) => byId.get(s.member_id) || '未知').join('、') || undefined
-    }
-    const afterLog = {
-      name: description.trim() || '',
-      amount: total,
-      payer: orderedPayerIds.map((id) => byId.get(id) || '未知').join('、') || undefined,
-      participants: orderedSplitterIds.length === memberOptions.length ? '所有人均分' : orderedSplitterIds.map((id) => byId.get(id) || '未知').join('、') || undefined
-    }
-    await insertChangeLog(bookId, 'edit', expense.description || '未命名', beforeLog.amount, total, expense.id, beforeLog, afterLog)
-
-    setSaving(false)
-    window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
-    window.dispatchEvent(new CustomEvent('bill:changeLogsChanged', { detail: { bookId } }))
-    router.push(buildBillPath(`/book/${bookId}`))
-    router.refresh()
   }
 
   const deleteThisExpense = async () => {
     if (!confirm(`刪除帳目「${description}」？`)) return
     setSaving(true)
     const beforeData = { ...expense }
-    // 先刪子資料，避免 FK 限制阻擋刪除
-    await supabase.from('expense_payers').delete().eq('expense_id', expense.id)
-    await supabase.from('expense_splits').delete().eq('expense_id', expense.id)
-    const { data: deleted, error } = await supabase
-      .from('expenses')
-      .delete()
-      .eq('id', expense.id)
-      .select('id')
-    if (error) {
+    try {
+      await deleteExpenseWithDetails(expense.id, bookId)
+      logAudit('expenses', 'delete', expense.id, bookId, beforeData, null)
+      const beforeLog = {
+        name: expense.description || '',
+        amount: Number(expense.amount ?? 0),
+        payer: (payers || []).map((p) => byId.get(p.member_id) || '未知').join('、') || undefined,
+        participants: (splits || []).length === memberOptions.length ? '所有人均分' : [...(splits || [])].sort((a, b) => a.member_id.localeCompare(b.member_id)).map((s) => byId.get(s.member_id) || '未知').join('、') || undefined
+      }
+      await insertChangeLog(bookId, 'delete', expense.description || '未命名', Number(expense.amount ?? 0), null, expense.id, beforeLog, null)
+      setSaving(false)
+      window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
+      window.dispatchEvent(new CustomEvent('bill:changeLogsChanged', { detail: { bookId } }))
+      router.push(buildBillPath(`/book/${bookId}`))
+      router.refresh()
+      return
+    } catch (error) {
       console.error(error)
       setSaving(false)
-      alert(`刪除失敗：${error.message}`)
+      alert('刪除失敗，請稍後再試')
       return
     }
-    if (!deleted || deleted.length === 0) {
-      setSaving(false)
-      alert('刪除失敗：資料庫未授權此操作。\n請至 Supabase → Authentication → Policies，確認 expenses 表有允許 DELETE 的 RLS 政策。')
-      return
-    }
-    logAudit('expenses', 'delete', expense.id, bookId, beforeData, null)
-    const beforeLog = {
-      name: expense.description || '',
-      amount: Number(expense.amount ?? 0),
-      payer: (payers || []).map((p) => byId.get(p.member_id) || '未知').join('、') || undefined,
-      participants: (splits || []).length === memberOptions.length ? '所有人均分' : [...(splits || [])].sort((a, b) => a.member_id.localeCompare(b.member_id)).map((s) => byId.get(s.member_id) || '未知').join('、') || undefined
-    }
-    await insertChangeLog(bookId, 'delete', expense.description || '未命名', Number(expense.amount ?? 0), null, expense.id, beforeLog, null)
-    setSaving(false)
-    window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
-    window.dispatchEvent(new CustomEvent('bill:changeLogsChanged', { detail: { bookId } }))
-    router.push(buildBillPath(`/book/${bookId}`))
-    router.refresh()
   }
 
   return (
