@@ -18,6 +18,26 @@ export default function TokyoHotelPage() {
           intro="東京住宿區域眾多，選對位置能大幅節省移動時間。本頁整理各區特色與適合對象，幫你快速找到最適合的住宿地點。"
           eventPrefix="tokyohotel"
           showVisual={false}
+          videoLinks={[
+            {
+              label: 'IG Reels',
+              href: 'https://www.instagram.com/reel/DW_gXCOy5wO/',
+              dataEvent: 'tokyohotel_IGvideo',
+              platform: 'IG',
+            },
+            {
+              label: 'YouTube',
+              href: 'https://www.youtube.com/shorts/0z0lwoOZCZA',
+              dataEvent: 'tokyohotel_YTvideo',
+              platform: 'YouTube',
+            },
+            {
+              label: '小紅書',
+              href: 'https://xhslink.com/o/2qBEY9jZR0G',
+              dataEvent: 'tokyohotel_XHSvideo',
+              platform: '小紅書',
+            },
+          ]}
 
           ctaLinks={[
             { label: '東京短影片攻略', href: 'https://www.jiejourneys.com/tokyo/video', dataEvent: 'tokyohotel_allvideos', platform: 'video' },

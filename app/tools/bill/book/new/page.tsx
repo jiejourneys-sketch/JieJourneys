@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
 import BillHomeLink from '@/app/tools/bill/components/BillHomeLink'
+import InAppBrowserGuard, { detectInAppBrowser } from '@/app/tools/bill/components/InAppBrowserGuard'
 import { supabase } from '@/lib/supabase'
 import { CURRENCIES } from '@/lib/currency'
 
@@ -13,12 +14,24 @@ export default function NewBookPage() {
   const [name, setName] = useState('')
   const [baseCurrency, setBaseCurrency] = useState('TWD')
   const [saving, setSaving] = useState(false)
+  const [showIABSheet, setShowIABSheet] = useState(false)
+  const [iabConfirmed, setIabConfirmed] = useState(false)
+  const [iabDetected, setIabDetected] = useState(false)
   const savingRef = useRef(false)
 
-  const create = async () => {
+  useEffect(() => {
+    setIabDetected(detectInAppBrowser() !== null)
+  }, [])
+
+  const create = async (skipIABCheck = false) => {
     if (savingRef.current) return
     const trimmed = name.trim()
     if (!trimmed) return alert('請輸入名稱')
+
+    if (iabDetected && !skipIABCheck && !iabConfirmed) {
+      setShowIABSheet(true)
+      return
+    }
 
     savingRef.current = true
     setSaving(true)
@@ -41,8 +54,16 @@ export default function NewBookPage() {
     router.refresh()
   }
 
+  const handleIABContinue = () => {
+    setIabConfirmed(true)
+    setShowIABSheet(false)
+    create(true)
+  }
+
   return (
     <div>
+      {showIABSheet && <InAppBrowserGuard onContinue={handleIABContinue} onClose={() => setShowIABSheet(false)} />}
+
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
         <BillHomeLink className="pill-link">
           ← 回清單
@@ -62,9 +83,7 @@ export default function NewBookPage() {
           placeholder="例如：釜山自由行"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') create()
-          }}
+          onKeyDown={(e) => { if (e.key === 'Enter') create() }}
         />
 
         <div style={{ marginBottom: 14 }}>
@@ -96,7 +115,7 @@ export default function NewBookPage() {
           </div>
         </div>
 
-        <button className="btn" onClick={create} disabled={saving}>
+        <button className="btn" onClick={() => create()} disabled={saving}>
           {saving ? '建立中，即將跳轉...' : '建立'}
         </button>
       </div>
