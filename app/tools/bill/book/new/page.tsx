@@ -20,6 +20,7 @@ export default function NewBookPage() {
   const savingRef = useRef(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIabDetected(detectInAppBrowser() !== null)
   }, [])
 

@@ -34,6 +34,7 @@ export default function InAppBrowserGuard({
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBrowser(detectInAppBrowser())
   }, [])
 
