@@ -10,12 +10,6 @@ type Props = {
   [key: `data-${string}`]: string | undefined
 }
 
-function isInAppBrowser(): boolean {
-  if (typeof navigator === 'undefined') return false
-  const ua = navigator.userAgent
-  return /Instagram|FBAN|FBAV|FB_IAB|Line\//i.test(ua)
-}
-
 async function copyToClipboard(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
@@ -35,25 +29,17 @@ async function copyToClipboard(text: string): Promise<void> {
 export default function PromoLink({ href, promoCode, className, children, ...rest }: Props) {
   const [copied, setCopied] = useState(false)
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    if (copied) return
+  const handleClick = () => {
     copyToClipboard(promoCode)
     setCopied(true)
-    setTimeout(() => {
-      if (isInAppBrowser()) {
-        window.location.href = href
-      } else {
-        window.open(href, '_blank', 'noopener,noreferrer')
-      }
-      setCopied(false)
-    }, 1500)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   return (
     <a
       className={`${className ?? ''} ${copied ? 'promo-copied' : ''}`.trim()}
       href={href}
+      target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
       aria-live="polite"
