@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '北越自由行攻略 2025｜河內・下龍灣・沙壩・陸龍灣全整理 | JieJourneys(旅杰)'
+const title = '北越自由行攻略｜河內・下龍灣・沙壩・陸龍灣全整理 | JieJourneys(旅杰)'
 const description =
-  '北越自由行完整攻略：河內、下龍灣、沙壩、陸龍灣各地玩法，住宿推薦、交通方式比較、遊輪票券選擇，加上越南簽證與換匯，一站搞定北越行前規劃。'
+  '北越自由行全攻略。整理河內古城與火車街景點、下龍灣豪華遊輪選擇、沙壩番西邦峰纜車與貓貓村梯田健行、陸龍灣長安竹筏與舞洞爬山，加上越南 eSIM 通訊、機場包車、城市間交通比較，以及越南簽證申請與換匯攻略，一站搞定北越行前規劃。'
 
 export const metadata: Metadata = {
   title,

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '東京短影片合輯｜景點攻略・機場交通・行前準備 | JieJourneys (旅杰)'
 const description =
-  '東京自由行短影片全整理：怎麼排景點、交通怎麼搭、成田機場和羽田羽田怎麼進市區、Visit Japan Web 教學，一頁快速搞懂東京自由行。'
+  '東京自由行短影片攻略合輯。依主題分類整理，涵蓋淺草寺、澀谷十字路口、新宿、秋葉原、台場、晴空塔等景點示範，以及成田與羽田機場交通攻略、Visit Japan Web 入境卡填寫教學、換匯與行前準備建議，切換標籤快速找到你需要的那一支。'
 
 export const metadata: Metadata = {
   title,

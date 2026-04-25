@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '釜山景點地圖｜海雲台・南浦洞・西面票券景點與住宿一覽 | JieJourneys(旅杰)'
 const description =
-  '釜山自由行互動地圖：海雲台、廣安里、南浦洞、西面景點與住宿位置一覽，含 KKDAY/KLOOK/Trip 購買連結，一鍵開啟 Google 地圖導航，依分類快速篩選。'
+  '釜山互動景點地圖。標示樂天世界、斜坡滑車、X the Sky 展望台、SPA LAND 汗蒸幕、松島纜車、Running Man 體驗館、釜山塔等票券景點，以及海雲台、甘川洞、廣安里等免費景點，加上四大住宿區精選飯店位置，含 KKDAY、KLOOK、Trip 購票連結，一鍵開啟 Google 地圖導航。'
 
 export const metadata: Metadata = {
   title,

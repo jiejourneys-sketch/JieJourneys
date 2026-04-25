@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '東京自由行攻略 2025｜住宿・交通・票券・景點全整理 | JieJourneys(旅杰)'
+const title = '東京自由行攻略｜住宿・交通・票券・景點全整理 | JieJourneys(旅杰)'
 const description =
-  '東京自由行完整攻略：住宿選哪區（新宿/淺草/澀谷/池袋）、西瓜卡與地鐵券比較、機場接送選擇、熱門景點票券，一站搞定東京行前規劃。'
+  '東京自由行全攻略。整理新宿、淺草、澀谷、池袋、上野等住宿區選區分析，西瓜卡與地鐵券差異比較，成田與羽田機場到市區交通選擇，SHIBUYA SKY、晴空塔、teamLab 等熱門景點票券整理，一站搞定東京行前所有規劃。'
 
 export const metadata: Metadata = {
   title,

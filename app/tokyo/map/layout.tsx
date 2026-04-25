@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '東京景點地圖｜新宿・淺草・澀谷票券景點與住宿一覽 | JieJourneys(旅杰)'
 const description =
-  '東京自由行互動地圖：新宿、淺草、澀谷、池袋等熱門區域景點與住宿位置一覽，含 KKDAY/KLOOK/Trip 購買連結，一鍵開啟 Google 地圖導航，依區域分類篩選。'
+  '東京互動景點地圖。標示 SHIBUYA SKY、晴空塔、teamLab、東京鐵塔、淺草寺、台場獨角獸鋼彈等票券景點，以及新宿御苑、上野公園、代代木公園等免費景點，加上各區精選住宿位置，含 KKDAY、KLOOK、Trip 購票連結，一鍵開啟 Google 地圖導航，依區域分類快速篩選。'
 
 export const metadata: Metadata = {
   title,

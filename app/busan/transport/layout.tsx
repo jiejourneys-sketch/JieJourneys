@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '釜山交通&通訊攻略｜eSIM・SIM卡・T-Money・機場到市區怎麼搭 | JieJourneys(旅杰)'
 const description =
-  '釜山自由行通訊&交通怎麼選？整理eSIM、SIM卡、WiFi分享器差異，T-Money交通卡使用方式，以及金海機場到市區交通（地鐵、接送）完整攻略。'
+  '釜山交通通訊全攻略。eSIM 免換卡最方便，多人共用選 WiFi 分享器，SIM 卡下機直用；T-Money 交通卡可搭地鐵與公車，建議在機場入境大廳購入。金海機場到市區可搭地鐵輕軌轉乘，或預訂包車接送省去換車麻煩，全程各方案優缺點一次比較。'
 
 export const metadata: Metadata = {
   title,

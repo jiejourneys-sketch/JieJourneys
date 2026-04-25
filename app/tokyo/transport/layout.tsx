@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '東京交通和通訊攻略｜西瓜卡/地鐵券要買嗎？成田機場和羽田機場到市區怎麼選 | JieJourneys (旅杰)'
 const description =
-  '東京自由行交通攻略：eSIM、SIM卡怎麼選？西瓜卡 vs 地鐵券差異，成田與羽田機場進市區方式完整比較，快速找到最適合你的交通方案。'
+  '東京交通通訊全攻略。eSIM 下機即用免換卡，多人共用選 WiFi 分享器；西瓜卡（Suica）全東京通用最方便，地鐵券適合短天數密集觀光。成田機場可搭 Narita Express 或高速巴士進市區，羽田機場搭京急線或單軌電車最快，也可預訂包車或自駕接送，省去轉乘拉行李的麻煩。'
 
 export const metadata: Metadata = {
   title,

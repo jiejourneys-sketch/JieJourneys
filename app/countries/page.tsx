@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import SearchBox from '@/components/SearchBox'
 import Footer from '@/components/Footer'
@@ -29,11 +28,22 @@ export default function CountriesPage() {
               data-tags="越南 北越 河內 hanoi vietnam 下龍"
               aria-label="前往北越攻略頁面"
             >
-              <Image className="thumb" src="/assets/hanoi.png" alt="北越 Hanoi" width={320} height={180} />
               <div className="card-body">
                 <h3>越南｜北越</h3>
               </div>
             </Link>
+            <div
+              className="card"
+              data-event="countries_card_osaka"
+              data-item="osaka"
+              data-section="countries"
+              data-tags="日本 大阪 osaka japan 環球影城 USJ"
+              aria-label="大阪攻略頁面製作中"
+            >
+              <div className="card-body">
+                <h3>大阪(製作中)</h3>
+              </div>
+            </div>
           </div>
         </section>
       </main>

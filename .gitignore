@@ -10,6 +10,7 @@ node_modules/
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+monitor-data/
 # bill tool (local only, separate repo)
 tools/bill
 app/tools/bill/api/

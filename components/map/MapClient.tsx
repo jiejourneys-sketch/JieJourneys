@@ -32,6 +32,10 @@ export type MapClientProps = {
   gtagPrefix: string
   title: string
   backHref: string
+  /** Override which categories are ON at mount. Defaults to solo 'spot'. */
+  defaultCategories?: Record<CityMapPlaceCategory, boolean>
+  /** Override which category toggle buttons to show. Defaults to all four. */
+  categoryItems?: { key: CityMapPlaceCategory; label: string }[]
 }
 
 const CATEGORY_LABEL = CITY_MAP_CATEGORY_LABEL
@@ -323,7 +327,7 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
   })
 }
 
-export default function MapClient({ places, mapCenter, gtagPrefix, title, backHref }: MapClientProps) {
+export default function MapClient({ places, mapCenter, gtagPrefix, title, backHref, defaultCategories, categoryItems }: MapClientProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
   // Derived event strings
@@ -366,8 +370,10 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
   const [sheetDragging, setSheetDragging] = useState(false)
   const [sheetDragHeightPx, setSheetDragHeightPx] = useState<number | null>(null)
 
+  const activeCategoryItems = categoryItems ?? CITY_MAP_CATEGORY_TOGGLE_ITEMS
+
   const [categoryOn, setCategoryOn] =
-    useState<Record<CityMapPlaceCategory, boolean>>(() => cityMapSoloCategory('spot'))
+    useState<Record<CityMapPlaceCategory, boolean>>(() => defaultCategories ?? cityMapSoloCategory('spot'))
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -953,7 +959,7 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
               >
                 全部
               </button>
-              {CITY_MAP_CATEGORY_TOGGLE_ITEMS.map(({ key, label }) => (
+              {activeCategoryItems.map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"

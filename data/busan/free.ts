@@ -9,7 +9,6 @@ import type { BusanMapPlace } from '@/data/busan/map/types'
  * - `mapButtonLabel`（選填）：按鈕文字；沒寫就顯示「地圖」
  *
  * 【其他按鈕】在 `spotActions` 裡一筆一顆，複製下面這行改三個欄位即可：
- *   { label: '按鈕名字', href: 'https://...', mapEvent: '你的event字串' },
  */
 export const busanFreeMapPlaces: BusanMapPlace[] = [
   {

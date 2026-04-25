@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '釜山住宿推薦｜海雲台、廣安里、西面、南浦洞區域分析 | JieJourneys(旅杰)'
 const description =
-  '釜山住哪裡？海雲台看海、廣安里夜景、西面交通方便、南浦洞吃逛最方便。完整住宿區域分析＋飯店推薦與比價，快速找到最適合你的釜山住宿。'
+  '釜山住宿怎麼選？海雲台賞海景散步、廣安里欣賞廣安大橋夜景、西面地鐵交匯轉乘最便利、南浦洞緊鄰 BIFF 廣場與札嘎其市場吃逛最方便。整理四大區域特色與適合對象，比較 Trip、Agoda 即時房價，幫你快速鎖定最適合你的釜山住宿地點。'
 
 export const metadata: Metadata = {
   title,

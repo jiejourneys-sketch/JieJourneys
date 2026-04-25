@@ -20,7 +20,7 @@ const cards = [
     datasetKey: 'title' as const,
     datasetValue: 'eSIM卡',
     actions: [
-      { label: '輸入JieJourneys', href: 'https://esimconnect.com.tw/#/access/esimbuy?region=%E9%9F%93%E5%9C%8B&referencecode=jiejourneys', className: 'btn primary recommend', event: 'busantransport_esimconnect', platform: 'connect', section: 'comm_card' },
+      { label: '合作eSIM', href: 'https://esimconnect.com.tw/#/access/esimbuy?region=%E9%9F%93%E5%9C%8B&referencecode=jiejourneys', className: 'btn primary recommend', event: 'busantransport_esimconnect', platform: 'connect', section: 'comm_card', promoCode: 'jiejourneys' },
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/268527?cid=22312', className: 'btn', event: 'busantransport_esimKKday', platform: 'KKDAY', section: 'comm_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109354-south-korea-esim-high-speed-internet-qr-code-voucher/?aid=93798', className: 'btn', event: 'busantransport_esimKLOOK', platform: 'KLOOK', section: 'comm_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/37694225/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5754051', className: 'btn', event: 'busantransport_esimTrip', platform: 'Trip', section: 'comm_card' },

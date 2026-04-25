@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '東京市五日行程 PDF｜自由行詳細動線 | JieJourneys'
 const description =
-  '東京五日自由行完整行程 PDF，含淺草寺、晴空塔、新宿、澀谷等熱門景點最佳動線、美食清單、一鍵導航連結，NT$399 立即取得永久使用。'
+  '東京五日自由行 PDF 行程，含淺草寺、晴空塔、新宿、澀谷、秋葉原、台場等熱門景點最佳順遊動線，搭配在地美食推薦與一鍵導航連結，購買後永久使用，隨時下載更新，NT$399 即可取得。'
 
 export const metadata: Metadata = {
   title,

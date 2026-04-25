@@ -1,3 +1,5 @@
+import PromoLink from '@/components/PromoLink'
+
 export default function TopBanner() {
   return (
     <div className="top-banner">
@@ -5,39 +7,36 @@ export default function TopBanner() {
         <div className="promo-grid">
           <div>
             <strong>KKday 優惠碼：</strong>
-            <a
+            <PromoLink
               href="https://www.kkday.com/zh-tw/?cid=22312"
-              target="_blank"
-              rel="noopener noreferrer"
+              promoCode="KKJIE94"
               data-event="promo_KKDAY"
               className="code-link"
             >
               <span className="code">KKJIE94 ↗</span>
-            </a>
+            </PromoLink>
           </div>
           <div>
             <strong>Klook 優惠碼：</strong>
-            <a
+            <PromoLink
               href="https://www.klook.com/zh-TW/?aid=93798"
-              target="_blank"
-              rel="noopener noreferrer"
+              promoCode="JieJourneys"
               data-event="promo_KLOOK"
               className="code-link"
             >
               <span className="code">JieJourneys ↗</span>
-            </a>
+            </PromoLink>
           </div>
           <div>
             <strong>eSIM 優惠碼：</strong>
-            <a
+            <PromoLink
               href="https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys"
-              target="_blank"
-              rel="noopener noreferrer"
+              promoCode="jiejourneys"
               data-event="promo_esimconnect"
               className="code-link"
             >
               <span className="code">JieJourneys ↗</span>
-            </a>
+            </PromoLink>
           </div>
           <div>
             <strong>訂房：</strong>
