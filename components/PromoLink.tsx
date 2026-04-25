@@ -20,7 +20,6 @@ async function copyToClipboard(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
   } catch {
-    // fallback for IAB where clipboard API may be restricted
     const el = document.createElement('textarea')
     el.value = text
     el.style.position = 'fixed'
@@ -43,7 +42,6 @@ export default function PromoLink({ href, promoCode, className, children, ...res
     setCopied(true)
     setTimeout(() => {
       if (isInAppBrowser()) {
-        // window.open is blocked in IG/FB IAB — navigate in current tab instead
         window.location.href = href
       } else {
         window.open(href, '_blank', 'noopener,noreferrer')
