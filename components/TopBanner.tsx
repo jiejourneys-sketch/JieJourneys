@@ -12,6 +12,7 @@ export default function TopBanner() {
               promoCode="KKJIE94"
               data-event="promo_KKDAY"
               className="code-link"
+              universalLink
             >
               <span className="code">KKJIE94 ↗</span>
             </PromoLink>
@@ -23,6 +24,7 @@ export default function TopBanner() {
               promoCode="JieJourneys"
               data-event="promo_KLOOK"
               className="code-link"
+              universalLink
             >
               <span className="code">JieJourneys ↗</span>
             </PromoLink>
