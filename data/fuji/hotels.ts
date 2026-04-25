@@ -3,16 +3,43 @@ import type { TabItem } from '@/components/AreaTabs'
 
 export const fujiHotelTabs: TabItem[] = [
   { value: 'all', label: '全部', dataArea: 'all' },
-  { value: '逆富士山', label: '逆富士山', dataArea: '逆富士山' },
+  { value: '逆富士', label: '逆富士', dataArea: '逆富士' },
   { value: '近車站', label: '近車站', dataArea: '近車站' },
 ]
 
 export const fujiHotelCards: CityCard[] = [
-  // ── 逆富士山 ──────────────────────────────────────────────
+  // ── 逆富士 ──────────────────────────────────────────────
+  {
+    title: '虹夕諾雅富士',
+    meta: '逆富士｜5星級、富士山景/露營主題/優質服務',
+    area: '逆富士',
+    datasetKey: 'hotel',
+    datasetValue: '虹夕諾雅富士',
+    lat: 35.5253284,
+    lng: 138.7450933,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityEnName=Fujikawaguchiko&cityId=50160&hotelId=5924009&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16105119', className: 'btn primary', event: 'fujihotel_A3_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/EJkeZoSJcEb61ypc6', className: 'btn', event: 'fujihotel_A3_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: '富士河口湖拉維斯塔飯店',
+    meta: '逆富士｜5星級、富士山景/服務親切/溫泉體驗',
+    area: '逆富士',
+    datasetKey: 'hotel',
+    datasetValue: '富士河口湖拉維斯塔飯店',
+    lat: 35.5296567,
+    lng: 138.7627726,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-4977280/la-vista-fuji-kawaguchiko/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16105119', className: 'btn primary', event: 'fujihotel_A5_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=1163504', className: 'btn', event: 'fujihotel_A5_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/rsQgXBaipFmGS4rM8', className: 'btn', event: 'fujihotel_A5_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
   {
     title: '河口湖溫泉飯店KUKUNA',
-    meta: '逆富士山｜星級、特色描述',
-    area: '逆富士山',
+    meta: '逆富士｜4星級、富士山景/露天溫泉/餐飲美味',
+    area: '逆富士',
     datasetKey: 'hotel',
     datasetValue: '河口湖溫泉飯店KUKUNA',
     lat: 35.5133398,
@@ -25,8 +52,8 @@ export const fujiHotelCards: CityCard[] = [
   },
   {
     title: '河口湖城市渡假別墅',
-    meta: '逆富士山｜星級、特色描述',
-    area: '逆富士山',
+    meta: '逆富士｜4星級、富士山景/空間寬敞/服務出色',
+    area: '逆富士',
     datasetKey: 'hotel',
     datasetValue: '河口湖城市渡假別墅',
     lat: 35.5222585,
@@ -37,22 +64,9 @@ export const fujiHotelCards: CityCard[] = [
     ],
   },
   {
-    title: '虹夕諾雅富士',
-    meta: '逆富士山｜星級、特色描述',
-    area: '逆富士山',
-    datasetKey: 'hotel',
-    datasetValue: '虹夕諾雅富士',
-    lat: 35.5253284,
-    lng: 138.7450933,
-    actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityEnName=Fujikawaguchiko&cityId=50160&hotelId=5924009&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16105119', className: 'btn primary', event: 'fujihotel_A3_trip', platform: 'Trip', section: 'hotel_card' },
-      { label: '地圖', href: 'https://maps.app.goo.gl/EJkeZoSJcEb61ypc6', className: 'btn', event: 'fujihotel_A3_map', platform: 'Maps', section: 'hotel_card' },
-    ],
-  },
-  {
     title: '雲之上富士飯店',
-    meta: '逆富士山｜星級、特色描述',
-    area: '逆富士山',
+    meta: '逆富士｜4星級、富士山景/餐飲優質/寬敞舒適',
+    area: '逆富士',
     datasetKey: 'hotel',
     datasetValue: '雲之上富士飯店',
     lat: 35.5259281,
@@ -64,23 +78,9 @@ export const fujiHotelCards: CityCard[] = [
     ],
   },
   {
-    title: '富士河口湖拉維斯塔飯店',
-    meta: '逆富士山｜星級、特色描述',
-    area: '逆富士山',
-    datasetKey: 'hotel',
-    datasetValue: '富士河口湖拉維斯塔飯店',
-    lat: 35.5296567,
-    lng: 138.7627726,
-    actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-4977280/la-vista-fuji-kawaguchiko/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16105119', className: 'btn primary', event: 'fujihotel_A5_trip', platform: 'Trip', section: 'hotel_card' },
-      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=1163504', className: 'btn', event: 'fujihotel_A5_agoda', platform: 'Agoda', section: 'hotel_card' },
-      { label: '地圖', href: 'https://maps.app.goo.gl/rsQgXBaipFmGS4rM8', className: 'btn', event: 'fujihotel_A5_map', platform: 'Maps', section: 'hotel_card' },
-    ],
-  },
-  {
     title: 'Sunnide Resort Hotel',
-    meta: '逆富士山｜星級、特色描述',
-    area: '逆富士山',
+    meta: '逆富士｜3星級、溫泉浴池/服務優質/寬敞舒服',
+    area: '逆富士',
     datasetKey: 'hotel',
     datasetValue: 'Sunnide Resort Hotel',
     lat: 35.5235098,
@@ -93,7 +93,7 @@ export const fujiHotelCards: CityCard[] = [
   // ── 近車站 ────────────────────────────────────────────────
   {
     title: 'THE TOKI富士河口湖',
-    meta: '近車站｜星級、特色描述',
+    meta: '近車站｜5星級、富士山景/乾淨衛生/設施齊全',
     area: '近車站',
     datasetKey: 'hotel',
     datasetValue: 'THE TOKI富士河口湖',
@@ -106,17 +106,31 @@ export const fujiHotelCards: CityCard[] = [
     ],
   },
   {
+    title: 'AWAUMI富士河口湖度假村',
+    meta: '近車站｜4星級、位置方便/住宿特色/溫泉桑拿',
+    area: '近車站',
+    datasetKey: 'hotel',
+    datasetValue: 'AWAUMI富士河口湖度假村',
+    lat: 35.5005088,
+    lng: 138.7558203,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-110605288?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16117705', className: 'btn primary', event: 'fujihotel_B2_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=42010286', className: 'btn', event: 'fujihotel_B2_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/qTDRBvq2WWxt7VXZA', className: 'btn', event: 'fujihotel_B2_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
+  {
     title: '夢富士花之宿旅館',
-    meta: '近車站｜星級、特色描述',
+    meta: '近車站｜4星級、位置方便/房間寬敞/服務優質',
     area: '近車站',
     datasetKey: 'hotel',
     datasetValue: '夢富士花之宿旅館',
     lat: 35.4962911,
     lng: 138.7700861,
     actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-18090690/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16105119', className: 'btn primary', event: 'fujihotel_B2_trip', platform: 'Trip', section: 'hotel_card' },
-      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=5492759', className: 'btn', event: 'fujihotel_B2_agoda', platform: 'Agoda', section: 'hotel_card' },
-      { label: '地圖', href: 'https://maps.app.goo.gl/dJVUEcSABftaYkYZA', className: 'btn', event: 'fujihotel_B2_map', platform: 'Maps', section: 'hotel_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-18090690/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16105119', className: 'btn primary', event: 'fujihotel_B3_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=5492759', className: 'btn', event: 'fujihotel_B3_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/dJVUEcSABftaYkYZA', className: 'btn', event: 'fujihotel_B3_map', platform: 'Maps', section: 'hotel_card' },
     ],
   },
 ]
