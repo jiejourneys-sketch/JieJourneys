@@ -10,18 +10,46 @@ type Props = {
   [key: `data-${string}`]: string | undefined
 }
 
+function isInAppBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent
+  return /Instagram|FBAN|FBAV|FB_IAB|Line\//i.test(ua)
+}
+
+async function copyToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    // fallback for IAB where clipboard API may be restricted
+    const el = document.createElement('textarea')
+    el.value = text
+    el.style.position = 'fixed'
+    el.style.opacity = '0'
+    document.body.appendChild(el)
+    el.focus()
+    el.select()
+    try { document.execCommand('copy') } catch { /* noop */ }
+    document.body.removeChild(el)
+  }
+}
+
 export default function PromoLink({ href, promoCode, className, children, ...rest }: Props) {
   const [copied, setCopied] = useState(false)
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     if (copied) return
-    navigator.clipboard.writeText(promoCode).catch(() => {})
+    copyToClipboard(promoCode)
     setCopied(true)
     setTimeout(() => {
-      window.open(href, '_blank', 'noopener,noreferrer')
+      if (isInAppBrowser()) {
+        // window.open is blocked in IG/FB IAB — navigate in current tab instead
+        window.location.href = href
+      } else {
+        window.open(href, '_blank', 'noopener,noreferrer')
+      }
       setCopied(false)
-    }, 2000)
+    }, 1500)
   }
 
   return (
