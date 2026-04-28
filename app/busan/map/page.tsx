@@ -1,7 +1,7 @@
 'use client'
 
 import MapClient from '@/components/map/MapClient'
-import { busanMapPlaces, BUSAN_MAP_CENTER } from '@/data/busan'
+import { busanMapPlaces, BUSAN_MAP_CENTER } from '@/data/busan/map/places'
 
 export default function BusanMapPage() {
   return (

@@ -14,12 +14,11 @@ export type { BusanMapPlace, BusanPlaceCategory } from '@/data/busan/map/types'
 
 export const BUSAN_MAP_CENTER = { lat: 35.1156, lng: 129.0422 }
 
-/** 地圖不顯示：無單一實體釘點者（一日遊已改為顯示，見票券與座標表） */
+/** 地圖不顯示：無單一實體釘點者。 */
 const EXCLUDE_FROM_MAP = new Set(['釜山通行證(釜山Pass)'])
 
 /** 票券標題 → 建物／入口參考座標（可再依 Google 釘選微調） */
 const BUSAN_SPOT_GEO: Record<string, { lat: number; lng: number }> = {
-  '釜山一日遊': { lat: 35.1731121, lng: 129.0714122 },
   '樂天世界': { lat: 35.1962453, lng: 129.2149345 },
   '斜坡滑車SkyLine Luge': { lat: 35.1940567, lng: 129.2186386 },
   '釜山 X the Sky 展望台': { lat: 35.1594862, lng: 129.1701677 },
@@ -48,7 +47,6 @@ const BUSAN_SPOT_GEO: Record<string, { lat: number; lng: number }> = {
 }
 
 const BUSAN_SPOT_ID: Record<string, string> = {
-  '釜山一日遊': 'busan-day-tour',
   '樂天世界': 'busan-lotte-world',
   '斜坡滑車SkyLine Luge': 'busan-skyline-luge',
   '釜山 X the Sky 展望台': 'busan-x-the-sky',
@@ -76,6 +74,25 @@ const BUSAN_SPOT_ID: Record<string, string> = {
   '釜山藝術博物館': 'busan-arte-museum',
 }
 
+function busanRelatedTicketHref(tag: string, placeId: string): string {
+  return `/busan/ticket?tag=${encodeURIComponent(tag)}&from=map&place=${encodeURIComponent(placeId)}#ticketListTitle`
+}
+
+const BUSAN_RELATED_TICKET_TAG_BY_SPOT_TITLE: Record<string, string> = {
+  '松島海上纜車': '松島纜車',
+  '松島龍宮空中步道': '松島龍宮雲橋',
+  'Diamond Bay Yacht｜鑽石灣遊艇': '遊艇',
+  'Yacht Holic｜水營灣遊艇': '遊艇',
+  'Yacht G｜水營灣遊艇': '遊艇',
+  'GoGo Yacht｜水營灣遊艇': '遊艇',
+  'Yachtwa｜水營灣遊艇': '遊艇',
+  'The Yacht｜水營灣遊艇': '遊艇',
+  'Y Holic｜水營灣遊艇': '遊艇',
+  'Yacht Tale｜水營灣遊艇': '遊艇',
+  '膠囊列車&海岸列車': '膠囊列車',
+  '太宗台海洋飛行主題樂園': '太宗台',
+}
+
 /** 依合併後 actions 的 `mapNextRow` 組地圖多排；無標記或僅一排則 undefined。 */
 function spotActionRowsFromMapNextRow(actions: CityCardAction[]): CityCardAction[][] | undefined {
   if (actions.length === 0) return undefined
@@ -94,11 +111,10 @@ function spotActionRowsFromMapNextRow(actions: CityCardAction[]): CityCardAction
 }
 
 /**
- * 景點「地圖」按鈕：順序 = `busan/tickets` 排除「釜山Pass」後的順序（樂天世界 → … → 太宗台 → **最後一筆釜山一日遊**）。
+ * 景點「地圖」按鈕：順序 = `busan/tickets` 排除「釜山Pass」與無座標/id 票券後的順序。
  * 每行貼 `https://maps.app.goo.gl/...`（須加引號）。**勿改 lat/lng。**
  */
 const BUSAN_SPOT_GOOGLE_MAP_URLS: string[] = [
-  'https://maps.app.goo.gl/KpsrDFMHvghRT4SbA', // 釜山一日遊（票券順序最後一張）
   'https://maps.app.goo.gl/z77aGdoCsgS9UPNM7', // 樂天世界
   'https://maps.app.goo.gl/XxczztM93CbaixwQ6', // 斜坡滑車SkyLine Luge
   'https://maps.app.goo.gl/w3Kw2USRXYBEPRu3A', // 釜山 X the Sky 展望台
@@ -127,7 +143,9 @@ const BUSAN_SPOT_GOOGLE_MAP_URLS: string[] = [
 ]
 
 function ticketCardsToSpots(): BusanMapPlace[] {
-  const filtered = busanTicketCards.filter((c) => !EXCLUDE_FROM_MAP.has(c.title))
+  const filtered = busanTicketCards.filter(
+    (c) => !EXCLUDE_FROM_MAP.has(c.title) && BUSAN_SPOT_GEO[c.title] && BUSAN_SPOT_ID[c.title],
+  )
   if (filtered.length !== BUSAN_SPOT_GOOGLE_MAP_URLS.length) {
     throw new Error('busan/map/places: BUSAN_SPOT_GOOGLE_MAP_URLS 筆數須與地圖景點數相同')
   }
@@ -142,6 +160,7 @@ function ticketCardsToSpots(): BusanMapPlace[] {
       ...(BUSAN_MAP_SPOT_NAVER_ACTIONS[card.title] ?? []),
       ...(BUSAN_MAP_SPOT_VIDEO_ACTIONS[card.title] ?? []),
     ]
+    const relatedTicketTag = BUSAN_RELATED_TICKET_TAG_BY_SPOT_TITLE[card.title]
     return {
       id,
       category: 'spot',
@@ -152,6 +171,12 @@ function ticketCardsToSpots(): BusanMapPlace[] {
       spotActions: mapSpotActions,
       spotActionRows: spotActionRowsFromMapNextRow(mapSpotActions),
       spotGoogleMapsUrl: BUSAN_SPOT_GOOGLE_MAP_URLS[i],
+      ...(relatedTicketTag
+        ? {
+            relatedTicketHref: busanRelatedTicketHref(relatedTicketTag, id),
+            relatedTicketEvent: `busanmap_${id}_ticket`,
+          }
+        : {}),
     }
   })
 }

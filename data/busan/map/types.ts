@@ -19,5 +19,8 @@ export type BusanMapPlace = {
   mapButtonMapEvent?: string
   /** 「地圖」按鈕文字；未填則「地圖」 */
   mapButtonLabel?: string
+  relatedTicketHref?: string
+  relatedTicketLabel?: string
+  relatedTicketEvent?: string
   hotelActions?: CityCardAction[]
 }

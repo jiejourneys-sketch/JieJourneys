@@ -1,7 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
-import { busanTicketCards, busanTicketTabs } from '@/data/busan'
+import { busanTicketCards, busanTicketTabs } from '@/data/busan/tickets'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
@@ -13,8 +13,8 @@ export default function BusanTicketPage() {
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
           badge="釜山自由行票券"
-          h1="釜山票券總整理｜通行證・體驗・交通票快速整理"
-          intro="把常用票券用標籤分類整理，直接點選你需要的品項，比價後快速下單。"
+          h1="釜山票券總整理｜一日遊・通行證・體驗票快速整理"
+          intro="把一日遊、通行證與常用票券用標籤分類整理，直接點選你需要的品項，比價後快速下單。"
           eventPrefix="busanticket"
           showVisual={false}
           ctaLinks={[
@@ -40,14 +40,29 @@ export default function BusanTicketPage() {
         />
 
 <h2 className="seo-h2" id="ticketListTitle">
-          釜山票券推薦（通行證、景點門票一次看懂）
+          釜山票券推薦（一日遊、通行證、景點門票一次看懂）
         </h2>
 
-        <CityTabbedList tabs={busanTicketTabs} cards={busanTicketCards} tabEvent="busan_ticket_tab" />
+        <CityTabbedList
+          tabs={busanTicketTabs}
+          cards={busanTicketCards}
+          tabEvent="busan_ticket_tab"
+          tagFilterArea="一日遊"
+          tagOrder={['甘川文化村', '膠囊列車', '海岸列車', '遊艇', '白淺灘文化村', '海東龍宮寺', '青沙浦踏石展望台', '南浦洞', '五六島天空步道', '太宗台', '松島海水浴場', '松島纜車', '松島步道', '松島龍宮雲橋', '佛國寺', '大陵苑', '皇理團路', '慶州校村', '慶州良洞村', '東宮與月池', '月精橋']}
+        />
 
         <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanticket_SEO_spotmap" />
 
-        <SeoContentSection title="釜山票券快速理解">
+        <SeoContentSection title="釜山一日遊與票券快速理解">
+          <h3 className="seo-h3">👉 一日遊怎麼選：先用想去的景點篩選</h3>
+          <p>
+            如果第一次到釜山、想把交通比較分散的景點排在同一天，可以先看<strong>一日遊票券</strong>。
+            <br />
+            常見路線會把<strong>甘川文化村</strong>、<strong>膠囊列車</strong>、<strong>海東龍宮寺</strong>、<strong>白淺灘文化村</strong>、<strong>青沙浦踏石展望台</strong>排在一起；想去慶州的話，也可以直接選含<strong>佛國寺</strong>、<strong>大陵苑</strong>、<strong>皇理團路</strong>、<strong>東宮與月池</strong>的釜山出發一日遊。
+            <br />
+            上方可以用景點標籤快速篩選，先挑你最想去的點，再比較 KKDAY、KLOOK、Trip 的路線內容和價格。
+          </p>
+
           <h3 className="seo-h3">👉 最重要：搞懂釜山通行證（Visit Busan Pass）</h3>
           <p>
             <a

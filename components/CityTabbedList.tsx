@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AreaTabs, { type TabItem } from '@/components/AreaTabs'
 import PromoLink from '@/components/PromoLink'
 
@@ -60,6 +60,14 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
   const [activeTab, setActiveTab] = useState('all')
   const [hasSelectedTab, setHasSelectedTab] = useState(false)
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
+  const [returnHref, setReturnHref] = useState<string | null>(null)
+
+  const returnMapLabel = useMemo(() => {
+    if (!returnHref) return '← 返回地圖'
+    if (returnHref.startsWith('/busan/')) return '← 返回釜山地圖'
+    if (returnHref.startsWith('/fuji/')) return '← 返回富士地圖'
+    return '← 返回地圖'
+  }, [returnHref])
 
   const tabCards = useMemo(
     () => cards.filter((card) => activeTab === 'all' || card.area === activeTab),
@@ -87,6 +95,26 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
     }
     return ordered
   }, [tagFilterArea, tagAreaCards, tagOrder])
+
+  useEffect(() => {
+    if (!tagFilterArea || typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const tag = params.get('tag')?.trim()
+    const id = window.setTimeout(() => {
+      if (params.get('from') === 'map') {
+        const place = params.get('place')?.trim()
+        const mapPath = window.location.pathname.replace(/\/ticket\/?$/, '/map')
+        setReturnHref(place ? `${mapPath}?place=${encodeURIComponent(place)}` : mapPath)
+      }
+      if (!tag) return
+      const hasTag = tagAreaCards.some((card) => (card.tags ?? []).includes(tag))
+      if (!hasTag) return
+      setActiveTab(tagFilterArea)
+      setHasSelectedTab(true)
+      setSelectedTags(new Set([tag]))
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [tagFilterArea, tagAreaCards])
 
   const shownCards = useMemo(() => {
     if (!isTagFilterActive || selectedTags.size === 0) return tabCards
@@ -154,6 +182,11 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
               清除篩選
             </button>
           )}
+          {returnHref ? (
+            <a className="tag-clear tag-return" href={returnHref}>
+              {returnMapLabel}
+            </a>
+          ) : null}
         </div>
       )}
 

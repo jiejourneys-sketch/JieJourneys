@@ -105,9 +105,39 @@ function mapBarMapButtonLabel(place: MapPlace): string {
   return t || '地圖'
 }
 
+function relatedTicketButtonLabel(place: MapPlace): string {
+  const t = place.relatedTicketLabel?.trim()
+  return t || '含此景點的一日遊'
+}
+
+function relatedTicketButtonEvent(place: MapPlace, gtagPrefix: string): string {
+  const e = place.relatedTicketEvent?.trim()
+  return e || `${gtagPrefix}_${place.id.replace(/-/g, '')}_ticket`
+}
+
+function hasPrimarySpotAction(place: MapPlace): boolean {
+  const actions = place.spotActionRows?.flat() ?? place.spotActions ?? []
+  return actions.some((a) => a.className?.split(/\s+/).includes('primary'))
+}
+
+function isNaverMapAction(action: { label: string; href: string }) {
+  return action.label.toLowerCase() === 'navermap' || action.href.includes('naver.me')
+}
+
 function isDesktopViewport() {
   if (typeof window === 'undefined') return false
   return window.matchMedia(DESKTOP_MQ).matches
+}
+
+function isMobileMapViewport() {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(MOBILE_MAP_MQ).matches
+}
+
+function panMobileMarkerAboveSheet(map: google.maps.Map) {
+  if (!isMobileMapViewport()) return
+  const offsetY = Math.round(window.innerHeight * 0.2)
+  map.panBy(0, offsetY)
 }
 
 function getMobileSheetMetrics() {
@@ -157,7 +187,32 @@ type MapPlaceCardProps = {
   defaultMapButtonEvent: string
 }
 
+function stopCardPick(e: ReactMouseEvent<HTMLAnchorElement> | ReactPointerEvent<HTMLAnchorElement>) {
+  e.stopPropagation()
+}
+
+function MapActionLink({ action, placeId }: { action: MapPlace['spotActions'][number]; placeId: string }) {
+  return (
+    <a
+      href={action.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-event={action.mapEvent ?? action.event}
+      data-item={placeId}
+      data-platform={action.platform}
+      data-section={action.mapSection ?? 'map_bar'}
+      className={action.className ?? 'btn'}
+      onClick={stopCardPick}
+      onPointerDown={stopCardPick}
+    >
+      {action.label}
+    </a>
+  )
+}
+
 function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMapButtonEvent }: MapPlaceCardProps) {
+  const relatedTicketClassName = hasPrimarySpotAction(place) ? 'btn' : 'btn primary'
+
   return (
     <article
       ref={cardRef}
@@ -196,7 +251,8 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMap
                 data-platform={a.platform}
                 data-section={a.mapSection ?? 'map_bar'}
                 className={a.className ?? 'btn'}
-                onClick={(e) => e.stopPropagation()}
+                onClick={stopCardPick}
+                onPointerDown={stopCardPick}
               >
                 {a.label}
               </a>
@@ -207,57 +263,68 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMap
           <div className={styles.mapActionsStacked}>
             {place.spotActionRows.map((row, ri) => (
               <div key={`row-${ri}`} className={styles.mapActionRow}>
-                {row.map((a) => (
-                  <a
-                    key={`${a.label}-${a.href}`}
-                    href={a.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-event={a.mapEvent ?? a.event}
-                    data-item={place.id}
-                    data-platform={a.platform}
-                    data-section={a.mapSection ?? 'map_bar'}
-                    className={a.className ?? 'btn'}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {a.label}
-                  </a>
+                {row.filter((a) => !isNaverMapAction(a)).map((a) => (
+                  <MapActionLink key={`${a.label}-${a.href}`} action={a} placeId={place.id} />
                 ))}
                 {ri === 0 ? (
-                  <a
-                    className="btn"
-                    href={spotMapButtonHref(place)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-event={mapBarMapButtonEvent(place, defaultMapButtonEvent)}
-                    data-item={place.id}
-                    data-platform="GoogleMaps"
-                    data-section="map_bar"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {mapBarMapButtonLabel(place)}
-                  </a>
+                  <>
+                    {place.relatedTicketHref ? (
+                      <a
+                        className={relatedTicketClassName}
+                        href={place.relatedTicketHref}
+                        data-event={relatedTicketButtonEvent(place, gtagPrefix)}
+                        data-item={place.id}
+                        data-platform="ticket"
+                        data-section="map_bar"
+                        onClick={stopCardPick}
+                        onPointerDown={stopCardPick}
+                      >
+                        {relatedTicketButtonLabel(place)}
+                      </a>
+                    ) : null}
+                    {row.filter(isNaverMapAction).map((a) => (
+                      <MapActionLink key={`${a.label}-${a.href}`} action={a} placeId={place.id} />
+                    ))}
+                    <a
+                      className="btn"
+                      href={spotMapButtonHref(place)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-event={mapBarMapButtonEvent(place, defaultMapButtonEvent)}
+                      data-item={place.id}
+                      data-platform="GoogleMaps"
+                      data-section="map_bar"
+                      onClick={stopCardPick}
+                      onPointerDown={stopCardPick}
+                    >
+                      {mapBarMapButtonLabel(place)}
+                    </a>
+                  </>
                 ) : null}
               </div>
             ))}
           </div>
         ) : place.spotActions && place.spotActions.length > 0 ? (
           <div className="actions">
-            {place.spotActions.map((a) => (
+            {place.spotActions.filter((a) => !isNaverMapAction(a)).map((a) => (
+              <MapActionLink key={`${a.label}-${a.href}`} action={a} placeId={place.id} />
+            ))}
+            {place.relatedTicketHref ? (
               <a
-                key={`${a.label}-${a.href}`}
-                href={a.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event={a.mapEvent ?? a.event}
+                className={relatedTicketClassName}
+                href={place.relatedTicketHref}
+                data-event={relatedTicketButtonEvent(place, gtagPrefix)}
                 data-item={place.id}
-                data-platform={a.platform}
-                data-section={a.mapSection ?? 'map_bar'}
-                className={a.className ?? 'btn'}
-                onClick={(e) => e.stopPropagation()}
+                data-platform="ticket"
+                data-section="map_bar"
+                onClick={stopCardPick}
+                onPointerDown={stopCardPick}
               >
-                {a.label}
+                {relatedTicketButtonLabel(place)}
               </a>
+            ) : null}
+            {place.spotActions.filter(isNaverMapAction).map((a) => (
+              <MapActionLink key={`${a.label}-${a.href}`} action={a} placeId={place.id} />
             ))}
             <a
               className="btn"
@@ -268,7 +335,8 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMap
               data-item={place.id}
               data-platform="GoogleMaps"
               data-section="map_bar"
-              onClick={(e) => e.stopPropagation()}
+              onClick={stopCardPick}
+              onPointerDown={stopCardPick}
             >
               {mapBarMapButtonLabel(place)}
             </a>
@@ -277,6 +345,20 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMap
           !(place.spotActions && place.spotActions.length > 0) &&
           !(place.spotActionRows && place.spotActionRows.length > 0) ? (
           <div className="actions">
+            {place.relatedTicketHref ? (
+              <a
+                className={relatedTicketClassName}
+                href={place.relatedTicketHref}
+                data-event={relatedTicketButtonEvent(place, gtagPrefix)}
+                data-item={place.id}
+                data-platform="ticket"
+                data-section="map_bar"
+                onClick={stopCardPick}
+                onPointerDown={stopCardPick}
+              >
+                {relatedTicketButtonLabel(place)}
+              </a>
+            ) : null}
             <a
               className="btn"
               href={spotMapButtonHref(place)}
@@ -286,7 +368,8 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMap
               data-item={place.id}
               data-platform="GoogleMaps"
               data-section="map_bar"
-              onClick={(e) => e.stopPropagation()}
+              onClick={stopCardPick}
+              onPointerDown={stopCardPick}
             >
               {mapBarMapButtonLabel(place)}
             </a>
@@ -478,10 +561,7 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
       map.setCenter({ lat: place.lat, lng: place.lng })
       map.setZoom(16)
       // 手機版：讓標記出現在可視區上半段（避免被下方 sheet 遮住）
-      if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
-        const offsetY = Math.round(window.innerHeight * 0.2)
-        map.panBy(0, offsetY)
-      }
+      panMobileMarkerAboveSheet(map)
       window.setTimeout(() => {
         mapMoveFromFocusRef.current = false
       }, 850)
@@ -506,6 +586,27 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
       })
     })
   }, [])
+
+  useEffect(() => {
+    if (!mapReady || typeof window === 'undefined') return
+    const placeId = new URLSearchParams(window.location.search).get('place')?.trim()
+    if (!placeId) return
+    const place = places.find((p) => p.id === placeId)
+    if (!place) return
+    const id = window.setTimeout(() => {
+      setCategoryOn((prev) => (prev[place.category] ? prev : { ...prev, [place.category]: true }))
+      focusPlace(place, 'marker')
+      if (isMobileMapViewport()) {
+        window.setTimeout(() => {
+          const map = mapRef.current
+          if (!map) return
+          map.setCenter({ lat: place.lat, lng: place.lng })
+          panMobileMarkerAboveSheet(map)
+        }, 450)
+      }
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [focusPlace, mapReady, places])
 
   const clearMarkers = useCallback(() => {
     markersRef.current.forEach((m) => m.setMap(null))

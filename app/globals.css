@@ -143,7 +143,12 @@ header {
     --navH: 96px;
   }
   .nav.nav-city {
+    gap: 6px;
+    padding: 8px 12px;
+  }
+  .nav-city .brand {
     gap: 8px;
+    font-size: 16px;
   }
   .nav-city .brand img {
     width: 32px;
@@ -153,8 +158,9 @@ header {
     display: inline;
   }
   .nav-city .nav-actions .home-link {
-    padding: 6px 10px;
-    font-size: 14px;
+    padding: 5px 8px;
+    font-size: 13px;
+    border-radius: 7px;
   }
   .menu {
     display: flex;
@@ -172,7 +178,7 @@ header {
     padding: 6px 10px;
   }
 }
-@media (max-width: 430px) {
+@media (max-width: 370px) {
   .nav.nav-city {
     flex-wrap: wrap;
   }
@@ -1497,6 +1503,17 @@ a.link-item {
 }
 .tag-clear:hover {
   background: #f1f5f9;
+}
+.tag-return {
+  background: #1f7a8c;
+  border-color: #1f7a8c;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 6px 14px rgba(31, 122, 140, 0.18);
+}
+.tag-return:hover {
+  background: #166272;
 }
 .tag-no-result {
   text-align: center;
