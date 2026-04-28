@@ -11,6 +11,13 @@ export default function BusanMapPage() {
       gtagPrefix="busanmap"
       title="釜山地圖"
       backHref="/busan"
+      defaultCategories={{ spot: true, free: true, food: false, hotel: false }}
+      categoryItems={[
+        { key: 'spot', label: '票券' },
+        { key: 'free', label: '景點' },
+        { key: 'food', label: '商店' },
+        { key: 'hotel', label: '住宿' },
+      ]}
     />
   )
 }

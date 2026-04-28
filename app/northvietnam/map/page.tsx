@@ -11,6 +11,13 @@ export default function NorthVietnamMapPage() {
       gtagPrefix="northvietnammap"
       title="北越地圖"
       backHref="/northvietnam"
+      defaultCategories={{ spot: true, free: true, food: false, hotel: false }}
+      categoryItems={[
+        { key: 'spot', label: '票券' },
+        { key: 'free', label: '景點' },
+        { key: 'food', label: '商店' },
+        { key: 'hotel', label: '住宿' },
+      ]}
     />
   )
 }

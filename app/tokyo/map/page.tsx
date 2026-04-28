@@ -15,6 +15,7 @@ export default function TokyoMapPage() {
       categoryItems={[
         { key: 'spot', label: '票券' },
         { key: 'free', label: '景點' },
+        { key: 'food', label: '商店' },
         { key: 'hotel', label: '住宿' },
       ]}
     />
