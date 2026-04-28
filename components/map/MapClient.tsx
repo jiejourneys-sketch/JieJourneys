@@ -10,6 +10,7 @@ import type {
 } from 'react'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
+import type { CityCardAction } from '@/components/CityTabbedList'
 import Footer from '@/components/Footer'
 import {
   CITY_MAP_CATEGORY_LABEL,
@@ -191,7 +192,7 @@ function stopCardPick(e: ReactMouseEvent<HTMLAnchorElement> | ReactPointerEvent<
   e.stopPropagation()
 }
 
-function MapActionLink({ action, placeId }: { action: MapPlace['spotActions'][number]; placeId: string }) {
+function MapActionLink({ action, placeId }: { action: CityCardAction; placeId: string }) {
   return (
     <a
       href={action.href}

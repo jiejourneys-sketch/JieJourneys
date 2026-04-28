@@ -1,7 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
-import { busanHotelCards, busanHotelTabs } from '@/data/busan'
+import { busanHotelCards, busanHotelTabs } from '@/data/busan/hotels'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
