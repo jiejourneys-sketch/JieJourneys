@@ -60,7 +60,7 @@ export const NORTH_VIETNAM_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCa
       section: 'video',
     },
   ],
-  '頂級郵輪｜2天1夜': [
+  '頂級郵輪｜2日遊、6星級': [
     {
       label: 'IG',
       href: 'https://www.instagram.com/reel/DRXBH_2kSSh/',
@@ -87,7 +87,7 @@ export const NORTH_VIETNAM_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCa
       section: 'video',
     },
   ],
-  'Athena Cruise｜2天1夜': [
+  'Athena Cruise｜2日遊、5星級': [
     {
       label: 'IG',
       href: 'https://www.instagram.com/reel/DRPStldE662/',
@@ -114,7 +114,7 @@ export const NORTH_VIETNAM_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCa
       section: 'video',
     },
   ],
-  '方案1｜華閭 - 三谷/長安 - 舞洞': [
+  '華閭古都': [
     {
       label: 'IG',
       href: 'https://www.instagram.com/reel/DRpCoyiEUQs/',

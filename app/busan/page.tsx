@@ -16,6 +16,17 @@ export default function BusanPage() {
         <div className="link-list">
           <Link
             className="link-item"
+            href="/busan/map"
+            data-event="busan_map"
+            data-item="map"
+            data-section="quick"
+          >
+            <Image className="link-icon" src="/assets/ditu.png" alt="地圖" width={48} height={48} />
+            <div className="link-text">旅杰釜山地圖</div>
+          </Link>
+
+          <Link
+            className="link-item"
             href="/busan/journeys"
             data-event="busan_sellpdf"
             data-item="guide"
@@ -67,17 +78,6 @@ export default function BusanPage() {
           >
             <Image className="link-icon" src="/assets/jiaotong.png" alt="交通" width={48} height={48} />
             <div className="link-text">通訊 / 交通</div>
-          </Link>
-
-          <Link
-            className="link-item"
-            href="/busan/map"
-            data-event="busan_map"
-            data-item="map"
-            data-section="quick"
-          >
-            <Image className="link-icon" src="/assets/ditu.png" alt="地圖" width={48} height={48} />
-            <div className="link-text">旅杰釜山地圖</div>
           </Link>
 
           <div className="link-item pass-card" data-section="quick">

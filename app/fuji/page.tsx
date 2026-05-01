@@ -16,6 +16,17 @@ export default function FujiPage() {
         <div className="link-list">
           <Link
             className="link-item"
+            href="/fuji/map"
+            data-event="fuji_map"
+            data-item="map"
+            data-section="quick"
+          >
+            <Image className="link-icon" src="/assets/ditu.png" alt="地圖" width={48} height={48} />
+            <div className="link-text">旅杰富士河口湖地圖</div>
+          </Link>
+
+          <Link
+            className="link-item"
             href="/fuji/hotel"
             data-event="fuji_hotel"
             data-item="hotel"
@@ -45,17 +56,6 @@ export default function FujiPage() {
           >
             <Image className="link-icon" src="/assets/jiaotong.png" alt="交通" width={48} height={48} />
             <div className="link-text">通訊 / 交通</div>
-          </Link>
-
-          <Link
-            className="link-item"
-            href="/fuji/map"
-            data-event="fuji_map"
-            data-item="map"
-            data-section="quick"
-          >
-            <Image className="link-icon" src="/assets/ditu.png" alt="地圖" width={48} height={48} />
-            <div className="link-text">旅杰富士河口湖地圖</div>
           </Link>
         </div>
       </main>

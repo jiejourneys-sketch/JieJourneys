@@ -6,7 +6,7 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Product',
   name: '釜山五日行程 PDF',
-  description: '釜山五日自由行完整行程 PDF，含熱門景點最佳動線、美食清單、一鍵導航連結，永久使用。',
+  description: '釜山五日自由行完整行程 PDF，含每日順遊動線、熱門景點安排、美食清單、票券連結與一鍵導航，適合第一次去釜山或想省下規劃時間的旅人，購買後永久使用。',
   url: 'https://www.jiejourneys.com/busan/journeys',
   image: 'https://www.jiejourneys.com/assets/og-share.png',
   brand: { '@type': 'Brand', name: 'JieJourneys' },

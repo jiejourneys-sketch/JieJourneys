@@ -16,5 +16,8 @@ export type TokyoMapPlace = {
   spotGoogleMapsUrl?: string
   mapButtonMapEvent?: string
   mapButtonLabel?: string
+  relatedTicketHref?: string
+  relatedTicketLabel?: string
+  relatedTicketEvent?: string
   hotelActions?: CityCardAction[]
 }

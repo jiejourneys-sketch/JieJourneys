@@ -1,5 +1,7 @@
 /**
- * 東京地圖：景點由 `../tickets` ＋ `spotExtraActions` 組裝；景點／商店見 Free／Food；住宿見 `../hotels`。
+ * 東京地圖：景點由 `../tickets` 組裝（排除一日遊行程票、無固定東京釘點票）＋ `spotExtraActions`；
+ * 免費景點見 Free／Food；住宿見 `../hotels`。
+ * 一日遊行程票不顯示為個別地圖釘點，改以 free.ts 景點的 relatedTicketHref 串接。
  */
 import type { CityCardAction } from '@/components/CityTabbedList'
 import { tokyoFoodMapPlaces } from '@/data/tokyo/food'
@@ -29,95 +31,138 @@ function spotActionRowsFromMapNextRow(actions: CityCardAction[]): CityCardAction
 
 export const TOKYO_MAP_CENTER = { lat: 35.6812, lng: 139.7671 }
 
-const TICKET_SPOT_IDS = [
-  'shibuya-sky',
-  'tokyo-skytree',
-  'roppongi-hills',
-  'tokyo-tower',
-  'tokyo-disneyland',
-  'harry-potter-tokyo',
-  'teamlab-planets',
-  'teamlab-borderless',
-  'unko-museum',
-  'shinjuku-gardens',
-  'small-worlds-tokyo',
-  'legoland-discovery-odaiba',
-  'sanrio-puroland',
-  'sumida-aquarium',
-  'ginza-art-aquarium',
-  'maxell-aqua-park-shinagawa',
-  'sunshine-aquarium',
-] as const
+/** 地圖不顯示：無固定釘點者（一日遊行程票由 tag 查詢）。 */
+const EXCLUDE_FROM_MAP = new Set<string>()
 
-/**
- * 各景點建物／主要入口座標（盡量對齊 Google Maps 地點釘選；可再依實地走訪微調）
- * 參考：OSM／官方地址／地標中心；Small Worlds 為江東區有明 1-3-33（非台場 Aomi）
- */
-const TICKET_SPOT_COORDS: Record<(typeof TICKET_SPOT_IDS)[number], { lat: number; lng: number }> = {
-  'shibuya-sky': { lat: 35.6586719, lng: 139.7019848 },
-  'tokyo-skytree': { lat: 35.7100627, lng: 139.8107004 },
-  'roppongi-hills': { lat: 35.6600712, lng: 139.7292907 },
-  'tokyo-tower': { lat: 35.6585805, lng: 139.7454329 },
-  'tokyo-disneyland': { lat: 35.6328964, lng: 139.8803943 },
-  'harry-potter-tokyo': { lat: 35.745183, lng: 139.6460909 },
-  'teamlab-planets': { lat: 35.6491207, lng: 139.7897739 },
-  'teamlab-borderless': { lat: 35.6620689, lng: 139.7432671 },
-  'unko-museum': { lat: 35.6255273, lng: 139.776413 },
-  'shinjuku-gardens': { lat: 35.6851763, lng: 139.7100517 },
-  'small-worlds-tokyo': { lat: 35.6379228, lng: 139.7883556 },
-  'legoland-discovery-odaiba': { lat: 35.6288365, lng: 139.776083 },
-  'sanrio-puroland': { lat: 35.624512, lng: 139.429293 },
-  'sumida-aquarium': { lat: 35.7099301, lng: 139.8095855 },
-  'ginza-art-aquarium': { lat: 35.6713698, lng: 139.7657375 },
-  'maxell-aqua-park-shinagawa': { lat: 35.6282839, lng: 139.7352393 },
-  'sunshine-aquarium': { lat: 35.7289254, lng: 139.7201573 },
+/** 票券標題 → 地圖 ID */
+const TOKYO_SPOT_ID: Record<string, string> = {
+  'SHIBUYA SKY': 'shibuya-sky',
+  '晴空塔': 'tokyo-skytree',
+  '六本木展望台': 'roppongi-hills',
+  '東京鐵塔': 'tokyo-tower',
+  '東京迪士尼': 'tokyo-disneyland',
+  '哈利波特影城': 'harry-potter-tokyo',
+  '吉卜力公園': 'ghibli-park',
+  '東京雙層觀光巴士': 'tokyo-sightseeing-bus',
+  'TeamLab Planets': 'teamlab-planets',
+  'TeamLab Borderless': 'teamlab-borderless',
+  '便便博物館': 'unko-museum',
+  '新宿御苑': 'shinjuku-gardens',
+  '迷你世界博物館': 'small-worlds-tokyo',
+  '樂高樂園': 'legoland-discovery-odaiba',
+  '三麗鷗彩虹樂園': 'sanrio-puroland',
+  '墨田水族館': 'sumida-aquarium',
+  '東京銀座藝術水族館': 'ginza-art-aquarium',
+  '東京品川水族館': 'maxell-aqua-park-shinagawa',
+  '池袋陽光水族館': 'sunshine-aquarium',
 }
 
 /**
- * 景點「地圖」按鈕：只改下面陣列，**由上到下第 1 筆 = 第 1 個景點**，依序對應 TICKET_SPOT_IDS。
- * 每行整段換成你的 `https://maps.app.goo.gl/...`（務必包在引號裡）。含 `PASTE_YOUR_MAPS_LINK` 時會先用 lat/lng 釘點。**勿改 lat/lng。**
+ * 票券標題 → 建物／入口參考座標（可依 Google 釘選微調）
  */
-const TOKYO_SPOT_GOOGLE_MAP_URLS: string[] = [
-  'https://maps.app.goo.gl/UhTEtJqB9rCA8Xn98', // 1 shibuya-sky
-  'https://maps.app.goo.gl/NDgjtaiVmkzW4JrRA', // 2 tokyo-skytree
-  'https://maps.app.goo.gl/WRQVFFu4gHZ9vwso9', // 3 roppongi-hills
-  'https://maps.app.goo.gl/HX6VfiTaST9q98FM6', // 4 tokyo-tower
-  'https://maps.app.goo.gl/yCFoFGKh2i1KK54E8', // 5 tokyo-disneyland
-  'https://maps.app.goo.gl/z9SERjRGv83LujwXA', // 6 harry-potter-tokyo
-  'https://maps.app.goo.gl/zSigJXUbaPPWm62x6', // 7 teamlab-planets
-  'https://maps.app.goo.gl/zQqv9CXg6P3KtMsh7', // 8 teamlab-borderless
-  'https://maps.app.goo.gl/Va4ydgMCCskN8y4AA', // 9 unko-museum
-  'https://maps.app.goo.gl/QoPnKUm52tGjej6f7', // 10 shinjuku-gardens
-  'https://maps.app.goo.gl/HR1K6GuTaRz8uKPw9', // 10 small-worlds-tokyo
-  'https://maps.app.goo.gl/LTKhYmpyqXSSWxkd8', // 11 legoland-discovery-odaiba
-  'https://maps.app.goo.gl/yVFcM5RQhguDCeb37', // 12 sanrio-puroland
-  'https://maps.app.goo.gl/8dRCam93cYCPdFt59', // 13 sumida-aquarium
-  'https://maps.app.goo.gl/gt3vGioUfiabRNMz8', // 14 ginza-art-aquarium
-  'https://maps.app.goo.gl/xjnKwpRU8mY8AceKA', // 15 maxell-aqua-park-shinagawa
-  'https://maps.app.goo.gl/zTLjycncsN3zHKkj8', // 16 sunshine-aquarium
-]
+const TOKYO_SPOT_GEO: Record<string, { lat: number; lng: number }> = {
+  'SHIBUYA SKY': { lat: 35.6586719, lng: 139.7019848 },
+  '晴空塔': { lat: 35.7100627, lng: 139.8107004 },
+  '六本木展望台': { lat: 35.6600712, lng: 139.7292907 },
+  '東京鐵塔': { lat: 35.6585805, lng: 139.7454329 },
+  '東京迪士尼': { lat: 35.6328964, lng: 139.8803943 },
+  '哈利波特影城': { lat: 35.745183, lng: 139.6460909 },
+  '吉卜力公園': { lat: 35.6961, lng: 139.5704 }, // 三鷹の森ジブリ美術館（東京都三鷹市）
+  '東京雙層觀光巴士': { lat: 35.6816, lng: 139.7672 }, // 東京站丸之內出口（主要乘車處）
+  'TeamLab Planets': { lat: 35.6491207, lng: 139.7897739 },
+  'TeamLab Borderless': { lat: 35.6620689, lng: 139.7432671 },
+  '便便博物館': { lat: 35.6255273, lng: 139.776413 },
+  '新宿御苑': { lat: 35.6851763, lng: 139.7100517 },
+  '迷你世界博物館': { lat: 35.6379228, lng: 139.7883556 },
+  '樂高樂園': { lat: 35.6288365, lng: 139.776083 },
+  '三麗鷗彩虹樂園': { lat: 35.624512, lng: 139.429293 },
+  '墨田水族館': { lat: 35.7099301, lng: 139.8095855 },
+  '東京銀座藝術水族館': { lat: 35.6713698, lng: 139.7657375 },
+  '東京品川水族館': { lat: 35.6282839, lng: 139.7352393 },
+  '池袋陽光水族館': { lat: 35.7289254, lng: 139.7201573 },
+}
+
+/**
+ * 景點「地圖」按鈕連結：依標題填入 `https://maps.app.goo.gl/...`。
+ * 含 `PASTE_YOUR_MAPS_LINK` 時地圖元件改用 lat、lng 釘點。**勿改 lat/lng。**
+ */
+const TOKYO_SPOT_GOOGLE_MAP_URLS: Record<string, string> = {
+  'SHIBUYA SKY': 'https://maps.app.goo.gl/UhTEtJqB9rCA8Xn98',
+  '晴空塔': 'https://maps.app.goo.gl/NDgjtaiVmkzW4JrRA',
+  '六本木展望台': 'https://maps.app.goo.gl/WRQVFFu4gHZ9vwso9',
+  '東京鐵塔': 'https://maps.app.goo.gl/HX6VfiTaST9q98FM6',
+  '東京迪士尼': 'https://maps.app.goo.gl/yCFoFGKh2i1KK54E8',
+  '哈利波特影城': 'https://maps.app.goo.gl/z9SERjRGv83LujwXA',
+  '吉卜力公園': 'PASTE_YOUR_MAPS_LINK',
+  '東京雙層觀光巴士': 'PASTE_YOUR_MAPS_LINK',
+  'TeamLab Planets': 'https://maps.app.goo.gl/zSigJXUbaPPWm62x6',
+  'TeamLab Borderless': 'https://maps.app.goo.gl/zQqv9CXg6P3KtMsh7',
+  '便便博物館': 'https://maps.app.goo.gl/Va4ydgMCCskN8y4AA',
+  '新宿御苑': 'https://maps.app.goo.gl/QoPnKUm52tGjej6f7',
+  '迷你世界博物館': 'https://maps.app.goo.gl/HR1K6GuTaRz8uKPw9',
+  '樂高樂園': 'https://maps.app.goo.gl/LTKhYmpyqXSSWxkd8',
+  '三麗鷗彩虹樂園': 'https://maps.app.goo.gl/yVFcM5RQhguDCeb37',
+  '墨田水族館': 'https://maps.app.goo.gl/8dRCam93cYCPdFt59',
+  '東京銀座藝術水族館': 'https://maps.app.goo.gl/gt3vGioUfiabRNMz8',
+  '東京品川水族館': 'https://maps.app.goo.gl/xjnKwpRU8mY8AceKA',
+  '池袋陽光水族館': 'https://maps.app.goo.gl/zTLjycncsN3zHKkj8',
+}
+
+const TOKYO_SPOT_DESCRIPTION_BY_ID: Record<string, string> = {
+  'shibuya-sky': '澀谷最高人氣展望台，可俯瞰十字路口、代代木公園與東京市景，日落時段尤其熱門。',
+  'tokyo-skytree': '東京代表性地標，高度與視野都很有震撼感，晴天可遠眺富士山，適合安排淺草、押上同區行程。',
+  'roppongi-hills': '六本木高樓觀景台，可欣賞東京鐵塔與都心夜景，適合和六本木、美術館、東京中城一起安排。',
+  'tokyo-tower': '東京經典紅白鐵塔，位置靠近芝公園與增上寺，適合第一次東京自由行或夜景行程。',
+  'tokyo-disneyland': '東京迪士尼度假區門票，適合安排一整天遊玩，購票前可先確認入園日期與園區種類。',
+  'harry-potter-tokyo': '哈利波特影城東京，展示電影場景、服裝與互動體驗，館內停留時間通常需要抓半天以上。',
+  'ghibli-park': '吉卜力相關票券與行程，適合喜歡動畫場景、展覽與主題空間的旅人，交通和入場規則建議先確認。',
+  'tokyo-sightseeing-bus': '東京市區觀光巴士，適合想用較輕鬆方式串起主要景點，或安排剛抵達東京的快速導覽。',
+  'teamlab-planets': '豐洲沉浸式數位藝術展，需赤腳進入多個互動空間，適合拍照與體驗型行程。',
+  'teamlab-borderless': '麻布台 Hills 的沉浸式藝術展，作品會在空間中流動變化，適合安排六本木、東京鐵塔周邊行程。',
+  'unko-museum': '台場室內主題展，以繽紛互動裝置為主，適合親子、朋友或雨天備案。',
+  'shinjuku-gardens': '新宿大型庭園，四季景色都很適合散步，春天賞櫻、秋天看楓葉都很受歡迎。',
+  'small-worlds-tokyo': '有明室內微縮模型主題館，展示機場、城市與動畫場景，適合親子或雨天行程。',
+  'legoland-discovery-odaiba': '台場室內樂高樂園，主打親子互動、積木遊戲與迷你東京模型，適合帶小朋友安排半日遊。',
+  'sanrio-puroland': '三麗鷗角色主題樂園，位在多摩中心，適合喜歡 Hello Kitty、布丁狗與角色表演的旅人。',
+  'sumida-aquarium': '晴空塔旁的室內水族館，可和東京晴空塔、押上商場一起安排，雨天也很好用。',
+  'ginza-art-aquarium': '銀座室內金魚藝術展，燈光與水槽設計很有拍照感，適合和銀座逛街排在一起。',
+  'maxell-aqua-park-shinagawa': '品川站旁的室內水族館，交通方便，海豚表演和燈光效果是主要亮點。',
+  'sunshine-aquarium': '池袋 Sunshine City 樓上的水族館，以都市高空水族館為特色，適合和池袋逛街一起安排。',
+}
+
+function tokyoRelatedTicketHref(tag: string, placeId: string): string {
+  return `/tokyo/ticket?tag=${encodeURIComponent(tag)}&from=map&place=${encodeURIComponent(placeId)}#ticketListTitle`
+}
+
+/** 票券景點標題 → 一日遊 tag（目前個別景點票無對應一日遊；一日遊景點由 free.ts 的 relatedTicketHref 串接） */
+const TOKYO_RELATED_TICKET_TAG_BY_SPOT_TITLE: Record<string, string> = {}
 
 function ticketCardsToSpots(): TokyoMapPlace[] {
-  if (tokyoTicketCards.length !== TICKET_SPOT_IDS.length) {
-    throw new Error('tokyo/map/places: tokyo/tickets 與 TICKET_SPOT_IDS 數量需一致')
-  }
-  if (TOKYO_SPOT_GOOGLE_MAP_URLS.length !== TICKET_SPOT_IDS.length) {
-    throw new Error('tokyo/map/places: TOKYO_SPOT_GOOGLE_MAP_URLS 筆數須等於景點數')
-  }
-  return tokyoTicketCards.map((card, i) => {
-    const id = TICKET_SPOT_IDS[i]
-    const { lat, lng } = TICKET_SPOT_COORDS[id]
+  const filtered = tokyoTicketCards.filter(
+    (c) => c.area !== '一日遊' && !EXCLUDE_FROM_MAP.has(c.title) && TOKYO_SPOT_GEO[c.title] !== undefined,
+  )
+  return filtered.map((card) => {
+    const geo = TOKYO_SPOT_GEO[card.title]
+    const id = TOKYO_SPOT_ID[card.title]
+    if (!geo || !id) throw new Error(`tokyo/map/places: 缺少座標或 id：${card.title}`)
     const mapSpotActions = [...card.actions, ...(TOKYO_MAP_SPOT_EXTRA_ACTIONS[card.title] ?? [])]
+    const relatedTicketTag = TOKYO_RELATED_TICKET_TAG_BY_SPOT_TITLE[card.title]
     return {
       id,
-      category: 'spot',
+      category: 'spot' as const,
       name: card.title,
-      description: card.area,
-      lat,
-      lng,
+      description: TOKYO_SPOT_DESCRIPTION_BY_ID[id] ?? card.area,
+      lat: geo.lat,
+      lng: geo.lng,
       spotActions: mapSpotActions,
       spotActionRows: spotActionRowsFromMapNextRow(mapSpotActions),
-      spotGoogleMapsUrl: TOKYO_SPOT_GOOGLE_MAP_URLS[i],
+      spotGoogleMapsUrl: TOKYO_SPOT_GOOGLE_MAP_URLS[card.title],
+      ...(relatedTicketTag
+        ? {
+            relatedTicketHref: tokyoRelatedTicketHref(relatedTicketTag, id),
+            relatedTicketEvent: `tokyomap_${id}_ticket`,
+          }
+        : {}),
     }
   })
 }

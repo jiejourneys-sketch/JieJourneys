@@ -52,15 +52,21 @@ type Props = {
    * 例如 tagFilterArea="一日遊" 時，切到「一日遊」tab 會在卡片上方出現 tag 篩選按鈕。
    */
   tagFilterArea?: string
+  tagFilterAreas?: string[]
   /** 指定篩選 bar 的 tag 顯示順序；未列出的 tag 排在最後。 */
   tagOrder?: string[]
+  /** true 時 tag 篩選列只在 tagFilterArea tab 出現，不會在「全部」tab 預設顯示。 */
+  tagHideOnAll?: boolean
+  /** 在「全部」tab 預設顯示指定 area 的 tag，但卡片仍維持全部列表。 */
+  tagDefaultAreaOnAll?: string
 }
 
-export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, tagOrder }: Props) {
+export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, tagFilterAreas, tagOrder, tagHideOnAll, tagDefaultAreaOnAll }: Props) {
   const [activeTab, setActiveTab] = useState('all')
   const [hasSelectedTab, setHasSelectedTab] = useState(false)
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [returnHref, setReturnHref] = useState<string | null>(null)
+  const filterAreas = useMemo(() => tagFilterAreas ?? (tagFilterArea ? [tagFilterArea] : []), [tagFilterArea, tagFilterAreas])
 
   const returnMapLabel = useMemo(() => {
     if (!returnHref) return '← 返回地圖'
@@ -74,16 +80,16 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
     [activeTab, cards],
   )
 
-  const showTagFilter = !!tagFilterArea && (activeTab === tagFilterArea || activeTab === 'all')
-  const isTagFilterActive = activeTab === tagFilterArea
+  const showTagFilter = filterAreas.length > 0 && (filterAreas.includes(activeTab) || (!tagHideOnAll && activeTab === 'all'))
+  const isTagFilterActive = filterAreas.includes(activeTab)
 
   const tagAreaCards = useMemo(
-    () => (tagFilterArea ? cards.filter((card) => card.area === tagFilterArea) : []),
-    [tagFilterArea, cards],
+    () => (filterAreas.length > 0 ? cards.filter((card) => activeTab === 'all' ? (tagDefaultAreaOnAll ? card.area === tagDefaultAreaOnAll : filterAreas.includes(card.area)) : card.area === activeTab) : []),
+    [activeTab, cards, filterAreas, tagDefaultAreaOnAll],
   )
 
   const availableTags = useMemo(() => {
-    if (!tagFilterArea) return []
+    if (filterAreas.length === 0) return []
     const seen = new Set<string>()
     for (const card of tagAreaCards) {
       for (const tag of card.tags ?? []) seen.add(tag)
@@ -94,10 +100,10 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
       if (!tagOrder.includes(t)) ordered.push(t)
     }
     return ordered
-  }, [tagFilterArea, tagAreaCards, tagOrder])
+  }, [filterAreas, tagAreaCards, tagOrder])
 
   useEffect(() => {
-    if (!tagFilterArea || typeof window === 'undefined') return
+    if (filterAreas.length === 0 || typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
     const tag = params.get('tag')?.trim()
     const id = window.setTimeout(() => {
@@ -107,14 +113,14 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
         setReturnHref(place ? `${mapPath}?place=${encodeURIComponent(place)}` : mapPath)
       }
       if (!tag) return
-      const hasTag = tagAreaCards.some((card) => (card.tags ?? []).includes(tag))
-      if (!hasTag) return
-      setActiveTab(tagFilterArea)
+      const matchingCard = cards.find((card) => filterAreas.includes(card.area) && (card.tags ?? []).includes(tag))
+      if (!matchingCard) return
+      setActiveTab(matchingCard.area)
       setHasSelectedTab(true)
       setSelectedTags(new Set([tag]))
     }, 0)
     return () => window.clearTimeout(id)
-  }, [tagFilterArea, tagAreaCards])
+  }, [cards, filterAreas])
 
   const shownCards = useMemo(() => {
     if (!isTagFilterActive || selectedTags.size === 0) return tabCards
@@ -128,8 +134,8 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
   }, [isTagFilterActive, selectedTags, tabCards])
 
   const toggleTag = (tag: string) => {
-    if (activeTab === 'all' && tagFilterArea) {
-      setActiveTab(tagFilterArea)
+    if (activeTab === 'all' && filterAreas.length > 0) {
+      setActiveTab(filterAreas[0])
       setHasSelectedTab(true)
     }
     setSelectedTags((prev) => {

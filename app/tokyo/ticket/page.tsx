@@ -28,7 +28,13 @@ export default function TokyoTicketPage() {
         <h2 className="seo-h2" id="ticketListTitle">
           東京票券整理（依主題分類）
         </h2>
-        <CityTabbedList tabs={tokyoTicketTabs} cards={tokyoTicketCards} tabEvent="tokyo_ticket_tab" />
+        <CityTabbedList
+          tabs={tokyoTicketTabs}
+          cards={tokyoTicketCards}
+          tabEvent="tokyo_ticket_tab"
+          tagFilterArea="一日遊"
+          tagOrder={['富士山', '河口湖', '富士山一日遊', '鎌倉大佛', '鎌倉高中', '江之島', '鶴岡八幡宮', '江之電體驗', '小町通', '長谷寺', '極樂寺', '白燈塔', '橫濱空中纜車', '橫濱紅磚倉庫', '橫濱大摩天輪', '東照宮', '伊呂波山道', '中禪寺湖', '華嚴瀑布', '大洗磯前神社', '那珂湊海鮮市場', '國營常陸海濱公園']}
+        />
 
         <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyoticket_SEO_spotmap" />
 
@@ -47,6 +53,18 @@ export default function TokyoTicketPage() {
           <p>
             像是 <strong>哈利波特影城</strong>、<strong>東京迪士尼</strong> 這種主題型行程，熱門時段通常都要先線上買票，臨時才買很容易沒位子。
           </p>
+
+          <h3 className="seo-h3">👉 東京近郊一日遊（富士山、鎌倉、日光、常陸海濱公園）</h3>
+          <p>
+            <strong>富士山・河口湖</strong>也是東京出發最熱門的一日遊，不過富士山票券已獨立整理在專區，建議直接到富士山票券頁比較完整。
+            <br />
+            東京近郊中，<strong>鎌倉</strong>也是很受歡迎的選擇——鎌倉大佛、江之島、鶴岡八幡宮加上江之電體驗，通常搭車過去約1小時就能玩到。
+            <br />
+            <strong>日光</strong>則適合想看世界遺產的旅人，東照宮搭配中禪寺湖、華嚴瀑布，從東京搭電車約2小時。
+            <br />
+            <strong>常陸海濱公園</strong>以粉蝶花和掃帚草聞名，通常搭配大洗磯前神社和那珂湊海鮮市場，適合喜歡自然風景的行程。
+          </p>
+          <p>以上行程都有不同團的選項，可切換到「一日遊」標籤篩選。</p>
 
           <h3 className="seo-h3">👉 小提醒：SHIBUYA SKY 傍晚很熱門</h3>
           <p>

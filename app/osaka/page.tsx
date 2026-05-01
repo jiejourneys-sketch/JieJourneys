@@ -33,18 +33,10 @@ export default function OsakaPage() {
             <Image className="link-icon" src="/assets/jiaotong.png" alt="交通" width={48} height={48} />
             <div className="link-text">通訊 / 交通</div>
           </Link>
-          <div className="link-item pass-card" data-section="quick">
-            <Image className="link-icon" src="/assets/ditu.png" alt="東京迪士尼" width={48} height={48} />
-            <div className="pass-row">
-              <div className="pass-title">東京迪士尼</div>
-              <div className="pass-actions">
-                <a className="pass-btn primary" href="https://www.kkday.com/zh-tw/product/19252-tokyo-disney-resort-disneyland-disneysea?cid=22312" target="_blank" rel="noopener noreferrer" data-event="Osakadisney_kkday" data-platform="KKDAY">KKDAY</a>
-                <a className="pass-btn" href="https://www.klook.com/zh-TW/activity/695-tokyo-disney-resort-1-day-pass-tokyo/?aid=93798" target="_blank" rel="noopener noreferrer" data-event="Osakadisney_klook" data-platform="KLOOK">KLOOK</a>
-                <a className="pass-btn" href="https://tw.trip.com/travel-guide/attraction/urayasu/tokyo-disneyland-10758189/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7239738" target="_blank" rel="noopener noreferrer" data-event="Osakadisney_trip" data-platform="Trip">Trip</a>
-                <a className="pass-btn" href="https://www.google.com/maps/d/edit?mid=1ys8gug0O1U9-eI7ja3oKE5AN3CepItM&usp=sharing" target="_blank" rel="noopener noreferrer" data-event="Osakadisney_ditu" data-platform="map">地圖</a>
-              </div>
-            </div>
-          </div>
+          <Link className="link-item" href="/osaka/map" data-event="osaka_map" data-item="map" data-section="quick">
+            <Image className="link-icon" src="/assets/ditu.png" alt="地圖" width={48} height={48} />
+            <div className="link-text">旅杰大阪地圖</div>
+          </Link>
         </div>
       </main>
       <Footer />

@@ -105,7 +105,7 @@ export const busanFreeMapPlaces: BusanMapPlace[] = [
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/CeoBjWzGeGs2A7pDA',
     mapButtonMapEvent: 'busanmap_cruise',
     relatedTicketHref: busanRelatedTicketHref('遊艇', 'busan-cruise'),
-    relatedTicketLabel: '遊艇含此景點的一日遊',
+    relatedTicketLabel: '含此景點的一日遊',
     relatedTicketEvent: 'busanmap_cruise_ticket',
     spotActions: [
       {

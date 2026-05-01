@@ -276,7 +276,7 @@ const fujiFreeSpots: MapPlace[] = [
     id: 'fuji-mountain',
     category: 'free',
     name: '富士山',
-    description: '',
+    description: '日本最高峰，也是富士五湖、箱根與御殿場一帶最重要的景觀核心。',
     lat: 35.3606255,
     lng: 138.7273634,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/itAKgiDV3QvXoALp7',

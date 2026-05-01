@@ -390,7 +390,7 @@ const cards: CityCard[] = [
     datasetValue: '客制化行程｜包車',
     tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/161744?cid=22312', className: 'btn primary', event: 'fujticket_1dayall_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131172-japan-private-car-charter-tokyo-fuji-hakone-kamakura-karuizawa-izu-kawagoe-nagano-nikko?cid=22312', className: 'btn primary', event: 'fujticket_1dayall_kkday', platform: 'KKDAY', section: 'ticket_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/120898-car-rental-with-driver-tokyo-mtfuji-chinesespeaking/?aid=93798', className: 'btn', event: 'fujticket_1dayall_klook', platform: 'KLOOK', section: 'ticket_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/105010953/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujticket_1dayall_trip', platform: 'Trip', section: 'ticket_card' },
     ],

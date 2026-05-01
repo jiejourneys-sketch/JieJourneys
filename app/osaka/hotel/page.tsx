@@ -1,46 +1,132 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
+import type { CityCard } from '@/components/CityTabbedList'
+import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoContentSection from '@/components/seo/SeoContentSection'
+import SeoFaqSection from '@/components/seo/SeoFaqSection'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
-  { value: '上野站', label: '上野站', dataArea: '上野站' },
-  { value: '淺草寺', label: '淺草寺', dataArea: '淺草寺' },
-  { value: '東京車站', label: '東京車站', dataArea: '東京車站' },
-  { value: '新宿站', label: '新宿站', dataArea: '新宿站' },
-  { value: '涉谷站', label: '涉谷站', dataArea: '涉谷站' },
+  { value: '道頓堀/難波', label: '道頓堀/難波', dataArea: '道頓堀/難波' },
+  { value: '心齋橋', label: '心齋橋', dataArea: '心齋橋' },
+  { value: '梅田/大阪站', label: '梅田/大阪站', dataArea: '梅田/大阪站' },
+  { value: '天王寺', label: '天王寺', dataArea: '天王寺' },
 ]
-const cards = [
-  { title: '明恩上野', meta: '上野站｜5星級、清幽/高級/寬敞/廚房/設備齊全', area: '上野站', datasetKey: 'hotel' as const, datasetValue: '明恩上野', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=52134686', className: 'btn primary', event: 'osakahotel_Ueno1Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=64218295&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Ueno1Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/7Rh9hToJJYpmqvfH7', className: 'btn', event: 'osakahotel_Ueno1map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '上野曼迪高級公寓', meta: '上野站｜4星級、寬敞/乾淨/安靜/家庭', area: '上野站', datasetKey: 'hotel' as const, datasetValue: '上野曼迪高級公寓', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=21816880', className: 'btn primary', event: 'osakahotel_Ueno2Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=78158674&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Ueno2Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/7SNvgcucJGSKdAnh9', className: 'btn', event: 'osakahotel_Ueno2map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '東京上野諾加上飯店', meta: '上野站｜4星級、寬敞/現代/舒適/交通便利', area: '上野站', datasetKey: 'hotel' as const, datasetValue: '東京上野諾加上飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=5760934', className: 'btn primary', event: 'osakahotel_Ueno3Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=21890132&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Ueno3Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/FsMHpKMnpULSyDebA', className: 'btn', event: 'osakahotel_Ueno3map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '三井花園飯店', meta: '上野站｜4星級、寬敞/現代/乾淨/交通便利', area: '上野站', datasetKey: 'hotel' as const, datasetValue: '三井花園飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=222614', className: 'btn primary', event: 'osakahotel_Ueno4Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=688243&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Ueno4Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/jHxkF2A8Y4vTJsaU6', className: 'btn', event: 'osakahotel_Ueno4map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '淺草田原町KOKO飯店住宅', meta: '淺草寺｜4星級、寬敞/小廚房/用餐區/交通便利', area: '淺草寺', datasetKey: 'hotel' as const, datasetValue: '淺草田原町KOKO飯店住宅', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=32355474', className: 'btn primary', event: 'osakahotel_Sensoji1Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=94472393&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Sensoji1Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/AVwYsdvH9Bj6RRft7', className: 'btn', event: 'osakahotel_Sensoji1map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '淺草雷門休雷克蓋特飯店', meta: '淺草寺｜4星級、屋頂酒吧/寬敞/乾淨/交通便利', area: '淺草寺', datasetKey: 'hotel' as const, datasetValue: '淺草雷門休雷克蓋特飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=344281', className: 'btn primary', event: 'osakahotel_Sensoji2Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=686539&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Sensoji2Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/4BacTKaF6zS1QUrR8', className: 'btn', event: 'osakahotel_Sensoji2map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '淺草雷門竹之宿旅館', meta: '淺草寺｜4星級、安靜/乾淨/交通便利/CP值高', area: '淺草寺', datasetKey: 'hotel' as const, datasetValue: '淺草雷門竹之宿旅館', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=18957641', className: 'btn primary', event: 'osakahotel_Sensoji3Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=48022031&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Sensoji3Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/BDUZ2NDMt45Q6ckA9', className: 'btn', event: 'osakahotel_Sensoji3map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '東京淺草遠東鄉村飯店', meta: '淺草寺｜3星級、乾淨舒適/交通便利/CP值高', area: '淺草寺', datasetKey: 'hotel' as const, datasetValue: '東京淺草遠東鄉村飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hl=zh-tw&hid=37262185', className: 'btn primary', event: 'osakahotel_Sensoji4Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=107168939&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Sensoji4Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/q6PcH6mcBTSk5abF7', className: 'btn', event: 'osakahotel_Sensoji4map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '千禧 三井花園飯店 東京/銀座', meta: '東京車站｜5星級、寬敞/乾淨/美景/交通便利', area: '東京車站', datasetKey: 'hotel' as const, datasetValue: '千禧 三井花園飯店 東京/銀座', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=648873', className: 'btn primary', event: 'osakahotel_TokyoStation1Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=1683161&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_TokyoStation1Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/FjYR8chuJiWiJVRG6', className: 'btn', event: 'osakahotel_TokyoStation1map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '東京龍名館飯店', meta: '東京車站｜4星級、早餐佳/現代/服務好/交通便利', area: '東京車站', datasetKey: 'hotel' as const, datasetValue: '東京龍名館飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=164430', className: 'btn primary', event: 'osakahotel_TokyoStation2Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=688171&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_TokyoStation2Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/1WjGgkxsh1ZcLezVA', className: 'btn', event: 'osakahotel_TokyoStation2map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '東京京橋雷姆飯店', meta: '東京車站｜4星級、按摩椅/配備完善/交通便利', area: '東京車站', datasetKey: 'hotel' as const, datasetValue: '東京京橋雷姆飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=5760819', className: 'btn primary', event: 'osakahotel_TokyoStation3Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=23747919&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_TokyoStation3Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/Jv6zk6wWvPcftKkEA', className: 'btn', event: 'osakahotel_TokyoStation3map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '東京銀座金特薩酒店', meta: '東京車站｜3星級、位置優越/現代設計/交通便利', area: '東京車站', datasetKey: 'hotel' as const, datasetValue: '東京銀座金特薩酒店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=8649501', className: 'btn primary', event: 'osakahotel_TokyoStation4Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=42572779&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_TokyoStation4Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/U3pv49dDcRUu1b8d7', className: 'btn', event: 'osakahotel_TokyoStation4map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '東京京王廣場飯店', meta: '新宿站｜5星級、床舒適/寬敞乾淨/位置優越/交通便利', area: '新宿站', datasetKey: 'hotel' as const, datasetValue: '東京京王廣場飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=7263', className: 'btn primary', event: 'osakahotel_Shinjuku1Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=994639&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Shinjuku1Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/kWPpBNYdnAdTBdUMA', className: 'btn', event: 'osakahotel_Shinjuku1map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '格拉斯麗新宿酒店', meta: '新宿站｜4星級、哥吉拉/乾淨/位置優越/交通便利', area: '新宿站', datasetKey: 'hotel' as const, datasetValue: '格拉斯麗新宿酒店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=706347', className: 'btn primary', event: 'osakahotel_Shinjuku2Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=1841600&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Shinjuku2Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/NstvVv8ziDj3s1XJ7', className: 'btn', event: 'osakahotel_Shinjuku2map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: 'WPÜ飯店新宿', meta: '新宿站｜3星級、位置優越/交通便利/CP值高', area: '新宿站', datasetKey: 'hotel' as const, datasetValue: 'WPÜ飯店新宿', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=39339883', className: 'btn primary', event: 'osakahotel_Shinjuku3Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=108415888&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Shinjuku3Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/ZDHZ1nzUjH3vSmo48', className: 'btn', event: 'osakahotel_Shinjuku3map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '普樂美雅飯店-CABIN-新宿', meta: '新宿站｜3星級、位置優越/交通便利/小資族', area: '新宿站', datasetKey: 'hotel' as const, datasetValue: '普樂美雅飯店-CABIN-新宿', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=43346', className: 'btn primary', event: 'osakahotel_Shinjuku4Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=1436735&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Shinjuku4Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/utK97Jr3hiSPk63R6', className: 'btn', event: 'osakahotel_Shinjuku4map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '東京澀谷英迪格飯店', meta: '涉谷站｜5星級、現代設施/乾淨寬敞/精華地段/交通便利', area: '涉谷站', datasetKey: 'hotel' as const, datasetValue: '東京澀谷英迪格飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=37465373', className: 'btn primary', event: 'osakahotel_Shibuya1Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=104994675&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Shibuya1Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/DFLyiRSnBJ9NmDTZ6', className: 'btn', event: 'osakahotel_Shibuya1map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '澀谷東急卓越大飯店', meta: '涉谷站｜4星級、舒適/服務好/位置優越/交通便利', area: '涉谷站', datasetKey: 'hotel' as const, datasetValue: '澀谷東急卓越大飯店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=7005', className: 'btn primary', event: 'osakahotel_Shibuya2Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=994472&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Shibuya2Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/zsnpyMBGNqeJRjut9', className: 'btn', event: 'osakahotel_Shibuya2map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '澀谷溪流酒店', meta: '涉谷站｜4星級、乾淨寬敞/位置優越/交通便利', area: '涉谷站', datasetKey: 'hotel' as const, datasetValue: '澀谷溪流酒店', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=5358526', className: 'btn primary', event: 'osakahotel_Shibuya3Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=22564082&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Shibuya3Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/t3eThmCicEQpnx3L9', className: 'btn', event: 'osakahotel_Shibuya3map', platform: 'Maps', section: 'hotel_card' }] },
-  { title: '澀谷飯店EN', meta: '涉谷站｜3星級、乾淨舒適/交通便利/CP值高', area: '涉谷站', datasetKey: 'hotel' as const, datasetValue: '澀谷飯店EN', actions: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=390255', className: 'btn primary', event: 'osakahotel_Shibuya4Agoda', platform: 'Agoda', section: 'hotel_card' }, { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityId=228&hotelId=688139&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D7207517', className: 'btn', event: 'osakahotel_Shibuya4Trip', platform: 'Trip', section: 'hotel_card' }, { label: '地圖', href: 'https://maps.app.goo.gl/Squ3f5ViYFh1yGea6', className: 'btn', event: 'osakahotel_Shibuya4map', platform: 'Maps', section: 'hotel_card' }] },
+
+const cards: CityCard[] = [
+  {
+    title: '（範例）難波區域住宿',
+    meta: '道頓堀/難波｜近心齋橋/地鐵難波站/美食密集',
+    area: '道頓堀/難波',
+    datasetKey: 'hotel',
+    datasetValue: '難波區域住宿',
+    actions: [
+      { label: 'Agoda', href: 'https://www.agoda.com/zh-tw/city/osaka-jp.html?cid=1945734', className: 'btn primary', event: 'osakahotel_namba1_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/?Allianceid=6833709&SID=242535686', className: 'btn', event: 'osakahotel_namba1_trip', platform: 'Trip', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: '（範例）心齋橋區域住宿',
+    meta: '心齋橋｜購物方便/地鐵心齋橋站步行圈',
+    area: '心齋橋',
+    datasetKey: 'hotel',
+    datasetValue: '心齋橋區域住宿',
+    actions: [
+      { label: 'Agoda', href: 'https://www.agoda.com/zh-tw/city/osaka-jp.html?cid=1945734', className: 'btn primary', event: 'osakahotel_shinsaibashi1_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/?Allianceid=6833709&SID=242535686', className: 'btn', event: 'osakahotel_shinsaibashi1_trip', platform: 'Trip', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: '（範例）梅田/大阪站區域住宿',
+    meta: '梅田/大阪站｜交通樞紐/出差/往返京都神戶方便',
+    area: '梅田/大阪站',
+    datasetKey: 'hotel',
+    datasetValue: '梅田大阪站住宿',
+    actions: [
+      { label: 'Agoda', href: 'https://www.agoda.com/zh-tw/city/osaka-jp.html?cid=1945734', className: 'btn primary', event: 'osakahotel_umeda1_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/?Allianceid=6833709&SID=242535686', className: 'btn', event: 'osakahotel_umeda1_trip', platform: 'Trip', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: '（範例）天王寺區域住宿',
+    meta: '天王寺｜通天閣/CP值高/關西機場交通方便',
+    area: '天王寺',
+    datasetKey: 'hotel',
+    datasetValue: '天王寺住宿',
+    actions: [
+      { label: 'Agoda', href: 'https://www.agoda.com/zh-tw/city/osaka-jp.html?cid=1945734', className: 'btn primary', event: 'osakahotel_tennoji1_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/?Allianceid=6833709&SID=242535686', className: 'btn', event: 'osakahotel_tennoji1_trip', platform: 'Trip', section: 'hotel_card' },
+    ],
+  },
 ]
 
 export default function OsakaHotelPage() {
   return (
     <>
       <CitySubpageHeader backHref="/osaka" eventPrefix="osakahotel" />
-      <main className="busan-main transport-main">
-        <h1 className="sr-only">大阪住宿精選｜JieJourneys(旅杰)</h1>
-        <h2>日本大阪住宿精選</h2>
+      <main className="busan-main transport-main seo-page">
+        <SeoHeroSection
+          badge="大阪自由行攻略"
+          h1="大阪住宿推薦｜道頓堀、梅田、心齋橋區域完整分析"
+          intro="大阪住宿選區影響你整趟旅程的體驗。這頁整理各大住宿區域的特色與適合對象，幫你快速鎖定最值得住的地點。"
+          eventPrefix="osakahotel"
+          showVisual={false}
+          ctaLinks={[
+            {
+              label: '大阪票券總整理',
+              href: 'https://www.jiejourneys.com/osaka/ticket',
+              dataEvent: 'osakahotel_alltickets',
+              platform: 'ticket',
+            },
+            {
+              label: '通訊&交通攻略',
+              href: 'https://www.jiejourneys.com/osaka/transport',
+              dataEvent: 'osakahotel_alltransport',
+              platform: 'transport',
+            },
+          ]}
+        />
+
+        <h2 className="seo-h2" id="stayListTitle">
+          大阪住宿推薦
+        </h2>
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="osaka_hotel_tab" />
+
+        <SeoContentSection title="大阪住宿區域怎麼選？">
+          <h3 className="seo-h3">道頓堀/難波｜玩樂美食核心</h3>
+          <p>
+            大阪最熱鬧的區域，道頓堀、心齋橋、黑門市場都在步行範圍內。想每天晚上都在外面吃宵夜的人住這區最方便。
+            地鐵難波站是搭 HARUKA 前往關西機場的轉乘點，交通也很便利。
+          </p>
+
+          <h3 className="seo-h3">梅田/大阪站｜交通最便利</h3>
+          <p>
+            大阪最大的交通樞紐，JR、阪急、阪神、地鐵都從這裡出發。
+            計劃當天往返京都、神戶的旅客首選。百貨公司、伊勢丹在樓上，下雨天也不怕。
+          </p>
+
+          <h3 className="seo-h3">心齋橋｜購物主場</h3>
+          <p>
+            心齋橋拱廊商店街、美國村、藥妝店密集，適合購物派旅客。
+            離道頓堀也很近，步行約 10 分鐘可以來回兩區。
+          </p>
+
+          <h3 className="seo-h3">天王寺｜CP 值高選擇</h3>
+          <p>
+            通天閣、新世界串炸就在附近，生活圈物價偏低，CP 值高。
+            從天王寺搭 HARUKA 可直達關西機場，適合第一天或最後一天住這邊。
+          </p>
+        </SeoContentSection>
+
+        <SeoFaqSection
+          title="大阪住宿常見問題"
+          items={[
+            { q: '大阪住哪個區域最方便？', a: '以玩樂便利度選道頓堀/難波，美食購物步行可達；以交通便利選梅田，往返京都/神戶最快。第一次去的人多數選道頓堀/難波，生活機能最齊全。' },
+            { q: '大阪住宿要提前多久訂？', a: '旺季（春天賞櫻 3–4 月、暑假 7–8 月、秋楓 11 月）建議提前 1–2 個月訂。熱門地段連淡季也建議提早，大阪近年旅客量大幅增加，好房源很快就滿。' },
+            { q: '關西機場附近需要住宿嗎？', a: '不一定。HARUKA 特急從機場到難波只需約 40 分鐘，建議直接住大阪市區。除非深夜抵達或凌晨出發，否則住市區比住機場附近靈活多了。' },
+          ]}
+        />
       </main>
       <Footer />
     </>
