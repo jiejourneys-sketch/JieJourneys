@@ -388,7 +388,7 @@ const cards: CityCard[] = [
     area: '一日遊',
     datasetKey: 'title',
     datasetValue: '客制化行程｜包車',
-    tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定'],
+    tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定', '西湖', 'KABA水陸巴士', '箱根神社', '箱根纜車', '箱根海賊船', '川越', '大涌谷', '蘆之湖', '江之島', '富士急樂園', '富士野生動物園'],
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131172-japan-private-car-charter-tokyo-fuji-hakone-kamakura-karuizawa-izu-kawagoe-nagano-nikko?cid=22312', className: 'btn primary', event: 'fujticket_1dayall_kkday', platform: 'KKDAY', section: 'ticket_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/120898-car-rental-with-driver-tokyo-mtfuji-chinesespeaking/?aid=93798', className: 'btn', event: 'fujticket_1dayall_klook', platform: 'KLOOK', section: 'ticket_card' },
