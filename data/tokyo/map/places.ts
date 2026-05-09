@@ -134,6 +134,45 @@ function tokyoRelatedTicketHref(tag: string, placeId: string): string {
   return `/tokyo/ticket?tag=${encodeURIComponent(tag)}&from=map&place=${encodeURIComponent(placeId)}#ticketListTitle`
 }
 
+function eventSlug(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase()
+}
+
+function mapActionPlatform(action: CityCardAction): string {
+  const platform = eventSlug(action.platform || action.label || 'link')
+  return platform === 'maps' ? 'map' : platform
+}
+
+function tokyoMapTicketAction(action: CityCardAction, placeId: string): CityCardAction {
+  const platform = mapActionPlatform(action)
+  const ticketSlug = action.event?.match(new RegExp(`^tokyoticket_(.+)_${platform}$`))?.[1] ?? eventSlug(placeId)
+  return {
+    ...action,
+    mapEvent: `tokyomap_ticket_${ticketSlug}_${platform}`,
+    mapSection: 'map_bar',
+  }
+}
+
+function tokyoHotelSlugFromAction(action: CityCardAction): string {
+  const platform = mapActionPlatform(action)
+  const event = action.event?.trim() ?? ''
+  const match = event.match(new RegExp(`^tokyohotel_(.+)_${platform}$`))
+  return match?.[1] ?? eventSlug(event || action.label)
+}
+
+function tokyoMapHotelAction(action: CityCardAction): CityCardAction {
+  const platform = mapActionPlatform(action)
+  return {
+    ...action,
+    mapEvent: `tokyomap_hotel_${tokyoHotelSlugFromAction(action)}_${platform}`,
+    mapSection: 'map_bar',
+  }
+}
+
 /** 票券景點標題 → 一日遊 tag（目前個別景點票無對應一日遊；一日遊景點由 free.ts 的 relatedTicketHref 串接） */
 const TOKYO_RELATED_TICKET_TAG_BY_SPOT_TITLE: Record<string, string> = {}
 
@@ -145,7 +184,10 @@ function ticketCardsToSpots(): TokyoMapPlace[] {
     const geo = TOKYO_SPOT_GEO[card.title]
     const id = TOKYO_SPOT_ID[card.title]
     if (!geo || !id) throw new Error(`tokyo/map/places: 缺少座標或 id：${card.title}`)
-    const mapSpotActions = [...card.actions, ...(TOKYO_MAP_SPOT_EXTRA_ACTIONS[card.title] ?? [])]
+    const mapSpotActions = [
+      ...card.actions.map((action) => tokyoMapTicketAction(action, id)),
+      ...(TOKYO_MAP_SPOT_EXTRA_ACTIONS[card.title] ?? []),
+    ]
     const relatedTicketTag = TOKYO_RELATED_TICKET_TAG_BY_SPOT_TITLE[card.title]
     return {
       id,
@@ -160,7 +202,7 @@ function ticketCardsToSpots(): TokyoMapPlace[] {
       ...(relatedTicketTag
         ? {
             relatedTicketHref: tokyoRelatedTicketHref(relatedTicketTag, id),
-            relatedTicketEvent: `tokyomap_${id}_ticket`,
+            relatedTicketEvent: `tokyomap_${eventSlug(id)}_ticket`,
           }
         : {}),
     }
@@ -173,6 +215,16 @@ function hotelCardToPlace(card: (typeof tokyoHotelCards)[number], index: number)
   if (lat === undefined || lng === undefined) {
     throw new Error(`tokyo/hotels: missing lat/lng for ${card.title}`)
   }
+  const mapAction = card.actions.find((action) => action.platform === 'Maps')
+  const hotelActions = card.actions
+    .filter((action) => action.platform !== 'Maps')
+    .map((action) => tokyoMapHotelAction(action))
+  const hotelSlug = mapAction
+    ? tokyoHotelSlugFromAction(mapAction)
+    : hotelActions[0]
+      ? tokyoHotelSlugFromAction(hotelActions[0])
+      : eventSlug(card.title)
+
   return {
     id: `hotel-${index + 1}`,
     category: 'hotel',
@@ -180,7 +232,9 @@ function hotelCardToPlace(card: (typeof tokyoHotelCards)[number], index: number)
     description: card.meta,
     lat,
     lng,
-    hotelActions: card.actions,
+    spotGoogleMapsUrl: mapAction?.href,
+    mapButtonMapEvent: `tokyomap_hotel_${hotelSlug}_map`,
+    hotelActions,
   }
 }
 

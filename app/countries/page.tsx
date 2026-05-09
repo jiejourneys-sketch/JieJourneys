@@ -20,6 +20,19 @@ export default function CountriesPage() {
           />
           <div className="popular-grid">
             <Link
+              href="/osaka"
+              className="card"
+              data-event="countries_card_osaka"
+              data-item="osaka"
+              data-section="countries"
+              data-tags="日本 大阪 osaka japan 環球影城 USJ"
+              aria-label="前往大阪攻略頁面"
+            >
+              <div className="card-body">
+                <h3>日本｜大阪</h3>
+              </div>
+            </Link>
+            <Link
               href="/northvietnam"
               className="card"
               data-event="countries_card_northvietnam"
@@ -32,18 +45,6 @@ export default function CountriesPage() {
                 <h3>越南｜北越</h3>
               </div>
             </Link>
-            <div
-              className="card"
-              data-event="countries_card_osaka"
-              data-item="osaka"
-              data-section="countries"
-              data-tags="日本 大阪 osaka japan 環球影城 USJ"
-              aria-label="大阪攻略頁面製作中"
-            >
-              <div className="card-body">
-                <h3>大阪(製作中)</h3>
-              </div>
-            </div>
           </div>
         </section>
       </main>

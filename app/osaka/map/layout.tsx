@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '大阪景點地圖｜道頓堀・USJ・海遊館・空中庭園等大阪熱門景點一覽 | JieJourneys(旅杰)'
+const title = '大阪熱門景點地圖｜票券・一日遊景點・住宿位置整理 | JieJourneys(旅杰)'
 const description =
-  '大阪景點地圖整合票券景點、免費景點與住宿位置：道頓堀、心齋橋、大阪城、環球影城USJ、海遊館、空中庭園展望台、通天閣都可切換查看，一鍵開啟 Google Map 導航。'
+  '大阪熱門景點地圖整理票券景點、一日遊目的地與住宿區示範，包含 USJ、海遊館、勝尾寺、天橋立、伊根舟屋、京都、奈良、神戶、和歌山等大阪自由行常見地點。'
 
 export const metadata: Metadata = {
   title,

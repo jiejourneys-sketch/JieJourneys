@@ -107,9 +107,10 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
     const params = new URLSearchParams(window.location.search)
     const tag = params.get('tag')?.trim()
     const id = window.setTimeout(() => {
-      if (params.get('from') === 'map') {
+      const from = params.get('from')
+      if (from === 'map' || from === 'pass-map') {
         const place = params.get('place')?.trim()
-        const mapPath = window.location.pathname.replace(/\/ticket\/?$/, '/map')
+        const mapPath = window.location.pathname.replace(/\/ticket\/?$/, from === 'pass-map' ? '/pass-map' : '/map')
         setReturnHref(place ? `${mapPath}?place=${encodeURIComponent(place)}` : mapPath)
       }
       if (!tag) return

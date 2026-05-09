@@ -3,12 +3,46 @@ import { fujiHotelCards } from '@/data/fuji/hotels'
 
 export const FUJI_MAP_CENTER = { lat: 35.5112, lng: 138.7630 }
 
+function eventSlug(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase()
+}
+
+function mapActionPlatform(action: NonNullable<MapPlace['hotelActions']>[number]): string {
+  const platform = eventSlug(action.platform || action.label || 'link')
+  return platform === 'maps' ? 'map' : platform
+}
+
+function fujiHotelSlugFromAction(action: NonNullable<MapPlace['hotelActions']>[number]): string {
+  const platform = mapActionPlatform(action)
+  const event = action.event?.trim() ?? ''
+  const match = event.match(new RegExp(`^fujihotel_(.+)_${platform}$`))
+  return match?.[1] ?? eventSlug(event || action.label)
+}
+
 function hotelCardToPlace(card: (typeof fujiHotelCards)[number], index: number): MapPlace {
   const lat = card.lat
   const lng = card.lng
   if (lat === undefined || lng === undefined) {
     throw new Error(`fuji/hotels: missing lat/lng for ${card.title}`)
   }
+  const mapAction = card.actions.find((action) => action.platform === 'Maps')
+  const hotelActions = card.actions
+    .filter((action) => action.platform !== 'Maps')
+    .map((action) => ({
+      ...action,
+      mapEvent: `fujimap_hotel_${fujiHotelSlugFromAction(action)}_${mapActionPlatform(action)}`,
+      mapSection: 'map_bar',
+    }))
+  const hotelSlug = mapAction
+    ? fujiHotelSlugFromAction(mapAction)
+    : hotelActions[0]
+      ? fujiHotelSlugFromAction(hotelActions[0])
+      : eventSlug(card.title)
+
   return {
     id: `fuji-hotel-${index + 1}`,
     category: 'hotel',
@@ -16,7 +50,9 @@ function hotelCardToPlace(card: (typeof fujiHotelCards)[number], index: number):
     description: card.meta,
     lat,
     lng,
-    hotelActions: card.actions,
+    spotGoogleMapsUrl: mapAction?.href,
+    mapButtonMapEvent: `fujimap_hotel_${hotelSlug}_map`,
+    hotelActions,
   }
 }
 
@@ -29,9 +65,9 @@ const fujiTicketSpots: MapPlace[] = [
     lat: 35.4869467,
     lng: 138.7805511,
     spotActions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20133-fuji-q-highland-e-ticket?cid=22312', className: 'btn primary', event: 'fujimap_highland_kkday', platform: 'KKDAY', section: 'map_bar' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/95879-fujiq-highland-admission-ticket/?aid=93798', className: 'btn', event: 'fujimap_highland_klook', platform: 'KLOOK', section: 'map_bar' },
-      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujiyoshida/fuji-q-highland-90440/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujimap_highland_trip', platform: 'Trip', section: 'map_bar' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20133-fuji-q-highland-e-ticket?cid=22312', className: 'btn primary', event: 'fujimap_ticket_highland_kkday', platform: 'KKDAY', section: 'map_bar' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/95879-fujiq-highland-admission-ticket/?aid=93798', className: 'btn', event: 'fujimap_ticket_highland_klook', platform: 'KLOOK', section: 'map_bar' },
+      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujiyoshida/fuji-q-highland-90440/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujimap_ticket_highland_trip', platform: 'Trip', section: 'map_bar' },
     ],
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/kGBPMZTBuMfB69b17',
     mapButtonMapEvent: 'fujimap_highland_map',
@@ -45,8 +81,8 @@ const fujiTicketSpots: MapPlace[] = [
     lat: 35.5040321,
     lng: 138.7720895,
     spotActions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/89462-mt-fuji-panoramic-ropeway-round-trip-ticket-yamanashi/?aid=93798', className: 'btn primary', event: 'fujimap_cable_klook', platform: 'KLOOK', section: 'map_bar' },
-      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/mt-fuji-panoramic-ropeway-23487867?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujimap_cable_trip', platform: 'Trip', section: 'map_bar' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/89462-mt-fuji-panoramic-ropeway-round-trip-ticket-yamanashi/?aid=93798', className: 'btn primary', event: 'fujimap_ticket_cable_klook', platform: 'KLOOK', section: 'map_bar' },
+      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/mt-fuji-panoramic-ropeway-23487867?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujimap_ticket_cable_trip', platform: 'Trip', section: 'map_bar' },
     ],
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/87qi3yMZoWTcNBYy9',
     mapButtonMapEvent: 'fujimap_ropeway_map',
@@ -60,8 +96,8 @@ const fujiTicketSpots: MapPlace[] = [
     lat: 35.5037494,
     lng: 138.7705261,
     spotActions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/574488?cid=22312', className: 'btn primary', event: 'fujimap_cruise_kkday', platform: 'KKDAY', section: 'map_bar' },
-      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/lake-kawaguchiko-sightseeing-boat-appare-29874636?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujimap_cruise_trip', platform: 'Trip', section: 'map_bar' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/574488?cid=22312', className: 'btn primary', event: 'fujimap_ticket_cruise_kkday', platform: 'KKDAY', section: 'map_bar' },
+      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/lake-kawaguchiko-sightseeing-boat-appare-29874636?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujimap_ticket_cruise_trip', platform: 'Trip', section: 'map_bar' },
     ],
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/U67YGdp5Z8SdaoRs7',
     mapButtonMapEvent: 'fujimap_cruise_map',
@@ -75,9 +111,9 @@ const fujiTicketSpots: MapPlace[] = [
     lat: 35.5224188,
     lng: 138.768715,
     spotActions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/138288-yamanashi-kawaguchiko-music-forest-museum-admission-ticket?cid=22312', className: 'btn primary', event: 'fujimap_musicforest_kkday', platform: 'KKDAY', section: 'map_bar' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/85583-kawaguchiko-music-forest-museum-admission-admission-yamanashi/?aid=93798', className: 'btn', event: 'fujimap_musicforest_klook', platform: 'KLOOK', section: 'map_bar' },
-      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/kawaguchiko-music-forest-museum-23515819/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujimap_musicforest_trip', platform: 'Trip', section: 'map_bar' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/138288-yamanashi-kawaguchiko-music-forest-museum-admission-ticket?cid=22312', className: 'btn primary', event: 'fujimap_ticket_music_forest_kkday', platform: 'KKDAY', section: 'map_bar' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/85583-kawaguchiko-music-forest-museum-admission-admission-yamanashi/?aid=93798', className: 'btn', event: 'fujimap_ticket_music_forest_klook', platform: 'KLOOK', section: 'map_bar' },
+      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/kawaguchiko-music-forest-museum-23515819/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujimap_ticket_music_forest_trip', platform: 'Trip', section: 'map_bar' },
     ],
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/jCyTHDetG8jtZP9p7',
     mapButtonMapEvent: 'fujimap_musicforest_map',

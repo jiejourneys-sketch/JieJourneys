@@ -5,6 +5,7 @@ import type { CityCard } from '@/components/CityTabbedList'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoCtaSection from '@/components/seo/SeoCtaSection'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -18,7 +19,7 @@ const cards: CityCard[] = [
     title: 'eSIM卡',
     meta: '通訊', area: '通訊', datasetKey: 'title', datasetValue: 'eSIM卡',
     actions: [
-      { label: '合作eSIM', href: 'https://esimconnect.com.tw/#/access/esimbuy?region=%E6%97%A5%E6%9C%AC&referencecode=jiejourneys', className: 'btn primary recommend', event: 'fujitransport_esimconnect', platform: 'connect', section: 'comm_card', promoCode: 'jiejourneys' },
+      { label: '合作eSIM', href: 'https://esimconnect.com.tw/#/access/esimbuy?region=%E6%97%A5%E6%9C%AC&referencecode=jiejourneys', className: 'btn primary recommend', event: 'fujitransport_esim_connect', platform: 'connect', section: 'comm_card', promoCode: 'jiejourneys' },
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131111-japan-4g-unlimited-data-500mb-1gb-esim?cid=22312', className: 'btn', event: 'fujitransport_esim_kkday', platform: 'KKDAY', section: 'comm_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109393-japan-esim-high-speed-internet-qr-code-voucher/?aid=93798', className: 'btn', event: 'fujitransport_esim_klook', platform: 'KLOOK', section: 'comm_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/37658069?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D11674280', className: 'btn', event: 'fujitransport_esim_trip', platform: 'Trip', section: 'comm_card' },
@@ -63,17 +64,17 @@ const cards: CityCard[] = [
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/transportation/list_page/japan-rail/jp-shinjuku-rail-to-jp-kawaguchiko-rail?cid=22312', className: 'btn primary', event: 'fujitransport_excursion_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/japan-rail/kawaguchiko-station/28-tokyo/?aid=93798', className: 'btn', event: 'fujitransport_excursion_klook', platform: 'KLOOK', section: 'transport_card' },
-      { label: '時刻表', href: 'https://www.fujikyu-railway.jp/fujikaiyuu/', className: 'btn', event: 'fujitransport_Expressbus_timetable', platform: 'Timetable', section: 'transport_card' },
+      { label: '時刻表', href: 'https://www.fujikyu-railway.jp/fujikaiyuu/', className: 'btn', event: 'fujitransport_excursion_timetable', platform: 'Timetable', section: 'transport_card' },
     ],
   },
   {
     title: '機場/東京 ⇄ 富士山/河口湖｜高速巴士',
     meta: '交通', area: '交通', datasetKey: 'title', datasetValue: '新宿 ⇄ 河口湖站｜高速巴士',
     actions: [
-     { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/159339-tokyo-mtfuji-highway-bus/?aid=93798', className: 'btn primary', event: 'fujitransport_Expressbus_klook', platform: 'KLOOK', section: 'transport_card' },
-     { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/68978254/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujitransport_Expressbus_trip', platform: 'Trip', section: 'transport_card' },
-     { label: '官網', href: 'https://highway-buses.jp/chi/', className: 'btn', event: 'fujitransport_Expressbus_Official', platform: 'Timetable', section: 'transport_card' },
-     { label: '時刻表', href: 'https://japantravel.navitime.com/zh-tw/area/jp/highwaybus/list/tokyo-to-yamanashi/', className: 'btn', event: 'fujitransport_Expressbus_timetable', platform: 'Timetable', section: 'transport_card' },
+     { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/159339-tokyo-mtfuji-highway-bus/?aid=93798', className: 'btn primary', event: 'fujitransport_express_bus_klook', platform: 'KLOOK', section: 'transport_card' },
+     { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/68978254/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujitransport_express_bus_trip', platform: 'Trip', section: 'transport_card' },
+     { label: '官網', href: 'https://highway-buses.jp/chi/', className: 'btn', event: 'fujitransport_express_bus_official', platform: 'Timetable', section: 'transport_card' },
+     { label: '時刻表', href: 'https://japantravel.navitime.com/zh-tw/area/jp/highwaybus/list/tokyo-to-yamanashi/', className: 'btn', event: 'fujitransport_express_bus_timetable', platform: 'Timetable', section: 'transport_card' },
     ],
   },
   {
@@ -126,6 +127,8 @@ export default function FujiTransportPage() {
           富士河口湖通訊&交通整理（eSIM、巴士、機場接送）
         </h2>
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="fuji_transport_tab" />
+
+        <SeoCtaSection text="" href="/fuji/map" linkText="富士河口湖熱門景點地圖" newTab dataEvent="fujitransport_SEO_spotmap" />
 
         <SeoContentSection title="富士河口湖通訊 & 交通怎麼選？">
           <h3 className="seo-h3">通訊方案：eSIM 最方便，多人就用 WiFi</h3>

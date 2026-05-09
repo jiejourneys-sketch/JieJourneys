@@ -338,11 +338,16 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0 10px;
   border: 1.6px solid #1f7a8c;
   border-radius: 10px;
   font-weight: 600;
   color: #000;
   background: #fff;
+  line-height: 1.2;
+  text-align: center;
   transition: all 0.15s ease;
 }
 .tools-row a:hover {
@@ -350,6 +355,19 @@ header {
   color: #155c6a;
   transform: translateY(-2px);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
+}
+.tools-row a.tool-link-compact {
+  font-size: 15px;
+  line-height: 1.15;
+}
+.tools-row a.promo-copied {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #fff !important;
+  font-size: 14px;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  transform: none;
 }
 
 .about {

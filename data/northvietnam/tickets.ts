@@ -11,10 +11,10 @@ export const northVietnamTicketTabs: TabItem[] = [
 
 export const northVietnamTicketCards: CityCard[] = [
   // ── 河內 ──────────────────────────────────────────────────
-  { title: '水上木偶秀', meta: '河內', area: '河內', datasetKey: 'title' as const, datasetValue: '水上木偶秀', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/129554-hanoi-water-puppet-show-express-pass-vietnam?cid=22312', className: 'btn primary', event: 'northvietnamticket_WaterArtKKday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/35653-thang-long-water-puppet-show-ticket-hanoi/?aid=93798', className: 'btn', event: 'northvietnamticket_WaterArtKLOOK', platform: 'KLOOK', section: 'ticket_card' }] },
-  { title: 'La Belle Spa按摩', meta: '河內', area: '河內', datasetKey: 'title' as const, datasetValue: 'La Belle Spa按摩', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/32025-ha-noi-la-belle-spa-message-voucher/?cid=22312', className: 'btn primary', event: 'northvietnamticket_HanoiLabelleKKday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/18679-la-belle-spa-hanoi-halong-bay/?aid=93798', className: 'btn', event: 'northvietnamticket_HanoiLabelleKLOOK', platform: 'KLOOK', section: 'ticket_card' }] },
-  { title: '樂天觀景台', meta: '河內', area: '河內', datasetKey: 'title' as const, datasetValue: '樂天觀景台', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/23559-ha-noi-lotte-observation-deck-transparent-skywalk-ticket?cid=22312', className: 'btn primary', event: 'northvietnamticket_ObsDeckKKday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/22529-lotte-observation-deck-ticket-hanoi/?aid=93798', className: 'btn', event: 'northvietnamticket_ObsDeckKLOOK', platform: 'KLOOK', section: 'ticket_card' }] },
-  { title: '樂天世界水族館', meta: '河內', area: '河內', datasetKey: 'title' as const, datasetValue: '樂天世界水族館', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/163666-vinvonders-hanoi-congviennuoc?cid=22312', className: 'btn primary', event: 'northvietnamticket_SeaKKday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109708-ha-noi-lotte-world-aquarium/?aid=93798', className: 'btn', event: 'northvietnamticket_SeaKLOOK', platform: 'KLOOK', section: 'ticket_card' }] },
+  { title: '水上木偶秀', meta: '河內', area: '河內', datasetKey: 'title' as const, datasetValue: '水上木偶秀', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/129554-hanoi-water-puppet-show-express-pass-vietnam?cid=22312', className: 'btn primary', event: 'northvietnamticket_water_puppet_kkday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/35653-thang-long-water-puppet-show-ticket-hanoi/?aid=93798', className: 'btn', event: 'northvietnamticket_water_puppet_klook', platform: 'KLOOK', section: 'ticket_card' }] },
+  { title: 'La Belle Spa按摩', meta: '河內', area: '河內', datasetKey: 'title' as const, datasetValue: 'La Belle Spa按摩', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/32025-ha-noi-la-belle-spa-message-voucher/?cid=22312', className: 'btn primary', event: 'northvietnamticket_la_belle_spa_kkday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/18679-la-belle-spa-hanoi-halong-bay/?aid=93798', className: 'btn', event: 'northvietnamticket_la_belle_spa_klook', platform: 'KLOOK', section: 'ticket_card' }] },
+  { title: '樂天觀景台', meta: '河內', area: '河內', datasetKey: 'title' as const, datasetValue: '樂天觀景台', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/23559-ha-noi-lotte-observation-deck-transparent-skywalk-ticket?cid=22312', className: 'btn primary', event: 'northvietnamticket_lotte_deck_kkday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/22529-lotte-observation-deck-ticket-hanoi/?aid=93798', className: 'btn', event: 'northvietnamticket_lotte_deck_klook', platform: 'KLOOK', section: 'ticket_card' }] },
+  { title: '樂天世界水族館', meta: '河內', area: '河內', datasetKey: 'title' as const, datasetValue: '樂天世界水族館', actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/163666-vinvonders-hanoi-congviennuoc?cid=22312', className: 'btn primary', event: 'northvietnamticket_lotte_aquarium_kkday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109708-ha-noi-lotte-world-aquarium/?aid=93798', className: 'btn', event: 'northvietnamticket_lotte_aquarium_klook', platform: 'KLOOK', section: 'ticket_card' }] },
   // ── 河內行程 ───────────────────────────────────────────────
   {
     title: '胡志明陵寢+文廟+鎮國寺+越南民族學博物館+火爐監獄博物館',
@@ -24,8 +24,8 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '胡志明陵寢+文廟+鎮國寺+越南民族學博物館+火爐監獄博物館',
     tags: ['胡志明陵寢', '文廟', '鎮國寺', '越南民族學博物館', '火爐監獄博物館'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/1966-hanoi-day-tour-hanoi/?aid=93798', className: 'btn primary', event: 'northvietnamticket_1day1_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/67947744/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn', event: 'northvietnamticket_1day1_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/1966-hanoi-day-tour-hanoi/?aid=93798', className: 'btn primary', event: 'northvietnamticket_oneday_01_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/67947744/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn', event: 'northvietnamticket_oneday_01_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -36,7 +36,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '還劍湖+玉山祠+胡志明陵寢+文廟+鎮國寺+越南民族學博物館+/-昇龍水木偶戲院',
     tags: ['還劍湖', '玉山祠', '胡志明陵寢', '文廟', '鎮國寺', '越南民族學博物館', '水木偶'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/8470-city-tour-water-puppet-show-hanoi/?aid=93798', className: 'btn primary', event: 'northvietnamticket_1day2_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/8470-city-tour-water-puppet-show-hanoi/?aid=93798', className: 'btn primary', event: 'northvietnamticket_oneday_02_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -47,7 +47,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '河內教堂+鎮國寺+公安博物館+玉山祠+文廟+越南民族學博物館+越南婦女博物館+西湖',
     tags: ['河內教堂', '鎮國寺', '玉山祠', '文廟', '越南民族學博物館', '越南婦女博物館', '西湖'],
     actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/96183194/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn primary', event: 'northvietnamticket_1day3_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/96183194/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn primary', event: 'northvietnamticket_oneday_03_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -58,7 +58,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '火車街+胡志明陵寢+火爐監獄博物館+文廟+鎮國寺',
     tags: ['火車街', '胡志明陵寢', '火爐監獄博物館', '文廟', '鎮國寺'],
     actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/103058814/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn primary', event: 'northvietnamticket_1day4_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/103058814/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn primary', event: 'northvietnamticket_oneday_04_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -69,9 +69,9 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '河內美食之旅',
     tags: ['美食之旅'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131886?cid=22312', className: 'btn primary', event: 'northvietnamticket_1day5_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/1969-old-quarter-food-tour-hanoi/?aid=93798', className: 'btn', event: 'northvietnamticket_1day5_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/62597554/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn', event: 'northvietnamticket_1day5_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131886?cid=22312', className: 'btn primary', event: 'northvietnamticket_oneday_05_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/1969-old-quarter-food-tour-hanoi/?aid=93798', className: 'btn', event: 'northvietnamticket_oneday_05_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/62597554/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn', event: 'northvietnamticket_oneday_05_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -82,8 +82,8 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '吉普車之旅｜火車街+還劍湖+胡志明陵寢+鎮國寺+龍邊橋+西湖+河內老城區+河內歌劇院',
     tags: ['火車街', '還劍湖', '胡志明陵寢', '鎮國寺', '龍邊橋', '西湖', '吉普車'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/31346-hanoi-vintage-army-jeep-tour/?aid=93798', className: 'btn primary', event: 'northvietnamticket_1day6_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/67891035/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn', event: 'northvietnamticket_1day6_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/31346-hanoi-vintage-army-jeep-tour/?aid=93798', className: 'btn primary', event: 'northvietnamticket_oneday_06_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/67891035/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn', event: 'northvietnamticket_oneday_06_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -94,7 +94,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '火車街+胡志明陵寢+河內教堂+鎮國寺+龍邊橋+西湖+陶瓷路',
     tags: ['火車街', '胡志明陵寢', '河內教堂', '鎮國寺', '龍邊橋', '西湖', '陶瓷路'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/27159-hanoi-instagram-tour-motorbike-car/?aid=93798', className: 'btn primary', event: 'northvietnamticket_1day7_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/27159-hanoi-instagram-tour-motorbike-car/?aid=93798', className: 'btn primary', event: 'northvietnamticket_oneday_07_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -105,7 +105,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '胡志明博物館+河內教堂+昇龍皇城+同春市場+河內旗台',
     tags: ['胡志明博物館', '河內教堂', '昇龍皇城', '同春市場'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/30643-hanoi-half-day-city-tour/?aid=93798', className: 'btn primary', event: 'northvietnamticket_1day8_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/30643-hanoi-half-day-city-tour/?aid=93798', className: 'btn primary', event: 'northvietnamticket_oneday_08_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -116,7 +116,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '河內火車街+胡志明陵寢+河內教堂+文廟+鎮國寺+河內香村',
     tags: ['火車街', '胡志明陵寢', '河內教堂', '文廟', '鎮國寺', '河內香村'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/153882-all-in-one-full-day-hanoi-incense-village-city-tour-train-street/?aid=93798', className: 'btn primary', event: 'northvietnamticket_1day9_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/153882-all-in-one-full-day-hanoi-incense-village-city-tour-train-street/?aid=93798', className: 'btn primary', event: 'northvietnamticket_oneday_09_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -127,8 +127,8 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '河內香村+制帽體驗',
     tags: ['河內香村', '制帽體驗'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/137735-hanoi-incense-village-hat-making-pottery-train-street-experienc/?aid=93798', className: 'btn primary', event: 'northvietnamticket_1day10_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/95633780/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn', event: 'northvietnamticket_1day10_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/137735-hanoi-incense-village-hat-making-pottery-train-street-experienc/?aid=93798', className: 'btn primary', event: 'northvietnamticket_oneday_10_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/95633780/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16349657', className: 'btn', event: 'northvietnamticket_oneday_10_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -139,14 +139,14 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '鉢場陶瓷村+河內大世界+韓國城+香港城+水舞表演',
     tags: ['鉢場陶瓷村', '河內大世界', '水舞表演'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/140566-hanoi-mega-grand-world-half-day-tour-with-bat-trang-village-optional/?aid=93798', className: 'btn primary', event: 'northvietnamticket_1day11_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/140566-hanoi-mega-grand-world-half-day-tour-with-bat-trang-village-optional/?aid=93798', className: 'btn primary', event: 'northvietnamticket_oneday_11_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   // ── 沙壩 ──────────────────────────────────────────────────
-  { title: '番西邦峰', meta: '沙壩', area: '沙壩', datasetKey: 'title' as const, datasetValue: '番西邦峰', tags: ['番西邦峰', '番西邦纜車'], actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/36100-sapa-sunworld-fansipan-legend-cable-car-ticket?cid=22312', className: 'btn primary', event: 'northvietnamticket_fansipanKKday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/11904-fansipan-cable-car-ticket-transfers-sapa/?aid=93798', className: 'btn', event: 'northvietnamticket_fansipanKLOOK', platform: 'KLOOK', section: 'ticket_card' }, { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/tt-sa-pa/sun-world-fansipan-legend-130369464?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5784662', className: 'btn', event: 'northvietnamticket_fansipanTrip', platform: 'Trip', section: 'ticket_card' }] },
-  { title: '玻璃天空步道', meta: '沙壩', area: '沙壩', datasetKey: 'title' as const, datasetValue: '玻璃天空步道', tags: ['玻璃天空步道'], actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/139366-rong-may-sapa-glass-bridge-ticket-vietnam?cid=22312', className: 'btn primary', event: 'northvietnamticket_bridgeKKday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/57672-rong-may-sapa-glass-bridge-ticket/?aid=93798', className: 'btn', event: 'northvietnamticket_bridgeKLOOK', platform: 'KLOOK', section: 'ticket_card' }, { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/97861270?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5784662', className: 'btn', event: 'northvietnamticket_bridgeTrip', platform: 'Trip', section: 'ticket_card' }] },
-  { title: '沙壩高山滑車', meta: '沙壩', area: '沙壩', datasetKey: 'title' as const, datasetValue: '沙壩高山滑車', tags: ['沙壩高山滑車'], actions: [{ label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/43346-sapa-mong-village-alpine-coaster-experience/?aid=93798', className: 'btn primary', event: 'northvietnamticket_coasterKLOOK', platform: 'KLOOK', section: 'ticket_card' }, { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/sapa/alpine-coaster-sapa-145057408/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_coasterTrip', platform: 'Trip', section: 'ticket_card' }] },
-  { title: '天堂之門', meta: '沙壩', area: '沙壩', datasetKey: 'title' as const, datasetValue: '天堂之門', tags: ['天堂之門'], actions: [{ label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/126477-o-quy-ho-heaven-gate-and-fairy-valley-ticket-in-sa-pa/?aid=93798', className: 'btn primary', event: 'northvietnamticket_heavengateKLOOK', platform: 'KLOOK', section: 'ticket_card' }] },
+  { title: '番西邦峰', meta: '沙壩', area: '沙壩', datasetKey: 'title' as const, datasetValue: '番西邦峰', tags: ['番西邦峰', '番西邦纜車'], actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/36100-sapa-sunworld-fansipan-legend-cable-car-ticket?cid=22312', className: 'btn primary', event: 'northvietnamticket_fansipan_kkday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/11904-fansipan-cable-car-ticket-transfers-sapa/?aid=93798', className: 'btn', event: 'northvietnamticket_fansipan_klook', platform: 'KLOOK', section: 'ticket_card' }, { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/tt-sa-pa/sun-world-fansipan-legend-130369464?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5784662', className: 'btn', event: 'northvietnamticket_fansipan_trip', platform: 'Trip', section: 'ticket_card' }] },
+  { title: '玻璃天空步道', meta: '沙壩', area: '沙壩', datasetKey: 'title' as const, datasetValue: '玻璃天空步道', tags: ['玻璃天空步道'], actions: [{ label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/139366-rong-may-sapa-glass-bridge-ticket-vietnam?cid=22312', className: 'btn primary', event: 'northvietnamticket_glass_bridge_kkday', platform: 'KKDAY', section: 'ticket_card' }, { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/57672-rong-may-sapa-glass-bridge-ticket/?aid=93798', className: 'btn', event: 'northvietnamticket_glass_bridge_klook', platform: 'KLOOK', section: 'ticket_card' }, { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/97861270?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5784662', className: 'btn', event: 'northvietnamticket_glass_bridge_trip', platform: 'Trip', section: 'ticket_card' }] },
+  { title: '沙壩高山滑車', meta: '沙壩', area: '沙壩', datasetKey: 'title' as const, datasetValue: '沙壩高山滑車', tags: ['沙壩高山滑車'], actions: [{ label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/43346-sapa-mong-village-alpine-coaster-experience/?aid=93798', className: 'btn primary', event: 'northvietnamticket_coaster_klook', platform: 'KLOOK', section: 'ticket_card' }, { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/sapa/alpine-coaster-sapa-145057408/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_coaster_trip', platform: 'Trip', section: 'ticket_card' }] },
+  { title: '天堂之門', meta: '沙壩', area: '沙壩', datasetKey: 'title' as const, datasetValue: '天堂之門', tags: ['天堂之門'], actions: [{ label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/126477-o-quy-ho-heaven-gate-and-fairy-valley-ticket-in-sa-pa/?aid=93798', className: 'btn primary', event: 'northvietnamticket_heaven_gate_klook', platform: 'KLOOK', section: 'ticket_card' }] },
   // ── 沙壩行程 ───────────────────────────────────────────────
   {
     title: '番西邦峰+番西邦纜車+貓貓村+Moana Sapa+/-沙壩高山滑車｜1日遊',
@@ -156,9 +156,9 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '番西邦峰+番西邦纜車+貓貓村+Moana Sapa+/-沙壩高山滑車｜1日遊',
     tags: ['番西邦峰', '番西邦纜車', '貓貓村', 'Moana Sapa', '沙壩高山滑車', '1日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/527473?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa1day1_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/178955-from-sapa-fansipan-cable-cat-cat-village-moana-instagram-day-tour/?aid=93798', className: 'btn', event: 'northvietnamticket_sapa1day1_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/99118166?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_sapa1day1_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/527473?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa_oneday_01_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/178955-from-sapa-fansipan-cable-cat-cat-village-moana-instagram-day-tour/?aid=93798', className: 'btn', event: 'northvietnamticket_sapa_oneday_01_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/99118166?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_sapa_oneday_01_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -169,9 +169,9 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '貓貓村+Moana Sapa+沙壩高山滑車｜1日遊',
     tags: ['貓貓村', 'Moana Sapa', '沙壩高山滑車', '1日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/548023?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa1day2_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/160591-sapa-cat-cat-village-moana-alpine-roller-coaster-instagram-tour/?aid=93798', className: 'btn', event: 'northvietnamticket_sapa1day2_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/103587569?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_sapa1day2_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/548023?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa_oneday_02_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/160591-sapa-cat-cat-village-moana-alpine-roller-coaster-instagram-tour/?aid=93798', className: 'btn', event: 'northvietnamticket_sapa_oneday_02_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/103587569?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_sapa_oneday_02_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -182,8 +182,8 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '玻璃天空步道+銀瀑+天堂之門｜1日遊',
     tags: ['玻璃天空步道', '銀瀑', '天堂之門', '1日遊'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/35249-sapa-silver-waterfall-cloud-dragon-skywalk-private-tour/?aid=93798', className: 'btn primary', event: 'northvietnamticket_sapa1day3_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/48726483/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_sapa1day3_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/35249-sapa-silver-waterfall-cloud-dragon-skywalk-private-tour/?aid=93798', className: 'btn primary', event: 'northvietnamticket_sapa_oneday_03_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/48726483/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_sapa_oneday_03_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -194,9 +194,9 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '義靈湖、老寨和塔萬村莊｜1日遊',
     tags: ['義靈湖、老寨和塔萬村莊', '1日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/570584?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa1day4_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/140519-y-linh-ho-lao-chai-ta-van-village-trekking-day-tour/?aid=93798', className: 'btn', event: 'northvietnamticket_sapa1day4_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/105275998/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_sapa1day4_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/570584?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa_oneday_04_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/140519-y-linh-ho-lao-chai-ta-van-village-trekking-day-tour/?aid=93798', className: 'btn', event: 'northvietnamticket_sapa_oneday_04_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/105275998/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16383096', className: 'btn', event: 'northvietnamticket_sapa_oneday_04_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -207,7 +207,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '貓貓村+Moana Sapa+玻璃天空步道｜1日遊',
     tags: ['貓貓村', 'Moana Sapa', '玻璃天空步道', '1日遊'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/197467-sapa-rong-may-glass-bridge-cat-cat-village-full-day-tour/?aid=93798', className: 'btn primary', event: 'northvietnamticket_sapa1day5_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/197467-sapa-rong-may-glass-bridge-cat-cat-village-full-day-tour/?aid=93798', className: 'btn primary', event: 'northvietnamticket_sapa_oneday_05_klook', platform: 'KLOOK', section: 'ticket_card' },
        ],
   }, 
   {
@@ -218,7 +218,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '番西邦峰+番西邦纜車+玻璃天空步道+銀瀑｜2日遊',
     tags: ['番西邦峰', '番西邦纜車', '玻璃天空步道', '銀瀑', '2日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/572743?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa2day1_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/572743?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa_twoday_01_kkday', platform: 'KKDAY', section: 'ticket_card' },
       ],
   },
   {
@@ -229,7 +229,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '沙壩高山滑車+玻璃天空步道+銀瀑｜2日遊',
     tags: ['沙壩高山滑車', '玻璃天空步道', '銀瀑', '2日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/572750?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa2day2_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/572750?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa_twoday_02_kkday', platform: 'KKDAY', section: 'ticket_card' },
       ],
   },
   {
@@ -240,8 +240,8 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '貓貓村+番西邦峰/義靈湖、老寨和塔萬村莊｜2日遊/3日遊',
     tags: ['番西邦峰', '貓貓村', '義靈湖、老寨和塔萬村莊', '2日遊', '3日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/121208?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa2day3_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/13172-3d2n-sapa-trekking-fansipan-legend-cable-car-ride-hanoi-halong-bay/?aid=93798', className: 'btn', event: 'northvietnamticket_sapa2day3_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/121208?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa_twoday_03_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/13172-3d2n-sapa-trekking-fansipan-legend-cable-car-ride-hanoi-halong-bay/?aid=93798', className: 'btn', event: 'northvietnamticket_sapa_twoday_03_klook', platform: 'KLOOK', section: 'ticket_card' },
       ],
   },
   {
@@ -252,7 +252,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '番西邦峰+番西邦纜車+貓貓村+義靈湖、老寨和塔萬村莊｜3日遊',
     tags: ['番西邦峰', '番西邦纜車', '貓貓村', '義靈湖、老寨和塔萬村莊', '3日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/568065?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa3day1_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/568065?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa_threeday_01_kkday', platform: 'KKDAY', section: 'ticket_card' },
      ],
   },
   {
@@ -263,7 +263,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '貓貓村+義靈湖、老寨和塔萬村莊｜3日遊',
     tags: ['貓貓村', '義靈湖、老寨和塔萬村莊', '3日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/567936?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa3day2_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/567936?cid=22312', className: 'btn primary', event: 'northvietnamticket_sapa_threeday_02_kkday', platform: 'KKDAY', section: 'ticket_card' },
        ],
   },
   {
@@ -448,8 +448,8 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '華閭古都+三谷/長安+舞洞｜1日遊',
     tags: ['華閭古都', '三谷', '長安', '舞洞', '1日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/22996?cid=22312', className: 'btn primary', event: 'northvietnamticket_ninhbinh_1_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/29360-hoa-lu-tam-coc-mua-cave-tour-hanoi-vietnamese-dinner/?aid=93798', className: 'btn', event: 'northvietnamticket_ninhbinh_1_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/22996?cid=22312', className: 'btn primary', event: 'northvietnamticket_ninhbinh_01_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/29360-hoa-lu-tam-coc-mua-cave-tour-hanoi-vietnamese-dinner/?aid=93798', className: 'btn', event: 'northvietnamticket_ninhbinh_01_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -460,8 +460,8 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '白亭寺+長安+舞洞｜1日遊',
     tags: ['白亭寺', '長安', '舞洞', '1日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/141800-ninh-binh-day-tour-explore-bai-dinh-trang-an-and-hang-mua-vietnam?cid=22312', className: 'btn primary', event: 'northvietnamticket_ninhbinh_2_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/145586-ninhbinh-day-tour-hanoi/?aid=93798', className: 'btn', event: 'northvietnamticket_ninhbinh_2_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/141800-ninh-binh-day-tour-explore-bai-dinh-trang-an-and-hang-mua-vietnam?cid=22312', className: 'btn primary', event: 'northvietnamticket_ninhbinh_02_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/145586-ninhbinh-day-tour-hanoi/?aid=93798', className: 'btn', event: 'northvietnamticket_ninhbinh_02_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -472,8 +472,8 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '華閭古都+白亭寺+長安+舞洞｜1日遊',
     tags: ['華閭古都', '白亭寺', '長安', '舞洞', '1日遊'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/568210?cid=22312', className: 'btn primary', event: 'northvietnamticket_ninhbinh_3_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/19260-hoa-lu-tam-coc-hanoi-halong-bay/?aid=93798', className: 'btn', event: 'northvietnamticket_ninhbinh_3_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/568210?cid=22312', className: 'btn primary', event: 'northvietnamticket_ninhbinh_03_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/19260-hoa-lu-tam-coc-hanoi-halong-bay/?aid=93798', className: 'btn', event: 'northvietnamticket_ninhbinh_03_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -484,7 +484,7 @@ export const northVietnamTicketCards: CityCard[] = [
     datasetValue: '華閭古都+三谷+舞洞+白亭寺+長安｜2日遊',
     tags: ['華閭古都', '白亭寺', '三谷', '長安', '舞洞', '2日遊'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/25850-2d1n-ninh-binh-tour-hanoi/?aid=93798', className: 'btn primary', event: 'northvietnamticket_ninhbinh_4_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/25850-2d1n-ninh-binh-tour-hanoi/?aid=93798', className: 'btn primary', event: 'northvietnamticket_ninhbinh_04_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
 

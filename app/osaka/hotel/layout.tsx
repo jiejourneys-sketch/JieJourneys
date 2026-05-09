@@ -1,24 +1,24 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'JieJourneys(旅杰)-日本大阪自由行住宿攻略',
+  title: '大阪住宿推薦｜難波、心齋橋、梅田、天王寺飯店地圖整理｜JieJourneys',
   description:
-    'JieJourneys(旅杰)日本大阪自由行-短影片示範、實測動線與區域住宿比較，含票券與互動地圖連結，幫你在最短時間內選好日本大阪住宿。',
+    '大阪自由行住宿推薦，整理難波、心齋橋、梅田大阪站、天王寺四大區域飯店，搭配大阪熱門景點地圖與周遊券地圖，快速比較交通、購物、美食與機場動線。',
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
     siteName: 'JieJourneys(旅杰)',
-    title: 'JieJourneys(旅杰)-日本大阪自由行住宿攻略',
+    title: '大阪住宿推薦｜難波、心齋橋、梅田、天王寺飯店地圖整理｜JieJourneys',
     description:
-      'JieJourneys(旅杰)日本大阪自由行-短影片示範、實測動線與區域住宿比較，含票券與互動地圖連結，幫你在最短時間內選好日本大阪住宿。',
+      '大阪自由行住宿推薦，整理難波、心齋橋、梅田大阪站、天王寺四大區域飯店，搭配大阪熱門景點地圖與周遊券地圖，快速比較交通、購物、美食與機場動線。',
     url: 'https://www.jiejourneys.com/osaka/hotel',
     images: [{ url: 'https://www.jiejourneys.com/assets/og-share.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'JieJourneys(旅杰)-日本大阪自由行住宿攻略',
+    title: '大阪住宿推薦｜難波、心齋橋、梅田、天王寺飯店地圖整理｜JieJourneys',
     description:
-      'JieJourneys(旅杰)日本大阪自由行-短影片示範、實測動線與區域住宿比較，含票券與互動地圖連結，幫你在最短時間內選好日本大阪住宿。',
+      '大阪自由行住宿推薦，整理難波、心齋橋、梅田大阪站、天王寺四大區域飯店，搭配大阪熱門景點地圖與周遊券地圖，快速比較交通、購物、美食與機場動線。',
     images: ['https://www.jiejourneys.com/assets/og-share.png'],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/osaka/hotel' },

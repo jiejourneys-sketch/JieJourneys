@@ -5,6 +5,7 @@ import type { CityCard } from '@/components/CityTabbedList'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoCtaSection from '@/components/seo/SeoCtaSection'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -23,9 +24,9 @@ const cards: CityCard[] = [
     datasetValue: '淺間公園+日川時計+大石公園/櫻花/楓葉+忍野八海+Lawson',
     tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '季節限定'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/12319?cid=22312', className: 'btn primary', event: 'fujticket_1day1_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/93901-mtfuji-one-day-tour-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day1_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/60225529/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujticket_1day1_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/12319?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_01_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/93901-mtfuji-one-day-tour-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_01_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/60225529/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujiticket_oneday_01_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -36,9 +37,9 @@ const cards: CityCard[] = [
     datasetValue: '淺間公園+日川時計+大石公園/櫻花/楓葉+忍野八海+Lawson+山中湖',
     tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '山中湖', '季節限定'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/266389-fuji-kawaguchiko-oshino-hakkai-sengen?cid=22312', className: 'btn primary', event: 'fujticket_1day2_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/110635-mount-fuji-tenku-no-torii-oshino-hakkai-day-tour-from-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day2_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/87035454/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujticket_1day2_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/266389-fuji-kawaguchiko-oshino-hakkai-sengen?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_02_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/110635-mount-fuji-tenku-no-torii-oshino-hakkai-day-tour-from-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_02_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/87035454/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujiticket_oneday_02_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   // ── 河口湖纜車 / 河口湖遊覽船系 ────────────────────────────
@@ -50,8 +51,8 @@ const cards: CityCard[] = [
     datasetValue: '大石公園+忍野八海+Lawson+纜車+遊覽船+抹茶體驗',
     tags: ['大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '抹茶體驗'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/157904?cid=22312', className: 'btn primary', event: 'fujticket_1day3_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/102597-mt-fuji-panoramic-ropeway-oshino-hakkai-one-day-tour-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day3_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/157904?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_03_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/102597-mt-fuji-panoramic-ropeway-oshino-hakkai-one-day-tour-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_03_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -62,8 +63,8 @@ const cards: CityCard[] = [
     datasetValue: '大石公園+忍野八海+Lawson+纜車/遊覽船+抹茶體驗',
     tags: ['大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '抹茶體驗'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/130627-mt-fuji-lake-kawaguchi-instagrammable-tour-with-ropeway-experience/?aid=93798', className: 'btn primary', event: 'fujticket_1day4_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/64969329/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujticket_1day4_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/130627-mt-fuji-lake-kawaguchi-instagrammable-tour-with-ropeway-experience/?aid=93798', className: 'btn primary', event: 'fujiticket_oneday_04_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/64969329/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujiticket_oneday_04_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -74,7 +75,7 @@ const cards: CityCard[] = [
     datasetValue: '淺間公園+忍野八海+Lawson+纜車',
     tags: ['淺間公園', '忍野八海', 'Lawson', '河口湖纜車'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/150665-mount-fuji-tour-lake-kawaguchi-tenjozan-park-ropeway-tokyo?cid=22312', className: 'btn primary', event: 'fujticket_1day5_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/150665-mount-fuji-tour-lake-kawaguchi-tenjozan-park-ropeway-tokyo?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_05_kkday', platform: 'KKDAY', section: 'ticket_card' },
     ],
   },
   {
@@ -85,7 +86,7 @@ const cards: CityCard[] = [
     datasetValue: '淺間公園+日川時計+大石公園/櫻花/楓葉+Lawson+纜車/遊覽船',
     tags: ['淺間公園', '日川時計', '大石公園', 'Lawson', '河口湖纜車', '河口湖遊覽船', '季節限定'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/110632-mount-fuji-arakurayama-sengen-park-lake-kawakuchi-tour-from-tokyo/?aid=93798', className: 'btn primary', event: 'fujticket_1day6_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/110632-mount-fuji-arakurayama-sengen-park-lake-kawakuchi-tour-from-tokyo/?aid=93798', className: 'btn primary', event: 'fujiticket_oneday_06_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -96,7 +97,7 @@ const cards: CityCard[] = [
     datasetValue: '日川時計+大石公園+Lawson+纜車+遊覽船',
     tags: ['日川時計', '大石公園', 'Lawson', '河口湖纜車', '河口湖遊覽船'],
     actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/104305134/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn primary', event: 'fujticket_1day7_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/104305134/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn primary', event: 'fujiticket_oneday_07_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   // ── 五合目系 ─────────────────────────────────────────────
@@ -108,8 +109,8 @@ const cards: CityCard[] = [
     datasetValue: '淺間公園+忍野八海+五合目+御殿場Outlet/溫泉',
     tags: ['淺間公園', '忍野八海', '五合目', '御殿場Outlet', '溫泉'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/135929-tokyo-mount-fuji-trip-subaru-line-5th-station-arakurayama-sengen-park-oshino-hakkai-japan?cid=22312', className: 'btn primary', event: 'fujticket_1day8_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/87225-mt-fuji-oshino-hakkai-outlets-hot-spring-day-tour/?aid=93798', className: 'btn', event: 'fujticket_1day8_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/135929-tokyo-mount-fuji-trip-subaru-line-5th-station-arakurayama-sengen-park-oshino-hakkai-japan?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_08_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/87225-mt-fuji-oshino-hakkai-outlets-hot-spring-day-tour/?aid=93798', className: 'btn', event: 'fujiticket_oneday_08_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -120,7 +121,7 @@ const cards: CityCard[] = [
     datasetValue: '淺間公園+大石公園+忍野八海+五合目',
     tags: ['淺間公園', '大石公園', '忍野八海', '五合目'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/140458-mount-fuji-one-day-tour?cid=22312', className: 'btn primary', event: 'fujticket_1day9_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/140458-mount-fuji-one-day-tour?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_09_kkday', platform: 'KKDAY', section: 'ticket_card' },
     ],
   },
   {
@@ -131,7 +132,7 @@ const cards: CityCard[] = [
     datasetValue: '淺間公園+日川時計+大石公園+忍野八海+五合目+抹茶體驗',
     tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', '五合目', '抹茶體驗'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/148620-mt-fuji-5th-station-lake-kawaguchi-matcha-experience-one-day-tour/?aid=93798', className: 'btn primary', event: 'fujticket_1day10_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/148620-mt-fuji-5th-station-lake-kawaguchi-matcha-experience-one-day-tour/?aid=93798', className: 'btn primary', event: 'fujiticket_oneday_10_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -142,8 +143,8 @@ const cards: CityCard[] = [
     datasetValue: '五合目+淺間公園+大石公園/楓葉/櫻花+山中湖+山中湖遊覽船+紅富士之湯',
     tags: ['淺間公園', '大石公園', '河口湖遊覽船', '山中湖', '五合目', '溫泉', '季節限定'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/184620?cid=22312', className: 'btn primary', event: 'fujticket_1day21_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/86922-kawaguchiko-yamanakako-hot-spring-join-one-day-bus-tour-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day21_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/184620?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_21_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/86922-kawaguchiko-yamanakako-hot-spring-join-one-day-bus-tour-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_21_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   // ── 西湖系 ───────────────────────────────────────────────
@@ -155,8 +156,8 @@ const cards: CityCard[] = [
     datasetValue: '大石公園+西湖療癒之雷根場+忍野八海+淺間公園',
     tags: ['淺間公園', '大石公園', '忍野八海', '西湖'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/270872-mt-fuji-day-trip-sengen-park-oshino-hakkai-kawaguchi?cid=22312', className: 'btn primary', event: 'fujticket_1day16_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/140760-mt-fuji-lake-kawaguchiko-sengen-shrine-ancient-village-tour/?aid=93798', className: 'btn', event: 'fujticket_1day16_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/270872-mt-fuji-day-trip-sengen-park-oshino-hakkai-kawaguchi?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_16_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/140760-mt-fuji-lake-kawaguchiko-sengen-shrine-ancient-village-tour/?aid=93798', className: 'btn', event: 'fujiticket_oneday_16_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -167,8 +168,8 @@ const cards: CityCard[] = [
     datasetValue: '淺間公園+大石公園+西湖療癒之里根場+紅葉迴廊',
     tags: ['淺間公園', '大石公園', '季節限定', '西湖'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/35701-mt-fuji-1-day-bus-tour-japan?cid=22312', className: 'btn primary', event: 'fujticket_1day17_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/16197-mt-fuji-lake-kawaguchi-day-tour-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day17_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/35701-mt-fuji-1-day-bus-tour-japan?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_17_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/16197-mt-fuji-lake-kawaguchi-day-tour-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_17_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -179,8 +180,8 @@ const cards: CityCard[] = [
     datasetValue: '西湖療癒雷根場+大石公園/楓葉/櫻花+淺間公園+忍野八海',
     tags: ['淺間公園', '大石公園', '忍野八海', '季節限定', '西湖'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/260130?cid=22312', className: 'btn primary', event: 'fujticket_1day26_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/103484-mount-fuji-kawakuchiko-arakurayama-sengen-park-join-bus-tour-flower-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day26_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/260130?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_26_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/103484-mount-fuji-kawakuchiko-arakurayama-sengen-park-join-bus-tour-flower-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_26_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   // ── 山中湖 / KABA 水陸巴士系 ─────────────────────────────
@@ -192,8 +193,8 @@ const cards: CityCard[] = [
     datasetValue: '山中湖+忍野八海+大石公園/楓葉/櫻花+Lawson+日川時計/西湖療癒之里根場',
     tags: ['日川時計', '大石公園', '忍野八海', 'Lawson', '山中湖', '季節限定', '西湖'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/526791?cid=22312', className: 'btn primary', event: 'fujticket_1day22_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/116133-mt-fuji-kids-friendly-tour-makaino-farm-kawaguchiko-oishi-park/?aid=93798', className: 'btn', event: 'fujticket_1day22_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/526791?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_22_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/116133-mt-fuji-kids-friendly-tour-makaino-farm-kawaguchiko-oishi-park/?aid=93798', className: 'btn', event: 'fujiticket_oneday_22_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -204,8 +205,8 @@ const cards: CityCard[] = [
     datasetValue: '平野之濱+山中湖+KABA水陸巴士+忍野八海+大石公園',
     tags: ['大石公園', '忍野八海', '山中湖', 'KABA水陸巴士'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/488771?cid=22312', className: 'btn primary', event: 'fujticket_1day19_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/162819-mount-fuji-fun-tour-kaba-bus-oshino-lakekawaguchiko-lake-yamanaka/?aid=93798', className: 'btn', event: 'fujticket_1day19_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/488771?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_19_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/162819-mount-fuji-fun-tour-kaba-bus-oshino-lakekawaguchiko-lake-yamanaka/?aid=93798', className: 'btn', event: 'fujiticket_oneday_19_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -216,9 +217,9 @@ const cards: CityCard[] = [
     datasetValue: '日川時計+山中湖+KABA水陸巴士+忍野八海+大石公園+Lawson',
     tags: ['日川時計', '大石公園', '忍野八海', 'Lawson', '山中湖', 'KABA水陸巴士'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/548079?cid=22312', className: 'btn primary', event: 'fujticket_1day20_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/116133-mt-fuji-kids-friendly-tour-makaino-farm-kawaguchiko-oishi-park/?aid=93798', className: 'btn', event: 'fujticket_1day20_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/91408882/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujticket_1day20_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/548079?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_20_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/116133-mt-fuji-kids-friendly-tour-makaino-farm-kawaguchiko-oishi-park/?aid=93798', className: 'btn', event: 'fujiticket_oneday_20_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/91408882/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujiticket_oneday_20_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   // ── 御殿場 Outlet 系 ──────────────────────────────────────
@@ -230,8 +231,8 @@ const cards: CityCard[] = [
     datasetValue: '大石公園+忍野八海+Lawson+御殿場Outlet',
     tags: ['大石公園', '忍野八海', 'Lawson', '御殿場Outlet'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/10999-tokyo-mount-fuji-lake-kawaguchi-gotemba-tour-japan?cid=22312', className: 'btn primary', event: 'fujticket_1day11_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/83725-mt-fuji-lake-kawaguchi-gotemba-outlets-konohananoyu/?aid=93798', className: 'btn', event: 'fujticket_1day11_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/10999-tokyo-mount-fuji-lake-kawaguchi-gotemba-tour-japan?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_11_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/83725-mt-fuji-lake-kawaguchi-gotemba-outlets-konohananoyu/?aid=93798', className: 'btn', event: 'fujiticket_oneday_11_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -242,7 +243,7 @@ const cards: CityCard[] = [
     datasetValue: '日川時計+大石公園+山中湖+御殿場Outlet',
     tags: ['日川時計', '大石公園', '山中湖', '御殿場Outlet'],
     actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/92849746/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn primary', event: 'fujticket_1day12_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/92849746/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn primary', event: 'fujiticket_oneday_12_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   // ── 箱根系 ───────────────────────────────────────────────
@@ -254,8 +255,8 @@ const cards: CityCard[] = [
     datasetValue: '箱根神社+箱根纜車+大涌谷+江之島',
     tags: ['箱根神社', '箱根纜車', '大涌谷', '江之島'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/529501?cid=22312', className: 'btn primary', event: 'fujticket_1day18_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/175730-mount-fuji-owakudani-hakone-kamakura-and-enoshima-from-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day18_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/529501?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_18_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/175730-mount-fuji-owakudani-hakone-kamakura-and-enoshima-from-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_18_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -266,9 +267,9 @@ const cards: CityCard[] = [
     datasetValue: '蘆之湖+箱根纜車+箱根海賊船+大涌谷+江之島',
     tags: ['箱根纜車', '箱根海賊船', '大涌谷', '蘆之湖', '江之島'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/527466?cid=22312', className: 'btn primary', event: 'fujticket_1day14_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/169597-mount-fuji-hakone-kamakura-fantasy-day-tour-from-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day14_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/95832153/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujticket_1day14_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/527466?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_14_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/169597-mount-fuji-hakone-kamakura-fantasy-day-tour-from-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_14_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/95832153/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujiticket_oneday_14_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -279,9 +280,9 @@ const cards: CityCard[] = [
     datasetValue: '山中湖+忍野八海+箱根神社+箱根海賊船+箱根纜車+大涌谷',
     tags: ['忍野八海', '山中湖', '箱根神社', '箱根纜車', '箱根海賊船', '大涌谷'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/142196-mt-fuji-hakone-day-trip?cid=22312', className: 'btn primary', event: 'fujticket_1day13_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/87293-hakone-owakudani-lake-ashi-hakone-shrine-bus-tour-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day13_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/70956799/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujticket_1day13_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/142196-mt-fuji-hakone-day-trip?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_13_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/87293-hakone-owakudani-lake-ashi-hakone-shrine-bus-tour-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_13_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/70956799/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujiticket_oneday_13_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -292,8 +293,8 @@ const cards: CityCard[] = [
     datasetValue: '箱根神社+箱根海賊船+箱根纜車+大涌谷+山中湖/忍野八海/江之島',
     tags: ['忍野八海', '山中湖', '箱根神社', '箱根纜車', '箱根海賊船', '大涌谷', '江之島'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/155290-fuji-hakone-tour-hakone-pirate-boat-departing-from-shinjuku-tokyo?cid=22312', className: 'btn primary', event: 'fujticket_1day15_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/177696-mt-fuji-hakone-ropeway-lake-ashi-owakudani-day-tour/?aid=93798', className: 'btn', event: 'fujticket_1day15_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/155290-fuji-hakone-tour-hakone-pirate-boat-departing-from-shinjuku-tokyo?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_15_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/177696-mt-fuji-hakone-ropeway-lake-ashi-owakudani-day-tour/?aid=93798', className: 'btn', event: 'fujiticket_oneday_15_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -304,8 +305,8 @@ const cards: CityCard[] = [
     datasetValue: '箱根神社+箱根纜車+箱根海盜船+大涌谷+山中湖+忍野八海',
     tags: ['忍野八海', '山中湖', '箱根神社', '箱根纜車', '箱根海賊船', '大涌谷'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/124332-hakone-shrine-lake-ashi-owakudani-yamanakako-day-tour-from-tokyo/?aid=93798', className: 'btn primary', event: 'fujticket_1day28_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/73158682/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujticket_1day28_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/124332-hakone-shrine-lake-ashi-owakudani-yamanakako-day-tour-from-tokyo/?aid=93798', className: 'btn primary', event: 'fujiticket_oneday_28_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/73158682/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujiticket_oneday_28_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -316,8 +317,8 @@ const cards: CityCard[] = [
     datasetValue: '箱根神社+箱根海盜船+大涌谷+箱根纜車+日川時計+Lawson',
     tags: ['日川時計', 'Lawson', '箱根神社', '箱根纜車', '箱根海賊船', '大涌谷'],
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/110635-mount-fuji-tenku-no-torii-oshino-hakkai-day-tour-from-tokyo/?aid=93798', className: 'btn primary', event: 'fujticket_1day29_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/94445214/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujticket_1day29_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/110635-mount-fuji-tenku-no-torii-oshino-hakkai-day-tour-from-tokyo/?aid=93798', className: 'btn primary', event: 'fujiticket_oneday_29_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/94445214/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16208649', className: 'btn', event: 'fujiticket_oneday_29_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -328,8 +329,8 @@ const cards: CityCard[] = [
     datasetValue: '箱根神社/五合目/忍野八海+蘆之湖+大涌谷+御殿場Outlet',
     tags: ['忍野八海', '五合目', '御殿場Outlet', '箱根神社', '大涌谷', '蘆之湖'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/151021-day-trip-hakone-shrine-owakudani-lake-kawaguchi-fujiyoshida-honcho-tokyo?cid=22312', className: 'btn primary', event: 'fujticket_1day23_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/18927-mt-fuji-kawaguchi-lake-cherry-blossom-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day23_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/151021-day-trip-hakone-shrine-owakudani-lake-kawaguchi-fujiyoshida-honcho-tokyo?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_23_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/18927-mt-fuji-kawaguchi-lake-cherry-blossom-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_23_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -340,8 +341,8 @@ const cards: CityCard[] = [
     datasetValue: '忍野八海+箱根纜車+大涌谷+箱根遊船/御殿場Outlet+箱根神社+小田原城',
     tags: ['忍野八海', '御殿場Outlet', '箱根神社', '箱根纜車', '箱根海賊船', '大涌谷'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/141104?cid=22312', className: 'btn primary', event: 'fujticket_1day25_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/38220-ontabi-hakone-da-tour/?aid=93798', className: 'btn', event: 'fujticket_1day25_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/141104?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_25_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/38220-ontabi-hakone-da-tour/?aid=93798', className: 'btn', event: 'fujiticket_oneday_25_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -352,8 +353,8 @@ const cards: CityCard[] = [
     datasetValue: '五合目+御殿場outlet+箱根纜車+箱根海盜船',
     tags: ['五合目', '御殿場Outlet', '箱根纜車', '箱根海賊船'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/268878?cid=22312', className: 'btn primary', event: 'fujticket_1day27_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/20537-fuji-owakudani-ropeway-hakone-ship-gotemba-outlet-trip-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day27_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/268878?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_27_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/20537-fuji-owakudani-ropeway-hakone-ship-gotemba-outlet-trip-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_27_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   // ── 其他特殊 ─────────────────────────────────────────────
@@ -365,8 +366,8 @@ const cards: CityCard[] = [
     datasetValue: '大石公園+富士急樂園+川越小江戶',
     tags: ['大石公園', '川越', '富士急樂園'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/139363-mount-fuji-day-tour-from-shinjuku-oishi-park-oshino-hakkai-kawagoe-koedo-japan?cid=22312', className: 'btn primary', event: 'fujticket_1day24_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/83930-kawagoe-oshino-hakkai-bus-tour-tokyo/?aid=93798', className: 'btn', event: 'fujticket_1day24_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/139363-mount-fuji-day-tour-from-shinjuku-oishi-park-oshino-hakkai-kawagoe-koedo-japan?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_24_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/83930-kawagoe-oshino-hakkai-bus-tour-tokyo/?aid=93798', className: 'btn', event: 'fujiticket_oneday_24_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -377,8 +378,8 @@ const cards: CityCard[] = [
     datasetValue: '富士野生動物園+忍野八海+大石公園',
     tags: ['大石公園', '忍野八海', '富士野生動物園'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/528834?cid=22312', className: 'btn primary', event: 'fujticket_1day30_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/191599-fuji-safari-park-oshino-hakkai-oishi-park-day-tour/?aid=93798', className: 'btn', event: 'fujticket_1day30_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/528834?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_30_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/191599-fuji-safari-park-oshino-hakkai-oishi-park-day-tour/?aid=93798', className: 'btn', event: 'fujiticket_oneday_30_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   // ── 客制化 ───────────────────────────────────────────────
@@ -390,9 +391,9 @@ const cards: CityCard[] = [
     datasetValue: '客制化行程｜包車',
     tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定', '西湖', 'KABA水陸巴士', '箱根神社', '箱根纜車', '箱根海賊船', '川越', '大涌谷', '蘆之湖', '江之島', '富士急樂園', '富士野生動物園'],
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131172-japan-private-car-charter-tokyo-fuji-hakone-kamakura-karuizawa-izu-kawagoe-nagano-nikko?cid=22312', className: 'btn primary', event: 'fujticket_1dayall_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/120898-car-rental-with-driver-tokyo-mtfuji-chinesespeaking/?aid=93798', className: 'btn', event: 'fujticket_1dayall_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/105010953/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujticket_1dayall_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131172-japan-private-car-charter-tokyo-fuji-hakone-kamakura-karuizawa-izu-kawagoe-nagano-nikko?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_all_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/120898-car-rental-with-driver-tokyo-mtfuji-chinesespeaking/?aid=93798', className: 'btn', event: 'fujiticket_oneday_all_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/105010953/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujiticket_oneday_all_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   // ── 二日遊 ───────────────────────────────────────────────
@@ -403,8 +404,8 @@ const cards: CityCard[] = [
     datasetKey: 'title',
     datasetValue: '淺間公園+纜車+五合目+大涌谷+蘆之湖+修善寺+大室山+江之島+火山湖/箱根',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/146954?cid=22312', className: 'btn primary', event: 'fujticket_2day_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/130631-mount-fuji-hakone-kamakura-izu-hot-springs-photogenic-2-day-tour/?aid=93798', className: 'btn', event: 'fujticket_2day1_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/146954?cid=22312', className: 'btn primary', event: 'fujiticket_twoday_01_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/130631-mount-fuji-hakone-kamakura-izu-hot-springs-photogenic-2-day-tour/?aid=93798', className: 'btn', event: 'fujiticket_twoday_01_klook', platform: 'KLOOK', section: 'ticket_card' },
      ],
   },
   {
@@ -414,7 +415,7 @@ const cards: CityCard[] = [
     datasetKey: 'title',
     datasetValue: '淺間公園+日川時計+大石公園/楓葉+忍野八海+Lawson+纜車+遊覽船+山中湖+抹茶體驗',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/251848?cid=22312', className: 'btn primary', event: 'fujticket_2day2_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/251848?cid=22312', className: 'btn primary', event: 'fujiticket_twoday_02_kkday', platform: 'KKDAY', section: 'ticket_card' },
     ],
   },
   {
@@ -424,7 +425,7 @@ const cards: CityCard[] = [
     datasetKey: 'title',
     datasetValue: '淺間公園+日川時計+大石公園/楓葉+忍野八海+Lawson+山中湖+大室山+蘆之湖+箱根海賊船',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/268226?cid=22312', className: 'btn primary', event: 'fujticket_2day3_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/268226?cid=22312', className: 'btn primary', event: 'fujiticket_twoday_03_kkday', platform: 'KKDAY', section: 'ticket_card' },
     ],
   },
   // ── 景點 ─────────────────────────────────────────────────
@@ -435,8 +436,8 @@ const cards: CityCard[] = [
     datasetKey: 'title',
     datasetValue: '富士山周遊券',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20106-mt-fuji-pass-lake-kawaguchi-attraction-ticket-japan?cid=22312', className: 'btn primary', event: 'fujticket_pass_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/132532-mt-fuji-pass/?aid=93798', className: 'btn', event: 'fujticket_pass_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20106-mt-fuji-pass-lake-kawaguchi-attraction-ticket-japan?cid=22312', className: 'btn primary', event: 'fujiticket_pass_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/132532-mt-fuji-pass/?aid=93798', className: 'btn', event: 'fujiticket_pass_klook', platform: 'KLOOK', section: 'ticket_card' },
     ],
   },
   {
@@ -446,9 +447,9 @@ const cards: CityCard[] = [
     datasetKey: 'title',
     datasetValue: '富士急樂園',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20133-fuji-q-highland-e-ticket?cid=22312', className: 'btn primary', event: 'fujticket_highland_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/95879-fujiq-highland-admission-ticket/?aid=93798', className: 'btn', event: 'fujticket_highland_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujiyoshida/fuji-q-highland-90440/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujticket_highland_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20133-fuji-q-highland-e-ticket?cid=22312', className: 'btn primary', event: 'fujiticket_highland_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/95879-fujiq-highland-admission-ticket/?aid=93798', className: 'btn', event: 'fujiticket_highland_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujiyoshida/fuji-q-highland-90440/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujiticket_highland_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -458,8 +459,8 @@ const cards: CityCard[] = [
     datasetKey: 'title',
     datasetValue: '纜車｜河口湖',
     actions: [
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/89462-mt-fuji-panoramic-ropeway-round-trip-ticket-yamanashi/?aid=93798', className: 'btn primary', event: 'fujticket_cable_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/mt-fuji-panoramic-ropeway-23487867?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujticket_cable_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/89462-mt-fuji-panoramic-ropeway-round-trip-ticket-yamanashi/?aid=93798', className: 'btn primary', event: 'fujiticket_cable_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/mt-fuji-panoramic-ropeway-23487867?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujiticket_cable_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -469,8 +470,8 @@ const cards: CityCard[] = [
     datasetKey: 'title',
     datasetValue: '遊覽船｜河口湖',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/574488?cid=22312', className: 'btn primary', event: 'fujticket_cruise_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/lake-kawaguchiko-sightseeing-boat-appare-29874636?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujticket_cruise_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/574488?cid=22312', className: 'btn primary', event: 'fujiticket_cruise_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/lake-kawaguchiko-sightseeing-boat-appare-29874636?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujiticket_cruise_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   {
@@ -480,9 +481,9 @@ const cards: CityCard[] = [
     datasetKey: 'title',
     datasetValue: '音樂森林美術館',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/138288-yamanashi-kawaguchiko-music-forest-museum-admission-ticket?cid=22312', className: 'btn primary', event: 'fujticket_musicforest_kkday', platform: 'KKDAY', section: 'ticket_card' },
-      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/85583-kawaguchiko-music-forest-museum-admission-admission-yamanashi/?aid=93798', className: 'btn', event: 'fujticket_musicforest_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/kawaguchiko-music-forest-museum-23515819/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujticket_musicforest_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/138288-yamanashi-kawaguchiko-music-forest-museum-admission-ticket?cid=22312', className: 'btn primary', event: 'fujiticket_music_forest_kkday', platform: 'KKDAY', section: 'ticket_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/85583-kawaguchiko-music-forest-museum-admission-admission-yamanashi/?aid=93798', className: 'btn', event: 'fujiticket_music_forest_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/travel-guide/attraction/fujikawaguchiko/kawaguchiko-music-forest-museum-23515819/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D15968339', className: 'btn', event: 'fujiticket_music_forest_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
 ]
@@ -502,13 +503,13 @@ export default function FujiTicketPage() {
             {
               label: '住宿推薦總整理',
               href: 'https://www.jiejourneys.com/fuji/hotel',
-              dataEvent: 'fujticket_allhotels',
+              dataEvent: 'fujiticket_allhotels',
               platform: 'hotel',
             },
             {
               label: '通訊&交通攻略',
               href: 'https://www.jiejourneys.com/fuji/transport',
-              dataEvent: 'fujticket_alltransport',
+              dataEvent: 'fujiticket_alltransport',
               platform: 'transport',
             },
           ]}
@@ -524,6 +525,8 @@ export default function FujiTicketPage() {
           tagFilterArea="一日遊"
           tagOrder={['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定', '西湖', 'KABA水陸巴士', '箱根神社', '箱根纜車', '箱根海賊船', '川越', '大涌谷', '蘆之湖', '江之島', '富士急樂園', '富士野生動物園']}
         />
+
+        <SeoCtaSection text="" href="/fuji/map" linkText="富士河口湖熱門景點地圖" newTab dataEvent="fujiticket_SEO_spotmap" />
 
         <SeoContentSection title="富士河口湖票券快速了解">
           <h3 className="seo-h3">👉 第一次去，一日遊怎麼選？</h3>

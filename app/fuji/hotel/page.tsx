@@ -5,6 +5,7 @@ import { fujiHotelCards, fujiHotelTabs } from '@/data/fuji'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoCtaSection from '@/components/seo/SeoCtaSection'
 
 export default function FujiHotelPage() {
   return (
@@ -13,8 +14,8 @@ export default function FujiHotelPage() {
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
           badge="富士河口湖自由行攻略"
-          h1="富士河口湖住宿推薦｜逆富士、近車站區域完整分析"
-          intro="富士河口湖住宿選區影響你整趟旅程的體驗。這頁整理兩大住宿區域的特色與適合對象，幫你快速鎖定最值得住的地點。"
+          h1="富士河口湖住宿推薦｜富士山景、湖景溫泉、交通方便住宿完整分析"
+          intro="富士河口湖住宿選區影響你整趟旅程的體驗。這頁整理富士山景、湖景溫泉與交通方便住宿特色，幫你快速鎖定最值得住的地點。"
           eventPrefix="fujihotel"
           showVisual={false}
           ctaLinks={[
@@ -38,25 +39,32 @@ export default function FujiHotelPage() {
         </h2>
         <CityTabbedList tabs={fujiHotelTabs} cards={fujiHotelCards} tabEvent="fuji_hotel_tab" />
 
+        <SeoCtaSection text="" href="/fuji/map" linkText="富士河口湖熱門景點地圖" newTab dataEvent="fujihotel_SEO_spotmap" />
+
         <SeoContentSection title="富士河口湖住宿區域怎麼選？">
-          <h3 className="seo-h3">逆富士區｜追景必住</h3>
+          <h3 className="seo-h3">富士山景｜想直接看富士山</h3>
           <p>
-            顧名思義，這一區的飯店能看到「逆富士」——富士山倒映在河口湖上的經典景色。
-            大石公園一帶的湖畔旅館、溫泉飯店大多集中在這裡，適合以賞景、拍照為主要目的旅客。
-            旺季湖景房非常搶手，建議至少提前 1–2 個月預訂。
+            富士山景類住宿主打房間、露台或公共空間能看到富士山，適合以賞景、拍照和待在飯店放鬆為主要目的旅客。
+            這類房型旺季非常搶手，建議至少提前 1–2 個月預訂。
           </p>
 
-          <h3 className="seo-h3">近車站區｜交通最方便</h3>
+          <h3 className="seo-h3">湖景溫泉｜想看湖景、泡溫泉</h3>
           <p>
-            河口湖站周邊步行可達商店、餐廳與巴士站，適合不想一直搭車移動的旅客。不特別在意湖景的人選這區最省事。
+            湖景溫泉類以湖畔視野、溫泉浴池、一泊二食或日式旅館體驗為主，很多飯店也能同時看到富士山。
+            如果你想把住宿本身當成河口湖行程重點，這類最適合。
+          </p>
+
+          <h3 className="seo-h3">交通方便｜車站與接駁移動最省事</h3>
+          <p>
+            交通方便類不一定都在車站正旁，但多半靠近河口湖站、步行可到，或接駁與巴士動線方便。適合不想一直拉行李轉乘的旅客。
           </p>
         </SeoContentSection>
 
         <SeoFaqSection
           title="富士河口湖住宿常見問題"
           items={[
-            { q: '富士河口湖住逆富士還是近車站？', a: '以賞景拍照為主選逆富士區，湖景房能看到富士山倒影；以行程便利為主選近車站區，步行就能搭巴士出發。' },
-            { q: '富士河口湖溫泉旅館怎麼選？', a: '逆富士一帶有多間溫泉旅館，部分可在泡湯時直接看到富士山，旺季需提早訂。' },
+            { q: '富士河口湖住宿要選哪一區？', a: '想直接看富士山選富士山景，想看湖景泡溫泉選湖景溫泉，想節省移動時間選交通方便。' },
+            { q: '富士河口湖溫泉旅館怎麼選？', a: '湖景溫泉類有多間溫泉旅館，部分可在泡湯時直接看到富士山，旺季需提早訂。' },
             { q: '富士河口湖住宿要提前多久訂？', a: '旺季（春天賞櫻 3–4 月、夏天五合目 7–8 月、秋天楓葉 10–11 月）住宿非常搶手，湖景房建議提前 1–2 個月預訂。' },
           ]}
         />

@@ -29,6 +29,7 @@ import type { MapPlace } from '@/lib/mapPlace'
 export type MapClientProps = {
   places: MapPlace[]
   mapCenter: { lat: number; lng: number }
+  mapZoom?: number
   /** e.g. 'busanmap' | 'tokyomap' | 'northvietnammap' */
   gtagPrefix: string
   title: string
@@ -37,6 +38,8 @@ export type MapClientProps = {
   defaultCategories?: Record<CityMapPlaceCategory, boolean>
   /** Override which category toggle buttons to show. Defaults to all four. */
   categoryItems?: { key: CityMapPlaceCategory; label: string }[]
+  /** Override category labels used in cards, list sections, and marker titles. */
+  categoryLabels?: Partial<Record<CityMapPlaceCategory, string>>
 }
 
 const CATEGORY_LABEL = CITY_MAP_CATEGORY_LABEL
@@ -113,7 +116,7 @@ function relatedTicketButtonLabel(place: MapPlace): string {
 
 function relatedTicketButtonEvent(place: MapPlace, gtagPrefix: string): string {
   const e = place.relatedTicketEvent?.trim()
-  return e || `${gtagPrefix}_${place.id.replace(/-/g, '')}_ticket`
+  return e || `${gtagPrefix}_${place.id.replace(/-/g, '_').toLowerCase()}_ticket`
 }
 
 function hasPrimarySpotAction(place: MapPlace): boolean {
@@ -186,6 +189,7 @@ type MapPlaceCardProps = {
   cardRef: (el: HTMLElement | null) => void
   gtagPrefix: string
   defaultMapButtonEvent: string
+  categoryLabels: Record<CityMapPlaceCategory, string>
 }
 
 function stopCardPick(e: ReactMouseEvent<HTMLAnchorElement> | ReactPointerEvent<HTMLAnchorElement>) {
@@ -210,8 +214,15 @@ function MapActionLink({ action, placeId }: { action: CityCardAction; placeId: s
     </a>
   )
 }
-
-function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMapButtonEvent }: MapPlaceCardProps) {
+function MapPlaceCard({
+  place,
+  selected,
+  onPick,
+  cardRef,
+  gtagPrefix,
+  defaultMapButtonEvent,
+  categoryLabels,
+}: MapPlaceCardProps) {
   const relatedTicketClassName = hasPrimarySpotAction(place) ? 'btn' : 'btn primary'
 
   return (
@@ -225,7 +236,7 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMap
       data-section="map_bar"
       data-label="bar"
       data-title={place.name}
-      data-area={CATEGORY_LABEL[place.category]}
+      data-area={categoryLabels[place.category]}
       {...(place.category === 'hotel' ? { 'data-hotel': place.name } : {})}
       onClick={() => onPick(place, 'list')}
       onKeyDown={(e) => {
@@ -236,7 +247,7 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMap
       }}
     >
       <div>
-        <span className={styles.catPill}>{CATEGORY_LABEL[place.category]}</span>
+        <span className={styles.catPill}>{categoryLabels[place.category]}</span>
         <h3 className="title">{place.name}</h3>
         <p className="desc">{place.description}</p>
         {place.hotelActions && place.hotelActions.length > 0 ? (
@@ -258,6 +269,20 @@ function MapPlaceCard({ place, selected, onPick, cardRef, gtagPrefix, defaultMap
                 {a.label}
               </a>
             ))}
+            <a
+              href={spotMapButtonHref(place)}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event={mapBarMapButtonEvent(place, defaultMapButtonEvent)}
+              data-item={place.id}
+              data-platform="Google Maps"
+              data-section="map_bar"
+              className="btn"
+              onClick={stopCardPick}
+              onPointerDown={stopCardPick}
+            >
+              {mapBarMapButtonLabel(place)}
+            </a>
           </div>
         ) : null}
         {place.spotActionRows && place.spotActionRows.length > 0 ? (
@@ -411,7 +436,17 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
   })
 }
 
-export default function MapClient({ places, mapCenter, gtagPrefix, title, backHref, defaultCategories, categoryItems }: MapClientProps) {
+export default function MapClient({
+  places,
+  mapCenter,
+  mapZoom = 11,
+  gtagPrefix,
+  title,
+  backHref,
+  defaultCategories,
+  categoryItems,
+  categoryLabels,
+}: MapClientProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
   // Derived event strings
@@ -455,6 +490,10 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
   const [sheetDragHeightPx, setSheetDragHeightPx] = useState<number | null>(null)
 
   const activeCategoryItems = categoryItems ?? CITY_MAP_CATEGORY_TOGGLE_ITEMS
+  const categoryLabelMap = useMemo(
+    () => ({ ...CATEGORY_LABEL, ...categoryLabels }),
+    [categoryLabels],
+  )
 
   const [categoryOn, setCategoryOn] =
     useState<Record<CityMapPlaceCategory, boolean>>(() => defaultCategories ?? cityMapSoloCategory('spot'))
@@ -493,34 +532,34 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
     () => [
       {
         places: spotPlaces,
-        title: CATEGORY_LABEL.spot,
+        title: categoryLabelMap.spot,
         sectionLabel: '票券頁相同連結',
         rowClass: styles.rowSpot,
-        aria: CATEGORY_LABEL.spot,
+        aria: categoryLabelMap.spot,
       },
       {
         places: freePlaces,
-        title: CATEGORY_LABEL.free,
+        title: categoryLabelMap.free,
         sectionLabel: '',
         rowClass: styles.rowFree,
-        aria: CATEGORY_LABEL.free,
+        aria: categoryLabelMap.free,
       },
       {
         places: foodPlaces,
-        title: CATEGORY_LABEL.food,
+        title: categoryLabelMap.food,
         sectionLabel: '',
         rowClass: styles.rowFood,
-        aria: CATEGORY_LABEL.food,
+        aria: categoryLabelMap.food,
       },
       {
         places: hotelPlaces,
-        title: CATEGORY_LABEL.hotel,
+        title: categoryLabelMap.hotel,
         sectionLabel: '與住宿頁相同連結',
         rowClass: styles.rowHotel,
-        aria: CATEGORY_LABEL.hotel,
+        aria: categoryLabelMap.hotel,
       },
     ],
-    [spotPlaces, freePlaces, foodPlaces, hotelPlaces],
+    [categoryLabelMap, spotPlaces, freePlaces, foodPlaces, hotelPlaces],
   )
 
   const hasAnyListPlaces = useMemo(
@@ -623,8 +662,8 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
         const marker = new google.maps.Marker({
           map,
           position: { lat: p.lat, lng: p.lng },
-          title: `${CATEGORY_LABEL[p.category]}｜${p.name}`,
-          icon: cityMapMarkerIcon(p.category, google.maps),
+          title: `${categoryLabelMap[p.category]}｜${p.name}`,
+          icon: cityMapMarkerIcon(p.category, google.maps, p),
           zIndex: cityMapMarkerZIndex(p.category),
         })
         marker.addListener('click', () => {
@@ -634,7 +673,7 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
         markersRef.current.push(marker)
       }
     },
-    [clearMarkers, focusPlace, gtagPrefix],
+    [categoryLabelMap, clearMarkers, focusPlace, gtagPrefix],
   )
 
   useEffect(() => {
@@ -650,7 +689,7 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
         if (cancelled || !mapElRef.current) return
         const map = new google.maps.Map(mapElRef.current, {
           center: mapCenter,
-          zoom: 11,
+          zoom: mapZoom,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
@@ -1137,6 +1176,7 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
                           onPick={focusPlace}
                           gtagPrefix={gtagPrefix}
                           defaultMapButtonEvent={defaultMapButtonEvent}
+                          categoryLabels={categoryLabelMap}
                           cardRef={(el) => {
                             desktopCardRefs.current[place.id] = el
                           }}
@@ -1225,6 +1265,7 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
                     onPick={focusPlace}
                     gtagPrefix={gtagPrefix}
                     defaultMapButtonEvent={defaultMapButtonEvent}
+                    categoryLabels={categoryLabelMap}
                     cardRef={(el) => {
                       mobileCardRefs.current[selectedPlace.id] = el
                     }}
@@ -1269,6 +1310,7 @@ export default function MapClient({ places, mapCenter, gtagPrefix, title, backHr
                                 onPick={focusPlace}
                                 gtagPrefix={gtagPrefix}
                                 defaultMapButtonEvent={defaultMapButtonEvent}
+                                categoryLabels={categoryLabelMap}
                                 cardRef={(el) => {
                                   mobileCardRefs.current[place.id] = el
                                 }}

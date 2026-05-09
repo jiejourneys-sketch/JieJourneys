@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import TopBanner from '@/components/TopBanner'
 import PopularGrid from '@/components/PopularGrid'
 import Footer from '@/components/Footer'
+import PromoLink from '@/components/PromoLink'
 
 export default function HomePage() {
   useEffect(() => {
@@ -76,8 +77,17 @@ export default function HomePage() {
             >
               旅杰分帳
             </a>
+            <PromoLink
+              href="https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys"
+              promoCode="jiejourneys"
+              data-event="home_tools_esimconnect"
+              data-item="tool"
+            >
+              eSIM優惠(合作)
+            </PromoLink>
             <a
               href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
+              className="tool-link-compact"
               target="_blank"
               rel="noopener noreferrer"
               data-event="wamazingbuy"
@@ -87,6 +97,7 @@ export default function HomePage() {
             </a>
             <a
               href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=2i98k457"
+              className="tool-link-compact"
               target="_blank"
               rel="noopener noreferrer"
               data-event="wamazingsnow"

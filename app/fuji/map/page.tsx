@@ -1,13 +1,14 @@
 'use client'
 
 import MapClient from '@/components/map/MapClient'
-import { fujiMapPlaces, FUJI_MAP_CENTER } from '@/data/fuji'
+import { fujiMapPlaces } from '@/data/fuji'
 
 export default function FujiMapPage() {
   return (
     <MapClient
       places={fujiMapPlaces}
-      mapCenter={FUJI_MAP_CENTER}
+      mapCenter={{ lat: 35.38, lng: 138.86 }}
+      mapZoom={9}
       gtagPrefix="fujimap"
       title="富士河口湖地圖"
       backHref="/fuji"

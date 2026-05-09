@@ -83,7 +83,8 @@ export default function BusanHotelPage() {
         </h2>
         <CityTabbedList tabs={busanHotelTabs} cards={hotelCards} tabEvent="busan_hotel_tab" />
 
-        <SeoCtaSection text="" href="/busan/map" linkText="釜山住宿推薦地圖" newTab dataEvent="busanhotel_SEO_spotmap" />
+        <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanhotel_SEO_spotmap" />
+        <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanhotel_SEO_passmap" />
 
         <SeoContentSection title="釜山住宿區域怎麼選？">
           <h3 className="seo-h3">海雲台（看海＋放鬆）</h3>

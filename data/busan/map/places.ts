@@ -78,6 +78,45 @@ function busanRelatedTicketHref(tag: string, placeId: string): string {
   return `/busan/ticket?tag=${encodeURIComponent(tag)}&from=map&place=${encodeURIComponent(placeId)}#ticketListTitle`
 }
 
+function eventSlug(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase()
+}
+
+function mapActionPlatform(action: CityCardAction): string {
+  const platform = eventSlug(action.platform || action.label || 'link')
+  return platform === 'maps' ? 'map' : platform
+}
+
+function busanMapTicketAction(action: CityCardAction, placeId: string): CityCardAction {
+  const platform = mapActionPlatform(action)
+  const ticketSlug = action.event?.match(new RegExp(`^busanticket_(.+)_${platform}$`))?.[1] ?? eventSlug(placeId).replace(/^busan_/, '')
+  return {
+    ...action,
+    mapEvent: `busanmap_ticket_${ticketSlug}_${platform}`,
+    mapSection: 'map_bar',
+  }
+}
+
+function busanHotelSlugFromAction(action: CityCardAction): string {
+  const platform = mapActionPlatform(action)
+  const event = action.event?.trim() ?? ''
+  const match = event.match(new RegExp(`^busanhotel_(.+)_${platform}$`))
+  return match?.[1] ?? eventSlug(event || action.label)
+}
+
+function busanMapHotelAction(action: CityCardAction): CityCardAction {
+  const platform = mapActionPlatform(action)
+  return {
+    ...action,
+    mapEvent: `busanmap_hotel_${busanHotelSlugFromAction(action)}_${platform}`,
+    mapSection: 'map_bar',
+  }
+}
+
 const BUSAN_RELATED_TICKET_TAG_BY_SPOT_TITLE: Record<string, string> = {
   '松島海上纜車': '松島纜車',
   '松島龍宮空中步道': '松島龍宮雲橋',
@@ -91,6 +130,10 @@ const BUSAN_RELATED_TICKET_TAG_BY_SPOT_TITLE: Record<string, string> = {
   'Yacht Tale｜水營灣遊艇': '遊艇',
   '膠囊列車&海岸列車': '膠囊列車',
   '太宗台海洋飛行主題樂園': '太宗台',
+}
+
+const BUSAN_MAP_DISPLAY_NAME_BY_SPOT_TITLE: Record<string, string> = {
+  '韓服體驗｜釜山甘川文化村': 'ibgogage（韓服租借店）',
 }
 
 /** 依合併後 actions 的 `mapNextRow` 組地圖多排；無標記或僅一排則 undefined。 */
@@ -156,7 +199,7 @@ function ticketCardsToSpots(): BusanMapPlace[] {
       throw new Error(`busan/map/places: 缺少座標或 id：${card.title}`)
     }
     const mapSpotActions = [
-      ...card.actions,
+      ...card.actions.map((action) => busanMapTicketAction(action, id)),
       ...(BUSAN_MAP_SPOT_NAVER_ACTIONS[card.title] ?? []),
       ...(BUSAN_MAP_SPOT_VIDEO_ACTIONS[card.title] ?? []),
     ]
@@ -164,7 +207,7 @@ function ticketCardsToSpots(): BusanMapPlace[] {
     return {
       id,
       category: 'spot',
-      name: card.title,
+      name: BUSAN_MAP_DISPLAY_NAME_BY_SPOT_TITLE[card.title] ?? card.title,
       description: card.meta,
       lat: geo.lat,
       lng: geo.lng,
@@ -174,7 +217,7 @@ function ticketCardsToSpots(): BusanMapPlace[] {
       ...(relatedTicketTag
         ? {
             relatedTicketHref: busanRelatedTicketHref(relatedTicketTag, id),
-            relatedTicketEvent: `busanmap_${id}_ticket`,
+            relatedTicketEvent: `busanmap_${eventSlug(id).replace(/^busan_/, '')}_ticket`,
           }
         : {}),
     }
@@ -187,6 +230,16 @@ function hotelCardToPlace(card: (typeof busanHotelCards)[number], index: number)
   if (lat === undefined || lng === undefined) {
     throw new Error(`busan/hotels: missing lat/lng for ${card.title}`)
   }
+  const mapAction = card.actions.find((action) => action.platform === 'Maps')
+  const hotelActions = card.actions
+    .filter((action) => action.platform !== 'Maps')
+    .map((action) => busanMapHotelAction(action))
+  const hotelSlug = mapAction
+    ? busanHotelSlugFromAction(mapAction)
+    : hotelActions[0]
+      ? busanHotelSlugFromAction(hotelActions[0])
+      : eventSlug(card.title)
+
   return {
     id: `busan-hotel-${index + 1}`,
     category: 'hotel',
@@ -194,7 +247,9 @@ function hotelCardToPlace(card: (typeof busanHotelCards)[number], index: number)
     description: card.meta,
     lat,
     lng,
-    hotelActions: card.actions,
+    spotGoogleMapsUrl: mapAction?.href,
+    mapButtonMapEvent: `busanmap_hotel_${hotelSlug}_map`,
+    hotelActions,
   }
 }
 

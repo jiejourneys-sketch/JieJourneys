@@ -14,6 +14,9 @@ export type MapPlace = {
   spotGoogleMapsUrl?: string
   mapButtonMapEvent?: string
   mapButtonLabel?: string
+  markerColor?: string
+  markerIconUrl?: string
+  markerStyleId?: string
   relatedTicketHref?: string
   relatedTicketLabel?: string
   relatedTicketEvent?: string

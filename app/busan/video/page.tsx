@@ -357,6 +357,7 @@ export default function BusanVideoPage() {
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="video_tab" />
 
         <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanvideo_SEO_spotmap" />
+        <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanvideo_SEO_passmap" />
 
         <section className="seo-content" aria-label="快速理解摘要">
           <h2 className="seo-h2">釜山自由行快速理解</h2>
@@ -491,12 +492,7 @@ export default function BusanVideoPage() {
               >
                 <strong>購票</strong></a>)</h3>
             <p>
-              分24/48小時與Big3/Big5，多數人直接選48小時最划算。<a
-                href="https://www.google.com/maps/d/u/0/viewer?mid=1XsSQewsHL9iIolJLr7wTnD0bz44jOIs&ll=35.17357693392983%2C129.08391349999997&z=11"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEO_passmap"
-              >
+              分24/48小時與Big3/Big5，多數人直接選48小時最划算。<a href="/busan/pass-map" data-event="busanvideo_SEO_passmap_inline">
                 <strong>釜山通行證地圖</strong>
               </a>
             </p>

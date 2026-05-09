@@ -117,9 +117,7 @@ export default function BusanPage() {
                 </a>
                 <a
                   className="pass-btn"
-                  href="https://www.google.com/maps/d/edit?mid=1XsSQewsHL9iIolJLr7wTnD0bz44jOIs&usp=sharing"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/busan/pass-map"
                   data-event="busan_ditu"
                   data-platform="map"
                 >

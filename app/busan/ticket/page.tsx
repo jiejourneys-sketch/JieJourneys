@@ -52,6 +52,7 @@ export default function BusanTicketPage() {
         />
 
         <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanticket_SEO_spotmap" />
+        <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanticket_SEO_passmap" />
 
         <SeoContentSection title="釜山一日遊與票券快速理解">
           <h3 className="seo-h3">👉 一日遊怎麼選：先用想去的景點篩選</h3>
