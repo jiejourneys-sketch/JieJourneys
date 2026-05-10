@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '富士河口湖住宿推薦｜逆富士湖景旅館・近車站飯店選區攻略 | JieJourneys(旅杰)'
+const title = '富士河口湖住宿怎麼選｜富士山景飯店、湖景溫泉旅館、河口湖站住宿推薦 | JieJourneys(旅杰)'
 const description =
-  '富士河口湖住宿推薦分成逆富士湖景區與近河口湖站區比較：想看富士山倒影、泡溫泉、拍湖景選逆富士；想搭巴士、找餐廳、搬行李省力選近車站。精選飯店附 Trip、Agoda 查價與地圖連結，並提醒賞櫻、楓葉、暑假旺季提早訂房。'
+  '富士河口湖住宿攻略，依富士山景、湖景溫泉、交通方便三種需求整理推薦飯店。想在房間看富士山、泡河口湖溫泉、一泊二食，或住近河口湖站方便搭巴士與拖行李，都能快速比較 Trip、Agoda 查價與地圖位置。'
 
 export const metadata: Metadata = {
   title,

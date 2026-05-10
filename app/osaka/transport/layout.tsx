@@ -1,24 +1,26 @@
 import type { Metadata } from 'next'
 
+const title =
+  '大阪交通與通訊攻略｜關西機場到難波、Rapi:t、HARUKA、eSIM、地鐵券整理 | JieJourneys(旅杰)'
+const description =
+  '大阪自由行交通與通訊懶人包，整理 eSIM、實體 SIM 卡、WiFi 分享器，以及關西機場到大阪市區的主要移動方式。住難波、新今宮可比較南海電鐵 Rapi:t；住天王寺、新大阪、京都、神戶方向可看 HARUKA；飯店附近有站牌或行李多可評估利木津巴士；親子、長輩同行或深夜早班機則可考慮機場包車。也整理大阪地鐵一日券/二日券、Metro 市區移動、包車、自駕租車與 KKDAY、KLOOK、Trip 購買連結，方便規劃關西機場交通和大阪市區行程。'
+
 export const metadata: Metadata = {
-  title: '大阪交通與通訊攻略｜關西機場到市區、eSIM、地鐵券整理｜JieJourneys',
-  description:
-    '大阪自由行交通與通訊整理：eSIM、SIM 卡、WiFi 分享器、關西機場到難波與大阪市區的 Rapi:t、HARUKA、利木津巴士、包車、自駕租車與大阪地鐵券一次比較。',
+  title,
+  description,
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
     siteName: 'JieJourneys(旅杰)',
-    title: '大阪交通與通訊攻略｜關西機場到市區、eSIM、地鐵券整理｜JieJourneys',
-    description:
-      '大阪自由行交通與通訊整理：eSIM、SIM 卡、WiFi 分享器、關西機場到難波與大阪市區的 Rapi:t、HARUKA、利木津巴士、包車、自駕租車與大阪地鐵券一次比較。',
+    title,
+    description,
     url: 'https://www.jiejourneys.com/osaka/transport',
     images: [{ url: 'https://www.jiejourneys.com/assets/og-share.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: '大阪交通與通訊攻略｜關西機場到市區、eSIM、地鐵券整理｜JieJourneys',
-    description:
-      '大阪自由行交通與通訊整理：eSIM、SIM 卡、WiFi 分享器、關西機場到難波與大阪市區的 Rapi:t、HARUKA、利木津巴士、包車、自駕租車與大阪地鐵券一次比較。',
+    title,
+    description,
     images: ['https://www.jiejourneys.com/assets/og-share.png'],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/osaka/transport' },

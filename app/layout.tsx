@@ -12,9 +12,9 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'JieJourneys(旅杰)-自由行旅遊速成攻略',
+  title: '自由行旅遊速成攻略｜JieJourneys(旅杰)',
   description:
-    'JieJourneys(旅杰)-以短片拆解旅行重點，含可下載行程與票券連結，讓你用最短時間精準規劃旅程。',
+    '專注於日本、韓國與亞洲自由行攻略，透過短影片快速整理交通、住宿、票券、景點與行程重點，搭配可下載行程、旅遊工具與實用懶人包，讓第一次自由行也能快速上手，用更少時間完成更順暢的旅行規劃。',
   metadataBase: new URL('https://www.jiejourneys.com'),
   icons: { icon: '/assets/logo.jpg', apple: '/assets/logo.jpg' },
   openGraph: {

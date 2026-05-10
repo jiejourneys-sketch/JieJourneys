@@ -49,7 +49,7 @@ export default function TokyoHotelPage() {
         <h2 className="seo-h2" id="stayListTitle">東京住宿推薦飯店</h2>
         <CityTabbedList tabs={tokyoHotelTabs} cards={tokyoHotelCards} tabEvent="tokyo_hotel_tab" />
 
-        <SeoCtaSection text="" href="/tokyo/map" linkText="東京住宿推薦地圖" newTab dataEvent="tokyohotel_SEO_map" />
+        <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyohotel_SEO_map" />
 
         <SeoContentSection title="東京住宿區域怎麼選？">
           <h3 className="seo-h3">上野（機場進市區最方便）</h3>

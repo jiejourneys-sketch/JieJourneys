@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '富士河口湖票券攻略｜一日遊・二日遊・景點票購買總整理 | JieJourneys(旅杰)'
+const title = '富士山一日遊與河口湖票券攻略｜大石公園、新倉山淺間公園、忍野八海、河口湖 | JieJourneys(旅杰)'
 const description =
-  '富士河口湖票券攻略可用景點標籤快速篩選一日遊、二日遊與單景點門票。整理淺間公園、忍野八海、大石公園、山中湖、五合目、御殿場Outlet、河口湖纜車、遊覽船、富士急樂園，以及箱根神社、蘆之湖、大涌谷路線，並比較 KKDAY、KLOOK、Trip 價格與行程內容。'
+  '東京出發富士山、河口湖票券懶人包，整理富士山五合目、新倉山淺間公園、忍野八海、河口湖、大石公園、山中湖、御殿場 Outlet、箱根神社、蘆之湖、河口湖纜車、遊覽船、富士急樂園等熱門景點的一日遊、二日遊、包車與門票，方便比較 KKDAY、KLOOK、Trip 行程與預訂連結。'
 
 export const metadata: Metadata = {
   title,

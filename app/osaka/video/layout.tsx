@@ -1,24 +1,26 @@
 import type { Metadata } from 'next'
 
+const title =
+  '大阪自由行短影片攻略｜景點玩法、交通教學、行前準備一次看 | JieJourneys(旅杰)'
+const description =
+  '大阪自由行短影片整理，集中收錄大阪景點玩法、交通教學與日本行前準備影片，包含市區移動、JR 與地鐵差異、票券使用、Visit Japan Web、日幣換匯等實用內容。每支影片可快速跳轉 IG Reels、YouTube Shorts 與小紅書，適合出發前用短時間掌握大阪行程重點。'
+
 export const metadata: Metadata = {
-  title: 'JieJourneys(旅杰)-日本大阪自由行認識大阪・景點攻略・行前準備',
-  description:
-    'JieJourneys(旅杰)日本大阪自由行-一頁整理相關短影片：認識城市、景點攻略與行前準備。每支影片含示範動線與一鍵跳轉至 IG/YouTube/小紅書，快速完成規劃。',
+  title,
+  description,
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
     siteName: 'JieJourneys(旅杰)',
-    title: 'JieJourneys(旅杰)-日本大阪自由行認識大阪・景點攻略・行前準備',
-    description:
-      'JieJourneys(旅杰)日本大阪自由行-一頁整理相關短影片：認識城市、景點攻略與行前準備。每支影片含示範動線與一鍵跳轉至 IG/YouTube/小紅書，快速完成規劃。',
+    title,
+    description,
     url: 'https://www.jiejourneys.com/osaka/video',
     images: [{ url: 'https://www.jiejourneys.com/assets/og-share.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'JieJourneys(旅杰)-日本大阪自由行認識大阪・景點攻略・行前準備',
-    description:
-      'JieJourneys(旅杰)日本大阪自由行-一頁整理相關短影片：認識城市、景點攻略與行前準備。每支影片含示範動線與一鍵跳轉至 IG/YouTube/小紅書，快速完成規劃。',
+    title,
+    description,
     images: ['https://www.jiejourneys.com/assets/og-share.png'],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/osaka/video' },

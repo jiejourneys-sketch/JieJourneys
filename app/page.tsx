@@ -155,7 +155,7 @@ export default function HomePage() {
           <h2>關於 JieJourneys(旅杰)</h2>
           <p className="sub">自助旅遊｜一看就懂的攻略</p>
           <div className="about">
-            我們專做「打開就能用」的旅行攻略，把複雜資訊整理成清楚的路線與連結，讓你最快掌握重點。
+            我們整理城市地圖、景點票券、住宿區域與交通資訊，幫你快速抓到旅行重點，不用從零開始爬文。
           </div>
         </section>
 

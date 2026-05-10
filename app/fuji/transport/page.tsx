@@ -109,6 +109,12 @@ export default function FujiTransportPage() {
           showVisual={false}
           ctaLinks={[
             {
+              label: '富士河口湖短影片攻略',
+              href: 'https://www.jiejourneys.com/fuji/video',
+              dataEvent: 'fujitransport_allvideos',
+              platform: 'video',
+            },
+            {
               label: '住宿推薦總整理',
               href: 'https://www.jiejourneys.com/fuji/hotel',
               dataEvent: 'fujitransport_allhotels',

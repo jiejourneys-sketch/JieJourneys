@@ -27,6 +27,17 @@ export default function FujiPage() {
 
           <Link
             className="link-item"
+            href="/fuji/video"
+            data-event="fuji_video"
+            data-item="video"
+            data-section="quick"
+          >
+            <Image className="link-icon" src="/assets/video.png" alt="短影片" width={48} height={48} />
+            <div className="link-text">短影音合輯</div>
+          </Link>
+
+          <Link
+            className="link-item"
             href="/fuji/hotel"
             data-event="fuji_hotel"
             data-item="hotel"

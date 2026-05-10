@@ -20,6 +20,12 @@ export default function FujiHotelPage() {
           showVisual={false}
           ctaLinks={[
             {
+              label: '富士河口湖短影片攻略',
+              href: 'https://www.jiejourneys.com/fuji/video',
+              dataEvent: 'fujihotel_allvideos',
+              platform: 'video',
+            },
+            {
               label: '富士河口湖票券總整理',
               href: 'https://www.jiejourneys.com/fuji/ticket',
               dataEvent: 'fujihotel_alltickets',

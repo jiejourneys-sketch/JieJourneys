@@ -501,6 +501,12 @@ export default function FujiTicketPage() {
           showVisual={false}
           ctaLinks={[
             {
+              label: '富士河口湖短影片攻略',
+              href: 'https://www.jiejourneys.com/fuji/video',
+              dataEvent: 'fujiticket_allvideos',
+              platform: 'video',
+            },
+            {
               label: '住宿推薦總整理',
               href: 'https://www.jiejourneys.com/fuji/hotel',
               dataEvent: 'fujiticket_allhotels',
