@@ -50,6 +50,14 @@ const basePlaces: BusanPassMapBasePlace[] = [
     lng: 129.1070818,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/DpKU2SXFfvvLS7cx6',
     naverMapUrl: 'https://naver.me/GYCRCG0I',
+    spotActions: [
+      {
+        label: '表單預約',
+        href: 'https://docs.google.com/forms/d/e/1FAIpQLSfqR8sMJ_RQ6WtNEl4AMgblZInAMjKxoTU8fPLtY2Qho9xnRg/viewform',
+        mapEvent: 'busanpassmap_pass_high_01_reserve_form',
+        platform: 'GoogleForm',
+      },
+    ],
     mapButtonMapEvent: 'busanpassmap_pass_high_01_map',
     mapButtonLabel: '地圖',
     markerColor: '#FF5252',
@@ -129,6 +137,14 @@ const basePlaces: BusanPassMapBasePlace[] = [
     lng: 129.2006015,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/WRFJYx94ZdkvTM339',
     naverMapUrl: 'https://naver.me/Gwpj0688',
+    spotActions: [
+      {
+        label: 'IG預約',
+        href: 'https://www.instagram.com/surfholic_kr/',
+        mapEvent: 'busanpassmap_pass_high_06_reserve_ig',
+        platform: 'Instagram',
+      },
+    ],
     mapButtonMapEvent: 'busanpassmap_pass_high_06_map',
     mapButtonLabel: '地圖',
     markerColor: '#FF5252',
@@ -175,6 +191,14 @@ const basePlaces: BusanPassMapBasePlace[] = [
     lng: 129.0621389,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/62GRTmQTHTv49HVC9',
     naverMapUrl: 'https://naver.me/xDJuABIQ',
+    spotActions: [
+      {
+        label: '官網預約',
+        href: 'https://docs.google.com/forms/d/e/1FAIpQLSfQ6srCDsH8hILodZD2xUI4sleQItSP4BcI5wiPEg4TBZ1bxQ/viewform',
+        mapEvent: 'busanpassmap_pass_high_09_reserve_official',
+        platform: 'GoogleForm',
+      },
+    ],
     mapButtonMapEvent: 'busanpassmap_pass_high_09_map',
     mapButtonLabel: '地圖',
     markerColor: '#FF5252',
@@ -426,6 +450,14 @@ const basePlaces: BusanPassMapBasePlace[] = [
     lng: 129.010016,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/DEnqtJqFWw4Du4JT6',
     naverMapUrl: 'https://naver.me/IItc6HR9',
+    spotActions: [
+      {
+        label: 'IG預約',
+        href: 'https://www.instagram.com/hanbok.rentalshop/',
+        mapEvent: 'busanpassmap_pass_mid_12_reserve_ig',
+        platform: 'Instagram',
+      },
+    ],
     mapButtonMapEvent: 'busanpassmap_pass_mid_12_map',
     mapButtonLabel: '地圖',
     markerColor: '#FFEA00',
