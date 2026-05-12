@@ -89,7 +89,8 @@ const cards: CityCard[] = [
     title: '機場/東京市區 ⇄ 富士山/河口湖｜自駕',
     meta: '交通', area: '交通', datasetKey: 'title', datasetValue: '機場/東京市區 ⇄ 富士山/河口湖｜自駕',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/car-rentals?cid=22312', className: 'btn primary', event: 'fujitransport_self_kkday', platform: 'KKDAY', section: 'transport_card' },
+      { label: '合作租車', href: 'https://www2.tocoo.jp/cn/?asp_id=2561&utm_source=2561&utm_medium=affiliate', className: 'btn primary recommend', event: 'fujitransport_self_tocoo', platform: 'TOCOO', section: 'transport_card', promoCode: 'BADN3O' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/car-rentals?cid=22312', className: 'btn', event: 'fujitransport_self_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-HK/car-rentals/city/28-tokyo-car-rentals/?aid=93798', className: 'btn', event: 'fujitransport_self_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: 'Trip', href: 'https://tw.trip.com/carhire/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujitransport_self_trip', platform: 'Trip', section: 'transport_card' },
     ],

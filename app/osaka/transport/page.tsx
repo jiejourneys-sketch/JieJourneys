@@ -101,7 +101,8 @@ const cards: CityCard[] = [
     title: '關西機場 ⇄ 大阪市區/京都/奈良/神戶｜自駕',
     meta: '關西機場交通', area: '關西機場交通', datasetKey: 'title', datasetValue: '關西機場 ⇄ 大阪市區/京都/奈良/神戶｜自駕',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/car-rentals/kix?cid=22312', className: 'btn primary', event: 'osakatransport_carrental_kkday', platform: 'KKDAY', section: 'transport_card' },
+      { label: '合作租車', href: 'https://www2.tocoo.jp/cn/?asp_id=2561&utm_source=2561&utm_medium=affiliate', className: 'btn primary recommend', event: 'osakatransport_carrental_tocoo', platform: 'TOCOO', section: 'transport_card', promoCode: 'BADN3O' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/car-rentals/kix?cid=22312', className: 'btn', event: 'osakatransport_carrental_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/car-rentals/city/29-osaka-car-rentals/?aid=93798', className: 'btn', event: 'osakatransport_carrental_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: 'Trip', href: 'https://tw.trip.com/carhire/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16697837', className: 'btn', event: 'osakatransport_carrental_trip', platform: 'Trip', section: 'transport_card' },
     ],
