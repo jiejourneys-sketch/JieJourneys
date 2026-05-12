@@ -8,7 +8,7 @@ import Footer from '@/components/Footer'
 export default function OsakaPage() {
   return (
     <>
-      <CitySubpageHeader backHref="/countries" eventPrefix="osaka" />
+      <CitySubpageHeader backHref="/" eventPrefix="osaka" />
       <main className="busan-main">
         <h1>日本｜大阪</h1>
         <p className="sub">完整連結快速選單</p>

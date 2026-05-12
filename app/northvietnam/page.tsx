@@ -8,7 +8,7 @@ import Footer from '@/components/Footer'
 export default function NorthVietnamPage() {
   return (
     <>
-      <CitySubpageHeader backHref="/countries" eventPrefix="northvietnam" />
+      <CitySubpageHeader backHref="/" eventPrefix="northvietnam" />
       <main className="busan-main">
         <h1>越南｜北越</h1>
         <p className="sub">完整連結快速選單</p>

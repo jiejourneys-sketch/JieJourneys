@@ -83,7 +83,18 @@ export default function HomePage() {
               data-event="home_tools_esimconnect"
               data-item="tool"
             >
-              eSIM優惠(合作)
+              eSIM優惠
+            </PromoLink>
+            <PromoLink
+              href="https://www2.tocoo.jp/cn/?asp_id=2561&utm_source=2561&utm_medium=affiliate"
+              promoCode="BADN3O"
+              data-event="home_tools_tocoo_rentcar"
+              data-item="tool"
+              data-section="home_tools"
+              data-platform="TOCOO"
+              data-label="日本TOCOO!租車"
+            >
+              日本TOCOO!租車
             </PromoLink>
             <a
               href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"

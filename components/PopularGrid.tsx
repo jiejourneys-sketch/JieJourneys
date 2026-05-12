@@ -43,6 +43,33 @@ export default function PopularGrid() {
         </div>
       </Link>
       <Link
+        href="/osaka"
+        className="card"
+        data-event="home_card_osaka"
+        data-item="osaka"
+        data-section="popular"
+        data-tags="日本 大阪 osaka japan 環球影城 USJ"
+        aria-label="前往大阪攻略頁面"
+      >
+        <div className="card-body">
+          <h3>日本｜大阪</h3>
+        </div>
+      </Link>
+      <Link
+        href="/northvietnam"
+        className="card"
+        data-event="home_card_northvietnam"
+        data-item="northvietnam"
+        data-section="popular"
+        data-tags="越南 北越 河內 hanoi vietnam 下龍"
+        aria-label="前往北越攻略頁面"
+      >
+        <div className="card-body">
+          <h3>越南｜北越</h3>
+        </div>
+      </Link>
+      {/*
+      <Link
         href="/countries"
         className="card"
         data-event="home_card_countries"
@@ -55,6 +82,7 @@ export default function PopularGrid() {
           <h3>其他國家</h3>
         </div>
       </Link>
+      */}
     </div>
   )
 }
