@@ -224,7 +224,7 @@ function ticketCardsToSpots(): BusanMapPlace[] {
   })
 }
 
-function hotelCardToPlace(card: (typeof busanHotelCards)[number], index: number): BusanMapPlace {
+function hotelCardToPlace(card: (typeof busanHotelCards)[number]): BusanMapPlace {
   const lat = card.lat
   const lng = card.lng
   if (lat === undefined || lng === undefined) {
@@ -241,7 +241,7 @@ function hotelCardToPlace(card: (typeof busanHotelCards)[number], index: number)
       : eventSlug(card.title)
 
   return {
-    id: `busan-hotel-${index + 1}`,
+    id: `hotel-${hotelSlug}`,
     category: 'hotel',
     name: card.title,
     description: card.meta,

@@ -55,7 +55,7 @@ function northVietnamMapHotelAction(action: CityCardAction): CityCardAction {
   }
 }
 
-function hotelCardToPlace(card: (typeof northVietnamHotelCards)[number], index: number): NorthVietnamMapPlace {
+function hotelCardToPlace(card: (typeof northVietnamHotelCards)[number]): NorthVietnamMapPlace {
   const lat = card.lat
   const lng = card.lng
   if (lat === undefined || lng === undefined) {
@@ -72,7 +72,7 @@ function hotelCardToPlace(card: (typeof northVietnamHotelCards)[number], index: 
       : eventSlug(card.title)
 
   return {
-    id: `nv-hotel-${index + 1}`,
+    id: `hotel-${hotelSlug}`,
     category: 'hotel',
     name: card.title,
     description: card.meta,

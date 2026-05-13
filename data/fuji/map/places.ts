@@ -23,7 +23,7 @@ function fujiHotelSlugFromAction(action: NonNullable<MapPlace['hotelActions']>[n
   return match?.[1] ?? eventSlug(event || action.label)
 }
 
-function hotelCardToPlace(card: (typeof fujiHotelCards)[number], index: number): MapPlace {
+function hotelCardToPlace(card: (typeof fujiHotelCards)[number]): MapPlace {
   const lat = card.lat
   const lng = card.lng
   if (lat === undefined || lng === undefined) {
@@ -44,7 +44,7 @@ function hotelCardToPlace(card: (typeof fujiHotelCards)[number], index: number):
       : eventSlug(card.title)
 
   return {
-    id: `fuji-hotel-${index + 1}`,
+    id: `hotel-${hotelSlug}`,
     category: 'hotel',
     name: card.title,
     description: card.meta,

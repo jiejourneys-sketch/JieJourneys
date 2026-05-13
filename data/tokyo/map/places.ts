@@ -209,7 +209,7 @@ function ticketCardsToSpots(): TokyoMapPlace[] {
   })
 }
 
-function hotelCardToPlace(card: (typeof tokyoHotelCards)[number], index: number): TokyoMapPlace {
+function hotelCardToPlace(card: (typeof tokyoHotelCards)[number]): TokyoMapPlace {
   const lat = card.lat
   const lng = card.lng
   if (lat === undefined || lng === undefined) {
@@ -226,7 +226,7 @@ function hotelCardToPlace(card: (typeof tokyoHotelCards)[number], index: number)
       : eventSlug(card.title)
 
   return {
-    id: `hotel-${index + 1}`,
+    id: `hotel-${hotelSlug}`,
     category: 'hotel',
     name: card.title,
     description: card.meta,

@@ -5,7 +5,7 @@ export const fujiHotelTabs: TabItem[] = [
   { value: 'all', label: '全部', dataArea: 'all' },
   { value: '富士山景', label: '富士山景', dataArea: '富士山景' },
   { value: '湖景溫泉', label: '湖景溫泉', dataArea: '湖景溫泉' },
-  { value: '交通方便', label: '交通方便', dataArea: '交通方便' },
+  { value: '交通方便/高CP', label: '交通方便/高CP', dataArea: '交通方便/高CP' },
 ]
 
 export const fujiHotelCards: CityCard[] = [
@@ -21,6 +21,20 @@ export const fujiHotelCards: CityCard[] = [
     actions: [
       { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?cityEnName=Fujikawaguchiko&cityId=50160&hotelId=5924009&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16105119', className: 'btn primary', event: 'fujihotel_hoshinoya_trip', platform: 'Trip', section: 'hotel_card' },
       { label: '地圖', href: 'https://maps.app.goo.gl/EJkeZoSJcEb61ypc6', className: 'btn', event: 'fujihotel_hoshinoya_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: '秀峰閣湖月',
+    meta: '富士山景｜5星級、全房富士山景/露天溫泉/一泊二食',
+    area: '富士山景',
+    datasetKey: 'hotel',
+    datasetValue: '秀峰閣湖月',
+    lat: 35.5251759,
+    lng: 138.7617564,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?hotelId=2196109&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16730765', className: 'btn primary', event: 'fujihotel_shuhokaku_kozuki_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=9070089', className: 'btn', event: 'fujihotel_shuhokaku_kozuki_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/KGz18CVN2xYGcHmu6', className: 'btn', event: 'fujihotel_shuhokaku_kozuki_map', platform: 'Maps', section: 'hotel_card' },
     ],
   },
   {
@@ -107,20 +121,6 @@ export const fujiHotelCards: CityCard[] = [
     ],
   },
   {
-    title: '秀峰閣湖月',
-    meta: '湖景溫泉｜5星級、全房富士山景/露天溫泉/一泊二食',
-    area: '湖景溫泉',
-    datasetKey: 'hotel',
-    datasetValue: '秀峰閣湖月',
-    lat: 35.5251759,
-    lng: 138.7617564,
-    actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?hotelId=2196109&Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16730765', className: 'btn primary', event: 'fujihotel_shuhokaku_kozuki_trip', platform: 'Trip', section: 'hotel_card' },
-      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=9070089', className: 'btn', event: 'fujihotel_shuhokaku_kozuki_agoda', platform: 'Agoda', section: 'hotel_card' },
-      { label: '地圖', href: 'https://maps.app.goo.gl/KGz18CVN2xYGcHmu6', className: 'btn', event: 'fujihotel_shuhokaku_kozuki_map', platform: 'Maps', section: 'hotel_card' },
-    ],
-  },
-  {
     title: '河口湖溫泉飯店KUKUNA',
     meta: '湖景溫泉｜4星級、富士山景/露天溫泉/餐飲美味',
     area: '湖景溫泉',
@@ -190,11 +190,11 @@ export const fujiHotelCards: CityCard[] = [
       { label: '地圖', href: 'https://maps.app.goo.gl/JCeMUNeZ8k2JJa1x7', className: 'btn', event: 'fujihotel_fuji_lake_map', platform: 'Maps', section: 'hotel_card' },
     ],
   },
-  // ── 交通方便 ──────────────────────────────────────────────
+  // ── 交通方便/高CP ─────────────────────────────────────────
   {
     title: 'THE TOKI富士河口湖',
-    meta: '交通方便｜5星級、富士山景/乾淨衛生/設施齊全',
-    area: '交通方便',
+    meta: '交通方便/高CP｜5星級、富士山景/乾淨衛生/設施齊全',
+    area: '交通方便/高CP',
     datasetKey: 'hotel',
     datasetValue: 'THE TOKI富士河口湖',
     lat: 35.5001866,
@@ -206,23 +206,9 @@ export const fujiHotelCards: CityCard[] = [
     ],
   },
   {
-    title: 'AWAUMI富士河口湖度假村',
-    meta: '交通方便｜4星級、位置方便/住宿特色/溫泉桑拿',
-    area: '交通方便',
-    datasetKey: 'hotel',
-    datasetValue: 'AWAUMI富士河口湖度假村',
-    lat: 35.5005088,
-    lng: 138.7558203,
-    actions: [
-      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-110605288?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16117705', className: 'btn primary', event: 'fujihotel_awaumi_trip', platform: 'Trip', section: 'hotel_card' },
-      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=42010286', className: 'btn', event: 'fujihotel_awaumi_agoda', platform: 'Agoda', section: 'hotel_card' },
-      { label: '地圖', href: 'https://maps.app.goo.gl/qTDRBvq2WWxt7VXZA', className: 'btn', event: 'fujihotel_awaumi_map', platform: 'Maps', section: 'hotel_card' },
-    ],
-  },
-  {
     title: '夢富士花之宿旅館',
-    meta: '交通方便｜4星級、位置方便/房間寬敞/服務優質',
-    area: '交通方便',
+    meta: '交通方便/高CP｜4星級、位置方便/房間寬敞/服務優質',
+    area: '交通方便/高CP',
     datasetKey: 'hotel',
     datasetValue: '夢富士花之宿旅館',
     lat: 35.4962911,
@@ -231,6 +217,76 @@ export const fujiHotelCards: CityCard[] = [
       { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-18090690/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16105119', className: 'btn primary', event: 'fujihotel_yume_fuji_trip', platform: 'Trip', section: 'hotel_card' },
       { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=5492759', className: 'btn', event: 'fujihotel_yume_fuji_agoda', platform: 'Agoda', section: 'hotel_card' },
       { label: '地圖', href: 'https://maps.app.goo.gl/dJVUEcSABftaYkYZA', className: 'btn', event: 'fujihotel_yume_fuji_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: 'MYSTAYS富士山展望溫泉酒店',
+    meta: '交通方便/高CP｜4星級、富士急樂園站步行約5分鐘/富士山景溫泉/中價位高CP',
+    area: '交通方便/高CP',
+    datasetKey: 'hotel',
+    datasetValue: 'MYSTAYS富士山展望溫泉酒店',
+    lat: 35.491846,
+    lng: 138.780072,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujiyoshida-hotel-detail-5859418/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16902720', className: 'btn primary', event: 'fujihotel_mystays_fuji_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=1314506', className: 'btn', event: 'fujihotel_mystays_fuji_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/oxfbMh1DDzfVqwVU7', className: 'btn', event: 'fujihotel_mystays_fuji_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: 'Megu Fuji 2021',
+    meta: '交通方便/高CP｜3星級、富士山站步行約3分鐘/小資乾淨/頂樓富士山景露台',
+    area: '交通方便/高CP',
+    datasetKey: 'hotel',
+    datasetValue: 'Megu Fuji 2021',
+    lat: 35.4827849,
+    lng: 138.7955263,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujiyoshida-hotel-detail-71910929/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16902720', className: 'btn primary', event: 'fujihotel_megu_fuji_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=28345188', className: 'btn', event: 'fujihotel_megu_fuji_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/TsAJkeZzuGKoBpeH8', className: 'btn', event: 'fujihotel_megu_fuji_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: '富士山河口湖Kagelow青旅',
+    meta: '交通方便/高CP｜3星級、河口湖站步行約10分鐘/文青青旅/咖啡酒吧與共用廚房',
+    area: '交通方便/高CP',
+    datasetKey: 'hotel',
+    datasetValue: '富士山河口湖Kagelow青旅',
+    lat: 35.495504,
+    lng: 138.765248,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-5633127/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16902720', className: 'btn primary', event: 'fujihotel_kagelow_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=1094556', className: 'btn', event: 'fujihotel_kagelow_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/G3Hyy85BgtWYhzGfA', className: 'btn', event: 'fujihotel_kagelow_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: 'THE GARDEN',
+    meta: '交通方便/高CP｜3星級、河口湖站步行約7-8分鐘/公寓式房型/富士山景與新穎設計',
+    area: '交通方便/高CP',
+    datasetKey: 'hotel',
+    datasetValue: 'THE GARDEN',
+    lat: 35.4949845,
+    lng: 138.7702799,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-57169955/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16902720', className: 'btn primary', event: 'fujihotel_the_garden_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=26043762', className: 'btn', event: 'fujihotel_the_garden_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/hXFwa6Nfu9mmZ13U7', className: 'btn', event: 'fujihotel_the_garden_map', platform: 'Maps', section: 'hotel_card' },
+    ],
+  },
+  {
+    title: '河口湖車站旅館',
+    meta: '交通方便/高CP｜2星級、河口湖站正對面/平價日式旅館/頂樓富士山景澡堂',
+    area: '交通方便/高CP',
+    datasetKey: 'hotel',
+    datasetValue: '河口湖車站旅館',
+    lat: 35.498831,
+    lng: 138.769394,
+    actions: [
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/fujikawaguchiko-hotel-detail-706382/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16902720', className: 'btn primary', event: 'fujihotel_kawaguchiko_station_inn_trip', platform: 'Trip', section: 'hotel_card' },
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=266972', className: 'btn', event: 'fujihotel_kawaguchiko_station_inn_agoda', platform: 'Agoda', section: 'hotel_card' },
+      { label: '地圖', href: 'https://maps.app.goo.gl/YjjxjnGCE2bnNQsB8', className: 'btn', event: 'fujihotel_kawaguchiko_station_inn_map', platform: 'Maps', section: 'hotel_card' },
     ],
   },
 ]

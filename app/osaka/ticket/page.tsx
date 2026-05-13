@@ -156,9 +156,9 @@ const addTicketActionEvents = (cards: CityCard[]): CityCard[] => {
   })
 }
 
-const createPassMapCards = (idPrefix: string, area: string, meta: string): CityCard[] =>
+const createPassMapCards = (category: 'spot' | 'free', area: string, meta: string): CityCard[] =>
   osakaPassMapPlaces
-    .filter((place) => place.id.startsWith(idPrefix))
+    .filter((place) => place.category === category)
     .map((place): CityCard | null => {
       const actions = (place.spotActions ?? [])
         .filter((action) => ticketPlatforms.has(action.label))
@@ -181,8 +181,8 @@ const createPassMapCards = (idPrefix: string, area: string, meta: string): CityC
     })
     .filter((card): card is CityCard => card !== null)
 
-const passCoveredCards = createPassMapCards('osaka-pass-free-', '周遊券涵蓋景點', '周遊券(✔️)')
-const passDiscountCards = createPassMapCards('osaka-pass-discount-', '周遊券優惠景點', '周遊券(%)')
+const passCoveredCards = createPassMapCards('spot', '周遊券涵蓋景點', '周遊券(✔️)')
+const passDiscountCards = createPassMapCards('free', '周遊券優惠景點', '周遊券(%)')
 
 const cards: CityCard[] = addTicketActionEvents(addOneDayTags([
   {
