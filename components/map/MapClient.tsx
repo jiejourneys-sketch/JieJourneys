@@ -1289,7 +1289,7 @@ export default function MapClient({
           </div>
         </div>
 
-        <div className={styles.splitWrap}>
+        <div className={`${styles.splitWrap} ${mobileBelowContentActive ? styles.mobileMapHidden : ''}`}>
           <div className={styles.mapColumn}>
             <div className={styles.mapColumnInner}>
               <div className={styles.mapShellWrap}>
