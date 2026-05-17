@@ -1,12 +1,26 @@
 import type { Metadata } from 'next'
 
-const title = '東京景點地圖｜上野・新宿・原宿・淺草・澀谷・富士山・河口湖票券景點與住宿一覽 | JieJourneys(旅杰)'
+const title = '東京景點地圖｜免費互動地圖・住宿票券美食・GoogleMap一鍵導航'
 const description =
-  '東京互動景點地圖。標示 SHIBUYA SKY、晴空塔、teamLab、東京鐵塔、淺草寺、台場獨角獸鋼彈等票券景點，以及新宿御苑、上野公園、代代木公園等免費景點，加上各區精選住宿位置，含 KKDAY、KLOOK、Trip 購票連結，一鍵開啟 Google 地圖導航，依區域分類快速篩選。'
+  '東京景點地圖整理新宿、澀谷、原宿、淺草、上野、東京車站、銀座、台場等熱門區域，並把票券景點、免費景點、商店美食與住宿推薦放在同一張免費互動地圖。可切換票券、景點、商店、住宿分類，查看 KKDAY、KLOOK、Trip 購票連結，一鍵開啟 Google Map 導航。'
 
 export const metadata: Metadata = {
   title,
   description,
+  keywords: [
+    '東京景點地圖',
+    '東京地圖',
+    '東京自由行地圖',
+    '東京住宿地圖',
+    '東京票券地圖',
+    '東京Google Map',
+    '新宿地圖',
+    '澀谷地圖',
+    '淺草地圖',
+    '上野地圖',
+    '東京車站地圖',
+    '台場地圖',
+  ],
   openGraph: {
     type: 'website',
     locale: 'zh_TW',

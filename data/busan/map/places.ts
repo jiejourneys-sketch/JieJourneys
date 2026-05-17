@@ -12,7 +12,7 @@ import { BUSAN_MAP_SPOT_VIDEO_ACTIONS } from '@/data/busan/map/spotVideoActions'
 
 export type { BusanMapPlace, BusanPlaceCategory } from '@/data/busan/map/types'
 
-export const BUSAN_MAP_CENTER = { lat: 35.1156, lng: 129.0422 }
+export const BUSAN_MAP_CENTER = { lat: 35.132, lng: 129.085 }
 
 /** 地圖不顯示：無單一實體釘點者。 */
 const EXCLUDE_FROM_MAP = new Set(['釜山通行證(釜山Pass)'])

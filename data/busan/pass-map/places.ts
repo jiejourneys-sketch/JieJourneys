@@ -2,7 +2,7 @@ import type { CityCardAction } from '@/components/CityTabbedList'
 import type { MapPlace } from '@/lib/mapPlace'
 import { busanTicketCards } from '@/data/busan/tickets'
 
-export const BUSAN_PASS_MAP_CENTER = { lat: 35.1733, lng: 129.0839 }
+export const BUSAN_PASS_MAP_CENTER = { lat: 35.147, lng: 129.087 }
 
 type BusanPassMapBasePlace = Omit<MapPlace, 'description'> & {
   description: string
@@ -42,6 +42,25 @@ function naverActions(place: BusanPassMapBasePlace): CityCardAction[] {
       platform: 'NaverMap',
     },
   ]
+}
+
+const PURPLE_PASS_PLACE_ID_PARTS = [
+  'lotte-world-adventure',
+  'skyline-luge',
+  'x-the-sky',
+  'club-d-oasis',
+  'spa-land',
+  'diamond-bay-yacht',
+  'songjeong-surfers',
+  'dadaepo-surfers',
+  'aqua-palace',
+  'daeyoung-taekwondo',
+  'city-tour-bus',
+]
+
+// Visit Busan Pass Group A / Purple attractions currently present in this map data.
+function officialPassTier(place: BusanPassMapBasePlace): MapPlace['officialPassTier'] {
+  return PURPLE_PASS_PLACE_ID_PARTS.some((part) => place.id.includes(part)) ? 'purple' : 'blue'
 }
 
 const basePlaces: BusanPassMapBasePlace[] = [
@@ -637,6 +656,7 @@ export const busanPassMapPlaces: MapPlace[] = basePlaces.map((place) => {
   ]
   return {
     ...place,
+    officialPassTier: officialPassTier(place),
     ...(spotActions.length > 0 ? { spotActions } : {}),
     ...(place.relatedTicketTag
       ? {

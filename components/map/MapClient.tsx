@@ -5,6 +5,7 @@ import type {
   CSSProperties,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
+  ReactNode,
   TouchEvent as ReactTouchEvent,
   WheelEvent as ReactWheelEvent,
 } from 'react'
@@ -40,6 +41,17 @@ export type MapClientProps = {
   categoryItems?: { key: CityMapPlaceCategory; label: string }[]
   /** Override category labels used in cards, list sections, and marker titles. */
   categoryLabels?: Partial<Record<CityMapPlaceCategory, string>>
+  officialPassTierItems?: { key: NonNullable<MapPlace['officialPassTier']>; label: string }[]
+  topActions?: {
+    label: string
+    href: string
+    event: string
+    platform: string
+    primary?: boolean
+    external?: boolean
+  }[]
+  /** Static content rendered below the interactive map, before the footer. */
+  belowContent?: ReactNode
 }
 
 const CATEGORY_LABEL = CITY_MAP_CATEGORY_LABEL
@@ -224,6 +236,12 @@ function MapPlaceCard({
   categoryLabels,
 }: MapPlaceCardProps) {
   const relatedTicketClassName = hasPrimarySpotAction(place) ? 'btn' : 'btn primary'
+  const officialPassTierLabel =
+    place.officialPassTier === 'purple'
+      ? '紫色/A區景點'
+      : place.officialPassTier === 'blue'
+        ? '藍色/B區景點'
+        : null
 
   return (
     <article
@@ -247,7 +265,14 @@ function MapPlaceCard({
       }}
     >
       <div>
-        <span className={styles.catPill}>{categoryLabels[place.category]}</span>
+        <div className={styles.mapCardPills}>
+          <span className={styles.catPill}>{categoryLabels[place.category]}</span>
+          {officialPassTierLabel ? (
+            <span className={`${styles.officialTierPill} ${styles[`officialTierPill_${place.officialPassTier}`]}`}>
+              {officialPassTierLabel}
+            </span>
+          ) : null}
+        </div>
         <h3 className="title">{place.name}</h3>
         <p className="desc">{place.description}</p>
         {place.hotelActions && place.hotelActions.length > 0 ? (
@@ -446,6 +471,9 @@ export default function MapClient({
   defaultCategories,
   categoryItems,
   categoryLabels,
+  officialPassTierItems,
+  topActions,
+  belowContent,
 }: MapClientProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
@@ -497,15 +525,20 @@ export default function MapClient({
 
   const [categoryOn, setCategoryOn] =
     useState<Record<CityMapPlaceCategory, boolean>>(() => defaultCategories ?? cityMapSoloCategory('spot'))
+  const [officialPassTier, setOfficialPassTier] = useState<NonNullable<MapPlace['officialPassTier']> | 'all'>('all')
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [topActionsOpen, setTopActionsOpen] = useState(false)
 
   const allCategoriesOn = cityMapCategoriesAllOn(categoryOn)
 
   const filteredPlaces = useMemo(
-    () => places.filter((p) => categoryOn[p.category]),
-    [places, categoryOn],
+    () =>
+      places.filter(
+        (p) => categoryOn[p.category] && (officialPassTier === 'all' || p.officialPassTier === officialPassTier),
+      ),
+    [places, categoryOn, officialPassTier],
   )
 
   const spotPlaces = useMemo(
@@ -784,7 +817,7 @@ export default function MapClient({
   useEffect(() => {
     const el = mobileScrollContainerRef.current
     if (el) el.scrollTop = 0
-  }, [categoryOn])
+  }, [categoryOn, officialPassTier])
 
   useEffect(() => {
     const wasSingle = !prevBrowseDualRef.current
@@ -1066,59 +1099,26 @@ export default function MapClient({
         <div className={styles.topBar}>
           <h1>{title}</h1>
           <div className={styles.introBlock}>
-            <div
-              className="tabs"
-              id={`${gtagPrefix}CategoryToggles`}
-              role="group"
-              aria-label="地圖分類：全部可切換全開／全關；四類可複選"
-            >
-              <button
-                type="button"
-                className={`tab ${allCategoriesOn ? 'active' : ''}`}
-                data-area="all"
-                onClick={() => {
-                  setCategoryOn((prev) => {
-                    const next = cityMapCategoriesAllOn(prev)
-                      ? { spot: false, free: false, food: false, hotel: false }
-                      : { ...DEFAULT_CITY_MAP_CATEGORY_ON }
-                    const fn = getGtag()
-                    if (typeof fn === 'function') {
-                      fn('event', tabGtagEvent, {
-                        area: cityMapCategoriesAllOn(next) ? 'all' : 'none',
-                        page_path: location.pathname,
-                      })
-                    }
-                    return next
-                  })
-                  setSelectedId(null)
-                  setMobileSheetBrowseDual(true)
-                  if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
-                    setMobileSheetExpanded(false)
-                    mapClickSuppressUntilRef.current = Date.now() + 450
-                  }
-                }}
+            <div className={styles.mapFilterGroups}>
+              <div
+                className="tabs"
+                id={`${gtagPrefix}CategoryToggles`}
+                role="group"
+                aria-label="地圖分類：全部可切換全開／全關；四類可複選"
               >
-                全部
-              </button>
-              {activeCategoryItems.map(({ key, label }) => (
                 <button
-                  key={key}
                   type="button"
-                  className={`tab ${categoryOn[key] ? 'active' : ''}`}
-                  aria-pressed={categoryOn[key]}
-                  data-area={key}
+                  className={`tab ${allCategoriesOn ? 'active' : ''}`}
+                  data-area="all"
                   onClick={() => {
                     setCategoryOn((prev) => {
                       const next = cityMapCategoriesAllOn(prev)
-                        ? cityMapSoloCategory(key)
-                        : { ...prev, [key]: !prev[key] }
+                        ? { spot: false, free: false, food: false, hotel: false }
+                        : { ...DEFAULT_CITY_MAP_CATEGORY_ON }
                       const fn = getGtag()
                       if (typeof fn === 'function') {
-                        const area = (['spot', 'free', 'food', 'hotel'] as const)
-                          .filter((k) => next[k])
-                          .join(',')
                         fn('event', tabGtagEvent, {
-                          area: area || 'none',
+                          area: cityMapCategoriesAllOn(next) ? 'all' : 'none',
                           page_path: location.pathname,
                         })
                       }
@@ -1132,10 +1132,116 @@ export default function MapClient({
                     }
                   }}
                 >
-                  {label}
+                  全部
                 </button>
-              ))}
+                {activeCategoryItems.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`tab ${categoryOn[key] ? 'active' : ''}`}
+                    aria-pressed={categoryOn[key]}
+                    data-area={key}
+                    onClick={() => {
+                      setCategoryOn((prev) => {
+                        const next = cityMapCategoriesAllOn(prev)
+                          ? cityMapSoloCategory(key)
+                          : { ...prev, [key]: !prev[key] }
+                        const fn = getGtag()
+                        if (typeof fn === 'function') {
+                          const area = (['spot', 'free', 'food', 'hotel'] as const)
+                            .filter((k) => next[k])
+                            .join(',')
+                          fn('event', tabGtagEvent, {
+                            area: area || 'none',
+                            page_path: location.pathname,
+                          })
+                        }
+                        return next
+                      })
+                      setSelectedId(null)
+                      setMobileSheetBrowseDual(true)
+                      if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
+                        setMobileSheetExpanded(false)
+                        mapClickSuppressUntilRef.current = Date.now() + 450
+                      }
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {officialPassTierItems && officialPassTierItems.length > 0 ? (
+                <div
+                  className="tabs"
+                  id={`${gtagPrefix}OfficialPassTierToggles`}
+                  role="group"
+                  aria-label="釜山通行證官方分類：全部／紫色A區景點／藍色B區景點"
+                >
+                  <button
+                    type="button"
+                    className={`tab ${officialPassTier === 'all' ? 'active' : ''}`}
+                    data-area="official-all"
+                    onClick={() => {
+                      setOfficialPassTier('all')
+                      setSelectedId(null)
+                      setMobileSheetBrowseDual(true)
+                    }}
+                  >
+                    全部
+                  </button>
+                  {officialPassTierItems.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`tab ${officialPassTier === key ? 'active' : ''}`}
+                      aria-pressed={officialPassTier === key}
+                      data-area={`official-${key}`}
+                      onClick={() => {
+                        setOfficialPassTier((prev) => (prev === key ? 'all' : key))
+                        setSelectedId(null)
+                        setMobileSheetBrowseDual(true)
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
+            {topActions && topActions.length > 0 ? (
+              <div className={styles.mapTopActions} aria-label="快速連結">
+                <button
+                  type="button"
+                  className={styles.mapTopActionTrigger}
+                  aria-expanded={topActionsOpen}
+                  aria-controls={`${gtagPrefix}TopActionsMenu`}
+                  data-event={`${gtagPrefix}_top_buy_toggle`}
+                  data-platform="buy-menu"
+                  data-section="map_top"
+                  onClick={() => setTopActionsOpen((open) => !open)}
+                >
+                  連結
+                  <span aria-hidden>{topActionsOpen ? '▴' : '▾'}</span>
+                </button>
+                {topActionsOpen ? (
+                  <div id={`${gtagPrefix}TopActionsMenu`} className={styles.mapTopActionMenu}>
+                    {topActions.map((action) => (
+                      <a
+                        key={`${action.label}-${action.href}`}
+                        className={`${styles.mapTopAction} ${action.primary ? styles.mapTopActionPrimary : ''}`}
+                        href={action.href}
+                        {...(action.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                        data-event={action.event}
+                        data-platform={action.platform}
+                        data-section="map_top"
+                      >
+                        {action.label}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -1334,6 +1440,7 @@ export default function MapClient({
         </div>
 
         <div className={styles.mobileMainSpacer} aria-hidden />
+        {belowContent ? <div className={styles.mapBelowContent}>{belowContent}</div> : null}
       </main>
       <Footer />
     </>

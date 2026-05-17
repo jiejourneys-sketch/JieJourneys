@@ -194,7 +194,7 @@ const cards: CityCard[] = addTicketActionEvents(addOneDayTags([
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/12156-osaka-amazing-pass-e-ticket-japan?cid=22312', className: 'btn primary', event: 'osakaticket_pass_kkday', platform: 'KKDAY', section: 'ticket_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/82312-amazing-pass-osaka/?aid=93798', className: 'btn', event: 'osakaticket_pass_klook', platform: 'KLOOK', section: 'ticket_card' },
-      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/91454459?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16477085', className: 'btn', event: 'osakaticket_pass_trip', platform: 'Trip', section: 'ticket_card' },
+      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/48361291?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D17058162', className: 'btn', event: 'osakaticket_pass_trip', platform: 'Trip', section: 'ticket_card' },
     ],
   },
   ...passCoveredCards,

@@ -998,7 +998,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
       },
       {
         label: 'Trip',
-        href: 'https://tw.trip.com/things-to-do/detail/91454459?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16477085',
+        href: 'https://tw.trip.com/things-to-do/detail/48361291?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D17058162',
         className: 'btn',
         event: 'osakapassmap_pass_free_keitakuen_garden_trip',
         platform: 'Trip',

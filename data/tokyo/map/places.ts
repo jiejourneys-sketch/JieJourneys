@@ -29,7 +29,7 @@ function spotActionRowsFromMapNextRow(actions: CityCardAction[]): CityCardAction
   return rows.length > 1 ? rows : undefined
 }
 
-export const TOKYO_MAP_CENTER = { lat: 35.6812, lng: 139.7671 }
+export const TOKYO_MAP_CENTER = { lat: 35.676, lng: 139.742 }
 
 /** 地圖不顯示：無固定釘點者（一日遊行程票由 tag 查詢）。 */
 const EXCLUDE_FROM_MAP = new Set<string>()

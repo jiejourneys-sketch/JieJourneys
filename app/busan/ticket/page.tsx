@@ -80,6 +80,41 @@ export default function BusanTicketPage() {
             <br />
             基本上大多數人會買<strong>48 小時</strong>，CP 值最高、也比較好安排。
           </p>
+          <div className="seo-buy-links" aria-label="購買釜山通行證">
+            <a
+              className="seo-buy-link primary"
+              href="https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="busanticket_pass_buy_kkday"
+              data-platform="KKDAY"
+              data-section="seo_content"
+            >
+              KKDAY 購買
+            </a>
+            <a
+              className="seo-buy-link"
+              href="https://www.klook.com/zh-TW/activity/81576-visit-busan-pass/?aid=93798"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="busanticket_pass_buy_klook"
+              data-platform="KLOOK"
+              data-section="seo_content"
+            >
+              KLOOK 比價
+            </a>
+            <a
+              className="seo-buy-link"
+              href="https://tw.trip.com/things-to-do/detail/50618334?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5754051"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="busanticket_pass_buy_trip"
+              data-platform="Trip"
+              data-section="seo_content"
+            >
+              Trip 查看
+            </a>
+          </div>
 
           <h3 className="seo-h3">👉 Pass 沒包含怎麼辦？最熱門是膠囊列車（需另外買票）</h3>
           <p>

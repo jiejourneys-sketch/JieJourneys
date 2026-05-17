@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '越南北越自由行通訊交通攻略｜eSIM・機場接送・河內到沙壩/下龍灣/陸龍灣交通比較 | JieJourneys(旅杰)'
+const title = '越南北越交通攻略｜河內・下龍灣・沙壩・陸龍灣所有交通資訊'
 const description =
-  '北越交通通訊全攻略。越南 eSIM 與 SIM 卡下機即用；河內內排機場到市區建議預訂包車，Grab 有時加收過路費需注意。前往沙壩可選臥鋪巴士、夜間火車或包車；下龍灣與陸龍灣接駁通常含在遊輪或行程票價內。各方案優缺點完整比較，附 KKDAY、KLOOK 購買連結。'
+  '河內到下龍灣怎麼去？整理下龍灣遊輪接送、包車、共乘接駁的重點比較。也整理河內到沙壩的3種交通方式，還有陸龍灣交通方式，包含機場到市區、Grab 注意事項、越南 eSIM/SIM 卡與 KKDAY、KLOOK 預訂連結。'
 
 export const metadata: Metadata = {
   title,

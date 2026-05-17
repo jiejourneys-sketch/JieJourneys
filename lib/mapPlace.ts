@@ -17,6 +17,7 @@ export type MapPlace = {
   markerColor?: string
   markerIconUrl?: string
   markerStyleId?: string
+  officialPassTier?: 'purple' | 'blue'
   relatedTicketHref?: string
   relatedTicketLabel?: string
   relatedTicketEvent?: string

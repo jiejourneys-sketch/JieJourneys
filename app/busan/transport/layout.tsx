@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '釜山交通&通訊攻略｜eSIM・SIM卡・T-Money・機場到市區怎麼搭 | JieJourneys(旅杰)'
+const title = '釜山交通攻略｜金海機場到市區・地鐵T-Money・eSIM/SIM卡'
 const description =
-  '釜山交通與通訊攻略整理 eSIM、SIM卡、WiFi 分享器、T-Money 交通卡、WOWPASS、KTX 與金海機場到市區方式。比較地鐵輕軌、機場接送、台灣或韓國機場取件的優缺點與購買連結，幫你出發前一次處理上網和移動。'
+  '釜山自由行交通一次整理：金海機場到西面、海雲台、市區怎麼搭，地鐵與 T-Money 怎麼用，eSIM、SIM卡、WiFi 分享器、WOWPASS、KTX 與機場接送怎麼選；附 KKDAY、KLOOK、Trip 購買連結。'
 
 export const metadata: Metadata = {
   title,

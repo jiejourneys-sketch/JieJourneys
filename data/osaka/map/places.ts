@@ -2,7 +2,7 @@ import type { CityCardAction } from '@/components/CityTabbedList'
 import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 import type { MapPlace } from '@/lib/mapPlace'
 
-export const OSAKA_MAP_CENTER = { lat: 34.7515, lng: 135.7076 }
+export const OSAKA_MAP_CENTER = { lat: 34.735, lng: 135.555 }
 
 const ticketPlatforms = ['KKDAY', 'KLOOK', 'Trip'] as const
 

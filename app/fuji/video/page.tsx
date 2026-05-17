@@ -26,6 +26,29 @@ export default function FujiVideoPage() {
        ],
     },
     {
+      title: '新倉山淺間公園｜攻略',
+      meta: '景點攻略',
+      area: '景點攻略',
+      datasetKey: 'video',
+      datasetValue: 'arakurayama-sengen-park-30s-guide',
+      actions: [
+        { label: 'IG Reels', href: 'https://www.instagram.com/reel/DYZoMf0yQkz/', className: 'btn primary', event: 'fujivideo_arakurayama_sengen_30s_ig', platform: 'IG', section: 'video' },
+        { label: 'YouTube', href: 'https://www.youtube.com/shorts/bLNGM5FHpfA', className: 'btn', event: 'fujivideo_arakurayama_sengen_30s_yt', platform: 'YouTube', section: 'video' },
+        ],
+    },
+    {
+      title: '大石公園｜攻略',
+      meta: '景點攻略',
+      area: '景點攻略',
+      datasetKey: 'video',
+      datasetValue: 'oishi-park-30s-guide',
+      actions: [
+        { label: 'IG Reels', href: 'https://www.instagram.com/reel/DYrpyjiS5-L/', className: 'btn primary', event: 'fujivideo_oishi_park_30s_ig', platform: 'IG', section: 'video' },
+        { label: 'YouTube', href: 'https://www.youtube.com/shorts/m67IlemzJNI', className: 'btn', event: 'fujivideo_oishi_park_30s_yt', platform: 'YouTube', section: 'video' },
+        { label: '小紅書', href: 'https://xhslink.com/o/1HEwdETh1zm', className: 'btn', event: 'fujivideo_oishi_park_30s_xhs', platform: '小紅書', section: 'video' },
+      ],
+    },
+    {
       title: '東京到河口湖｜3 種方式',
       meta: '交通攻略',
       area: '交通攻略',
@@ -102,6 +125,12 @@ export default function FujiVideoPage() {
               如果你只是想從東京出發玩一天，建議先用這支影片判斷自己想走「拍照景點」還是「交通省力」路線。
             </p>
 
+            <h3 className="seo-h3">新倉山淺間公園和大石公園，先用 30 秒抓拍照重點</h3>
+            <p>
+              新倉山淺間公園是富士山經典構圖，五重塔、富士山和櫻花季最有代表性；大石公園則是河口湖北岸看富士山的熱門點，春天薰衣草、秋天芒草和楓葉都很適合拍照。
+              如果你正在排河口湖一日遊，可以先看這兩支 30 秒攻略，再回到地圖確認兩個景點和河口湖站、忍野八海、Lawson 打卡點的相對位置。
+            </p>
+
             <h3 className="seo-h3">東京到河口湖，先搞懂 3 種方式</h3>
             <p>
               東京到河口湖常見方式有高速巴士、富士回遊特急和包車。高速巴士通常最直覺，從新宿出發可直接到河口湖站，適合想省預算的人；
@@ -136,7 +165,7 @@ export default function FujiVideoPage() {
           items={[
             {
               q: '第一次去富士河口湖，要先看哪支影片？',
-              a: '建議先看河口湖 30 秒攻略，快速抓到河口湖站、大石公園、纜車、遊覽船和富士山景點的大方向，再依照你要自由行還是一日遊去看交通影片。',
+              a: '建議先看河口湖 30 秒攻略，快速抓到河口湖站、大石公園、纜車、遊覽船和富士山景點的大方向；如果重點是拍照，再接著看新倉山淺間公園和大石公園 30 秒攻略。',
             },
             {
               q: '東京到河口湖適合搭富士回遊還是高速巴士？',

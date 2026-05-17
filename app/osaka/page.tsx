@@ -56,7 +56,7 @@ export default function OsakaPage() {
                 </a>
                 <a
                   className="pass-btn"
-                  href="https://tw.trip.com/things-to-do/detail/91454459?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16477085"
+                  href="https://tw.trip.com/things-to-do/detail/48361291?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D17058162"
                   target="_blank"
                   rel="noopener noreferrer"
                   data-event="osaka_pass_trip"

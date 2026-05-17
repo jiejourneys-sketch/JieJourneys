@@ -59,6 +59,33 @@ export const BUSAN_MAP_SPOT_VIDEO_ACTIONS: Partial<Record<string, CityCardAction
       section: 'video',
     },
   ],
+  'Yacht Holic｜水營灣遊艇': [
+    {
+      label: 'IG Reels',
+      href: 'https://www.instagram.com/reel/DVTW_MLkpj4/',
+      className: 'btn',
+      event: 'busanmapvideo_YachtHolicIG',
+      platform: 'IG',
+      section: 'video',
+      mapNextRow: true,
+    },
+    {
+      label: 'YouTube',
+      href: 'https://www.youtube.com/shorts/N56k5869RVw',
+      className: 'btn',
+      event: 'busanmapvideo_YachtHolicYT',
+      platform: 'YouTube',
+      section: 'video',
+    },
+    {
+      label: '小紅書',
+      href: 'https://xhslink.com/o/8B2iEV9P095',
+      className: 'btn',
+      event: 'busanmapvideo_YachtHolicXHS',
+      platform: '小紅書',
+      section: 'video',
+    },
+  ],
   '膠囊列車&海岸列車': [
     {
       label: 'IG Reels',
