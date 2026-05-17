@@ -141,6 +141,16 @@
   background: #176070;
 }
 
+.mapTopActionButton {
+  font-family: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+
+.mobileOnlyTopAction {
+  display: none;
+}
+
 .splitWrap {
   display: flex;
   flex-direction: column;
@@ -516,15 +526,24 @@
     gap: 6px;
     padding: 6px;
     border-radius: 14px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: calc(100vw - 24px);
   }
 
   .mapTopAction {
     flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 68px;
     min-height: 30px;
     border-radius: 12px;
-    padding: 5px 10px;
+    padding: 5px 0;
     font-size: 12px;
     white-space: nowrap;
+  }
+
+  .mobileOnlyTopAction {
+    display: inline-flex;
   }
 
   /* 浮在整張地圖上方（地圖仍為整屏 − 僅網站 Header） */
@@ -540,6 +559,10 @@
     background: var(--card);
     border-bottom: 1px solid rgba(31, 122, 140, 0.15);
     box-shadow: 0 2px 14px rgba(15, 23, 42, 0.08);
+  }
+
+  .mobileTopBarHidden {
+    display: none;
   }
 
   .mapPage h1 {
@@ -634,6 +657,10 @@
     transition:
       height 0.3s ease,
       max-height 0.3s ease;
+  }
+
+  .mobileSheetHidden {
+    display: none;
   }
 
   .mobileSheetDragging {

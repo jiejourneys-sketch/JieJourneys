@@ -495,6 +495,7 @@ export default function MapClient({
   const mapLayoutIdleRef = useRef(false)
   const mapClickSuppressUntilRef = useRef(0)
   const mobileSheetRef = useRef<HTMLDivElement>(null)
+  const belowContentRef = useRef<HTMLDivElement>(null)
   const sheetDragSessionRef = useRef<{
     pointerId: number
     startY: number
@@ -516,6 +517,7 @@ export default function MapClient({
   const [mobileSheetBrowseDual, setMobileSheetBrowseDual] = useState(true)
   const [sheetDragging, setSheetDragging] = useState(false)
   const [sheetDragHeightPx, setSheetDragHeightPx] = useState<number | null>(null)
+  const [mobileBelowContentActive, setMobileBelowContentActive] = useState(false)
 
   const activeCategoryItems = categoryItems ?? CITY_MAP_CATEGORY_TOGGLE_ITEMS
   const categoryLabelMap = useMemo(
@@ -1048,6 +1050,34 @@ export default function MapClient({
     [mobileSheetBrowseDual, selectedPlace],
   )
 
+  const scrollToBelowContent = useCallback(() => {
+    const target = belowContentRef.current
+    if (!target) return
+    setMobileSheetExpanded(false)
+    setMobileBelowContentActive(true)
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const fn = getGtag()
+    if (typeof fn === 'function') {
+      fn('event', `${gtagPrefix}_mobile_scroll_below`, {
+        page_path: location.pathname,
+      })
+    }
+  }, [gtagPrefix])
+
+  useEffect(() => {
+    if (!isMobileMapLayout || !belowContent) {
+      setMobileBelowContentActive(false)
+      return
+    }
+    const onScroll = () => {
+      const threshold = Math.max(120, window.innerHeight * 0.45)
+      setMobileBelowContentActive(window.scrollY > threshold)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [belowContent, isMobileMapLayout])
+
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
@@ -1096,7 +1126,7 @@ export default function MapClient({
             : undefined
         }
       >
-        <div className={styles.topBar}>
+        <div className={`${styles.topBar} ${mobileBelowContentActive ? styles.mobileTopBarHidden : ''}`}>
           <h1>{title}</h1>
           <div className={styles.introBlock}>
             <div className={styles.mapFilterGroups}>
@@ -1238,6 +1268,20 @@ export default function MapClient({
                         {action.label}
                       </a>
                     ))}
+                    {belowContent ? (
+                      <button
+                        type="button"
+                        className={`${styles.mapTopAction} ${styles.mapTopActionButton} ${styles.mobileOnlyTopAction}`}
+                        data-event={`${gtagPrefix}_mobile_scroll_below`}
+                        data-section="map_mobile"
+                        onClick={() => {
+                          setTopActionsOpen(false)
+                          scrollToBelowContent()
+                        }}
+                      >
+                        看整理 ↓
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1298,7 +1342,9 @@ export default function MapClient({
 
         <div
           ref={mobileSheetRef}
-          className={`${styles.mobileSheet} ${sheetDragging ? styles.mobileSheetDragging : ''} ${
+          className={`${styles.mobileSheet} ${mobileBelowContentActive ? styles.mobileSheetHidden : ''} ${
+            sheetDragging ? styles.mobileSheetDragging : ''
+          } ${
             !mobileSheetExpanded
               ? styles.mobileSheetCollapsed
               : showSingleMobileCard
@@ -1440,7 +1486,11 @@ export default function MapClient({
         </div>
 
         <div className={styles.mobileMainSpacer} aria-hidden />
-        {belowContent ? <div className={styles.mapBelowContent}>{belowContent}</div> : null}
+        {belowContent ? (
+          <div ref={belowContentRef} className={styles.mapBelowContent}>
+            {belowContent}
+          </div>
+        ) : null}
       </main>
       <Footer />
     </>
