@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
 import { filterSelectableMembers } from '@/lib/billMembers'
@@ -79,6 +79,7 @@ export default function EditExpenseForm({
   const [currency, setCurrency] = useState<string>(expense.currency || bookCurrency)
   const [note, setNote] = useState(expense.note || '')
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
 
   const memberOptions = useMemo(
     () =>
@@ -215,6 +216,7 @@ export default function EditExpenseForm({
   const splitRemaining = total - splitAllocated
 
   const submit = async () => {
+    if (savingRef.current) return
     if (!description.trim() || !amount) return alert('請填完整')
     const n = Number(amount)
     if (!Number.isFinite(n) || n < 0) return alert('金額不正確')
@@ -230,6 +232,7 @@ export default function EditExpenseForm({
     const splitSum = Object.values(computedSplit.totalByMember).reduce((s, v) => s + v, 0)
     if (splitSum !== total) return alert('分攤金額加總必須等於帳目金額')
 
+    savingRef.current = true
     setSaving(true)
     const occurredAt = new Date(combineDateTime(dateOnly, timeOnly) || date).toISOString()
     const beforeData = { ...expense }
@@ -276,7 +279,6 @@ export default function EditExpenseForm({
       }
       await insertChangeLog(bookId, 'edit', expense.description || '未命名', beforeLog.amount, total, expense.id, beforeLog, afterLog)
 
-      setSaving(false)
       window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
       window.dispatchEvent(new CustomEvent('bill:changeLogsChanged', { detail: { bookId } }))
       router.push(buildBillPath(`/book/${bookId}`))
@@ -284,6 +286,7 @@ export default function EditExpenseForm({
       return
     } catch (error) {
       console.error(error)
+      savingRef.current = false
       setSaving(false)
       alert('更新失敗，請稍後再試')
       return
@@ -291,7 +294,9 @@ export default function EditExpenseForm({
   }
 
   const deleteThisExpense = async () => {
+    if (savingRef.current) return
     if (!confirm(`刪除帳目「${description}」？`)) return
+    savingRef.current = true
     setSaving(true)
     const beforeData = { ...expense }
     try {
@@ -304,7 +309,6 @@ export default function EditExpenseForm({
         participants: (splits || []).length === memberOptions.length ? '所有人均分' : [...(splits || [])].sort((a, b) => a.member_id.localeCompare(b.member_id)).map((s) => byId.get(s.member_id) || '未知').join('、') || undefined
       }
       await insertChangeLog(bookId, 'delete', expense.description || '未命名', Number(expense.amount ?? 0), null, expense.id, beforeLog, null)
-      setSaving(false)
       window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
       window.dispatchEvent(new CustomEvent('bill:changeLogsChanged', { detail: { bookId } }))
       router.push(buildBillPath(`/book/${bookId}`))
@@ -312,6 +316,7 @@ export default function EditExpenseForm({
       return
     } catch (error) {
       console.error(error)
+      savingRef.current = false
       setSaving(false)
       alert('刪除失敗，請稍後再試')
       return

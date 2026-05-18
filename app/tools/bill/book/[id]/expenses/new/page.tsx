@@ -25,6 +25,15 @@ export default async function NewExpensePage({
 
   const baseCurrency = (book.base_currency as string) || 'TWD'
 
+  const { data: latestExpense } = await supabase
+    .from('expenses')
+    .select('currency')
+    .eq('book_id', id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const defaultExpenseCurrency = (latestExpense?.currency as string | undefined) || baseCurrency
+
   return (
     <div>
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
@@ -45,6 +54,7 @@ export default async function NewExpensePage({
           bookId={id}
           members={members || []}
           bookCurrency={baseCurrency}
+          defaultCurrency={defaultExpenseCurrency}
           customCurrencies={(book.custom_currencies as { code: string; symbol: string; name: string }[]) || []}
         />
       </div>

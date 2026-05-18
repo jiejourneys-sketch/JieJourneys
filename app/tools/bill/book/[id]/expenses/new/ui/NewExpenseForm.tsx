@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBuildBillPath } from '@/app/tools/bill/components/BillPathProvider'
 import { filterSelectableMembers } from '@/lib/billMembers'
 import { createExpenseWithDetails } from '@/lib/expenseRpc'
 import { toCents, formatCents, formatWithCurrency } from '@/lib/amount'
-import { CURRENCIES, LAST_CURRENCY_STORAGE_KEY, type CurrencyInfo } from '@/lib/currency'
+import { CURRENCIES, type CurrencyInfo } from '@/lib/currency'
 import { logAudit } from '@/lib/audit'
 
 type MemberRow = { id: string; name: string; is_active?: boolean | null }
@@ -40,11 +40,13 @@ export default function NewExpenseForm({
   bookId,
   members,
   bookCurrency,
+  defaultCurrency,
   customCurrencies = []
 }: {
   bookId: string
   members: MemberRow[]
   bookCurrency: string
+  defaultCurrency?: string
   customCurrencies?: CurrencyInfo[]
 }) {
   const router = useRouter()
@@ -64,14 +66,10 @@ export default function NewExpenseForm({
   const [timeOnly, setTimeOnly] = useState(initialDateState.timeOnly)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(LAST_CURRENCY_STORAGE_KEY) || bookCurrency
-    }
-    return bookCurrency
-  })
+  const [currency, setCurrency] = useState<string>(defaultCurrency || bookCurrency)
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
 
   // Payers (multi)
   const [editingPayers, setEditingPayers] = useState(false)
@@ -175,14 +173,8 @@ export default function NewExpenseForm({
   const splitAllocated = Object.values(computedSplit.totalByMember).reduce((s, v) => s + v, 0)
   const splitRemaining = total - splitAllocated
 
-  // Save last used currency to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(LAST_CURRENCY_STORAGE_KEY, currency)
-    }
-  }, [currency])
-
   const submit = async () => {
+    if (savingRef.current) return
     if (!description.trim() || !amount) return alert('請填完整')
     const n = Number(amount)
     if (!Number.isFinite(n) || n < 0) return alert('金額不正確')
@@ -195,6 +187,7 @@ export default function NewExpenseForm({
     const splitSum = Object.values(computedSplit.totalByMember).reduce((s, v) => s + v, 0)
     if (splitSum !== total) return alert('分攤金額加總必須等於帳目金額')
 
+    savingRef.current = true
     setSaving(true)
     const occurredAt = new Date(combineDateTime(dateOnly, timeOnly) || date).toISOString()
 
@@ -227,7 +220,6 @@ export default function NewExpenseForm({
         note: note.trim() || null
       })
 
-      setSaving(false)
       window.dispatchEvent(new CustomEvent('bill:expensesChanged', { detail: { bookId } }))
       window.dispatchEvent(new CustomEvent('bill:expenseAdded', { detail: { bookId } }))
       router.push(buildBillPath(`/book/${bookId}`))
@@ -235,6 +227,7 @@ export default function NewExpenseForm({
       return
     } catch (error) {
       console.error(error)
+      savingRef.current = false
       setSaving(false)
       alert('新增失敗，請稍後再試')
       return
