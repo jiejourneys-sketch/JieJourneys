@@ -23,6 +23,14 @@ export const metadata: Metadata = {
     images: ['https://www.jiejourneys.com/assets/og-share.png'],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/osaka/pass-planner' },
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 }
 
 export default function OsakaPassPlannerLayout({ children }: { children: React.ReactNode }) {
