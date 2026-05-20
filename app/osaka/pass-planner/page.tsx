@@ -13,6 +13,8 @@ const osakaPlannerConfig: Partial<PlannerConfig> = {
   panelAriaLabel: '景點排序面板',
   shareTitle: '大阪周遊券景點排序',
   shareText: '我的大阪周遊券景點順序',
+  shareActionLabel: '分享/保存',
+  saveReminderEnabled: true,
   backLinkLabel: '回周遊券地圖',
   categoryLabels: {
     spot: '免費設施',

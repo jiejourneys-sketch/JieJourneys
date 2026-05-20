@@ -42,6 +42,7 @@ import styles from './passPlanner.module.css'
 type PlannerMode = 'add' | 'order'
 type TierFilter = NonNullable<MapPlace['officialPassTier']> | 'all'
 type FocusSource = 'marker' | 'list'
+type InAppBrowser = 'instagram' | 'line' | 'facebook' | null
 
 type Props = {
   places: MapPlace[]
@@ -60,6 +61,8 @@ export type PlannerConfig = {
   panelAriaLabel: string
   shareTitle: string
   shareText: string
+  shareActionLabel: string
+  saveReminderEnabled: boolean
   backLinkLabel: string
   categoryLabels: Record<MapPlace['category'], string>
   categoryItems: { key: CityMapPlaceCategory; label: string }[]
@@ -104,6 +107,8 @@ const defaultPlannerConfig: PlannerConfig = {
   panelAriaLabel: '景點排序面板',
   shareTitle: '釜山Pass景點排序',
   shareText: '我的釜山Pass景點順序',
+  shareActionLabel: '分享',
+  saveReminderEnabled: false,
   backLinkLabel: '回 Pass 地圖',
   categoryLabels: defaultCategoryLabels,
   categoryItems: defaultCategoryItems,
@@ -175,6 +180,27 @@ function shortName(name: string) {
 function isMobilePlannerViewport() {
   if (typeof window === 'undefined') return false
   return window.matchMedia('(max-width: 959px)').matches
+}
+
+function detectInAppBrowser(): InAppBrowser {
+  if (typeof navigator === 'undefined') return null
+  const ua = navigator.userAgent
+  if (/Instagram/i.test(ua)) return 'instagram'
+  if (/Line\//i.test(ua)) return 'line'
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook'
+  return null
+}
+
+function preferredBrowserName() {
+  if (typeof navigator === 'undefined') return 'Safari/Chrome'
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Safari' : 'Chrome'
+}
+
+function inAppBrowserName(browser: InAppBrowser) {
+  if (browser === 'instagram') return 'IG'
+  if (browser === 'line') return 'LINE'
+  if (browser === 'facebook') return 'Facebook'
+  return '內建'
 }
 
 function panMobilePlaceAbovePanel(map: google.maps.Map) {
@@ -427,6 +453,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
   const [mobilePanelDragHeight, setMobilePanelDragHeight] = useState<number | null>(null)
   const [autoSortConfirmOpen, setAutoSortConfirmOpen] = useState(false)
+  const [saveSheetUrl, setSaveSheetUrl] = useState<string | null>(null)
+  const [saveLinkCopied, setSaveLinkCopied] = useState(false)
+  const [inAppBrowser, setInAppBrowser] = useState<InAppBrowser>(null)
 
   const placeById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places])
   const validPlanIds = useMemo(() => planIds.filter((id) => placeById.has(id)), [placeById, planIds])
@@ -481,6 +510,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     openTrackedRef.current = true
     trackPlannerEvent('open')
   }, [trackPlannerEvent])
+
+  useEffect(() => {
+    if (!config.saveReminderEnabled) return
+    setInAppBrowser(detectInAppBrowser())
+  }, [config.saveReminderEnabled])
 
   const getMobilePanelMetrics = useCallback(() => {
     const pageHeight = mobilePageHeight ?? (typeof window === 'undefined' ? 720 : window.innerHeight)
@@ -768,14 +802,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setAutoSortConfirmOpen(false)
   }
 
-  const handleShare = useCallback(async () => {
+  const buildShareUrl = useCallback(() => {
     const url = new URL(window.location.href)
     url.search = ''
     url.hash = ''
     if (validPlanIds.length > 0) {
       url.searchParams.set(SHARE_PARAM, encodeSharedPlan(validPlanIds, places))
     }
+    return url
+  }, [places, validPlanIds])
 
+  const handleShare = useCallback(async () => {
+    const url = buildShareUrl()
     const shareUrl = url.toString()
     const sharePath = `${url.pathname}${url.search}`
     trackPlannerEvent('share', {
@@ -785,6 +823,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       share_path: sharePath,
       share_has_plan: validPlanIds.length > 0,
     })
+
+    if (config.saveReminderEnabled) {
+      setSaveLinkCopied(false)
+      setSaveSheetUrl(shareUrl)
+      return
+    }
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -804,7 +849,41 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     } catch {
       alert('複製失敗，請手動複製網址列')
     }
-  }, [config.shareText, config.shareTitle, places, trackPlannerEvent, validPlanIds])
+  }, [buildShareUrl, config.saveReminderEnabled, config.shareText, config.shareTitle, places, trackPlannerEvent, validPlanIds])
+
+  const shareSavedLink = useCallback(async () => {
+    if (!saveSheetUrl) return
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: config.shareTitle,
+          text: config.shareText,
+          url: saveSheetUrl,
+        })
+        setSaveSheetUrl(null)
+        return
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(saveSheetUrl)
+      setSaveLinkCopied(true)
+    } catch {
+      alert('複製失敗，請手動複製網址列')
+    }
+  }, [config.shareText, config.shareTitle, saveSheetUrl])
+
+  const copySavedLink = useCallback(async () => {
+    if (!saveSheetUrl) return
+    try {
+      await navigator.clipboard.writeText(saveSheetUrl)
+      setSaveLinkCopied(true)
+    } catch {
+      alert('複製失敗，請手動複製網址列')
+    }
+  }, [saveSheetUrl])
 
   const startMobilePanelDrag = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -923,7 +1002,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           </div>
           <div className={styles.topActions}>
             <button className={styles.shareAction} type="button" onClick={handleShare}>
-              分享
+              {config.shareActionLabel}
             </button>
             <a className={styles.secondaryAction} href={config.headerBackHref}>
               {config.backLinkLabel}
@@ -1197,6 +1276,47 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 </button>
                 <button type="button" className={styles.confirmPrimary} onClick={confirmAutoSortPlan}>
                   確認自動排序
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {saveSheetUrl ? (
+          <div className={styles.saveBackdrop} role="presentation" onClick={() => setSaveSheetUrl(null)}>
+            <section
+              className={styles.saveSheet}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="save-plan-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className={styles.saveClose}
+                aria-label="關閉"
+                onClick={() => setSaveSheetUrl(null)}
+              >
+                ×
+              </button>
+              <h2 id="save-plan-title">保存這個排序</h2>
+              <p>
+                排序會暫存在目前瀏覽器；要跨手機/電腦使用，請把這條連結傳給自己保存。
+              </p>
+              {inAppBrowser ? (
+                <p className={styles.saveHint}>
+                  你現在在 {inAppBrowserName(inAppBrowser)} 內建瀏覽器，建議複製到 {preferredBrowserName()} 開啟，或傳到 LINE / 備忘錄保存。
+                </p>
+              ) : (
+                <p className={styles.saveHint}>電腦排完也可以把連結傳到手機，出發時打開就能還原順序。</p>
+              )}
+              <div className={styles.saveUrl}>{saveSheetUrl}</div>
+              <div className={styles.saveActions}>
+                <button type="button" className={styles.confirmPrimary} onClick={shareSavedLink}>
+                  分享連結
+                </button>
+                <button type="button" className={styles.confirmSecondary} onClick={copySavedLink}>
+                  {saveLinkCopied ? '已複製' : '複製連結'}
                 </button>
               </div>
             </section>
