@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { formatWithCurrency } from '@/lib/amount'
 import { convertCents, type ExchangeRates } from '@/lib/currency'
 import { computeMinTransactions, computeCentralizedSettlement } from '@/lib/settlement'
+import { useBillBookDataContext } from './BillBookDataProvider'
 
 type SettlementMode = 'least' | 'simple'
 type MemberRow = { id: string; name: string; created_at?: string }
@@ -37,8 +38,22 @@ export default function ExpenseSummary({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [settlementMode, setSettlementMode] = useState<SettlementMode>('least')
+  const shared = useBillBookDataContext()
+  const hasSharedData = shared?.bookId === bookId
 
   useEffect(() => {
+    if (!hasSharedData || !shared) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpenses(shared.expenses)
+    setMembers(shared.members)
+    setSplits(shared.splits)
+    setPayers(shared.payers)
+    setLoading(shared.loading)
+    setError(shared.error)
+  }, [hasSharedData, shared])
+
+  useEffect(() => {
+    if (hasSharedData) return
     let alive = true
     const fetchData = async () => {
       setLoading(true)
@@ -96,7 +111,7 @@ export default function ExpenseSummary({
       window.removeEventListener('bill:expenseAdded', onChanged)
       window.removeEventListener('bill:expensesChanged', onChanged)
     }
-  }, [bookId])
+  }, [bookId, hasSharedData])
 
   const compute = (mode: SettlementMode): { balances: BalanceRow[]; settlements: SettlementRow[] } => {
     if (!members.length) return { balances: [], settlements: [] }

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { formatWithCurrency } from '@/lib/amount'
 import { convertCents, type ExchangeRates } from '@/lib/currency'
+import { useBillBookDataContext } from './BillBookDataProvider'
 
 type ExpenseRow = { amount: number; currency?: string }
 
@@ -16,23 +17,27 @@ export default function TotalExpenseInline({
   baseCurrency: string
   exchangeRates: ExchangeRates
 }) {
-  const [expenses, setExpenses] = useState<ExpenseRow[]>([])
-  const [loading, setLoading] = useState(false)
+  const shared = useBillBookDataContext()
+  const [localExpenses, setLocalExpenses] = useState<ExpenseRow[]>([])
+  const [localLoading, setLocalLoading] = useState(false)
+  const expenses = shared?.bookId === bookId ? shared.expenses : localExpenses
+  const loading = shared?.bookId === bookId ? shared.loading : localLoading
 
   useEffect(() => {
+    if (shared?.bookId === bookId) return
     let alive = true
 
     const fetchData = async () => {
-      setLoading(true)
+      setLocalLoading(true)
       const { data, error } = await supabase
         .from('expenses')
         .select('amount,currency')
         .eq('book_id', bookId)
 
       if (!alive) return
-      if (error) { console.error(error); setExpenses([]); setLoading(false); return }
-      setExpenses((data as ExpenseRow[]) || [])
-      setLoading(false)
+      if (error) { console.error(error); setLocalExpenses([]); setLocalLoading(false); return }
+      setLocalExpenses((data as ExpenseRow[]) || [])
+      setLocalLoading(false)
     }
 
     const onChanged = (ev: Event) => {
@@ -49,7 +54,7 @@ export default function TotalExpenseInline({
       window.removeEventListener('bill:expenseAdded', onChanged)
       window.removeEventListener('bill:expensesChanged', onChanged)
     }
-  }, [bookId])
+  }, [bookId, shared])
 
   const text = useMemo(() => {
     if (loading) return '總支出：…'

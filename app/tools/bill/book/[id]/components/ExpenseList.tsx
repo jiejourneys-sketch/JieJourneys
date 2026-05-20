@@ -5,6 +5,7 @@ import BillLink from '@/app/tools/bill/components/BillLink'
 import { supabase } from '@/lib/supabase'
 import { formatWithCurrency } from '@/lib/amount'
 import { convertCents, type ExchangeRates } from '@/lib/currency'
+import { useBillBookDataContext } from './BillBookDataProvider'
 
 type MemberRow = { id: string; name: string }
 type PayerRow = { expense_id: string; member_id: string; amount: number }
@@ -25,6 +26,17 @@ export default function ExpenseList({ bookId, baseCurrency, exchangeRates }: { b
   const [payers, setPayers] = useState<PayerRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const shared = useBillBookDataContext()
+  const hasSharedData = shared?.bookId === bookId
+
+  useEffect(() => {
+    if (!hasSharedData || !shared) return
+    setExpenses(shared.expenses)
+    setMembers(shared.members)
+    setPayers(shared.payers)
+    setLoading(shared.loading)
+    setError(shared.error)
+  }, [hasSharedData, shared])
 
   const fetchAll = async () => {
     setLoading(true)
@@ -70,6 +82,7 @@ export default function ExpenseList({ bookId, baseCurrency, exchangeRates }: { b
   }
 
   useEffect(() => {
+    if (hasSharedData) return
     let alive = true
     const run = async () => {
       await fetchAll()
@@ -92,7 +105,7 @@ export default function ExpenseList({ bookId, baseCurrency, exchangeRates }: { b
       window.removeEventListener('bill:expenseAdded', onChanged)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId])
+  }, [bookId, hasSharedData])
 
   const payerSummaryByExpenseId = useMemo(() => {
     const byMemberId = new Map(members.map((m) => [m.id, m.name] as const))

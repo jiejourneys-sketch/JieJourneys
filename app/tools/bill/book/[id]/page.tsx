@@ -7,6 +7,7 @@ import ExpenseList from './components/ExpenseList'
 import ShareBookButton from './components/ShareBookButton'
 import TotalExpenseInline from './components/TotalExpenseInline'
 import RememberBook from './components/RememberBook'
+import BillBookDataProvider from './components/BillBookDataProvider'
 
 export default async function Page({
   params
@@ -33,7 +34,7 @@ export default async function Page({
   const exchangeRates = await resolveExchangeRates(baseCurrency, storedRates)
 
   return (
-    <div>
+    <BillBookDataProvider bookId={id}>
       <RememberBook bookId={id} />
       <div
         className="row"
@@ -72,6 +73,6 @@ export default async function Page({
       <div className="card" style={{ marginTop: 16 }}>
         <ExpenseList bookId={id} baseCurrency={baseCurrency} exchangeRates={exchangeRates} />
       </div>
-    </div>
+    </BillBookDataProvider>
   )
 }
