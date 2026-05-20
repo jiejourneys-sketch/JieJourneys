@@ -49,6 +49,7 @@ export type MapClientProps = {
     platform: string
     primary?: boolean
     external?: boolean
+    placement?: 'afterBelowContent'
   }[]
   /** Static content rendered below the interactive map, before the footer. */
   belowContent?: ReactNode
@@ -475,6 +476,14 @@ export default function MapClient({
   topActions,
   belowContent,
 }: MapClientProps) {
+  const topMenuActions = useMemo(
+    () => topActions?.filter((action) => action.placement !== 'afterBelowContent') ?? [],
+    [topActions],
+  )
+  const afterBelowContentActions = useMemo(
+    () => topActions?.filter((action) => action.placement === 'afterBelowContent') ?? [],
+    [topActions],
+  )
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
   // Derived event strings
@@ -1255,7 +1264,7 @@ export default function MapClient({
                 </button>
                 {topActionsOpen ? (
                   <div id={`${gtagPrefix}TopActionsMenu`} className={styles.mapTopActionMenu}>
-                    {topActions.map((action) => (
+                    {topMenuActions.map((action) => (
                       <a
                         key={`${action.label}-${action.href}`}
                         className={`${styles.mapTopAction} ${action.primary ? styles.mapTopActionPrimary : ''}`}
@@ -1279,9 +1288,22 @@ export default function MapClient({
                           scrollToBelowContent()
                         }}
                       >
-                        看整理 ↓
+                        整理
                       </button>
                     ) : null}
+                    {afterBelowContentActions.map((action) => (
+                      <a
+                        key={`${action.label}-${action.href}`}
+                        className={`${styles.mapTopAction} ${action.primary ? styles.mapTopActionPrimary : ''}`}
+                        href={action.href}
+                        {...(action.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                        data-event={action.event}
+                        data-platform={action.platform}
+                        data-section="map_top"
+                      >
+                        {action.label}
+                      </a>
+                    ))}
                   </div>
                 ) : null}
               </div>

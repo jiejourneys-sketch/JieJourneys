@@ -40,6 +40,13 @@ export default function OsakaPassMapPage() {
           platform: 'Trip',
           external: true,
         },
+        {
+          label: '排序',
+          href: '/osaka/pass-planner',
+          event: 'osakapassmap_top_planner',
+          platform: 'internal',
+          placement: 'afterBelowContent',
+        },
       ]}
       belowContent={
         <article className="seo-page" aria-label="大阪周遊券地圖攻略">

@@ -35,7 +35,6 @@ export default function BusanPassMapPage() {
           href: 'https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312',
           event: 'busanpassmap_top_buy_kkday',
           platform: 'KKDAY',
-          primary: true,
           external: true,
         },
         {
@@ -58,6 +57,13 @@ export default function BusanPassMapPage() {
           event: 'busanpassmap_top_reel',
           platform: 'Instagram',
           external: true,
+        },
+        {
+          label: '排序',
+          href: '/busan/pass-planner',
+          event: 'busanpassmap_top_planner',
+          platform: 'internal',
+          placement: 'afterBelowContent',
         },
       ]}
       belowContent={
