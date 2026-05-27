@@ -1770,6 +1770,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const panelClickSuppressUntilRef = useRef(0)
   const panelBodyTouchStartYRef = useRef<number | null>(null)
   const panelBodyPullCanCollapseRef = useRef(false)
+  const panelControlTouchStartRef = useRef<{ x: number; y: number; collapsed: boolean } | null>(null)
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const initialPlannerLoadRef = useRef(false)
 
@@ -3301,6 +3302,43 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     panelBodyPullCanCollapseRef.current = false
   }, [])
 
+  const handlePanelControlTouchStart = useCallback((e: ReactTouchEvent<HTMLElement>) => {
+    if (!mobilePanelOpen || e.touches.length !== 1 || !isMobilePlannerViewport()) return
+    const target = e.target as HTMLElement
+    if (!target.closest(`.${styles.panelChrome}, .${styles.panelTabs}, .${styles.filters}, .${styles.orderControlBar}`)) {
+      panelControlTouchStartRef.current = null
+      return
+    }
+    const touch = e.touches[0]
+    panelControlTouchStartRef.current = { x: touch.clientX, y: touch.clientY, collapsed: false }
+  }, [mobilePanelOpen])
+
+  const handlePanelControlTouchMove = useCallback((e: ReactTouchEvent<HTMLElement>) => {
+    const start = panelControlTouchStartRef.current
+    if (!mobilePanelOpen || !start || start.collapsed || e.touches.length !== 1) return
+
+    const touch = e.touches[0]
+    const deltaX = touch.clientX - start.x
+    const deltaY = touch.clientY - start.y
+    if (deltaY > 34 && deltaY > Math.abs(deltaX) * 1.2) {
+      if (e.cancelable) e.preventDefault()
+      start.collapsed = true
+      setOpenPlannerMenu(null)
+      setMobilePanelOpen(false)
+    }
+  }, [mobilePanelOpen])
+
+  const handlePanelControlTouchEnd = useCallback(() => {
+    panelControlTouchStartRef.current = null
+  }, [])
+
+  const panelControlSwipeProps = {
+    onTouchStart: handlePanelControlTouchStart,
+    onTouchMove: handlePanelControlTouchMove,
+    onTouchEnd: handlePanelControlTouchEnd,
+    onTouchCancel: handlePanelControlTouchEnd,
+  }
+
   return (
     <>
       <CitySubpageHeader backHref={config.headerBackHref} eventPrefix={config.eventPrefix} />
@@ -3385,6 +3423,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 ? ({ height: mobilePanelDragHeight, maxHeight: mobilePanelDragHeight } as CSSProperties)
                 : undefined
             }
+            onTouchStart={panelControlSwipeProps.onTouchStart}
+            onTouchMove={panelControlSwipeProps.onTouchMove}
+            onTouchEnd={panelControlSwipeProps.onTouchEnd}
+            onTouchCancel={panelControlSwipeProps.onTouchCancel}
             onClick={() => {
               if (Date.now() < panelClickSuppressUntilRef.current) return
               setMobilePanelOpen(true)

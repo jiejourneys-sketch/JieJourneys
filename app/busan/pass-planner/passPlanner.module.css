@@ -2240,6 +2240,7 @@
     flex: 0 0 auto;
     min-height: 18px;
     touch-action: none;
+    overscroll-behavior: contain;
   }
 
   .panelDragZone {
@@ -2288,6 +2289,8 @@
 
   .panelTabs {
     padding: 3px 12px;
+    touch-action: pan-x;
+    overscroll-behavior: contain;
   }
 
   .tab,
@@ -2309,6 +2312,8 @@
     top: -6px;
     margin: -5px -12px 3px;
     padding: 3px 12px 4px;
+    touch-action: pan-x;
+    overscroll-behavior: contain;
   }
 
   .filtersDense {
@@ -2379,6 +2384,8 @@
 
   .orderControlBar {
     gap: 7px;
+    touch-action: pan-x;
+    overscroll-behavior: contain;
   }
 
   .dayViewControl {
