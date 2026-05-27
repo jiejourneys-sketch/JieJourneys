@@ -3303,7 +3303,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [])
 
   const handlePanelControlTouchStart = useCallback((e: ReactTouchEvent<HTMLElement>) => {
-    if (!mobilePanelOpen || e.touches.length !== 1 || !isMobilePlannerViewport()) return
+    if (e.touches.length !== 1 || !isMobilePlannerViewport()) return
     const target = e.target as HTMLElement
     if (!target.closest(`.${styles.panelChrome}, .${styles.panelTabs}, .${styles.filters}, .${styles.orderControlBar}`)) {
       panelControlTouchStartRef.current = null
@@ -3311,20 +3311,30 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     const touch = e.touches[0]
     panelControlTouchStartRef.current = { x: touch.clientX, y: touch.clientY, collapsed: false }
-  }, [mobilePanelOpen])
+  }, [])
 
   const handlePanelControlTouchMove = useCallback((e: ReactTouchEvent<HTMLElement>) => {
     const start = panelControlTouchStartRef.current
-    if (!mobilePanelOpen || !start || start.collapsed || e.touches.length !== 1) return
+    if (!start || start.collapsed || e.touches.length !== 1) return
 
     const touch = e.touches[0]
     const deltaX = touch.clientX - start.x
     const deltaY = touch.clientY - start.y
-    if (deltaY > 34 && deltaY > Math.abs(deltaX) * 1.2) {
+    const verticalSwipe = Math.abs(deltaY) > 34 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2
+    if (!verticalSwipe) return
+
+    if (mobilePanelOpen && deltaY > 0) {
       if (e.cancelable) e.preventDefault()
       start.collapsed = true
       setOpenPlannerMenu(null)
       setMobilePanelOpen(false)
+      return
+    }
+
+    if (!mobilePanelOpen && deltaY < 0) {
+      if (e.cancelable) e.preventDefault()
+      start.collapsed = true
+      setMobilePanelOpen(true)
     }
   }, [mobilePanelOpen])
 
