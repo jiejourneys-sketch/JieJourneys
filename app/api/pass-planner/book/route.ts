@@ -10,7 +10,7 @@ const MAX_CUSTOM_PLACES = 80
 const MAX_LINKS_PER_CUSTOM_PLACE = 8
 const MAX_USER_LINK_PLACES = 120
 const MAX_USER_LINKS_PER_PLACE = 8
-const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'hotel'])
+const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel'])
 
 type PlannerBookPayload = {
   id?: string

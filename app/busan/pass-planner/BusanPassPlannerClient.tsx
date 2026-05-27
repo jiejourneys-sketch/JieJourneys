@@ -2980,6 +2980,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setShareSaving(true)
     const url = buildShareUrl()
     let shortShareId = ''
+    let saveSucceeded = false
     const currentParams = new URLSearchParams(window.location.search)
     const urlPlannerBookId = currentParams.get(PLANNER_BOOK_PARAM)?.trim() ?? ''
     const storedPlannerBookId = window.localStorage.getItem(`${config.storageKey}:book-id`)?.trim() ?? ''
@@ -3001,6 +3002,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           placeUserLinks,
         ).catch(() => null)
         if (book) {
+          saveSucceeded = true
           savedPlannerBookId = book.id
           savedReadToken = book.readToken ?? plannerBookReadToken
           const updatedAt = new Date().toISOString()
@@ -3017,6 +3019,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         } else {
           shortShareId = ''
         }
+      }
+      if (validPlanIds.length > 0 && !saveSucceeded) {
+        setSaveLinkCopied(false)
+        setSavePreviewCopied(false)
+        setSaveSheetUrl(null)
+        setSaveSheetPreviewUrl(null)
+        alert('保存失敗，請稍後再試一次')
+        return
       }
       const shareUrl = url.toString()
       const sharePath = `${url.pathname}${url.search}`
