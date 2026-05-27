@@ -11,11 +11,11 @@ export default function BusanMapPage() {
       gtagPrefix="busanmap"
       title="釜山景點地圖"
       backHref="/busan"
-      defaultCategories={{ spot: true, free: true, food: false, hotel: true }}
+      defaultCategories={{ spot: true, free: true, shop: false, hotel: true }}
       categoryItems={[
         { key: 'spot', label: '票券' },
         { key: 'free', label: '景點' },
-        { key: 'food', label: '商店' },
+        { key: 'shop', label: '商店' },
         { key: 'hotel', label: '住宿' },
       ]}
       topActions={[
@@ -36,6 +36,13 @@ export default function BusanMapPage() {
           href: 'https://www.jiejourneys.com/busan/transport',
           event: 'busanmap_top_transport',
           platform: 'transport',
+        },
+        {
+          label: '排序',
+          href: '/busan/planner',
+          event: 'busanmap_top_planner',
+          platform: 'planner',
+          placement: 'afterBelowContent',
         },
       ]}
       belowContent={

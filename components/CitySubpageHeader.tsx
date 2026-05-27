@@ -26,7 +26,7 @@ export default function CitySubpageHeader({ backHref, eventPrefix = 'page' }: Pr
         <div className="nav-actions">
           <Link
             href={backHref}
-            className="home-link"
+            className="home-link print-hidden"
             data-event={`${eventPrefix}_back`}
             data-item="back"
           >
@@ -34,7 +34,7 @@ export default function CitySubpageHeader({ backHref, eventPrefix = 'page' }: Pr
           </Link>
           <Link
             href="/"
-            className="home-link"
+            className="home-link print-hidden"
             data-event={`${eventPrefix}_backhome`}
             data-item="home"
           >

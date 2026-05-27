@@ -1,21 +1,21 @@
-import type { CityCardAction } from '@/components/CityTabbedList'
+﻿import type { CityCardAction } from '@/components/CityTabbedList'
 import type { TokyoMapPlace } from '@/data/tokyo/map/types'
 
 /**
- * 東京地圖｜美食類釘點（與 `hotels.ts`、`tickets.ts` 同層；複製後改 id／座標／按鈕）
+ * 東京地圖｜商店類釘點（與 `hotels.ts`、`tickets.ts` 同層；複製後改 id／座標／按鈕）
  */
 const exampleAction: CityCardAction[] = [
   {
     label: '範例連結（請改）',
     href: 'https://www.google.com/',
-    mapEvent: 'tokyo_map_food_example',
+    mapEvent: 'tokyo_map_shop_example',
   },
 ]
 
-export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
+export const tokyoShopMapPlaces: TokyoMapPlace[] = [
   {
     id: 'tokyo-YutachomeGikichi',
-    category: 'food',
+    category: 'shop',
     name: '御徒町吉池總店',
     description: '購物',
     lat: 35.7073989,
@@ -33,7 +33,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-TakashimayaAsakusa',
-    category: 'food',
+    category: 'shop',
     name: '唐吉訶德｜淺草店',
     description: '購物',
     lat: 35.7138638,
@@ -45,7 +45,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-TokyoSkytree',
-    category: 'food',
+    category: 'shop',
     name: '東京晴空街道',
     description: '百貨商場',
     lat: 35.7102333,
@@ -63,7 +63,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-ItoyaGinza',
-    category: 'food',
+    category: 'shop',
     name: '銀座 伊東屋',
     description: '文具店',
     lat: 35.6731273,
@@ -81,7 +81,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-MujiGinza',
-    category: 'food',
+    category: 'shop',
     name: '無印良品 銀座旗艦店',
     description: '生活用品',
     lat: 35.673214,
@@ -99,7 +99,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-SongwuGinza',
-    category: 'food',
+    category: 'shop',
     name: '松屋銀座',
     description: '高級購物',
     lat: 35.6722621,
@@ -117,7 +117,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-SanyueGinza',
-    category: 'food',
+    category: 'shop',
     name: '銀座三越',
     description: '高級購物',
     lat: 35.6712864,
@@ -135,7 +135,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-GinzaSix',
-    category: 'food',
+    category: 'shop',
     name: 'Ginza Six',
     description: '質感購物',
     lat: 35.6697688,
@@ -153,7 +153,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-ShibuyaScrambleSquare',
-    category: 'food',
+    category: 'shop',
     name: '澀谷SCRAMBLE SQUARE',
     description: '購物商場',
     lat: 35.6584638,
@@ -171,7 +171,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-ShibuyaLoft',
-    category: 'food',
+    category: 'shop',
     name: '澀谷LOFT',
     description: '生活雜貨',
     lat: 35.6609346,
@@ -183,7 +183,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-ShibuyaParco',
-    category: 'food',
+    category: 'shop',
     name: '澀谷PARCO',
     description: '時尚/動漫/美食',
     lat: 35.6620484,
@@ -195,7 +195,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-TakedaShibuya',
-    category: 'food',
+    category: 'shop',
     name: '唐吉訶德｜澀谷本店',
     description: '購物',
     lat: 35.6603873,
@@ -207,7 +207,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-SeibuShibuya',
-    category: 'food',
+    category: 'shop',
     name: '西武澀谷店',
     description: '百貨公司',
     lat: 35.660227,
@@ -225,7 +225,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-DisneyShibuya',
-    category: 'food',
+    category: 'shop',
     name: '迪士尼商店｜澀谷',
     description: '迪士尼周邊',
     lat: 35.6612525,
@@ -237,7 +237,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-WithHarajuku',
-    category: 'food',
+    category: 'shop',
     name: 'WITH原宿',
     description: '購物商場',
     lat: 35.6705714,
@@ -255,7 +255,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-KiddyLand',
-    category: 'food',
+    category: 'shop',
     name: 'Kiddy Land',
     description: '玩具',
     lat: 35.667733,
@@ -273,7 +273,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-LaforetHarajuku',
-    category: 'food',
+    category: 'shop',
     name: 'Laforet原宿',
     description: '時尚/潮流',
     lat: 35.6692109,
@@ -291,7 +291,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-TokyuPlazaHarajuku',
-    category: 'food',
+    category: 'shop',
     name: '東急廣場原宿',
     description: '時尚/潮流',
     lat: 35.6683935,
@@ -309,7 +309,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-TokyuPlazaHara',
-    category: 'food',
+    category: 'shop',
     name: '東急Plaza表參道原宿',
     description: '大型商場',
     lat: 35.6687294,
@@ -327,7 +327,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-BicCameraShinjuku',
-    category: 'food',
+    category: 'shop',
     name: 'BicCamera｜新宿東口店',
     description: '電器',
     lat: 35.6913445,
@@ -339,7 +339,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-DisneyStoreShinjuku',
-    category: 'food',
+    category: 'shop',
     name: '東京迪士尼旗艦店',
     description: '迪士尼周邊',
     lat: 35.692049,
@@ -351,7 +351,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-KinokuniyaShinjuku',
-    category: 'food',
+    category: 'shop',
     name: '紀伊國屋書店｜新宿本店',
     description: '書店',
     lat: 35.6919678,
@@ -363,7 +363,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-YodobashiShinjuku',
-    category: 'food',
+    category: 'shop',
     name: '友都八喜多媒體｜新宿東口店',
     description: '電器',
     lat: 35.6916265,
@@ -375,7 +375,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-LumineEstShinjuku',
-    category: 'food',
+    category: 'shop',
     name: 'LUMINE EST',
     description: '女生必逛',
     lat: 35.6912505,
@@ -393,7 +393,7 @@ export const tokyoFoodMapPlaces: TokyoMapPlace[] = [
   },
   {
     id: 'tokyo-OtsukaIzakaya',
-    category: 'food',
+    category: 'shop',
     name: '思出橫丁',
     description: '居酒屋一條街',
     lat: 35.6927011,

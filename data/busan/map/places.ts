@@ -1,8 +1,8 @@
 /**
- * 釜山地圖：景點由 `../tickets` 組裝（排除釜山 Pass）＋ `spotNaverActions`＋ `spotVideoActions`；景點／商店見 `../free.ts`、`../food.ts`；住宿由 `../hotels`。
+ * 釜山地圖：景點由 `../tickets` 組裝（排除釜山 Pass）＋ `spotNaverActions`＋ `spotVideoActions`；景點／商店見 `../free.ts`、`../shop.ts`；住宿由 `../hotels`。
  */
 import type { CityCardAction } from '@/components/CityTabbedList'
-import { busanFoodMapPlaces } from '@/data/busan/food'
+import { busanShopMapPlaces } from '@/data/busan/shop'
 import { busanFreeMapPlaces } from '@/data/busan/free'
 import { busanHotelCards } from '@/data/busan/hotels'
 import type { BusanMapPlace } from '@/data/busan/map/types'
@@ -256,6 +256,6 @@ function hotelCardToPlace(card: (typeof busanHotelCards)[number]): BusanMapPlace
 export const busanMapPlaces: BusanMapPlace[] = [
   ...ticketCardsToSpots(),
   ...busanFreeMapPlaces,
-  ...busanFoodMapPlaces,
+  ...busanShopMapPlaces,
   ...busanHotelCards.map(hotelCardToPlace),
 ]

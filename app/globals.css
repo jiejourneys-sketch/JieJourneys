@@ -118,6 +118,12 @@ header {
   flex-shrink: 1;
 }
 
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+}
+
 .menu {
   display: flex;
   gap: 10px;

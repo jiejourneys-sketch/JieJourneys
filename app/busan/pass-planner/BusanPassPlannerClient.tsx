@@ -2,8 +2,10 @@
 /// <reference types="google.maps" />
 
 import {
+  Fragment,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
   type TouchEvent as ReactTouchEvent,
   useCallback,
   useEffect,
@@ -30,11 +32,10 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import {
-  DEFAULT_CITY_MAP_CATEGORY_ON,
   cityMapSoloCategory,
   type CityMapPlaceCategory,
 } from '@/lib/cityMapPlaceCategory'
-import { cityMapMarkerIcon, cityMapMarkerZIndex } from '@/lib/cityMapMarkers'
+import { cityMapMarkerZIndex } from '@/lib/cityMapMarkers'
 import { getGtag } from '@/lib/gtag'
 import type { MapPlace } from '@/lib/mapPlace'
 import styles from './passPlanner.module.css'
@@ -43,6 +44,35 @@ type PlannerMode = 'add' | 'order'
 type TierFilter = NonNullable<MapPlace['officialPassTier']> | 'all'
 type FocusSource = 'marker' | 'list'
 type InAppBrowser = 'instagram' | 'line' | 'facebook' | null
+type PlannerItem = string
+type DayView = 'all' | number
+type CustomPlannerLink = { label: string; href: string }
+type PlannerUserLink = CustomPlannerLink
+type CustomPlannerPlace = {
+  id: string
+  sourcePlaceId?: string
+  name: string
+  category?: CityMapPlaceCategory
+  lat: number
+  lng: number
+  googleUrl?: string
+  naverUrl?: string
+  links?: CustomPlannerLink[]
+}
+type CustomPlaceDraft = {
+  id: string | null
+  name: string
+  googleUrl: string
+  naverUrl: string
+  linkLabel: string
+  linkUrl: string
+  note: string
+  category: CityMapPlaceCategory
+  lat: number | null
+  lng: number | null
+  picking: boolean
+  nameConfirmed: boolean
+}
 
 type Props = {
   places: MapPlace[]
@@ -64,16 +94,47 @@ export type PlannerConfig = {
   shareActionLabel: string
   saveReminderEnabled: boolean
   backLinkLabel: string
-  categoryLabels: Record<MapPlace['category'], string>
+  mapZoom: number
+  categoryLabels: Partial<Record<CityMapPlaceCategory, string>>
   categoryItems: { key: CityMapPlaceCategory; label: string }[]
+  customCategoryItems?: { key: CityMapPlaceCategory; label: string }[]
+  matchPlaces?: MapPlace[]
   tierLabels: Partial<Record<NonNullable<MapPlace['officialPassTier']>, string>>
   tierItems: { key: Exclude<TierFilter, 'all'>; label: string }[]
 }
 
 const SCRIPT_ID = 'gmaps-js'
 const SHARE_PARAM = 'plan'
+const SHARE_ID_PARAM = 's'
+const PLANNER_BOOK_PARAM = 'p'
+const PLANNER_PREVIEW_PARAM = 'v'
+const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
+const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
+const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:'
+const DAY_ITEM_PREFIX = 'day:'
+const VISIT_ITEM_PREFIX = 'visit:'
+const CUSTOM_PLACE_PREFIX = 'custom:'
+const DAY_ROUTE_COLORS = ['#1f7a8c', '#f97316', '#7c3aed', '#16a34a', '#db2777', '#0f766e']
 
-const defaultCategoryLabels: Record<MapPlace['category'], string> = {
+const emptyCustomPlaceDraft: CustomPlaceDraft = {
+  id: null,
+  name: '',
+  googleUrl: '',
+  naverUrl: '',
+  linkLabel: '',
+  linkUrl: '',
+  note: '',
+  category: 'spot',
+  lat: null,
+  lng: null,
+  picking: false,
+  nameConfirmed: false,
+}
+
+const defaultCategoryLabels: Partial<Record<CityMapPlaceCategory, string>> = {
+  ticket: '票券',
+  restaurant: '餐廳',
+  shop: '商店',
   spot: '價格高',
   free: '價格中',
   food: '價格低',
@@ -84,6 +145,13 @@ const defaultCategoryItems: { key: CityMapPlaceCategory; label: string }[] = [
   { key: 'spot', label: '價格高' },
   { key: 'free', label: '價格中' },
   { key: 'food', label: '價格低' },
+]
+
+const defaultCustomCategoryItems: { key: CityMapPlaceCategory; label: string }[] = [
+  { key: 'spot', label: '景點' },
+  { key: 'restaurant', label: '餐廳' },
+  { key: 'shop', label: '商店' },
+  { key: 'hotel', label: '住宿' },
 ]
 
 const defaultTierLabels: Record<NonNullable<MapPlace['officialPassTier']>, string> = {
@@ -110,8 +178,11 @@ const defaultPlannerConfig: PlannerConfig = {
   shareActionLabel: '分享',
   saveReminderEnabled: false,
   backLinkLabel: '回 Pass 地圖',
+  mapZoom: 11,
   categoryLabels: defaultCategoryLabels,
   categoryItems: defaultCategoryItems,
+  customCategoryItems: defaultCustomCategoryItems,
+  matchPlaces: [],
   tierLabels: defaultTierLabels,
   tierItems: defaultTierItems,
 }
@@ -123,16 +194,136 @@ function plannerCategoriesAllOn(
   return categoryItems.every(({ key }) => c[key])
 }
 
+function plannerCategoriesOn(categoryItems: { key: CityMapPlaceCategory; label: string }[]) {
+  return categoryItems.reduce(
+    (next, item) => ({ ...next, [item.key]: true }),
+    {} as Record<CityMapPlaceCategory, boolean>,
+  )
+}
+
+function plannerUsesSemanticCategories(categoryItems: { key: CityMapPlaceCategory; label: string }[]) {
+  return categoryItems.some((item) => item.key === 'ticket' || item.key === 'restaurant' || item.key === 'shop')
+}
+
+function semanticPlannerCategory(
+  category: CityMapPlaceCategory | undefined,
+  categoryItems: { key: CityMapPlaceCategory; label: string }[],
+): CityMapPlaceCategory {
+  const safeCategory = category ?? 'spot'
+  if (!plannerUsesSemanticCategories(categoryItems)) return safeCategory
+  if (safeCategory === 'free') return 'spot'
+  if (safeCategory === 'food') {
+    return categoryItems.some((item) => item.key === 'restaurant') && !categoryItems.some((item) => item.key === 'shop')
+      ? 'restaurant'
+      : 'shop'
+  }
+  if (safeCategory === 'spot') return categoryItems.some((item) => item.key === 'ticket') ? 'ticket' : 'spot'
+  return safeCategory
+}
+
+function plannerCategoryLabel(
+  category: CityMapPlaceCategory,
+  categoryLabels: Partial<Record<CityMapPlaceCategory, string>>,
+  categoryItems: { key: CityMapPlaceCategory; label: string }[],
+) {
+  return categoryLabels[category] ?? categoryItems.find((item) => item.key === category)?.label ?? category
+}
+
+function plannerPlaceCategory(
+  place: MapPlace,
+  categoryItems: { key: CityMapPlaceCategory; label: string }[],
+) {
+  return semanticPlannerCategory(place.category, categoryItems)
+}
+
+function plannerMarkerColor(category: CityMapPlaceCategory) {
+  if (category === 'ticket' || category === 'spot' || category === 'free') return '#2563eb'
+  if (category === 'restaurant') return '#f97316'
+  if (category === 'shop') return '#111827'
+  if (category === 'food') return '#0f9d58'
+  if (category === 'hotel') return '#7c3aed'
+  return '#1f7a8c'
+}
+
+function plannerLegendColor(item: { key: CityMapPlaceCategory; label: string }) {
+  if (item.label.includes('價格高')) return '#ff5252'
+  if (item.label.includes('價格中')) return '#ffea00'
+  if (item.label.includes('價格低')) return '#0f9d58'
+  return plannerMarkerColor(item.key)
+}
+
+function plannerPlaceColor(
+  place: MapPlace,
+  categoryItems: { key: CityMapPlaceCategory; label: string }[],
+) {
+  return place.markerColor ?? plannerMarkerColor(plannerPlaceCategory(place, categoryItems))
+}
+
+function plannerPinDataUrl(fillHex: string) {
+  const raw = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
+  <defs>
+    <filter id="p" x="-45%" y="-35%" width="190%" height="170%">
+      <feDropShadow dx="0" dy="1.3" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <g filter="url(#p)">
+    <path fill="${fillHex}" stroke="#ffffff" stroke-width="1.75" stroke-linejoin="round" d="M15 4.5c-4.1 0-7.4 3.3-7.4 7.4 0 5.6 7.4 14 7.4 14s7.4-8.4 7.4-14c0-4.1-3.3-7.4-7.4-7.4z"/>
+    <circle cx="15" cy="10.8" r="2.45" fill="#ffffff"/>
+  </g>
+</svg>`
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(raw.replace(/\s+/g, ' ').trim())}`
+}
+
+function plannerPlaceStyle(
+  place: MapPlace,
+  categoryItems: { key: CityMapPlaceCategory; label: string }[],
+): CSSProperties {
+  return { '--planner-category-color': plannerPlaceColor(place, categoryItems) } as CSSProperties
+}
+
+function printLinkHref(href: string) {
+  try {
+    const url = new URL(href, PUBLIC_SITE_ORIGIN)
+    return url.toString()
+  } catch {
+    return href
+  }
+}
+
+function printTravelTitle(title: string) {
+  const base = title
+    .replace(/Pass/gi, '')
+    .replace(/周遊券/g, '')
+    .replace(/景點/g, '')
+    .replace(/地圖/g, '')
+    .replace(/行程/g, '')
+    .replace(/排序/g, '')
+    .trim()
+
+  if (!base) return '旅遊行程'
+  return base.endsWith('旅遊') ? base : `${base}旅遊`
+}
+
 function plannerMarkerIcon(
   place: MapPlace,
   maps: typeof google.maps,
   order: number | null,
-): google.maps.Icon {
-  const icon = cityMapMarkerIcon(place.category, maps, place)
-  if (!order) return icon
+  color: string,
+): google.maps.Icon | google.maps.Symbol {
+  if (order) {
+    return {
+      path: maps.SymbolPath.CIRCLE,
+      scale: 13,
+      fillColor: color,
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 3,
+    }
+  }
   return {
-    ...icon,
-    labelOrigin: new maps.Point(15, place.category === 'food' ? 15 : 14),
+    scaledSize: new maps.Size(30, 30),
+    anchor: new maps.Point(15, 27),
+    url: plannerPinDataUrl(color),
   }
 }
 
@@ -173,8 +364,271 @@ function naverMapUrl(place: MapPlace) {
   return actions.find((action) => action.platform === 'NaverMap' || action.label.toLowerCase() === 'navermap')?.href
 }
 
+function isCustomPlaceId(id: string) {
+  return id.startsWith(CUSTOM_PLACE_PREFIX)
+}
+
+function cleanCustomPlaceCategory(value: unknown): CityMapPlaceCategory {
+  if (
+    value === 'ticket' ||
+    value === 'spot' ||
+    value === 'restaurant' ||
+    value === 'shop' ||
+    value === 'hotel' ||
+    value === 'free' ||
+    value === 'food'
+  ) {
+    return value
+  }
+  return 'spot'
+}
+
+function customPlaceToMapPlace(
+  place: CustomPlannerPlace,
+  sourcePlace?: MapPlace,
+  customCategoryItems: { key: CityMapPlaceCategory; label: string }[] = defaultCustomCategoryItems,
+): MapPlace {
+  const category = cleanCustomPlaceCategory(place.category)
+  const customLabel = customCategoryItems.find((item) => item.key === category)?.label ?? '\u666f\u9ede'
+  const actions = [
+    ...(place.naverUrl
+      ? [
+          {
+            label: 'Naver',
+            href: place.naverUrl,
+            platform: 'NaverMap',
+            event: 'custom_place_naver',
+            mapSection: 'planner_card',
+          },
+        ]
+      : []),
+    ...(place.links ?? []).map((link) => ({
+      label: link.label,
+      href: link.href,
+      platform: link.label,
+      event: 'custom_place_link',
+      mapSection: 'planner_card',
+    })),
+  ]
+
+  return {
+    ...(sourcePlace ?? {}),
+    id: place.id,
+    category: cleanCustomPlaceCategory(place.category),
+    name: place.name,
+    description: `自訂${customLabel}`,
+    lat: place.lat,
+    lng: place.lng,
+    markerColor: undefined,
+    markerIconUrl: undefined,
+    markerStyleId: undefined,
+    officialPassTier: undefined,
+    spotGoogleMapsUrl: place.googleUrl || sourcePlace?.spotGoogleMapsUrl,
+    spotActions: [...(sourcePlace?.spotActions ?? []), ...actions],
+  }
+}
+
+function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const places: Record<string, CustomPlannerPlace> = {}
+  Object.entries(value as Record<string, unknown>).forEach(([idKey, rawPlace]) => {
+    if (!rawPlace || typeof rawPlace !== 'object' || Array.isArray(rawPlace)) return
+    const source = rawPlace as Record<string, unknown>
+    const id = idKey.trim()
+    const name = typeof source.name === 'string' ? source.name.trim().slice(0, 80) : ''
+    const sourcePlaceId = typeof source.sourcePlaceId === 'string' ? source.sourcePlaceId.trim().slice(0, 120) : ''
+    const lat = typeof source.lat === 'number' ? source.lat : Number(source.lat)
+    const lng = typeof source.lng === 'number' ? source.lng : Number(source.lng)
+    if (!id || !isCustomPlaceId(id) || !name || !Number.isFinite(lat) || !Number.isFinite(lng)) return
+    const googleUrl = typeof source.googleUrl === 'string' ? source.googleUrl.trim() : ''
+    const naverUrl = typeof source.naverUrl === 'string' ? source.naverUrl.trim() : ''
+    const category = cleanCustomPlaceCategory(source.category)
+    const links = Array.isArray(source.links)
+      ? source.links
+          .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
+          .map((link) => ({
+            label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
+            href: typeof link.href === 'string' ? link.href.trim() : '',
+          }))
+          .filter((link) => link.label && link.href)
+      : []
+    places[id] = {
+      id,
+      ...(sourcePlaceId ? { sourcePlaceId } : {}),
+      name,
+      category,
+      lat,
+      lng,
+      ...(googleUrl ? { googleUrl } : {}),
+      ...(naverUrl ? { naverUrl } : {}),
+      ...(links.length > 0 ? { links } : {}),
+    }
+  })
+  return places
+}
+
+function cleanUserLinks(value: unknown): Record<string, PlannerUserLink[]> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const linksByPlace: Record<string, PlannerUserLink[]> = {}
+  Object.entries(value as Record<string, unknown>).forEach(([placeId, rawLinks]) => {
+    if (!placeId || !Array.isArray(rawLinks)) return
+    const links = rawLinks
+      .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
+      .map((link) => ({
+        label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
+        href: typeof link.href === 'string' ? link.href.trim().slice(0, 500) : '',
+      }))
+      .filter((link) => link.label && link.href)
+      .slice(0, 8)
+    if (links.length > 0) linksByPlace[placeId] = links
+  })
+  return linksByPlace
+}
+
+function parseGoogleMapsUrl(value: string) {
+  const url = value.trim()
+  if (!url) return null
+  const coordinatePatterns = [
+    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+    /!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/,
+    /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+    /[?&]q=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+    /[?&]query=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+    /[?&]destination=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+    /[?&]ll=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+  ]
+  for (const pattern of coordinatePatterns) {
+    const match = url.match(pattern)
+    if (!match) continue
+    const isLngLatPattern = pattern.source.startsWith('!2d')
+    const lat = Number(match[isLngLatPattern ? 2 : 1])
+    const lng = Number(match[isLngLatPattern ? 1 : 2])
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+  }
+  return null
+}
+
+function parseGoogleMapsPlaceName(value: string) {
+  const match = value.match(/\/place\/([^/?@]+)/)
+  if (match) {
+    try {
+      return decodeURIComponent(match[1].replace(/\+/g, ' ')).trim().slice(0, 80)
+    } catch {
+      return match[1].replace(/\+/g, ' ').trim().slice(0, 80)
+    }
+  }
+
+  const searchMatch = value.match(/\/search\/([^/?@]+)/)
+  if (searchMatch) {
+    try {
+      return decodeURIComponent(searchMatch[1].replace(/\+/g, ' ')).trim().slice(0, 80)
+    } catch {
+      return searchMatch[1].replace(/\+/g, ' ').trim().slice(0, 80)
+    }
+  }
+
+  try {
+    const url = new URL(value)
+    const query = url.searchParams.get('q') || url.searchParams.get('query')
+    if (!query || /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(query.trim())) return ''
+    return query.trim().slice(0, 80)
+  } catch {
+    return ''
+  }
+}
+
+function shouldResolveGoogleMapsUrl(value: string) {
+  try {
+    const url = new URL(value.trim())
+    return url.hostname === 'maps.app.goo.gl' || url.hostname === 'goo.gl'
+  } catch {
+    return false
+  }
+}
+
+function isPlannerMapAction(action: { label: string; href: string; platform?: string }) {
+  const label = action.label.toLowerCase()
+  const platform = action.platform?.toLowerCase() ?? ''
+  return (
+    label === 'google' ||
+    label === 'google maps' ||
+    label === 'navermap' ||
+    label === 'naver' ||
+    label === '地圖' ||
+    platform.includes('map') ||
+    action.href.includes('google.com/maps') ||
+    action.href.includes('maps.app.goo.gl') ||
+    action.href.includes('naver.me')
+  )
+}
+
+function isPlannerRouteAction(action: { label: string; platform?: string }) {
+  const label = action.label.trim().toLowerCase()
+  const platform = action.platform?.trim().toLowerCase() ?? ''
+  return label === '路線' || label === 'route' || platform === 'route'
+}
+
+function plannerActionLinks(place: MapPlace) {
+  const links = [
+    ...(place.spotActionRows?.flat() ?? []),
+    ...(place.spotActions ?? []),
+    ...(place.hotelActions ?? []),
+    ...(place.relatedTicketHref
+      ? [
+          {
+            label: place.relatedTicketLabel?.trim() || '一日遊',
+            href: place.relatedTicketHref,
+            event: place.relatedTicketEvent,
+            platform: 'ticket',
+            mapSection: 'planner_card',
+          },
+        ]
+      : []),
+  ].filter((action) => action.href && !isPlannerMapAction(action))
+
+  const seen = new Set<string>()
+  return links.filter((action) => {
+    const key = `${action.label}::${action.href}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 function shortName(name: string) {
   return name.replace(/\s*\d+\s*元$/, '').trim()
+}
+
+function normalizePlaceMatchText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[（(].*?[）)]/g, '')
+    .replace(/\s+/g, '')
+    .replace(/[·・|｜\-–—_/\\.,，。:：'"]/g, '')
+    .trim()
+}
+
+function normalizePlaceMatchUrl(value: string | undefined) {
+  if (!value) return ''
+  try {
+    const url = new URL(value)
+    url.hash = ''
+    url.searchParams.sort()
+    return url.toString().replace(/\/$/, '')
+  } catch {
+    return value.trim().replace(/\/$/, '')
+  }
+}
+
+function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const lat1 = (a.lat * Math.PI) / 180
+  const lat2 = (b.lat * Math.PI) / 180
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
 }
 
 function isMobilePlannerViewport() {
@@ -203,6 +657,66 @@ function inAppBrowserName(browser: InAppBrowser) {
   return '內建'
 }
 
+function publicCurrentPlannerUrl() {
+  if (typeof window === 'undefined') return PUBLIC_SITE_ORIGIN
+  const url = new URL(window.location.pathname, PUBLIC_SITE_ORIGIN)
+  url.search = window.location.search
+  url.hash = window.location.hash
+  return url.toString()
+}
+
+function getJsonCache<T>(key: string, ttlMs: number): T | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.sessionStorage.getItem(key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { ts?: unknown; value?: unknown }
+    if (typeof parsed.ts !== 'number' || Date.now() - parsed.ts > ttlMs) {
+      window.sessionStorage.removeItem(key)
+      return null
+    }
+    return parsed.value as T
+  } catch {
+    return null
+  }
+}
+
+function setJsonCache(key: string, value: unknown) {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), value }))
+  } catch {
+    // Ignore storage limits or private-browser restrictions.
+  }
+}
+
+function removeJsonCache(key: string) {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.removeItem(key)
+  } catch {
+    // Ignore private-browser restrictions.
+  }
+}
+
+function getResolvedMapUrlCache(url: string) {
+  if (typeof window === 'undefined') return null
+  try {
+    return window.localStorage.getItem(`${RESOLVED_MAP_URL_CACHE_PREFIX}${url}`)?.trim() || null
+  } catch {
+    return null
+  }
+}
+
+function setResolvedMapUrlCache(url: string, resolvedUrl: string) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(`${RESOLVED_MAP_URL_CACHE_PREFIX}${url}`, resolvedUrl)
+  } catch {
+    // Ignore storage limits or private-browser restrictions.
+  }
+}
+
 function panMobilePlaceAbovePanel(map: google.maps.Map) {
   if (!isMobilePlannerViewport()) return
   map.panBy(0, Math.round(window.innerHeight * 0.2))
@@ -214,28 +728,102 @@ function focusMapOnPlace(map: google.maps.Map, place: MapPlace) {
   window.setTimeout(() => panMobilePlaceAbovePanel(map), 140)
 }
 
-function encodeSharedPlan(ids: string[], places: MapPlace[]) {
+function isDayItem(item: PlannerItem) {
+  return item.startsWith(DAY_ITEM_PREFIX)
+}
+
+function isVisitItem(item: PlannerItem) {
+  return item.startsWith(VISIT_ITEM_PREFIX)
+}
+
+function planItemPlaceId(item: PlannerItem) {
+  if (isDayItem(item)) return null
+  if (!isVisitItem(item)) return item
+  const separatorIndex = item.indexOf('|')
+  return separatorIndex >= 0 ? item.slice(separatorIndex + 1) : null
+}
+
+function createVisitItem(placeId: string) {
+  const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  return `${VISIT_ITEM_PREFIX}${token}|${placeId}`
+}
+
+function canRepeatPlanPlace(place: MapPlace) {
+  return place.category === 'hotel'
+}
+
+function planItemPlace(item: PlannerItem, placeById: Map<string, MapPlace>) {
+  const placeId = planItemPlaceId(item)
+  return placeId ? placeById.get(placeId) ?? null : null
+}
+
+function normalizePlanItems(items: PlannerItem[], placeById: Map<string, MapPlace>) {
+  const seenSingleUsePlaces = new Set<string>()
+  const seenVisitItems = new Set<string>()
+
+  return items.flatMap((item) => {
+    if (isDayItem(item)) return [item]
+
+    const place = planItemPlace(item, placeById)
+    if (!place) return []
+
+    if (canRepeatPlanPlace(place)) {
+      if (isVisitItem(item) && !seenVisitItems.has(item)) {
+        seenVisitItems.add(item)
+        return [item]
+      }
+      const visitItem = createVisitItem(place.id)
+      seenVisitItems.add(visitItem)
+      return [visitItem]
+    }
+
+    if (seenSingleUsePlaces.has(place.id)) return []
+    seenSingleUsePlaces.add(place.id)
+    return [place.id]
+  })
+}
+
+function encodeSharedPlan(items: PlannerItem[], places: MapPlace[]) {
   const indexById = new Map(places.map((place, index) => [place.id, index]))
-  return ids
-    .map((id) => indexById.get(id))
-    .filter((index): index is number => typeof index === 'number')
-    .map((index) => index.toString(36))
-    .join('.')
+  const days: string[][] = [[]]
+  items.forEach((item) => {
+    if (isDayItem(item)) {
+      if (days[days.length - 1].length > 0) days.push([])
+      return
+    }
+    const placeId = planItemPlaceId(item)
+    const index = placeId ? indexById.get(placeId) : undefined
+    if (typeof index === 'number') days[days.length - 1].push(index.toString(36))
+  })
+  return days.map((day) => day.join('.')).filter(Boolean).join('|')
 }
 
 function parseSharedPlan(search: string, placeById: Map<string, MapPlace>, places: MapPlace[]) {
   const params = new URLSearchParams(search)
   const raw = params.get(SHARE_PARAM)
   if (!raw) return null
-  const seen = new Set<string>()
+
+  if (raw.includes('|')) {
+    const items: PlannerItem[] = []
+    raw.split('|').forEach((day, dayIndex) => {
+      if (dayIndex > 0 && items.length > 0) items.push(`${DAY_ITEM_PREFIX}${dayIndex + 1}`)
+      day
+        .split('.')
+        .map((token) => places[Number.parseInt(token, 36)]?.id)
+        .forEach((id) => {
+          if (!id || !placeById.has(id)) return
+          items.push(id)
+        })
+    })
+    return items
+  }
 
   if (!raw.includes(',')) {
     return raw
       .split('.')
       .map((token) => places[Number.parseInt(token, 36)]?.id)
       .filter((id): id is string => {
-        if (!id || !placeById.has(id) || seen.has(id)) return false
-        seen.add(id)
+        if (!id || !placeById.has(id)) return false
         return true
       })
   }
@@ -244,10 +832,179 @@ function parseSharedPlan(search: string, placeById: Map<string, MapPlace>, place
     .split(',')
     .map((id) => id.trim())
     .filter((id): id is string => {
-      if (!id || !placeById.has(id) || seen.has(id)) return false
-      seen.add(id)
+      if (!id || !placeById.has(id)) return false
       return true
     })
+}
+
+async function fetchShortSharedPlan(search: string, placeById: Map<string, MapPlace>) {
+  const params = new URLSearchParams(search)
+  const id = params.get(SHARE_ID_PARAM)?.trim()
+  if (!id) return null
+
+  const cacheKey = `planner-share:${id}`
+  const cachedData = getJsonCache<{ items?: unknown; notes?: unknown; custom_places?: unknown; user_links?: unknown }>(
+    cacheKey,
+    PLANNER_BOOK_CACHE_TTL_MS,
+  )
+  const data =
+    cachedData ??
+    ((await (async () => {
+      const res = await fetch(`/api/pass-planner/share?id=${encodeURIComponent(id)}`, {
+        cache: 'no-store',
+      })
+      if (!res.ok) return null
+      const nextData = (await res.json()) as {
+        items?: unknown
+        notes?: unknown
+        custom_places?: unknown
+        user_links?: unknown
+      }
+      setJsonCache(cacheKey, nextData)
+      return nextData
+    })()) as { items?: unknown; notes?: unknown; custom_places?: unknown; user_links?: unknown } | null)
+  if (!data) return null
+
+  const customPlaces = cleanCustomPlaces(data.custom_places)
+  const customPlaceById = new Map(Object.values(customPlaces).map((place) => [place.id, customPlaceToMapPlace(place)]))
+  const items = Array.isArray(data.items)
+    ? data.items
+        .filter((item): item is string => typeof item === 'string')
+        .filter((item) => {
+          if (isDayItem(item)) return true
+          const placeId = planItemPlaceId(item)
+          if (!placeId || (!placeById.has(placeId) && !customPlaceById.has(placeId))) return false
+          return true
+        })
+    : []
+
+  const notes =
+    data.notes && typeof data.notes === 'object' && !Array.isArray(data.notes)
+      ? Object.fromEntries(
+          Object.entries(data.notes as Record<string, unknown>).filter(
+            (entry): entry is [string, string] =>
+              typeof entry[1] === 'string',
+          ),
+        )
+      : {}
+
+  const userLinks = cleanUserLinks(data.user_links)
+
+  return items.length > 0 ? { items, notes, customPlaces, userLinks } : null
+}
+
+async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>) {
+  const params = new URLSearchParams(search)
+  const id = params.get(PLANNER_BOOK_PARAM)?.trim()
+  const viewToken = params.get(PLANNER_PREVIEW_PARAM)?.trim()
+  if (!id && !viewToken) return null
+
+  const query = viewToken
+    ? `${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(viewToken)}`
+    : `id=${encodeURIComponent(id ?? '')}`
+  const cacheKey = `planner-book:${query}`
+  const cachedData = getJsonCache<{
+    id?: unknown
+    read_token?: unknown
+    readonly?: unknown
+    updated_at?: unknown
+    items?: unknown
+    notes?: unknown
+    custom_places?: unknown
+    user_links?: unknown
+  }>(cacheKey, PLANNER_BOOK_CACHE_TTL_MS)
+  const data =
+    cachedData ??
+    ((await (async () => {
+      const res = await fetch(`/api/pass-planner/book?${query}`, {
+        cache: 'no-store',
+      })
+      if (!res.ok) return null
+      const nextData = (await res.json()) as {
+        id?: unknown
+        read_token?: unknown
+        readonly?: unknown
+        updated_at?: unknown
+        items?: unknown
+        notes?: unknown
+        custom_places?: unknown
+        user_links?: unknown
+      }
+      setJsonCache(cacheKey, nextData)
+      return nextData
+    })()) as {
+      id?: unknown
+      read_token?: unknown
+      readonly?: unknown
+      updated_at?: unknown
+      items?: unknown
+      notes?: unknown
+      custom_places?: unknown
+      user_links?: unknown
+    } | null)
+  if (!data) return null
+
+  const customPlaces = cleanCustomPlaces(data.custom_places)
+  const customPlaceById = new Map(Object.values(customPlaces).map((place) => [place.id, customPlaceToMapPlace(place)]))
+  const items = Array.isArray(data.items)
+    ? data.items
+        .filter((item): item is string => typeof item === 'string')
+        .filter((item) => {
+          if (isDayItem(item)) return true
+          const placeId = planItemPlaceId(item)
+          if (!placeId || (!placeById.has(placeId) && !customPlaceById.has(placeId))) return false
+          return true
+        })
+    : []
+
+  const notes =
+    data.notes && typeof data.notes === 'object' && !Array.isArray(data.notes)
+      ? Object.fromEntries(
+          Object.entries(data.notes as Record<string, unknown>).filter(
+            (entry): entry is [string, string] =>
+              typeof entry[1] === 'string',
+          ),
+        )
+      : {}
+
+  const bookId = typeof data.id === 'string' && data.id ? data.id : id
+  const userLinks = cleanUserLinks(data.user_links)
+
+  return items.length > 0 && bookId
+    ? {
+        id: bookId,
+        readToken: typeof data.read_token === 'string' ? data.read_token : null,
+        readonly: data.readonly === true || Boolean(viewToken),
+        updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
+        items,
+        notes,
+        customPlaces,
+        userLinks,
+      }
+    : null
+}
+
+async function savePlannerBook(
+  city: string,
+  id: string | null,
+  items: PlannerItem[],
+  notes: Record<string, string>,
+  customPlaces: Record<string, CustomPlannerPlace>,
+  userLinks: Record<string, PlannerUserLink[]>,
+) {
+  const res = await fetch('/api/pass-planner/book', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ city, id, items, notes, custom_places: customPlaces, user_links: userLinks }),
+  })
+  if (!res.ok) return null
+  const data = (await res.json()) as { id?: unknown; read_token?: unknown }
+  return typeof data.id === 'string' && data.id
+    ? {
+        id: data.id,
+        readToken: typeof data.read_token === 'string' ? data.read_token : null,
+      }
+    : null
 }
 
 function distanceKm(a: MapPlace, b: MapPlace) {
@@ -289,14 +1046,143 @@ function sortPlacesByNearestNeighbor(places: MapPlace[]) {
   return sorted
 }
 
+function splitPlanItemsByDay(items: PlannerItem[], placeById: Map<string, MapPlace>) {
+  const days: { divider: string | null; items: PlannerItem[]; places: MapPlace[] }[] = [
+    { divider: null, items: [], places: [] },
+  ]
+  items.forEach((item) => {
+    if (isDayItem(item)) {
+      days.push({ divider: item, items: [], places: [] })
+      return
+    }
+    const place = planItemPlace(item, placeById)
+    if (place) {
+      days[days.length - 1].items.push(item)
+      days[days.length - 1].places.push(place)
+    }
+  })
+  return days.filter((day) => day.places.length > 0)
+}
+
+function sortPlanItemsByNearestNeighbor(items: PlannerItem[], placeById: Map<string, MapPlace>) {
+  const entries = items
+    .map((item) => {
+      const place = planItemPlace(item, placeById)
+      return place ? { item, place } : null
+    })
+    .filter(Boolean) as { item: PlannerItem; place: MapPlace }[]
+
+  if (entries.length <= 2) return entries.map((entry) => entry.item)
+
+  const sorted = [entries[0]]
+  const remaining = entries.slice(1)
+
+  while (remaining.length > 0) {
+    const current = sorted[sorted.length - 1]
+    let nearestIndex = 0
+    let nearestDistance = Number.POSITIVE_INFINITY
+
+    remaining.forEach((entry, index) => {
+      const distance = distanceKm(current.place, entry.place)
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearestIndex = index
+      }
+    })
+
+    const [next] = remaining.splice(nearestIndex, 1)
+    sorted.push(next)
+  }
+
+  return sorted.map((entry) => entry.item)
+}
+
+function sortPlanItemsWithinDays(items: PlannerItem[], placeById: Map<string, MapPlace>) {
+  const segments: { divider: string | null; ids: string[] }[] = [{ divider: null, ids: [] }]
+  items.forEach((item) => {
+    if (isDayItem(item)) {
+      segments.push({ divider: item, ids: [] })
+      return
+    }
+    if (planItemPlace(item, placeById)) segments[segments.length - 1].ids.push(item)
+  })
+
+  return segments.flatMap((segment) => {
+    const sortedIds = sortPlanItemsByNearestNeighbor(segment.ids, placeById)
+    return segment.divider ? [segment.divider, ...sortedIds] : sortedIds
+  })
+}
+
+function sortPlanItemsWithinSingleDay(items: PlannerItem[], placeById: Map<string, MapPlace>, dayNumber: number) {
+  const segments: { divider: string | null; ids: string[] }[] = [{ divider: null, ids: [] }]
+  items.forEach((item) => {
+    if (isDayItem(item)) {
+      segments.push({ divider: item, ids: [] })
+      return
+    }
+    if (planItemPlace(item, placeById)) segments[segments.length - 1].ids.push(item)
+  })
+
+  return segments.flatMap((segment, index) => {
+    const currentDayNumber = index + 1
+    const nextIds = currentDayNumber === dayNumber ? sortPlanItemsByNearestNeighbor(segment.ids, placeById) : segment.ids
+    return segment.divider ? [segment.divider, ...nextIds] : nextIds
+  })
+}
+
+function insertPlaceIntoDay(items: PlannerItem[], place: MapPlace, dayNumber: number | 'end') {
+  const itemId = canRepeatPlanPlace(place) ? createVisitItem(place.id) : place.id
+  if (!canRepeatPlanPlace(place) && items.some((item) => planItemPlaceId(item) === place.id)) return items
+  if (dayNumber === 'end') return [...items, itemId]
+  const dividerIndexes = items
+    .map((item, index) => (isDayItem(item) ? index : -1))
+    .filter((index) => index >= 0)
+  if (dayNumber <= 1) {
+    const firstDividerIndex = dividerIndexes[0]
+    if (firstDividerIndex == null) return [...items, itemId]
+    return [...items.slice(0, firstDividerIndex), itemId, ...items.slice(firstDividerIndex)]
+  }
+  const startDividerIndex = dividerIndexes[dayNumber - 2]
+  if (startDividerIndex == null) return [...items, itemId]
+  const nextDividerIndex = dividerIndexes[dayNumber - 1]
+  const insertIndex = nextDividerIndex ?? items.length
+  return [...items.slice(0, insertIndex), itemId, ...items.slice(insertIndex)]
+}
+
 function placeMeta(
   place: MapPlace,
-  categoryLabels: Record<MapPlace['category'], string>,
+  categoryLabels: PlannerConfig['categoryLabels'],
   tierLabels: PlannerConfig['tierLabels'],
+  categoryItems: PlannerConfig['categoryItems'],
+  customCategoryItems?: PlannerConfig['customCategoryItems'],
 ) {
-  return [categoryLabels[place.category], place.officialPassTier ? tierLabels[place.officialPassTier] : null]
+  const labelItems = isCustomPlaceId(place.id) && customCategoryItems?.length ? customCategoryItems : categoryItems
+  const category = plannerPlaceCategory(place, labelItems)
+  const categoryLabel =
+    labelItems.find((item) => item.key === category)?.label ?? plannerCategoryLabel(category, categoryLabels, labelItems)
+  return [categoryLabel, place.officialPassTier ? tierLabels[place.officialPassTier] : null]
     .filter(Boolean)
     .join('・')
+}
+
+function plannerPlaceName(place: MapPlace) {
+  return shortName(place.name)
+    .replace(
+      /\s+(?:折?\d+\s*元(?:\s*\/\s*(?:\d+\s*)?元?)?(?:\([^)]*\))?|原\d+\s*元|打\d+折(?:\([^)]*\))?|送[^（(]*(?:[（(][^)）]*[)）])?|[（(]視情況打折[)）])$/u,
+      '',
+    )
+    .trim()
+}
+
+function formatPlannerUpdatedAt(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('zh-TW', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
 }
 
 function scrollCardFullyIntoView(card: HTMLElement, behavior: ScrollBehavior = 'smooth') {
@@ -329,66 +1215,504 @@ function scrollCardToContainerCenter(card: HTMLElement, behavior: ScrollBehavior
   if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior })
 }
 
+function PlannerMapLinksPanel({
+  panelRef,
+  place,
+}: {
+  panelRef?: RefObject<HTMLDivElement | null>
+  place: MapPlace
+}) {
+  const links = [
+    { label: 'Google', href: googleMapsPinUrl(place) },
+    ...(naverMapUrl(place) ? [{ label: 'Naver', href: naverMapUrl(place)! }] : []),
+  ]
+
+  return (
+    <div ref={panelRef} className={styles.plannerLinksBox}>
+      <span>地圖</span>
+      <div className={styles.plannerLinksGrid}>
+        {links.map((link) => (
+          <a key={`${link.label}-${link.href}`} className={styles.plannerLinkChip} href={link.href} target="_blank" rel="noopener noreferrer">
+            {link.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PlannerMapLinks({ place }: { place: MapPlace }) {
+  const [mapOpen, setMapOpen] = useState(false)
+  const mapBoxRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!mapOpen) return
+    const firstId = window.setTimeout(() => {
+      if (mapBoxRef.current) scrollCardFullyIntoView(mapBoxRef.current, 'auto')
+    }, 0)
+    const secondId = window.setTimeout(() => {
+      if (mapBoxRef.current) scrollCardFullyIntoView(mapBoxRef.current, 'smooth')
+    }, 140)
+    return () => {
+      window.clearTimeout(firstId)
+      window.clearTimeout(secondId)
+    }
+  }, [mapOpen])
+
+  return (
+    <>
+      <button className={styles.iconLink} type="button" onClick={() => setMapOpen((open) => !open)}>
+        地圖
+      </button>
+      {mapOpen ? <PlannerMapLinksPanel panelRef={mapBoxRef} place={place} /> : null}
+    </>
+  )
+}
+
 function SortablePlanItem({
+  itemId,
   place,
   label,
+  note,
   selected,
   onFocus,
   onRemove,
+  onEditCustom,
+  onNoteChange,
+  userLinks,
+  onAddUserLink,
+  onRemoveUserLink,
   cardRef,
   categoryLabels,
+  categoryItems,
+  customCategoryItems,
   tierLabels,
+  readOnly,
 }: {
+  itemId: PlannerItem
   place: MapPlace
   label: string
+  note: string
   selected: boolean
   onFocus: () => void
   onRemove: () => void
+  onEditCustom?: () => void
+  onNoteChange: (note: string) => void
+  userLinks: PlannerUserLink[]
+  onAddUserLink: (link: PlannerUserLink) => void
+  onRemoveUserLink: (index: number) => void
   cardRef: (el: HTMLElement | null) => void
-  categoryLabels: Record<MapPlace['category'], string>
+  categoryLabels: PlannerConfig['categoryLabels']
+  categoryItems: PlannerConfig['categoryItems']
+  customCategoryItems?: PlannerConfig['customCategoryItems']
   tierLabels: PlannerConfig['tierLabels']
+  readOnly: boolean
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: place.id })
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: itemId,
+    disabled: readOnly,
+  })
+  const [openPanel, setOpenPanel] = useState<'note' | 'links' | 'map' | null>(null)
+  const [linkLabel, setLinkLabel] = useState('')
+  const [linkHref, setLinkHref] = useState('')
+  const [draftNote, setDraftNote] = useState(note)
+  const cardElementRef = useRef<HTMLElement | null>(null)
+  const detailElementRef = useRef<HTMLDivElement | null>(null)
+  const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const displayName = plannerPlaceName(place)
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   }
 
   const setRefs = (el: HTMLElement | null) => {
+    cardElementRef.current = el
     setNodeRef(el)
     cardRef(el)
   }
 
+  const noteDirty = draftNote !== note
+  const actionLinkCount = plannerActionLinks(place).length
+  const userLinkCount = userLinks.length
+  const hasAnyLinks = actionLinkCount + userLinkCount > 0
+  const canEditCustom = Boolean(onEditCustom && isCustomPlaceId(place.id) && !readOnly)
+  const saveNote = () => {
+    onNoteChange(draftNote)
+    setOpenPanel(null)
+  }
+
+  useEffect(() => {
+    if (!openPanel) return
+
+    const closePanel = (event: PointerEvent) => {
+      const target = event.target as Node | null
+      if (target && cardElementRef.current?.contains(target)) return
+      if (target && detailElementRef.current?.contains(target)) return
+      setOpenPanel(null)
+    }
+
+    document.addEventListener('pointerdown', closePanel, true)
+
+    const scrollIntoView = () => {
+      const target = detailElementRef.current ?? cardElementRef.current
+      if (!target) return
+      scrollCardFullyIntoView(target, 'auto')
+    }
+    const firstId = window.setTimeout(() => {
+      scrollIntoView()
+    }, 0)
+    const secondId = window.setTimeout(() => {
+      if (openPanel === 'note') noteTextareaRef.current?.focus({ preventScroll: true })
+      scrollIntoView()
+    }, 160)
+    const thirdId = window.setTimeout(scrollIntoView, 320)
+    return () => {
+      document.removeEventListener('pointerdown', closePanel, true)
+      window.clearTimeout(firstId)
+      window.clearTimeout(secondId)
+      window.clearTimeout(thirdId)
+    }
+  }, [itemId, openPanel])
+
   return (
-    <article
+    <div
       ref={setRefs}
       style={style}
-      className={`${styles.planCard} ${selected ? styles.planCardActive : ''} ${isDragging ? styles.planCardDragging : ''}`}
+      className={`${styles.planItem} ${isDragging ? styles.planCardDragging : ''}`}
+      data-plan-item-id={itemId}
     >
-      <button className={styles.dragHandle} type="button" aria-label={`拖曳排序 ${shortName(place.name)}`} {...attributes} {...listeners}>
+      <article
+        className={`${styles.planCard} ${selected ? styles.planCardActive : ''}`}
+        style={plannerPlaceStyle(place, categoryItems)}
+        onClick={(event) => {
+          const target = event.target as HTMLElement | null
+          if (target?.closest('a, button, textarea, input, [data-no-card-focus="true"]')) return
+          onFocus()
+        }}
+      >
+      <button className={styles.dragHandle} type="button" aria-label={`拖曳排序 ${displayName}`} disabled={readOnly} {...attributes} {...listeners}>
         <span aria-hidden>☰</span>
       </button>
       <button className={styles.planMain} type="button" onClick={onFocus}>
           <span className={styles.planNumber}>{label}</span>
         <span className={styles.planText}>
-          <span className={styles.placeName}>{shortName(place.name)}</span>
-          <span className={styles.placeMeta}>{placeMeta(place, categoryLabels, tierLabels)}</span>
+          <span className={styles.placeName}>{displayName}</span>
+          <span className={styles.placeMeta}>
+            {placeMeta(place, categoryLabels, tierLabels, categoryItems, customCategoryItems)}
+          </span>
+          {note ? <span className={styles.notePreview}>{note}</span> : null}
         </span>
       </button>
       <span className={styles.mapLinks}>
-        <a className={styles.iconLink} href={googleMapsPinUrl(place)} target="_blank" rel="noopener noreferrer">
-          Google
-        </a>
-        {naverMapUrl(place) ? (
-          <a className={styles.iconLink} href={naverMapUrl(place)} target="_blank" rel="noopener noreferrer">
-            Naver
-          </a>
+        <button
+          className={styles.iconLink}
+          type="button"
+          disabled={readOnly}
+          onClick={() => {
+            setDraftNote(note)
+            setOpenPanel((panel) => (panel === 'note' ? null : 'note'))
+          }}
+        >
+          備註
+        </button>
+        <button
+          className={`${styles.iconLink} ${hasAnyLinks ? styles.iconLinkActive : ''} ${userLinkCount > 0 ? styles.iconLinkPrimary : ''}`}
+          type="button"
+          onClick={() => setOpenPanel((panel) => (panel === 'links' ? null : 'links'))}
+        >
+          連結{userLinkCount > 0 ? ` ${userLinkCount}` : ''}
+        </button>
+        <button
+          className={styles.iconLink}
+          type="button"
+          onClick={() => setOpenPanel((panel) => (panel === 'map' ? null : 'map'))}
+        >
+          地圖
+        </button>
+        {canEditCustom ? (
+          <button className={styles.iconLink} type="button" onClick={onEditCustom}>
+            編輯
+          </button>
         ) : null}
       </span>
-      <button className={styles.removeButton} type="button" onClick={onRemove} aria-label={`移除 ${shortName(place.name)}`}>
-        ×
+      {!readOnly ? (
+        <button className={styles.removeButton} type="button" onClick={onRemove} aria-label={`移除 ${displayName}`}>
+          ×
+        </button>
+      ) : null}
+      </article>
+      {openPanel === 'note' ? (
+        <div ref={detailElementRef} className={styles.noteBox}>
+          <span>
+            備註 <small>儲存後會保留在此行程</small>
+          </span>
+          <textarea
+            ref={noteTextareaRef}
+            aria-label={`${displayName} 備註`}
+            value={draftNote}
+            maxLength={500}
+            onChange={(event) => setDraftNote(event.target.value)}
+          />
+          <div className={styles.noteActions}>
+            {noteDirty ? <span>尚未儲存</span> : <span aria-hidden />}
+            <button type="button" onClick={saveNote} disabled={!noteDirty}>
+              儲存備註
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {openPanel === 'links' ? (
+        <PlannerActionPanel
+          panelRef={detailElementRef}
+          place={place}
+          userLinks={userLinks}
+          linkLabel={linkLabel}
+          linkHref={linkHref}
+          onLinkLabelChange={setLinkLabel}
+          onLinkHrefChange={setLinkHref}
+          onAddUserLink={() => {
+            onAddUserLink({ label: linkLabel, href: linkHref })
+            setLinkLabel('')
+            setLinkHref('')
+            setOpenPanel(null)
+          }}
+          onRemoveUserLink={onRemoveUserLink}
+          readOnly={readOnly}
+        />
+      ) : null}
+      {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={detailElementRef} place={place} /> : null}
+    </div>
+  )
+}
+
+function PlannerActionPanel({
+  panelRef,
+  place,
+  userLinks,
+  linkLabel,
+  linkHref,
+  onLinkLabelChange,
+  onLinkHrefChange,
+  onAddUserLink,
+  onRemoveUserLink,
+  readOnly,
+}: {
+  panelRef: RefObject<HTMLDivElement | null>
+  place: MapPlace
+  userLinks: PlannerUserLink[]
+  linkLabel: string
+  linkHref: string
+  onLinkLabelChange: (value: string) => void
+  onLinkHrefChange: (value: string) => void
+  onAddUserLink: () => void
+  onRemoveUserLink: (index: number) => void
+  readOnly: boolean
+}) {
+  const actionLinks = plannerActionLinks(place)
+
+  return (
+    <div ref={panelRef} className={styles.plannerLinksBox}>
+      <span>連結</span>
+      {actionLinks.length > 0 ? (
+        <div className={styles.plannerLinksGrid}>
+          {actionLinks.map((action) => (
+            <a
+              key={`${action.label}-${action.href}`}
+              className={styles.plannerLinkChip}
+              href={action.href}
+              target={action.href.startsWith('http') ? '_blank' : undefined}
+              rel={action.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+              data-event={action.mapEvent ?? action.event}
+              data-item={place.id}
+              data-platform={action.platform}
+              data-section={action.mapSection ?? 'planner_card'}
+            >
+              {action.label}
+            </a>
+          ))}
+        </div>
+      ) : null}
+      {userLinks.length > 0 ? (
+        <div className={styles.userLinksList}>
+          {userLinks.map((link, index) => (
+            <span key={`${link.label}-${link.href}-${index}`} className={styles.userLinkRow}>
+              <a className={styles.userLinkOpen} href={link.href} target="_blank" rel="noopener noreferrer">
+                <span>{link.label}</span>
+                <span>開啟</span>
+              </a>
+              {!readOnly ? (
+                <button type="button" onClick={() => onRemoveUserLink(index)} aria-label={`刪除 ${link.label}`}>
+                  ×
+                </button>
+              ) : null}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {!readOnly ? (
+        <div className={styles.userLinkForm}>
+          <input value={linkLabel} onChange={(event) => onLinkLabelChange(event.target.value)} placeholder="名稱" />
+          <input value={linkHref} onChange={(event) => onLinkHrefChange(event.target.value)} placeholder="連結" />
+          <button type="button" onClick={onAddUserLink} disabled={!linkLabel.trim() || !linkHref.trim()}>
+            新增
+          </button>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function PlannerActionLinks({ place }: { place: MapPlace }) {
+  const [linksOpen, setLinksOpen] = useState(false)
+  const linksBoxRef = useRef<HTMLDivElement | null>(null)
+  const actionLinks = plannerActionLinks(place)
+
+  useEffect(() => {
+    if (!linksOpen) return
+    const firstId = window.setTimeout(() => {
+      if (linksBoxRef.current) scrollCardFullyIntoView(linksBoxRef.current, 'auto')
+    }, 0)
+    const secondId = window.setTimeout(() => {
+      if (linksBoxRef.current) scrollCardFullyIntoView(linksBoxRef.current, 'smooth')
+    }, 140)
+    return () => {
+      window.clearTimeout(firstId)
+      window.clearTimeout(secondId)
+    }
+  }, [linksOpen])
+
+  if (actionLinks.length === 0) return null
+
+  return (
+    <>
+      <button className={styles.iconLink} type="button" onClick={() => setLinksOpen((open) => !open)}>
+        連結
       </button>
-    </article>
+      {linksOpen ? (
+        <div ref={linksBoxRef} className={styles.plannerLinksBox}>
+          <span>連結</span>
+          <div className={styles.plannerLinksGrid}>
+            {actionLinks.map((action) => (
+              <a
+                key={`${action.label}-${action.href}`}
+                className={styles.plannerLinkChip}
+                href={action.href}
+                target={action.href.startsWith('http') ? '_blank' : undefined}
+                rel={action.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                data-event={action.mapEvent ?? action.event}
+                data-item={place.id}
+                data-platform={action.platform}
+                data-section={action.mapSection ?? 'planner_card'}
+              >
+                {action.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function PlannerInlineCardLinks({ place }: { place: MapPlace }) {
+  const [openPanel, setOpenPanel] = useState<'links' | 'map' | null>(null)
+  const panelRef = useRef<HTMLDivElement | null>(null)
+  const actionLinks = plannerActionLinks(place)
+
+  useEffect(() => {
+    if (!openPanel) return
+    const firstId = window.setTimeout(() => {
+      if (panelRef.current) scrollCardFullyIntoView(panelRef.current, 'auto')
+    }, 0)
+    const secondId = window.setTimeout(() => {
+      if (panelRef.current) scrollCardFullyIntoView(panelRef.current, 'smooth')
+    }, 140)
+    return () => {
+      window.clearTimeout(firstId)
+      window.clearTimeout(secondId)
+    }
+  }, [openPanel])
+
+  return (
+    <>
+      {actionLinks.length > 0 ? (
+        <button
+          className={styles.iconLink}
+          type="button"
+          onClick={() => setOpenPanel((panel) => (panel === 'links' ? null : 'links'))}
+        >
+          連結
+        </button>
+      ) : null}
+      <button
+        className={styles.iconLink}
+        type="button"
+        onClick={() => setOpenPanel((panel) => (panel === 'map' ? null : 'map'))}
+      >
+        地圖
+      </button>
+      {openPanel === 'links' ? (
+        <div ref={panelRef} className={styles.plannerLinksBox}>
+          <span>連結</span>
+          <div className={styles.plannerLinksGrid}>
+            {actionLinks.map((action) => (
+              <a
+                key={`${action.label}-${action.href}`}
+                className={styles.plannerLinkChip}
+                href={action.href}
+                target={action.href.startsWith('http') ? '_blank' : undefined}
+                rel={action.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                data-event={action.mapEvent ?? action.event}
+                data-item={place.id}
+                data-platform={action.platform}
+                data-section={action.mapSection ?? 'planner_card'}
+              >
+                {action.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={panelRef} place={place} /> : null}
+    </>
+  )
+}
+
+function SortableDayDivider({
+  id,
+  dayNumber,
+  onRemove,
+  readOnly,
+}: {
+  id: string
+  dayNumber: number
+  onRemove: () => void
+  readOnly: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: readOnly })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${styles.dayDivider} ${isDragging ? styles.dayDividerDragging : ''}`}
+    >
+      <button className={styles.dayDragHandle} type="button" aria-label={`拖曳第 ${dayNumber} 天`} disabled={readOnly} {...attributes} {...listeners}>
+        <span aria-hidden>☰</span>
+      </button>
+      <span className={styles.dayDividerLine} aria-hidden />
+      <span className={styles.dayDividerLabel}>第 {dayNumber} 天</span>
+      <span className={styles.dayDividerLine} aria-hidden />
+      {!readOnly ? (
+        <button className={styles.dayRemoveButton} type="button" onClick={onRemove} aria-label={`移除第 ${dayNumber} 天分隔`}>
+          ×
+        </button>
+      ) : null}
+    </div>
   )
 }
 
@@ -410,13 +1734,25 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   )
   const categoryLabels = config.categoryLabels
   const plannerCategoryItems = config.categoryItems
+  const customCategoryItems = useMemo(
+    () => {
+      if (config.customCategoryItems?.length) return config.customCategoryItems
+      return defaultCustomCategoryItems
+    },
+    [config.customCategoryItems],
+  )
   const tierLabels = config.tierLabels
   const tierItems = config.tierItems
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
   const mapElRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
+  const initialMapFitDoneRef = useRef(false)
+  const autoFittingMapRef = useRef(false)
+  const userAdjustedMapRef = useRef(false)
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map())
-  const lineRef = useRef<google.maps.Polyline | null>(null)
+  const lineRefs = useRef<google.maps.Polyline[]>([])
+  const customDraftMarkerRef = useRef<google.maps.Marker | null>(null)
+  const customUrlResolveSeqRef = useRef(0)
   const addCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const planCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const panelBodyRef = useRef<HTMLDivElement | null>(null)
@@ -434,18 +1770,25 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const panelClickSuppressUntilRef = useRef(0)
   const panelBodyTouchStartYRef = useRef<number | null>(null)
   const panelBodyPullCanCollapseRef = useRef(false)
+  const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
+  const initialPlannerLoadRef = useRef(false)
 
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(() =>
     apiKey ? null : '請在環境變數設定 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY',
   )
   const [mode, setMode] = useState<PlannerMode>('add')
-  const [categoryOn, setCategoryOn] = useState<Record<CityMapPlaceCategory, boolean>>(() => ({
-    ...DEFAULT_CITY_MAP_CATEGORY_ON,
-    hotel: false,
-  }))
+  const [categoryOn, setCategoryOn] = useState<Record<CityMapPlaceCategory, boolean>>(() =>
+    plannerCategoriesOn(config.categoryItems),
+  )
+  const [customOnly, setCustomOnly] = useState(false)
   const [tier, setTier] = useState<TierFilter>('all')
-  const [planIds, setPlanIds] = useState<string[]>([])
+  const [planItems, setPlanItems] = useState<PlannerItem[]>([])
+  const [placeNotes, setPlaceNotes] = useState<Record<string, string>>({})
+  const [placeUserLinks, setPlaceUserLinks] = useState<Record<string, PlannerUserLink[]>>({})
+  const [customPlaces, setCustomPlaces] = useState<Record<string, CustomPlannerPlace>>({})
+  const [customDraft, setCustomDraft] = useState<CustomPlaceDraft>(emptyCustomPlaceDraft)
+  const [customUrlResolving, setCustomUrlResolving] = useState(false)
   const [storageReady, setStorageReady] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mobilePageHeight, setMobilePageHeight] = useState<number | null>(null)
@@ -453,17 +1796,147 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
   const [mobilePanelDragHeight, setMobilePanelDragHeight] = useState<number | null>(null)
   const [autoSortConfirmOpen, setAutoSortConfirmOpen] = useState(false)
+  const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
+  const [pendingAddPlace, setPendingAddPlace] = useState<MapPlace | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ type: 'plan' | 'custom'; placeId: string } | null>(null)
+  const [recentlyAddedPlaceId, setRecentlyAddedPlaceId] = useState<string | null>(null)
+  const [printOpen, setPrintOpen] = useState(false)
+  const [shareSaving, setShareSaving] = useState(false)
+  const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
+  const [plannerBookReadToken, setPlannerBookReadToken] = useState<string | null>(null)
+  const [plannerBookUpdatedAt, setPlannerBookUpdatedAt] = useState<string | null>(null)
+  const [readOnlyPlan, setReadOnlyPlan] = useState(false)
   const [saveSheetUrl, setSaveSheetUrl] = useState<string | null>(null)
+  const [saveSheetPreviewUrl, setSaveSheetPreviewUrl] = useState<string | null>(null)
   const [saveLinkCopied, setSaveLinkCopied] = useState(false)
+  const [savePreviewCopied, setSavePreviewCopied] = useState(false)
   const [inAppBrowser, setInAppBrowser] = useState<InAppBrowser>(null)
+  const [inAppPromptOpen, setInAppPromptOpen] = useState(false)
+  const [inAppPromptCopied, setInAppPromptCopied] = useState(false)
+  const [dayView, setDayView] = useState<DayView>('all')
+  const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions'>(null)
 
-  const placeById = useMemo(() => new Map(places.map((place) => [place.id, place])), [places])
-  const validPlanIds = useMemo(() => planIds.filter((id) => placeById.has(id)), [placeById, planIds])
+  const sourcePlaceById = useMemo(() => {
+    const seen = new Map<string, MapPlace>()
+    ;[...places, ...(config.matchPlaces ?? [])].forEach((place) => {
+      if (!seen.has(place.id)) seen.set(place.id, place)
+    })
+    return seen
+  }, [config.matchPlaces, places])
+  const customMapPlaces = useMemo(
+    () =>
+      Object.values(customPlaces).map((place) =>
+        customPlaceToMapPlace(place, place.sourcePlaceId ? sourcePlaceById.get(place.sourcePlaceId) : undefined, customCategoryItems),
+      ),
+    [customCategoryItems, customPlaces, sourcePlaceById],
+  )
+  const allPlaces = useMemo(() => [...places, ...customMapPlaces], [customMapPlaces, places])
+  const lookupPlaces = useMemo(() => {
+    const seen = new Set<string>()
+    return [...allPlaces, ...(config.matchPlaces ?? [])].filter((place) => {
+      if (seen.has(place.id)) return false
+      seen.add(place.id)
+      return true
+    })
+  }, [allPlaces, config.matchPlaces])
+  const placeById = useMemo(() => new Map(lookupPlaces.map((place) => [place.id, place])), [lookupPlaces])
+  const allCategoryOn = useMemo(() => plannerCategoriesOn(plannerCategoryItems), [plannerCategoryItems])
+  const validPlanItems = useMemo(
+    () => normalizePlanItems(planItems, placeById),
+    [placeById, planItems],
+  )
+  const validPlanIds = useMemo(
+    () => validPlanItems.filter((item) => Boolean(planItemPlace(item, placeById))),
+    [placeById, validPlanItems],
+  )
+  const validPlanPlaceIds = useMemo(
+    () => validPlanIds.map((item) => planItemPlaceId(item)).filter(Boolean) as string[],
+    [validPlanIds],
+  )
   const plannedPlaces = useMemo(
-    () => validPlanIds.map((id) => placeById.get(id)).filter(Boolean) as MapPlace[],
+    () => validPlanIds.map((item) => planItemPlace(item, placeById)).filter(Boolean) as MapPlace[],
     [placeById, validPlanIds],
   )
-  const planCode = useMemo(() => encodeSharedPlan(validPlanIds, places), [places, validPlanIds])
+  const plannedDays = useMemo(
+    () => splitPlanItemsByDay(validPlanItems, placeById),
+    [placeById, validPlanItems],
+  )
+  const planDayCount = useMemo(() => validPlanItems.filter(isDayItem).length + 1, [validPlanItems])
+  const hasDayDividers = useMemo(() => validPlanItems.some(isDayItem), [validPlanItems])
+  const visiblePlanItems = useMemo(() => {
+    if (dayView === 'all') return validPlanItems
+    const day = plannedDays[dayView - 1]
+    if (!day) return validPlanItems
+    return day.items
+  }, [dayView, plannedDays, validPlanItems])
+  const visiblePlannedPlaces = useMemo(() => {
+    if (dayView === 'all') return plannedPlaces
+    return plannedDays[dayView - 1]?.places ?? plannedPlaces
+  }, [dayView, plannedDays, plannedPlaces])
+  const mapLegendItems = useMemo(() => {
+    const hasTicket = config.categoryItems.some((item) => item.key === 'ticket')
+    const hasSpot = config.categoryItems.some((item) => item.key === 'spot')
+    const items: { key: string; categoryKey: CityMapPlaceCategory; label: string; color: string; group: 'value' | 'category' }[] = []
+    const shownCategories = new Set<CityMapPlaceCategory>()
+
+    if (hasTicket && hasSpot) {
+      items.push({ key: 'ticket-spot', categoryKey: 'spot', label: '票券/景點', color: plannerMarkerColor('spot'), group: 'category' })
+      shownCategories.add('ticket')
+      shownCategories.add('spot')
+    }
+
+    config.categoryItems.forEach((item) => {
+      if (shownCategories.has(item.key)) return
+      const isValueItem = item.label.includes('價格')
+      items.push({
+        key: item.key,
+        categoryKey: item.key,
+        label: item.label,
+        color: plannerLegendColor(item),
+        group: isValueItem ? 'value' : 'category',
+      })
+      shownCategories.add(item.key)
+    })
+
+    customCategoryItems.forEach((item) => {
+      const existingSpotLabel = config.categoryItems.find((option) => option.key === 'spot')?.label ?? ''
+      const isValueSpot = item.key === 'spot' && existingSpotLabel.includes('價格')
+      if (item.key === 'spot' && shownCategories.has('spot') && !isValueSpot) return
+      if (!isValueSpot && shownCategories.has(item.key)) return
+      const label = isValueSpot ? '自定票券/景點' : item.label
+      items.push({
+        key: `custom-${item.key}`,
+        categoryKey: item.key,
+        label,
+        color: plannerMarkerColor(item.key),
+        group: 'category',
+      })
+      if (!isValueSpot) shownCategories.add(item.key)
+    })
+
+    visiblePlannedPlaces.forEach((place) => {
+      const itemsForPlace = isCustomPlaceId(place.id) && customCategoryItems.length > 0 ? customCategoryItems : plannerCategoryItems
+      const category = plannerPlaceCategory(place, itemsForPlace)
+      if (shownCategories.has(category)) return
+      const item = itemsForPlace.find((option) => option.key === category)
+      items.push({
+        key: `visible-${category}`,
+        categoryKey: category,
+        label: item?.label ?? plannerCategoryLabel(category, categoryLabels, itemsForPlace),
+        color: plannerMarkerColor(category),
+        group: 'category',
+      })
+      shownCategories.add(category)
+    })
+
+    return items
+  }, [categoryLabels, config.categoryItems, customCategoryItems, plannerCategoryItems, visiblePlannedPlaces])
+  const visiblePlannedDays = useMemo(() => {
+    if (dayView === 'all') return plannedDays
+    const day = plannedDays[dayView - 1]
+    return day ? [day] : plannedDays
+  }, [dayView, plannedDays])
+  const planCode = useMemo(() => encodeSharedPlan(validPlanItems, lookupPlaces), [lookupPlaces, validPlanItems])
   const trackPlannerEvent = useCallback(
     (eventSuffix: string, params: Record<string, string | number | boolean | null | undefined> = {}) => {
       const fn = getGtag()
@@ -479,27 +1952,78 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   )
   const planOrderLabels = useMemo(() => {
     const labels = new Map<string, string>()
-    validPlanIds.forEach((id, index) => {
-      labels.set(id, String(index + 1))
+    let placeIndex = 0
+    const itemsForLabels =
+      dayView === 'all'
+        ? validPlanItems
+        : (plannedDays[dayView - 1]?.items ?? validPlanItems)
+    itemsForLabels.forEach((item) => {
+      if (isDayItem(item) || !planItemPlace(item, placeById)) return
+      placeIndex += 1
+      labels.set(item, String(placeIndex))
     })
     return labels
-  }, [validPlanIds])
-  const plannedSet = useMemo(() => new Set(validPlanIds), [validPlanIds])
+  }, [dayView, placeById, plannedDays, validPlanItems])
+  const plannedSet = useMemo(() => new Set(validPlanPlaceIds), [validPlanPlaceIds])
 
   const filteredPlaces = useMemo(() => {
-    return places.filter((place) => {
-      if (!categoryOn[place.category]) return false
+    return allPlaces.filter((place) => {
+      if (customOnly) return isCustomPlaceId(place.id)
+      const markerCategoryItems =
+        isCustomPlaceId(place.id) && customCategoryItems.length > 0 ? customCategoryItems : plannerCategoryItems
+      const category = plannerPlaceCategory(place, markerCategoryItems)
+      if (!categoryOn[category]) return false
       if (tier !== 'all' && place.officialPassTier !== tier) return false
       return true
     })
-  }, [categoryOn, places, tier])
+  }, [allPlaces, categoryOn, customCategoryItems, customOnly, plannerCategoryItems, tier])
+
+  const customPlaceMatches = useMemo(() => {
+    if (!customDraft.id) return []
+    const normalizedDraftName = normalizePlaceMatchText(customDraft.name)
+    const normalizedDraftUrl = normalizePlaceMatchUrl(customDraft.googleUrl)
+    const hasDraftPosition = customDraft.lat != null && customDraft.lng != null
+
+    return lookupPlaces
+      .filter((place) => !isCustomPlaceId(place.id))
+      .map((place) => {
+        const normalizedPlaceName = normalizePlaceMatchText(place.name)
+        const normalizedPlaceUrl = normalizePlaceMatchUrl(place.spotGoogleMapsUrl)
+        const nameMatch =
+          normalizedDraftName.length >= 2 &&
+          (normalizedPlaceName.includes(normalizedDraftName) || normalizedDraftName.includes(normalizedPlaceName))
+        const urlMatch = Boolean(normalizedDraftUrl && normalizedPlaceUrl && normalizedDraftUrl === normalizedPlaceUrl)
+        const distance = hasDraftPosition
+          ? distanceMeters({ lat: customDraft.lat ?? 0, lng: customDraft.lng ?? 0 }, { lat: place.lat, lng: place.lng })
+          : Number.POSITIVE_INFINITY
+        const positionMatch = distance <= 300
+        if (!urlMatch && !nameMatch && !positionMatch) return null
+        return {
+          place,
+          score: (urlMatch ? -1000 : 0) + (positionMatch ? 0 : 1000) + Math.min(distance, 999) + (nameMatch ? 0 : 500),
+        }
+      })
+      .filter((item): item is { place: MapPlace; score: number } => Boolean(item))
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 3)
+      .map((item) => item.place)
+  }, [customDraft.googleUrl, customDraft.id, customDraft.lat, customDraft.lng, customDraft.name, lookupPlaces])
 
   const selectedPlace = selectedId ? placeById.get(selectedId) ?? null : null
+  const customDraftCategoryLabel =
+    customCategoryItems.find((item) => item.key === customDraft.category)?.label ?? '景點'
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
+
+  useEffect(() => {
+    if (planItems.length === validPlanItems.length && planItems.every((item, index) => item === validPlanItems[index])) {
+      return
+    }
+    setPlanItems(validPlanItems)
+  }, [planItems, validPlanItems])
 
   useEffect(() => {
     modeRef.current = mode
@@ -515,6 +2039,27 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (!config.saveReminderEnabled) return
     setInAppBrowser(detectInAppBrowser())
   }, [config.saveReminderEnabled])
+
+  useEffect(() => {
+    if (dayView !== 'all' && dayView > plannedDays.length) setDayView('all')
+  }, [dayView, plannedDays.length])
+
+  useEffect(() => {
+    if (!openPlannerMenu) return
+
+    const closeMenu = (event: PointerEvent) => {
+      const target = event.target as Element | null
+      if (target?.closest('[data-planner-menu="true"]')) return
+      setOpenPlannerMenu(null)
+    }
+
+    document.addEventListener('pointerdown', closeMenu)
+    return () => document.removeEventListener('pointerdown', closeMenu)
+  }, [openPlannerMenu])
+
+  useEffect(() => {
+    customDraftRef.current = customDraft
+  }, [customDraft])
 
   const getMobilePanelMetrics = useCallback(() => {
     const pageHeight = mobilePageHeight ?? (typeof window === 'undefined' ? 720 : window.innerHeight)
@@ -561,36 +2106,110 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [])
 
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      try {
-        const sharedPlan = parseSharedPlan(window.location.search, placeById, places)
-        if (sharedPlan) {
-          setPlanIds(sharedPlan)
-          setMode('order')
-          setMobilePanelOpen(true)
-          return
-        }
+    if (initialPlannerLoadRef.current) return
+    initialPlannerLoadRef.current = true
 
-        const raw = window.localStorage.getItem(config.storageKey)
-        if (raw) {
-          const parsed = JSON.parse(raw) as unknown
-          if (Array.isArray(parsed)) {
-            setPlanIds(parsed.filter((item): item is string => typeof item === 'string'))
+    const id = window.setTimeout(() => {
+      ;(async () => {
+        try {
+          const plannerBook = await fetchPlannerBook(window.location.search, placeById)
+          const shortSharedPlan = plannerBook ? null : await fetchShortSharedPlan(window.location.search, placeById)
+          const sharedPlan = shortSharedPlan?.items ?? parseSharedPlan(window.location.search, placeById, lookupPlaces)
+          const cloudPlan = plannerBook ?? shortSharedPlan
+          if (plannerBook) {
+            setPlannerBookId(plannerBook.id)
+            setPlannerBookReadToken(plannerBook.readToken)
+            setPlannerBookUpdatedAt(plannerBook.updatedAt)
+            setReadOnlyPlan(plannerBook.readonly)
           }
+          if (plannerBook?.items ?? sharedPlan) {
+            if (cloudPlan?.customPlaces) setCustomPlaces(cloudPlan.customPlaces)
+            if (cloudPlan?.userLinks) setPlaceUserLinks(cloudPlan.userLinks)
+            setPlanItems(plannerBook?.items ?? sharedPlan ?? [])
+            if (cloudPlan?.notes) setPlaceNotes(cloudPlan.notes)
+            setMode('order')
+            setMobilePanelOpen(true)
+            return
+          }
+
+          const raw = window.localStorage.getItem(config.storageKey)
+          if (raw) {
+            const parsed = JSON.parse(raw) as unknown
+            if (Array.isArray(parsed)) {
+              setPlanItems(parsed.filter((item): item is string => typeof item === 'string'))
+            }
+          }
+          const rawBookId = window.localStorage.getItem(`${config.storageKey}:book-id`)
+          const rawBookReadToken = window.localStorage.getItem(`${config.storageKey}:book-read-token`)
+          const rawBookUpdatedAt = window.localStorage.getItem(`${config.storageKey}:book-updated-at`)
+          if (rawBookId) {
+            setPlannerBookId(rawBookId)
+            if (rawBookReadToken) setPlannerBookReadToken(rawBookReadToken)
+            if (rawBookUpdatedAt) setPlannerBookUpdatedAt(rawBookUpdatedAt)
+          }
+          const rawNotes = window.localStorage.getItem(`${config.storageKey}:notes`)
+          if (rawNotes) {
+            const parsedNotes = JSON.parse(rawNotes) as unknown
+            if (parsedNotes && typeof parsedNotes === 'object' && !Array.isArray(parsedNotes)) {
+              const notes = Object.fromEntries(
+                Object.entries(parsedNotes as Record<string, unknown>)
+                  .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+                  .map(([key, value]) => [key, value.slice(0, 500)]),
+              )
+              setPlaceNotes(notes)
+            }
+          }
+          const rawCustomPlaces = window.localStorage.getItem(`${config.storageKey}:custom-places`)
+          if (rawCustomPlaces) {
+            setCustomPlaces(cleanCustomPlaces(JSON.parse(rawCustomPlaces)))
+          }
+          const rawUserLinks = window.localStorage.getItem(`${config.storageKey}:user-links`)
+          if (rawUserLinks) {
+            setPlaceUserLinks(cleanUserLinks(JSON.parse(rawUserLinks)))
+          }
+        } catch {
+          setPlanItems([])
+          setPlaceNotes({})
+          setCustomPlaces({})
+          setPlaceUserLinks({})
+        } finally {
+          setStorageReady(true)
         }
-      } catch {
-        setPlanIds([])
-      } finally {
-        setStorageReady(true)
-      }
+      })()
     }, 0)
     return () => window.clearTimeout(id)
-  }, [config.storageKey, placeById, places])
+  }, [config.storageKey, lookupPlaces, placeById])
 
   useEffect(() => {
-    if (!storageReady) return
-    window.localStorage.setItem(config.storageKey, JSON.stringify(validPlanIds))
-  }, [config.storageKey, storageReady, validPlanIds])
+    if (!storageReady || readOnlyPlan) return
+    window.localStorage.setItem(config.storageKey, JSON.stringify(validPlanItems))
+  }, [config.storageKey, readOnlyPlan, storageReady, validPlanItems])
+
+  useEffect(() => {
+    if (!storageReady || readOnlyPlan) return
+    window.localStorage.setItem(`${config.storageKey}:notes`, JSON.stringify(placeNotes))
+  }, [config.storageKey, placeNotes, readOnlyPlan, storageReady])
+
+  useEffect(() => {
+    if (!storageReady || readOnlyPlan) return
+    window.localStorage.setItem(`${config.storageKey}:custom-places`, JSON.stringify(customPlaces))
+  }, [config.storageKey, customPlaces, readOnlyPlan, storageReady])
+
+  useEffect(() => {
+    if (!storageReady || readOnlyPlan) return
+    window.localStorage.setItem(`${config.storageKey}:user-links`, JSON.stringify(placeUserLinks))
+  }, [config.storageKey, placeUserLinks, readOnlyPlan, storageReady])
+
+  useEffect(() => {
+    if (!storageReady || readOnlyPlan || !plannerBookId) return
+    window.localStorage.setItem(`${config.storageKey}:book-id`, plannerBookId)
+    if (plannerBookReadToken) {
+      window.localStorage.setItem(`${config.storageKey}:book-read-token`, plannerBookReadToken)
+    }
+    if (plannerBookUpdatedAt) {
+      window.localStorage.setItem(`${config.storageKey}:book-updated-at`, plannerBookUpdatedAt)
+    }
+  }, [config.storageKey, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
 
   const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list') => {
     if (source === 'marker') setMobilePanelOpen(true)
@@ -615,13 +2234,67 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [])
 
-  const fitMapToPlaces = useCallback(() => {
+  const scrollSelectedPlaceInMode = useCallback(
+    (targetMode: PlannerMode) => {
+      const placeId = selectedId
+      const place =
+        placeId && placeById.has(placeId)
+          ? placeById.get(placeId) ?? null
+          : placeId && customPlaces[placeId]
+            ? customPlaceToMapPlace(customPlaces[placeId])
+            : null
+      setMode(targetMode)
+      setMobilePanelOpen(true)
+
+      if (!place) return
+      setSelectedId(place.id)
+      if (targetMode === 'add') {
+        const isCustomPlace = isCustomPlaceId(place.id)
+        setCustomOnly(isCustomPlace)
+        if (!isCustomPlace) {
+          const category = plannerPlaceCategory(place, plannerCategoryItems)
+          setCategoryOn((prev) => ({
+            ...Object.fromEntries(Object.keys(prev).map((key) => [key, true])),
+            [category]: true,
+          }) as Record<CityMapPlaceCategory, boolean>)
+        }
+        setTier('all')
+      } else if (!validPlanPlaceIds.includes(place.id)) {
+        return
+      } else {
+        setDayView('all')
+      }
+
+      const map = mapRef.current
+      if (map) focusMapOnPlace(map, place)
+
+      window.setTimeout(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const refs = targetMode === 'order' ? planCardRefs.current : addCardRefs.current
+            const card = refs[place.id]
+            if (!card) return
+            if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
+            else scrollCardToContainerCenter(card)
+          })
+        })
+      }, 0)
+    },
+    [customPlaces, placeById, plannerCategoryItems, selectedId, validPlanPlaceIds],
+  )
+
+  const fitMapToPlaces = useCallback((force = false) => {
     const map = mapRef.current
-    if (!map || !window.google?.maps || places.length === 0) return
+    if (!map || !window.google?.maps || allPlaces.length === 0) return
+    if (!force && userAdjustedMapRef.current) return
     const bounds = new google.maps.LatLngBounds()
-    places.forEach((place) => bounds.extend({ lat: place.lat, lng: place.lng }))
+    allPlaces.forEach((place) => bounds.extend({ lat: place.lat, lng: place.lng }))
+    autoFittingMapRef.current = true
     map.fitBounds(bounds, 48)
-  }, [places])
+    window.setTimeout(() => {
+      autoFittingMapRef.current = false
+    }, 300)
+  }, [allPlaces])
 
   const syncMap = useCallback(() => {
     const map = mapRef.current
@@ -629,45 +2302,106 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     const maps = google.maps
 
-    if (!lineRef.current) {
-      lineRef.current = new maps.Polyline({
+    lineRefs.current.forEach((line) => line.setMap(null))
+    lineRefs.current = visiblePlannedDays.map((day, dayIndex) => {
+      const line = new maps.Polyline({
         geodesic: true,
-        strokeColor: '#1f7a8c',
-        strokeOpacity: 0.85,
+        strokeColor: DAY_ROUTE_COLORS[(dayView === 'all' ? dayIndex : dayView - 1) % DAY_ROUTE_COLORS.length],
+        strokeOpacity: 0.88,
         strokeWeight: 3,
+        path: day.places.map((place) => ({ lat: place.lat, lng: place.lng })),
       })
-    }
-    lineRef.current.setPath(plannedPlaces.map((place) => ({ lat: place.lat, lng: place.lng })))
-    lineRef.current.setMap(plannedPlaces.length > 1 ? map : null)
+      line.setMap(mode === 'order' && day.places.length > 1 ? map : null)
+      return line
+    })
 
-    const visiblePlaces = mode === 'order' ? plannedPlaces : filteredPlaces
-    const visibleIds = new Set(visiblePlaces.map((place) => place.id))
+    const orderMarkerItems = visiblePlanItems
+      .map((item) => {
+        const place = planItemPlace(item, placeById)
+        return place ? { item, place } : null
+      })
+      .filter(Boolean) as { item: PlannerItem; place: MapPlace }[]
+    const markerEntries =
+      mode === 'order'
+        ? orderMarkerItems.map((entry, index) => ({ ...entry, key: entry.item, orderIndex: index }))
+        : filteredPlaces.map((place) => ({ item: place.id, place, key: place.id, orderIndex: -1 }))
+    const visibleIds = new Set(markerEntries.map((entry) => entry.key))
+    const markerPlaceTotals = new Map<string, number>()
+    markerEntries.forEach(({ place }) => {
+      markerPlaceTotals.set(place.id, (markerPlaceTotals.get(place.id) ?? 0) + 1)
+    })
+    const markerPlaceSeen = new Map<string, number>()
 
-    places.forEach((place) => {
-      const orderIndex = validPlanIds.indexOf(place.id)
-      const inPlan = orderIndex >= 0
-      const orderLabel = planOrderLabels.get(place.id) ?? null
-      let marker = markersRef.current.get(place.id)
+    markersRef.current.forEach((marker, markerId) => {
+      if (visibleIds.has(markerId)) return
+      marker.setMap(null)
+      markersRef.current.delete(markerId)
+    })
+
+    markerEntries.forEach(({ item, place, key, orderIndex }) => {
+      const orderLabel = planOrderLabels.get(item) ?? null
+      const totalAtPlace = markerPlaceTotals.get(place.id) ?? 1
+      const seenAtPlace = markerPlaceSeen.get(place.id) ?? 0
+      markerPlaceSeen.set(place.id, seenAtPlace + 1)
+      const offsetAngle = seenAtPlace * 1.7
+      const offsetDistance = mode === 'order' && totalAtPlace > 1 ? 0.00008 : 0
+      const markerPosition = {
+        lat: place.lat + Math.sin(offsetAngle) * offsetDistance,
+        lng: place.lng + Math.cos(offsetAngle) * offsetDistance * 1.25,
+      }
+      let marker = markersRef.current.get(key)
       if (!marker) {
         marker = new maps.Marker({
-          position: { lat: place.lat, lng: place.lng },
+          position: markerPosition,
         })
         marker.addListener('click', () => {
           focusPlace(place, 'marker')
+          window.setTimeout(() => {
+            const card = modeRef.current === 'order' ? planCardRefs.current[key] : addCardRefs.current[place.id]
+            if (!card) return
+            if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
+            else scrollCardToContainerCenter(card)
+          }, 0)
         })
-        markersRef.current.set(place.id, marker)
+        markersRef.current.set(key, marker)
       }
-      marker.setTitle(inPlan && orderLabel ? `${orderLabel}. ${place.name}` : place.name)
-      marker.setZIndex(inPlan ? 1000 + orderIndex : cityMapMarkerZIndex(place.category))
-      marker.setIcon(plannerMarkerIcon(place, maps, orderLabel ? 1 : null))
-      marker.setLabel(orderLabel ? { text: orderLabel, color: '#ffffff', fontSize: '12px', fontWeight: '900' } : null)
-      marker.setVisible(visibleIds.has(place.id))
+      marker.setPosition(markerPosition)
+      const showOrderMarker = mode === 'order' && typeof orderLabel === 'string'
+      marker.setTitle(showOrderMarker ? `${orderLabel}. ${place.name}` : place.name)
+      const markerCategoryItems =
+        isCustomPlaceId(place.id) && customCategoryItems.length > 0 ? customCategoryItems : plannerCategoryItems
+      const category = plannerPlaceCategory(place, markerCategoryItems)
+      marker.setZIndex(showOrderMarker ? 1000 + orderIndex : cityMapMarkerZIndex(category))
+      marker.setIcon(
+        plannerMarkerIcon(
+          place,
+          maps,
+          showOrderMarker ? Number(orderLabel) : null,
+          plannerPlaceColor(place, markerCategoryItems),
+        ),
+      )
+      marker.setLabel(
+        showOrderMarker ? { text: orderLabel, color: '#ffffff', fontSize: '13px', fontWeight: '900' } : null,
+      )
+      marker.setVisible(true)
       marker.setMap(map)
     })
-  }, [filteredPlaces, focusPlace, mode, places, plannedPlaces, planOrderLabels, validPlanIds])
+  }, [
+    dayView,
+    filteredPlaces,
+    focusPlace,
+    mode,
+    placeById,
+    customCategoryItems,
+    plannerCategoryItems,
+    planOrderLabels,
+    visiblePlanItems,
+    visiblePlannedDays,
+  ])
 
   useEffect(() => {
     if (!apiKey) return
+    if (mapRef.current) return
 
     let cancelled = false
     ;(async () => {
@@ -676,7 +2410,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         if (cancelled || !mapElRef.current) return
         mapRef.current = new google.maps.Map(mapElRef.current, {
           center: mapCenter,
-          zoom: 11,
+          zoom: config.mapZoom,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
@@ -684,13 +2418,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           scrollwheel: true,
           zoomControl: true,
         })
-        mapRef.current.addListener('click', () => {
+        mapRef.current.addListener('click', (e: google.maps.MapMouseEvent) => {
+          if (customDraftRef.current.picking && e.latLng) {
+            const lat = e.latLng.lat()
+            const lng = e.latLng.lng()
+            setCustomDraft((draft) => ({ ...draft, lat, lng }))
+            return
+          }
           setMobilePanelOpen(false)
+        })
+        mapRef.current.addListener('zoom_changed', () => {
+          if (!autoFittingMapRef.current) userAdjustedMapRef.current = true
         })
         mapRef.current.addListener('dragstart', () => {
+          userAdjustedMapRef.current = true
           setMobilePanelOpen(false)
         })
-        google.maps.event.addListenerOnce(mapRef.current, 'idle', fitMapToPlaces)
         setMapReady(true)
         setMapError(null)
       } catch {
@@ -701,12 +2444,74 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     return () => {
       cancelled = true
     }
-  }, [apiKey, fitMapToPlaces, mapCenter])
+  }, [apiKey, mapCenter, config.mapZoom])
+
+  useEffect(() => {
+    if (!mapReady || initialMapFitDoneRef.current) return
+    initialMapFitDoneRef.current = true
+    const fitTimer = window.setTimeout(() => {
+      fitMapToPlaces(true)
+    }, 0)
+
+    return () => {
+      window.clearTimeout(fitTimer)
+    }
+  }, [fitMapToPlaces, mapReady])
 
   useEffect(() => {
     if (!mapReady) return
     syncMap()
   }, [mapReady, syncMap])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !window.google?.maps) return
+    if (customDraft.lat == null || customDraft.lng == null) {
+      customDraftMarkerRef.current?.setMap(null)
+      customDraftMarkerRef.current = null
+      return
+    }
+      if (!customDraftMarkerRef.current) {
+        customDraftMarkerRef.current = new google.maps.Marker({
+          map,
+          zIndex: 3000,
+          title: customDraft.name || '自訂景點',
+          draggable: true,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 16,
+            fillColor: '#475569',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3,
+          },
+          label: { text: '?', color: '#ffffff', fontSize: '13px', fontWeight: '900' },
+        })
+        customDraftMarkerRef.current.addListener('dragend', (e: google.maps.MapMouseEvent) => {
+          if (!e.latLng) return
+          setCustomDraft((draft) => ({
+            ...draft,
+            lat: e.latLng?.lat() ?? draft.lat,
+            lng: e.latLng?.lng() ?? draft.lng,
+          }))
+        })
+      }
+    customDraftMarkerRef.current.setPosition({ lat: customDraft.lat, lng: customDraft.lng })
+    customDraftMarkerRef.current.setTitle(customDraft.name || '自訂景點')
+    customDraftMarkerRef.current.setDraggable(true)
+    customDraftMarkerRef.current.setMap(map)
+  }, [customDraft.lat, customDraft.lng, customDraft.name, mapReady])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || !customDraft.picking || customDraft.lat == null || customDraft.lng == null) return
+    const position = { lat: customDraft.lat, lng: customDraft.lng }
+    window.setTimeout(() => {
+      map.panTo(position)
+      if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+      if (isMobilePlannerViewport()) map.panBy(0, 120)
+    }, 160)
+  }, [customDraft.lat, customDraft.lng, customDraft.picking, mapReady])
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
@@ -717,7 +2522,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     const id = window.setTimeout(() => {
       resize()
-      fitMapToPlaces()
     }, 120)
     window.addEventListener('resize', resize)
     return () => {
@@ -726,130 +2530,582 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [fitMapToPlaces, mapReady])
 
-  const addPlace = (place: MapPlace) => {
-    setPlanIds((ids) => {
-      if (ids.includes(place.id)) return ids
-      const nextIds = [...ids, place.id]
+  const dismissInAppPrompt = useCallback(() => {
+    try {
+      window.localStorage.setItem(`${config.storageKey}:in-app-browser-prompt-dismissed`, '1')
+    } catch {
+      // Ignore storage limits or private-browser restrictions.
+    }
+    setInAppPromptOpen(false)
+  }, [config.storageKey])
+
+  const maybeOpenInAppPrompt = useCallback(() => {
+    if (!config.saveReminderEnabled || !inAppBrowser) return
+    try {
+      if (window.localStorage.getItem(`${config.storageKey}:in-app-browser-prompt-dismissed`) === '1') return
+    } catch {
+      // If storage is blocked, still show the prompt once in this session.
+    }
+    setInAppPromptCopied(false)
+    setInAppPromptOpen(true)
+  }, [config.saveReminderEnabled, config.storageKey, inAppBrowser])
+
+  const copyInAppPromptLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(publicCurrentPlannerUrl())
+      setInAppPromptCopied(true)
+    } catch {
+      setInAppPromptCopied(false)
+    }
+  }, [])
+
+  const addPlaceToPlan = (place: MapPlace, dayNumber: number | 'end' = 'end') => {
+    if (readOnlyPlan) return
+    setPlanItems((ids) => {
+      if (!canRepeatPlanPlace(place) && ids.some((item) => planItemPlaceId(item) === place.id)) return ids
+      const nextIds = insertPlaceIntoDay(ids, place, dayNumber)
       trackPlannerEvent('add_place', {
         place_id: place.id,
         place_name: shortName(place.name),
         place_category: place.category,
         plan_count: nextIds.length,
-        plan_code: encodeSharedPlan(nextIds, places),
+        plan_code: encodeSharedPlan(nextIds, lookupPlaces),
+        target_day: dayNumber === 'end' ? '' : dayNumber,
       })
       return nextIds
     })
     setSelectedId(place.id)
-    setMobilePanelOpen(true)
+    setRecentlyAddedPlaceId(place.id)
+    window.setTimeout(() => {
+      setRecentlyAddedPlaceId((id) => (id === place.id ? null : id))
+    }, 1400)
+    if (modeRef.current === 'order') setMobilePanelOpen(true)
+    maybeOpenInAppPrompt()
   }
 
-  const removePlace = (placeId: string) => {
-    setPlanIds((ids) => {
+  const addPlace = (place: MapPlace) => {
+    if (hasDayDividers && (canRepeatPlanPlace(place) || !plannedSet.has(place.id))) {
+      setPendingAddPlace(place)
+      return
+    }
+    addPlaceToPlan(place)
+  }
+
+  const confirmAddPlaceToDay = (dayNumber: number | 'end') => {
+    if (!pendingAddPlace) return
+    addPlaceToPlan(pendingAddPlace, dayNumber)
+    setPendingAddPlace(null)
+  }
+
+  const removePlace = (itemId: string) => {
+    if (readOnlyPlan) return
+    setPlanItems((ids) => {
+      const placeId = planItemPlaceId(itemId) ?? itemId
       const place = placeById.get(placeId)
-      const nextIds = ids.filter((id) => id !== placeId)
+      const nextIds = ids.filter((id) => id !== itemId)
       trackPlannerEvent('remove_place', {
         place_id: placeId,
         place_name: place ? shortName(place.name) : '',
         place_category: place?.category,
         plan_count: nextIds.length,
-        plan_code: encodeSharedPlan(nextIds, places),
+        plan_code: encodeSharedPlan(nextIds, lookupPlaces),
       })
       return nextIds
     })
+    const placeId = planItemPlaceId(itemId) ?? itemId
     setSelectedId((id) => (id === placeId ? null : id))
   }
 
+  const deleteCustomPlace = (placeId: string) => {
+    if (readOnlyPlan) return
+    setPlanItems((ids) => ids.filter((item) => planItemPlaceId(item) !== placeId))
+    if (isCustomPlaceId(placeId)) {
+      setCustomPlaces((places) => {
+        const nextPlaces = { ...places }
+        delete nextPlaces[placeId]
+        return nextPlaces
+      })
+      setPlaceNotes((notes) => {
+        const nextNotes = { ...notes }
+        delete nextNotes[placeId]
+        return nextNotes
+      })
+      setPlaceUserLinks((links) => {
+        const nextLinks = { ...links }
+        delete nextLinks[placeId]
+        return nextLinks
+      })
+    }
+  }
+
+  const requestRemovePlace = (placeId: string) => {
+    setPendingDelete({ type: 'plan', placeId })
+  }
+
+  const requestDeleteCustomPlace = (placeId: string) => {
+    setPendingDelete({ type: 'custom', placeId })
+  }
+
+  const confirmPendingDelete = () => {
+    if (!pendingDelete) return
+    if (pendingDelete.type === 'custom') deleteCustomPlace(pendingDelete.placeId)
+    else removePlace(pendingDelete.placeId)
+    setPendingDelete(null)
+  }
+
+  const finishCustomPlacePicking = () => {
+    setCustomDraft((draft) => ({ ...draft, picking: false }))
+    setMobilePanelOpen(true)
+  }
+
+  const addDayDivider = () => {
+    if (readOnlyPlan) return
+    setPlanItems((items) => {
+      const dayCount = items.filter(isDayItem).length + 2
+      const nextItems = [...items, `${DAY_ITEM_PREFIX}${Date.now().toString(36)}-${dayCount}`]
+      trackPlannerEvent('add_day_divider', {
+        day_count: dayCount,
+        plan_count: validPlanIds.length,
+        plan_code: encodeSharedPlan(nextItems, lookupPlaces),
+      })
+      return nextItems
+    })
+  }
+
+  const removeDayDivider = (itemId: string) => {
+    if (readOnlyPlan) return
+    setPlanItems((items) => items.filter((item) => item !== itemId))
+  }
+
+  const updatePlaceNote = (placeId: string, note: string) => {
+    if (readOnlyPlan) return
+    const trimmedNote = note.slice(0, 500)
+    setPlaceNotes((notes) => {
+      if (!trimmedNote.trim()) {
+        const nextNotes = { ...notes }
+        delete nextNotes[placeId]
+        return nextNotes
+      }
+      return { ...notes, [placeId]: trimmedNote }
+    })
+  }
+
+  const addPlaceUserLink = (placeId: string, link: PlannerUserLink) => {
+    if (readOnlyPlan) return
+    const label = link.label.trim().slice(0, 40)
+    const href = link.href.trim().slice(0, 500)
+    if (!label || !href) return
+    setPlaceUserLinks((links) => ({
+      ...links,
+      [placeId]: [...(links[placeId] ?? []), { label, href }].slice(0, 8),
+    }))
+  }
+
+  const removePlaceUserLink = (placeId: string, index: number) => {
+    if (readOnlyPlan) return
+    setPlaceUserLinks((links) => {
+      const nextLinks = (links[placeId] ?? []).filter((_, linkIndex) => linkIndex !== index)
+      if (nextLinks.length === 0) {
+        const cleanLinks = { ...links }
+        delete cleanLinks[placeId]
+        return cleanLinks
+      }
+      return { ...links, [placeId]: nextLinks }
+    })
+  }
+
+  const startCustomPlaceDraft = () => {
+    if (readOnlyPlan) return
+    setCustomDraft({
+      ...emptyCustomPlaceDraft,
+      id: `${CUSTOM_PLACE_PREFIX}${Date.now().toString(36)}`,
+      category: customCategoryItems[0]?.key ?? 'free',
+    })
+    setCustomUrlResolving(false)
+    setMobilePanelOpen(true)
+    setMode('add')
+    maybeOpenInAppPrompt()
+  }
+
+  const editCustomPlace = (placeId: string) => {
+    const place = customPlaces[placeId]
+    if (!place) return
+    const firstLink = place.links?.[0]
+    setCustomDraft({
+      id: place.id,
+      name: place.name,
+      googleUrl: place.googleUrl ?? '',
+      naverUrl: place.naverUrl ?? '',
+      linkLabel: firstLink?.label ?? '',
+      linkUrl: firstLink?.href ?? '',
+      note: placeNotes[place.id] ?? '',
+      category: cleanCustomPlaceCategory(place.category),
+      lat: place.lat,
+      lng: place.lng,
+      picking: false,
+      nameConfirmed: true,
+    })
+    setCustomUrlResolving(false)
+    setCustomOnly(true)
+    setSelectedId(place.id)
+    setMode('add')
+    setMobilePanelOpen(true)
+  }
+
+  const updateCustomGoogleUrl = (googleUrl: string) => {
+    const trimmedGoogleUrl = googleUrl.trim()
+    const coordinates = parseGoogleMapsUrl(googleUrl)
+    const parsedName = parseGoogleMapsPlaceName(googleUrl)
+    const nextSeq = customUrlResolveSeqRef.current + 1
+    customUrlResolveSeqRef.current = nextSeq
+    setCustomUrlResolving(false)
+    setCustomDraft((draft) => ({
+      ...draft,
+      googleUrl,
+      ...(!draft.name.trim() ? { name: parsedName || (googleUrl.trim() ? 'Google Maps 景點' : '') } : {}),
+      ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng, picking: false } : {}),
+    }))
+    if (coordinates || !shouldResolveGoogleMapsUrl(googleUrl)) return
+
+    const cachedResolvedUrl = getResolvedMapUrlCache(trimmedGoogleUrl)
+    if (cachedResolvedUrl) {
+      const resolvedCoordinates = parseGoogleMapsUrl(cachedResolvedUrl)
+      const resolvedName = parseGoogleMapsPlaceName(cachedResolvedUrl)
+      setCustomDraft((draft) => ({
+        ...draft,
+        googleUrl: cachedResolvedUrl,
+        ...((!draft.name.trim() || draft.name === 'Google Maps 景點') && resolvedName ? { name: resolvedName } : {}),
+        ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: false } : {}),
+      }))
+      return
+    }
+
+    setCustomUrlResolving(true)
+    fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(trimmedGoogleUrl)}`, {
+      cache: 'no-store',
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { url?: unknown } | null) => {
+        if (customUrlResolveSeqRef.current !== nextSeq || typeof data?.url !== 'string') return
+        const resolvedUrl = data.url
+        setResolvedMapUrlCache(trimmedGoogleUrl, resolvedUrl)
+        const resolvedCoordinates = parseGoogleMapsUrl(resolvedUrl)
+        const resolvedName = parseGoogleMapsPlaceName(resolvedUrl)
+        setCustomDraft((draft) => ({
+          ...draft,
+          googleUrl: resolvedUrl,
+          ...((!draft.name.trim() || draft.name === 'Google Maps 景點') && resolvedName ? { name: resolvedName } : {}),
+          ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: false } : {}),
+        }))
+      })
+      .catch(() => null)
+      .finally(() => {
+        if (customUrlResolveSeqRef.current === nextSeq) setCustomUrlResolving(false)
+      })
+  }
+
+  const saveCustomPlace = () => {
+    const id = customDraft.id ?? `${CUSTOM_PLACE_PREFIX}${Date.now().toString(36)}`
+    const name = customDraft.name.trim() || 'Google Maps 景點'
+    if (customDraft.lat == null || customDraft.lng == null) return
+    const linkLabel = customDraft.linkLabel.trim()
+    const linkUrl = customDraft.linkUrl.trim()
+    const existingPlace = customPlaces[id]
+    const nextLinks = linkLabel && linkUrl ? [{ label: linkLabel, href: linkUrl }] : (existingPlace?.links ?? [])
+    const customPlace: CustomPlannerPlace = {
+      id,
+      ...(existingPlace?.sourcePlaceId ? { sourcePlaceId: existingPlace.sourcePlaceId } : {}),
+      name,
+      category: semanticPlannerCategory(cleanCustomPlaceCategory(customDraft.category), customCategoryItems),
+      lat: customDraft.lat,
+      lng: customDraft.lng,
+      ...(customDraft.googleUrl.trim() ? { googleUrl: customDraft.googleUrl.trim() } : {}),
+      ...(customDraft.naverUrl.trim() ? { naverUrl: customDraft.naverUrl.trim() } : {}),
+      ...(nextLinks.length > 0 ? { links: nextLinks } : {}),
+    }
+
+    setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
+    updatePlaceNote(id, customDraft.note)
+    setSelectedId(id)
+    setMode('add')
+    setCustomOnly(true)
+    setMobilePanelOpen(true)
+    setCustomDraft(emptyCustomPlaceDraft)
+    setCustomUrlResolving(false)
+    window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const card = addCardRefs.current[id]
+          if (!card) return
+          if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
+          else scrollCardToContainerCenter(card)
+        })
+      })
+    }, 0)
+    trackPlannerEvent('add_custom_place', {
+      place_id: id,
+      place_name: name,
+      place_category: customDraft.category,
+      plan_count: validPlanIds.length,
+    })
+  }
+
+  const handleMatchedPlaceAsCustom = (match: MapPlace) => {
+    if (readOnlyPlan) return
+    const id = customDraft.id ?? `${CUSTOM_PLACE_PREFIX}${Date.now().toString(36)}`
+    const category = semanticPlannerCategory(cleanCustomPlaceCategory(match.category), customCategoryItems)
+    const customPlace: CustomPlannerPlace = {
+      id,
+      sourcePlaceId: match.id,
+      name: shortName(match.name),
+      category,
+      lat: match.lat,
+      lng: match.lng,
+      ...(match.spotGoogleMapsUrl || customDraft.googleUrl.trim()
+        ? { googleUrl: match.spotGoogleMapsUrl || customDraft.googleUrl.trim() }
+        : {}),
+    }
+    const customMapPlace = customPlaceToMapPlace(customPlace, match, customCategoryItems)
+    setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
+    updatePlaceNote(id, customDraft.note)
+    addPlace(customMapPlace)
+    setSelectedId(id)
+    setCustomDraft(emptyCustomPlaceDraft)
+    setCustomUrlResolving(false)
+    setCustomOnly(true)
+    setCategoryOn({ ...allCategoryOn, [category]: true })
+    setMode('add')
+    setMobilePanelOpen(true)
+    window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const card = addCardRefs.current[id]
+          if (!card) return
+          if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
+          else scrollCardToContainerCenter(card)
+        })
+      })
+    }, 0)
+    trackPlannerEvent('use_matched_custom_place', {
+      place_id: id,
+      source_place_id: match.id,
+      place_name: shortName(match.name),
+      place_category: category,
+      plan_count: validPlanIds.length,
+    })
+  }
+
+  const cancelCustomPlaceDraft = () => {
+    setCustomDraft(emptyCustomPlaceDraft)
+    setCustomUrlResolving(false)
+  }
+
+  const confirmCustomPlaceName = () => {
+    setCustomDraft((draft) => ({
+      ...draft,
+      name: draft.name.trim() || 'Google Maps 景點',
+      nameConfirmed: true,
+      picking: true,
+    }))
+    setMobilePanelOpen(false)
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
+    if (readOnlyPlan) return
     const { active, over } = event
     if (!over || active.id === over.id) return
-    setPlanIds((items) => {
+    setPlanItems((items) => {
       const oldIndex = items.indexOf(String(active.id))
       const newIndex = items.indexOf(String(over.id))
       if (oldIndex < 0 || newIndex < 0) return items
       const nextIds = arrayMove(items, oldIndex, newIndex)
-      const place = placeById.get(String(active.id))
+      const placeId = planItemPlaceId(String(active.id)) ?? String(active.id)
+      const place = placeById.get(placeId)
       trackPlannerEvent('drag_sort', {
-        place_id: String(active.id),
+        place_id: placeId,
         place_name: place ? shortName(place.name) : '',
         place_category: place?.category,
         from_index: oldIndex + 1,
         to_index: newIndex + 1,
         plan_count: nextIds.length,
-        plan_code: encodeSharedPlan(nextIds, places),
+        plan_code: encodeSharedPlan(nextIds, lookupPlaces),
       })
       return nextIds
     })
   }
 
   const autoSortPlan = () => {
-    if (plannedPlaces.length <= 1) return
+    if (readOnlyPlan) return
+    const targetPlaces = dayView === 'all' ? plannedPlaces : (plannedDays[dayView - 1]?.places ?? [])
+    if (targetPlaces.length <= 1) return
     trackPlannerEvent('auto_sort_open', {
-      plan_count: plannedPlaces.length,
+      plan_count: targetPlaces.length,
+      target_day: dayView === 'all' ? '' : dayView,
     })
     setAutoSortConfirmOpen(true)
   }
 
   const confirmAutoSortPlan = () => {
-    const sortedIds = sortPlacesByNearestNeighbor(plannedPlaces).map((place) => place.id)
+    const sortedItems =
+      dayView !== 'all'
+        ? sortPlanItemsWithinSingleDay(validPlanItems, placeById, dayView)
+        : validPlanItems.some(isDayItem)
+          ? sortPlanItemsWithinDays(validPlanItems, placeById)
+          : sortPlanItemsByNearestNeighbor(validPlanItems, placeById)
+    const sortedIds = sortedItems.filter((item) => planItemPlace(item, placeById))
     trackPlannerEvent('auto_sort', {
       plan_count: sortedIds.length,
-      plan_code: encodeSharedPlan(sortedIds, places),
-      first_place_id: sortedIds[0] ?? '',
+      plan_code: encodeSharedPlan(sortedItems, lookupPlaces),
+      first_place_id: planItemPlaceId(sortedIds[0] ?? '') ?? '',
+      day_count: sortedItems.filter(isDayItem).length + 1,
+      target_day: dayView === 'all' ? '' : dayView,
     })
-    setPlanIds(sortedIds)
+    setPlanItems(sortedItems)
     setMode('order')
     setMobilePanelOpen(true)
     setAutoSortConfirmOpen(false)
   }
 
   const buildShareUrl = useCallback(() => {
-    const url = new URL(window.location.href)
+    const url = new URL(window.location.pathname, PUBLIC_SITE_ORIGIN)
     url.search = ''
     url.hash = ''
     if (validPlanIds.length > 0) {
-      url.searchParams.set(SHARE_PARAM, encodeSharedPlan(validPlanIds, places))
+      url.searchParams.set(SHARE_PARAM, encodeSharedPlan(validPlanItems, lookupPlaces))
     }
     return url
-  }, [places, validPlanIds])
+  }, [lookupPlaces, validPlanIds.length, validPlanItems])
 
-  const handleShare = useCallback(async () => {
+  const saveAndSharePlan = useCallback(async () => {
+    setShareSaving(true)
     const url = buildShareUrl()
-    const shareUrl = url.toString()
-    const sharePath = `${url.pathname}${url.search}`
-    trackPlannerEvent('share', {
-      plan_count: validPlanIds.length,
-      plan_code: encodeSharedPlan(validPlanIds, places),
-      first_place_id: validPlanIds[0] ?? '',
-      share_path: sharePath,
-      share_has_plan: validPlanIds.length > 0,
-    })
-
-    if (config.saveReminderEnabled) {
-      setSaveLinkCopied(false)
-      setSaveSheetUrl(shareUrl)
-      return
-    }
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: config.shareTitle,
-          text: config.shareText,
-          url: shareUrl,
-        })
-        return
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return
-      }
-    }
+    let shortShareId = ''
+    const currentParams = new URLSearchParams(window.location.search)
+    const urlPlannerBookId = currentParams.get(PLANNER_BOOK_PARAM)?.trim() ?? ''
+    const storedPlannerBookId = window.localStorage.getItem(`${config.storageKey}:book-id`)?.trim() ?? ''
+    const currentPlannerBookId = plannerBookId ?? (urlPlannerBookId || storedPlannerBookId || '')
+    let savedPlannerBookId = currentPlannerBookId
+    let savedReadToken = plannerBookReadToken
 
     try {
-      await navigator.clipboard.writeText(shareUrl)
-      alert('已複製分享連結')
-    } catch {
-      alert('複製失敗，請手動複製網址列')
+      if (validPlanIds.length > 0) {
+        const sharedNotes = Object.fromEntries(
+          validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note),
+        )
+        const book = await savePlannerBook(
+          config.eventPrefix,
+          currentPlannerBookId,
+          validPlanItems,
+          sharedNotes,
+          customPlaces,
+          placeUserLinks,
+        ).catch(() => null)
+        if (book) {
+          savedPlannerBookId = book.id
+          savedReadToken = book.readToken ?? plannerBookReadToken
+          const updatedAt = new Date().toISOString()
+          setPlannerBookId(book.id)
+          setPlannerBookReadToken(savedReadToken)
+          setPlannerBookUpdatedAt(updatedAt)
+          removeJsonCache(`planner-book:id=${encodeURIComponent(book.id)}`)
+          if (savedReadToken) removeJsonCache(`planner-book:${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(savedReadToken)}`)
+          window.localStorage.setItem(`${config.storageKey}:book-id`, book.id)
+          if (savedReadToken) window.localStorage.setItem(`${config.storageKey}:book-read-token`, savedReadToken)
+          window.localStorage.setItem(`${config.storageKey}:book-updated-at`, updatedAt)
+          url.search = ''
+          url.searchParams.set(PLANNER_BOOK_PARAM, book.id)
+        } else {
+          shortShareId = ''
+        }
+      }
+      const shareUrl = url.toString()
+      const sharePath = `${url.pathname}${url.search}`
+      trackPlannerEvent('share', {
+        plan_count: validPlanIds.length,
+        plan_code: encodeSharedPlan(validPlanItems, lookupPlaces),
+        first_place_id: planItemPlaceId(validPlanIds[0] ?? '') ?? '',
+        share_path: sharePath,
+        share_has_plan: validPlanIds.length > 0,
+        planner_book_id: savedPlannerBookId,
+        share_short_id: shortShareId,
+      })
+
+      if (config.saveReminderEnabled) {
+        setSaveLinkCopied(false)
+        setSavePreviewCopied(false)
+        setSaveSheetUrl(shareUrl)
+        if (savedReadToken) {
+          const token = savedReadToken
+          const previewUrl = token ? new URL(window.location.pathname, PUBLIC_SITE_ORIGIN) : null
+          if (previewUrl) {
+            previewUrl.searchParams.set(PLANNER_PREVIEW_PARAM, token)
+            setSaveSheetPreviewUrl(previewUrl.toString())
+          } else {
+            setSaveSheetPreviewUrl(null)
+          }
+        } else {
+          setSaveSheetPreviewUrl(null)
+        }
+        return
+      }
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: config.shareTitle,
+            text: config.shareText,
+            url: shareUrl,
+          })
+          return
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') return
+        }
+      }
+
+      try {
+        await navigator.clipboard.writeText(shareUrl)
+        alert('已複製分享連結')
+      } catch {
+        alert('複製失敗，請手動複製網址列')
+      }
+    } finally {
+      setShareSaving(false)
     }
-  }, [buildShareUrl, config.saveReminderEnabled, config.shareText, config.shareTitle, places, trackPlannerEvent, validPlanIds])
+  }, [
+    buildShareUrl,
+    config.eventPrefix,
+    config.saveReminderEnabled,
+    config.shareText,
+    config.shareTitle,
+    config.storageKey,
+    lookupPlaces,
+    customPlaces,
+    placeUserLinks,
+    placeNotes,
+    plannerBookId,
+    plannerBookReadToken,
+    trackPlannerEvent,
+    validPlanIds,
+    validPlanItems,
+  ])
+
+  const handleShare = useCallback(() => {
+    if (readOnlyPlan) return
+    if (shareSaving) return
+    if (plannerBookId) {
+      setUpdateShareConfirmOpen(true)
+      return
+    }
+    void saveAndSharePlan()
+  }, [plannerBookId, readOnlyPlan, saveAndSharePlan, shareSaving])
+
+  const confirmUpdateSharedPlan = useCallback(() => {
+    if (shareSaving) return
+    void (async () => {
+      await saveAndSharePlan()
+      setUpdateShareConfirmOpen(false)
+    })()
+  }, [saveAndSharePlan, shareSaving])
 
   const shareSavedLink = useCallback(async () => {
     if (!saveSheetUrl) return
@@ -861,6 +3117,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           url: saveSheetUrl,
         })
         setSaveSheetUrl(null)
+        setSaveSheetPreviewUrl(null)
+        setSaveLinkCopied(false)
+        setSavePreviewCopied(false)
         return
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return
@@ -870,20 +3129,68 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     try {
       await navigator.clipboard.writeText(saveSheetUrl)
       setSaveLinkCopied(true)
+      setSavePreviewCopied(false)
     } catch {
       alert('複製失敗，請手動複製網址列')
     }
   }, [config.shareText, config.shareTitle, saveSheetUrl])
+
+  const sharePreviewLink = useCallback(async () => {
+    if (!saveSheetPreviewUrl) return
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: config.shareTitle,
+          text: '只給朋友查看，不會出現編輯或儲存更新。',
+          url: saveSheetPreviewUrl,
+        })
+        setSaveSheetUrl(null)
+        setSaveSheetPreviewUrl(null)
+        setSaveLinkCopied(false)
+        setSavePreviewCopied(false)
+        return
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(saveSheetPreviewUrl)
+      setSaveLinkCopied(false)
+      setSavePreviewCopied(true)
+    } catch {
+      alert('複製失敗，請手動複製連結')
+    }
+  }, [config.shareTitle, saveSheetPreviewUrl])
 
   const copySavedLink = useCallback(async () => {
     if (!saveSheetUrl) return
     try {
       await navigator.clipboard.writeText(saveSheetUrl)
       setSaveLinkCopied(true)
+      setSavePreviewCopied(false)
     } catch {
       alert('複製失敗，請手動複製網址列')
     }
   }, [saveSheetUrl])
+
+  const copyPreviewLink = useCallback(async () => {
+    if (!saveSheetPreviewUrl) return
+    try {
+      await navigator.clipboard.writeText(saveSheetPreviewUrl)
+      setSaveLinkCopied(false)
+      setSavePreviewCopied(true)
+    } catch {
+      alert('複製失敗，請手動複製連結')
+    }
+  }, [saveSheetPreviewUrl])
+
+  const closeSaveSheet = useCallback(() => {
+    setSaveSheetUrl(null)
+    setSaveSheetPreviewUrl(null)
+    setSaveLinkCopied(false)
+    setSavePreviewCopied(false)
+  }, [])
 
   const startMobilePanelDrag = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -999,11 +3306,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           <div>
             <h1>{config.title}</h1>
             <p>{config.description}</p>
+            {readOnlyPlan || plannerBookUpdatedAt ? (
+              <div className={styles.plannerMeta}>
+                {readOnlyPlan ? <span>預覽模式</span> : null}
+                {plannerBookUpdatedAt ? <span>最後更新 {formatPlannerUpdatedAt(plannerBookUpdatedAt)}</span> : null}
+              </div>
+            ) : null}
           </div>
           <div className={styles.topActions}>
-            <button className={styles.shareAction} type="button" onClick={handleShare}>
-              {config.shareActionLabel}
-            </button>
+            {!readOnlyPlan ? (
+              <button className={styles.shareAction} type="button" onClick={handleShare} disabled={shareSaving}>
+                {shareSaving ? '儲存中...' : plannerBookId ? '儲存更新' : config.shareActionLabel}
+              </button>
+            ) : null}
             <a className={styles.secondaryAction} href={config.headerBackHref}>
               {config.backLinkLabel}
             </a>
@@ -1013,7 +3328,39 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         <section className={styles.workspace} aria-label={config.workspaceAriaLabel}>
           <div className={styles.mapColumn}>
             <div className={styles.mapShell}>
+              {customDraft.picking ? (
+                <div className={styles.pickLocationHint}>
+                  <span>選位置</span>
+                  {customDraft.lat != null && customDraft.lng != null ? (
+                    <button type="button" onClick={finishCustomPlacePicking}>
+                      完成
+                    </button>
+                  ) : null}
+                  <button type="button" onClick={() => setCustomDraft((draft) => ({ ...draft, picking: false }))}>
+                    取消
+                  </button>
+                </div>
+              ) : null}
               {mapError ? <div className={styles.mapFallback}>{mapError}</div> : <div ref={mapElRef} className={styles.mapCanvas} />}
+              {validPlanIds.length > 0 ? (
+                <div className={styles.mapLegend} aria-label="地圖分類說明">
+                  {mapLegendItems.map((item, index) => (
+                    <Fragment key={item.key}>
+                      {index > 0 && item.group !== mapLegendItems[index - 1]?.group ? (
+                        <span className={styles.mapLegendBreak} aria-hidden="true" />
+                      ) : null}
+                      <span className={styles.mapLegendItem}>
+                        <span
+                          className={styles.mapLegendDot}
+                          style={{ backgroundColor: item.color }}
+                          aria-hidden="true"
+                        />
+                        {item.label}
+                      </span>
+                    </Fragment>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -1062,20 +3409,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               <button
                 className={mode === 'add' ? styles.tabActive : styles.tab}
                 type="button"
-                onClick={() => {
-                  setMode('add')
-                  setMobilePanelOpen(true)
-                }}
+                onClick={() => scrollSelectedPlaceInMode('add')}
               >
                 景點清單
               </button>
               <button
                 className={mode === 'order' ? styles.tabActive : styles.tab}
                 type="button"
-                onClick={() => {
-                  setMode('order')
-                  setMobilePanelOpen(true)
-                }}
+                onClick={() => scrollSelectedPlaceInMode('order')}
               >
                 我的順序 <span>{plannedPlaces.length}</span>
               </button>
@@ -1090,51 +3431,46 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 onTouchEnd={handlePanelBodyTouchEnd}
                 onTouchCancel={handlePanelBodyTouchEnd}
               >
-                <div className={styles.filters}>
+                {!customDraft.id ? (
+                <div className={`${styles.filters} ${tierItems.length > 0 ? styles.filtersDense : ''}`}>
                   <div className={`${styles.filterTabs} tabs`} aria-label="分類篩選">
-                    <button
-                      type="button"
-                      className={`tab ${plannerCategoriesAllOn(categoryOn, plannerCategoryItems) ? 'active' : ''}`}
-                      onClick={() => {
-                        setCategoryOn({ ...DEFAULT_CITY_MAP_CATEGORY_ON, hotel: false })
-                        setSelectedId(null)
-                      }}
-                    >
-                      全部
-                    </button>
                     {plannerCategoryItems.map(({ key, label }) => (
                       <button
                         key={key}
-                        className={`tab ${categoryOn[key] ? 'active' : ''}`}
+                        className={`tab ${!customOnly && categoryOn[key] ? 'active' : ''}`}
                         type="button"
                         aria-pressed={categoryOn[key]}
                         data-area={key}
                         onClick={() => {
-                          setCategoryOn((prev) =>
-                            plannerCategoriesAllOn(prev, plannerCategoryItems)
-                              ? cityMapSoloCategory(key)
-                              : { ...prev, [key]: !prev[key] },
-                          )
+                          setCustomOnly(false)
+                          setCategoryOn((prev) => {
+                            if (customOnly || plannerCategoriesAllOn(prev, plannerCategoryItems)) return cityMapSoloCategory(key)
+                            const next = { ...prev, [key]: !prev[key] }
+                            return plannerCategoryItems.some((item) => next[item.key]) ? next : allCategoryOn
+                          })
+                          setTier('all')
                           setSelectedId(null)
                         }}
                       >
                         {label}
                       </button>
                     ))}
+                    <button
+                      className={`tab ${customOnly ? 'active' : ''}`}
+                      type="button"
+                      aria-pressed={customOnly}
+                      data-area="custom"
+                      onClick={() => {
+                        setCustomOnly(true)
+                        setTier('all')
+                        setSelectedId(null)
+                      }}
+                    >
+                      自定
+                    </button>
                   </div>
                   {tierItems.length > 0 ? (
                     <div className={`${styles.filterTabs} tabs`} aria-label="官方區域篩選">
-                      <button
-                        type="button"
-                        className={`tab ${tier === 'all' ? 'active' : ''}`}
-                        data-area="official-all"
-                        onClick={() => {
-                          setTier('all')
-                          setSelectedId(null)
-                        }}
-                      >
-                        全部
-                      </button>
                       {tierItems.map(({ key, label }) => (
                         <button
                           key={key}
@@ -1142,10 +3478,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           type="button"
                           aria-pressed={tier === key}
                           data-area={`official-${key}`}
-                          onClick={() => {
-                            setTier((prev) => (prev === key ? 'all' : key))
-                            setSelectedId(null)
-                          }}
+                        onClick={() => {
+                          setCustomOnly(false)
+                          setTier((prev) => (prev === key ? 'all' : key))
+                          setSelectedId(null)
+                        }}
                         >
                           {label}
                         </button>
@@ -1153,9 +3490,165 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     </div>
                   ) : null}
                 </div>
+                ) : null}
+                {!readOnlyPlan ? (
+                <div className={`${styles.customPlacePanel} ${customDraft.id ? styles.customPlacePanelActive : ''}`}>
+                  {customDraft.id ? (
+                    <div className={styles.customPlaceForm}>
+                      <div className={styles.customPlaceHeader}>
+                        <strong>自訂{customDraftCategoryLabel}</strong>
+                        <button type="button" onClick={cancelCustomPlaceDraft}>
+                          取消
+                        </button>
+                      </div>
+                      <div className={styles.customPlaceStep}>
+                        <span>1</span>
+                        <label>
+                          貼上 Google Maps 連結
+                          <input
+                            value={customDraft.googleUrl}
+                            onChange={(event) => updateCustomGoogleUrl(event.target.value)}
+                            placeholder="貼上 Google Maps 分享連結"
+                          />
+                        </label>
+                      </div>
+                      {customDraft.googleUrl.trim() || customDraft.lat != null || customUrlResolving ? (
+                        <div className={styles.customPlaceConfirm}>
+                          <div className={styles.customPlaceStepTitle}>
+                            <span>2</span>
+                            <strong>{customDraft.nameConfirmed ? '確認位置' : '確認名稱'}</strong>
+                          </div>
+                          <>
+                            <label>
+                              名稱
+                              <input
+                                value={customDraft.name}
+                                onChange={(event) => setCustomDraft((draft) => ({ ...draft, name: event.target.value }))}
+                                placeholder="可自己修改景點名稱"
+                              />
+                            </label>
+                            <label>
+                              分類
+                              <select
+                                value={customDraft.category}
+                                onChange={(event) =>
+                                  setCustomDraft((draft) => ({
+                                    ...draft,
+                                    category: event.target.value as CityMapPlaceCategory,
+                                  }))
+                                }
+                              >
+                                {customCategoryItems.map((item) => (
+                                  <option key={item.key} value={item.key}>
+                                    {item.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            {customPlaceMatches.length > 0 ? (
+                              <div className={styles.customPlaceMatches}>
+                                <span>清單裡可能已經有：</span>
+                                {customPlaceMatches.map((match) => (
+                                  <button
+                                    key={match.id}
+                                    type="button"
+                                    onClick={() => handleMatchedPlaceAsCustom(match)}
+                                  >
+                                    使用「{shortName(match.name)}」
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+                          </>
+                          {!customDraft.nameConfirmed ? (
+                            <>
+                              <button
+                                type="button"
+                                className={styles.customPlaceAdjust}
+                                disabled={customUrlResolving}
+                                onClick={confirmCustomPlaceName}
+                              >
+                                下一步：選位置
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <p className={styles.customPlaceStatus}>
+                                {customDraft.lat != null && customDraft.lng != null
+                                  ? '位置已選好。'
+                                  : customDraft.picking
+                                    ? '請在地圖點一下位置。'
+                                    : '請選擇位置。'}
+                              </p>
+                              <button
+                                type="button"
+                                className={styles.customPlaceAdjust}
+                                onClick={() => {
+                                  setCustomDraft((draft) => ({ ...draft, picking: true }))
+                                  setMobilePanelOpen(false)
+                                }}
+                              >
+                                重新選位置
+                              </button>
+                              <div className={styles.customPlaceOptional}>
+                                <label>
+                                  備註
+                                  <textarea
+                                    value={customDraft.note}
+                                    maxLength={500}
+                                    onChange={(event) => setCustomDraft((draft) => ({ ...draft, note: event.target.value }))}
+                                    placeholder="可寫營業時間、想點的餐、訂房資訊"
+                                  />
+                                </label>
+                                <div className={styles.customPlaceLinkFields}>
+                                  <label>
+                                    連結名稱
+                                    <input
+                                      value={customDraft.linkLabel}
+                                      onChange={(event) =>
+                                        setCustomDraft((draft) => ({ ...draft, linkLabel: event.target.value }))
+                                      }
+                                      placeholder="官網、訂房、菜單"
+                                    />
+                                  </label>
+                                  <label>
+                                    連結
+                                    <input
+                                      value={customDraft.linkUrl}
+                                      onChange={(event) =>
+                                        setCustomDraft((draft) => ({ ...draft, linkUrl: event.target.value }))
+                                      }
+                                      placeholder="https://..."
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        className={styles.customPlaceSave}
+                        disabled={!customDraft.nameConfirmed || customDraft.lat == null || customDraft.lng == null}
+                        onClick={saveCustomPlace}
+                      >
+                        {customDraft.nameConfirmed ? '儲存到清單' : '先確認名稱'}
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" className={styles.customPlaceOpen} onClick={startCustomPlaceDraft}>
+                      + 自訂地點
+                    </button>
+                  )}
+                </div>
+                ) : null}
+                {!customDraft.id ? (
                 <div className={styles.addList} data-planner-scroll-list="true">
                   {filteredPlaces.map((place) => {
-                    const added = plannedSet.has(place.id)
+                    const added = !canRepeatPlanPlace(place) && plannedSet.has(place.id)
+                    const justAdded = recentlyAddedPlaceId === place.id
+                    const isCustomPlace = isCustomPlaceId(place.id)
                     return (
                       <article
                         key={place.id}
@@ -1163,6 +3656,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           addCardRefs.current[place.id] = el
                         }}
                         className={`${styles.addCard} ${selectedId === place.id ? styles.addCardActive : ''}`}
+                        style={plannerPlaceStyle(place, plannerCategoryItems)}
                         onClick={(e) => {
                           const target = e.target as HTMLElement
                           if (target.closest('a') || target.closest('button')) return
@@ -1170,33 +3664,52 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         }}
                       >
                         <button className={styles.addCardMain} type="button" onClick={() => focusPlace(place)}>
-                          <span className={styles.placeName}>{shortName(place.name)}</span>
-                          <span className={styles.placeMeta}>{placeMeta(place, categoryLabels, tierLabels)}</span>
+                          <span className={styles.placeName}>{plannerPlaceName(place)}</span>
+                          <span className={styles.placeMeta}>
+                            {placeMeta(place, categoryLabels, tierLabels, plannerCategoryItems, customCategoryItems)}
+                          </span>
                           <span className={styles.placeDesc}>{place.description}</span>
                         </button>
-                        <span className={styles.inlineMapLinks}>
-                          <a href={googleMapsPinUrl(place)} target="_blank" rel="noopener noreferrer">
-                            Google
-                          </a>
-                          {naverMapUrl(place) ? (
-                            <a href={naverMapUrl(place)} target="_blank" rel="noopener noreferrer">
-                              Naver
-                            </a>
+                        <span className={styles.addCardControls}>
+                          <span className={styles.inlineMapLinks}>
+                            <PlannerInlineCardLinks place={place} />
+                          </span>
+                          {!readOnlyPlan ? (
+                            <span className={styles.addCardActions}>
+                              <button
+                                className={added || justAdded ? styles.addedButton : styles.addButton}
+                                type="button"
+                                onClick={() => addPlace(place)}
+                              >
+                                {added || justAdded ? '已加入' : '加入'}
+                              </button>
+                              {isCustomPlace ? (
+                                <button
+                                  className={styles.editCustomButton}
+                                  type="button"
+                                  onClick={() => editCustomPlace(place.id)}
+                                >
+                                  編輯
+                                </button>
+                              ) : null}
+                              {isCustomPlace ? (
+                                <button
+                                  className={styles.deleteCustomButton}
+                                  type="button"
+                                  aria-label={`Delete ${plannerPlaceName(place)}`}
+                                  onClick={() => requestDeleteCustomPlace(place.id)}
+                                >
+                                  ×
+                                </button>
+                              ) : null}
+                            </span>
                           ) : null}
                         </span>
-                        <button
-                          className={added ? styles.addedButton : styles.addButton}
-                          type="button"
-                          onClick={() => {
-                            addPlace(place)
-                          }}
-                        >
-                          {added ? '已加入' : '加入'}
-                        </button>
                       </article>
                     )
                   })}
                 </div>
+                ) : null}
               </div>
             ) : (
               <div
@@ -1216,30 +3729,126 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   </div>
                 ) : (
                   <>
-                    <div className={styles.orderTools}>
-                      <span>依地圖距離調整成較順路的順序</span>
-                      <button type="button" onClick={autoSortPlan} disabled={plannedPlaces.length <= 1}>
-                        自動排序
-                      </button>
+                    <div className={styles.orderControlBar}>
+                      <div className={styles.dayViewControl} aria-label="行程查看範圍">
+                        {hasDayDividers ? (
+                          <div className={styles.dayMenu} data-planner-menu="true">
+                            <button
+                              type="button"
+                              className={openPlannerMenu === 'day' ? styles.menuButtonActive : styles.menuButton}
+                              onClick={() => setOpenPlannerMenu((menu) => (menu === 'day' ? null : 'day'))}
+                            >
+                              {dayView === 'all' ? '全行程' : `第 ${dayView} 天`}
+                            </button>
+                            {openPlannerMenu === 'day' ? (
+                            <div className={styles.dayMenuList}>
+                              <button
+                                type="button"
+                                className={dayView === 'all' ? styles.dayMenuItemActive : styles.dayMenuItem}
+                                onClick={() => {
+                                  setDayView('all')
+                                  setOpenPlannerMenu(null)
+                                }}
+                              >
+                                全行程
+                              </button>
+                              {plannedDays.map((day, index) => (
+                                <button
+                                  key={day.divider ?? `day-${index + 1}`}
+                                  type="button"
+                                  className={dayView === index + 1 ? styles.dayMenuItemActive : styles.dayMenuItem}
+                                  onClick={() => {
+                                    setDayView(index + 1)
+                                    setOpenPlannerMenu(null)
+                                  }}
+                                >
+                                  第 {index + 1} 天
+                                </button>
+                              ))}
+                            </div>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <span className={styles.dayViewStatic}>全行程</span>
+                        )}
+                      </div>
+                      <div className={styles.orderMenu} data-planner-menu="true">
+                        <button
+                          type="button"
+                          className={openPlannerMenu === 'actions' ? styles.menuButtonActive : styles.menuButton}
+                          onClick={() => setOpenPlannerMenu((menu) => (menu === 'actions' ? null : 'actions'))}
+                        >
+                          操作
+                        </button>
+                        {openPlannerMenu === 'actions' ? (
+                        <div className={styles.orderTools}>
+                          {!readOnlyPlan ? (
+                            <>
+                              <button type="button" onClick={addDayDivider} disabled={plannedPlaces.length === 0}>
+                                + 天數
+                              </button>
+                              <button
+                                type="button"
+                                onClick={autoSortPlan}
+                                disabled={(dayView === 'all' ? plannedPlaces : (plannedDays[dayView - 1]?.places ?? [])).length <= 1}
+                              >
+                                自動排序
+                              </button>
+                            </>
+                          ) : null}
+                          <button type="button" onClick={() => setPrintOpen(true)} disabled={plannedPlaces.length === 0}>
+                            列印 / 存 PDF
+                          </button>
+                        </div>
+                        ) : null}
+                      </div>
                     </div>
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                      <SortableContext items={validPlanIds} strategy={verticalListSortingStrategy}>
+                      <SortableContext items={visiblePlanItems} strategy={verticalListSortingStrategy}>
                         <div className={styles.planList} data-planner-scroll-list="true">
-                          {plannedPlaces.map((place, index) => (
-                            <SortablePlanItem
-                              key={place.id}
-                              place={place}
-                              label={String(index + 1)}
-                              selected={selectedId === place.id}
-                              onFocus={() => focusPlace(place)}
-                              onRemove={() => removePlace(place.id)}
-                              cardRef={(el) => {
-                                planCardRefs.current[place.id] = el
-                              }}
-                              categoryLabels={categoryLabels}
-                              tierLabels={tierLabels}
-                            />
-                          ))}
+                          {visiblePlanItems.map((item) => {
+                            if (isDayItem(item)) {
+                              const dayNumber =
+                                validPlanItems.slice(0, validPlanItems.indexOf(item)).filter(isDayItem).length + 2
+                              return (
+                                <SortableDayDivider
+                                  key={item}
+                                  id={item}
+                                  dayNumber={dayNumber}
+                                  onRemove={() => removeDayDivider(item)}
+                                  readOnly={readOnlyPlan}
+                                />
+                              )
+                            }
+
+                            const place = planItemPlace(item, placeById)
+                            if (!place) return null
+                            return (
+                              <SortablePlanItem
+                                key={item}
+                                itemId={item}
+                                place={place}
+                                label={planOrderLabels.get(item) ?? ''}
+                                note={placeNotes[item] ?? ''}
+                                selected={selectedId === place.id}
+                                onFocus={() => focusPlace(place)}
+                                onRemove={() => requestRemovePlace(item)}
+                                onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id) : undefined}
+                                onNoteChange={(note) => updatePlaceNote(item, note)}
+                                userLinks={placeUserLinks[place.id] ?? []}
+                                onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
+                                onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}
+                                cardRef={(el) => {
+                                  planCardRefs.current[item] = el
+                                }}
+                                categoryLabels={categoryLabels}
+                                categoryItems={plannerCategoryItems}
+                                customCategoryItems={customCategoryItems}
+                                tierLabels={tierLabels}
+                                readOnly={readOnlyPlan}
+                              />
+                            )
+                          })}
                         </div>
                       </SortableContext>
                     </DndContext>
@@ -1259,6 +3868,192 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           </aside>
         </section>
 
+        {printOpen ? (
+          <div className={styles.printBackdrop} role="presentation" onClick={() => setPrintOpen(false)}>
+            <section
+              className={styles.printSheet}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="print-plan-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.printToolbar}>
+                <button type="button" className={styles.confirmSecondary} onClick={() => setPrintOpen(false)}>
+                  關閉
+                </button>
+                <button type="button" className={styles.confirmPrimary} onClick={() => window.print()}>
+                  列印 / 存 PDF
+                </button>
+              </div>
+              <article className={styles.printPage}>
+                <header className={styles.printHeader}>
+                  <div className={styles.printHeaderMain}>
+                    <h2 id="print-plan-title">{printTravelTitle(config.shareTitle)}</h2>
+                  </div>
+                  <div className={styles.printStats}>
+                    <span>{plannedDays.length} 天行程</span>
+                    <span>{plannedPlaces.length} 個地點</span>
+                    {plannerBookUpdatedAt ? <span>最後更新 {formatPlannerUpdatedAt(plannerBookUpdatedAt)}</span> : null}
+                  </div>
+                </header>
+                {false ? (
+                <section className={styles.printOverview} aria-label="行程總覽">
+                  <div>
+                    <p>Trip Overview</p>
+                    <h3>行程總覽</h3>
+                  </div>
+                  <div className={styles.printOverviewGrid}>
+                    {plannedDays.map((day, dayIndex) => (
+                      <div key={day.divider ?? `print-overview-day-${dayIndex + 1}`} className={styles.printOverviewCard}>
+                        <strong>DAY {dayIndex + 1}</strong>
+                        <span>
+                          {day.places
+                            .slice(0, 4)
+                            .map((place) => plannerPlaceName(place))
+                            .join('、')}
+                          {day.places.length > 4 ? ` 等 ${day.places.length} 個地點` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                ) : null}
+                <div className={styles.printDays}>
+                  {plannedDays.map((day, dayIndex) => (
+                    <section key={day.divider ?? `print-day-${dayIndex + 1}`} className={styles.printDay}>
+                      <div className={styles.printDayHeader}>
+                        <h3>DAY {dayIndex + 1}</h3>
+                        <span>{day.places.length} stops</span>
+                      </div>
+                      <div className={styles.printPlaceList}>
+                        {day.items.map((item, placeIndex) => {
+                          const place = planItemPlace(item, placeById)
+                          if (!place) return null
+                          const links = plannerActionLinks(place)
+                          const userLinks = placeUserLinks[place.id] ?? []
+                          const note = placeNotes[item]?.trim()
+                          const printLinks = [
+                            { label: 'Google Maps', href: googleMapsPinUrl(place) },
+                            ...(naverMapUrl(place) ? [{ label: 'Naver', href: naverMapUrl(place)! }] : []),
+                            ...links,
+                            ...userLinks,
+                          ]
+                          const printCategoryItems =
+                            isCustomPlaceId(place.id) && customCategoryItems?.length
+                              ? customCategoryItems
+                              : plannerCategoryItems
+                          return (
+                            <article
+                              key={item}
+                              className={styles.printPlaceCard}
+                              style={
+                                {
+                                  '--print-category-color': plannerPlaceColor(place, printCategoryItems),
+                                } as CSSProperties
+                              }
+                            >
+                              <div className={styles.printPlaceNumber}>{placeIndex + 1}</div>
+                              <div className={styles.printPlaceContent}>
+                                <div className={styles.printPlaceTitleRow}>
+                                  <h4>{plannerPlaceName(place)}</h4>
+                                  <span className={styles.printTag}>
+                                    {plannerCategoryLabel(
+                                      plannerPlaceCategory(place, printCategoryItems),
+                                      categoryLabels,
+                                      printCategoryItems,
+                                    )}
+                                  </span>
+                                </div>
+                                <div className={styles.printLinks}>
+                                  {printLinks.map((link, index) => (
+                                    <a
+                                      key={`${link.label}-${link.href}-${index}`}
+                                      href={printLinkHref(link.href)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      {link.label}
+                                    </a>
+                                  ))}
+                                </div>
+                                {note ? <p className={styles.printNote}>{note}</p> : null}
+                              </div>
+                            </article>
+                          )
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </article>
+            </section>
+          </div>
+        ) : null}
+
+        {pendingAddPlace ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingAddPlace(null)}>
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-place-day-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="add-place-day-title">加入哪一天？</h2>
+              <p>{shortName(pendingAddPlace.name)}</p>
+              <div className={styles.dayChoiceList}>
+                {Array.from({ length: planDayCount }, (_, index) => index + 1).map((dayNumber) => (
+                  <button
+                    key={dayNumber}
+                    type="button"
+                    className={styles.dayChoiceButton}
+                    onClick={() => confirmAddPlaceToDay(dayNumber)}
+                  >
+                    第 {dayNumber} 天
+                  </button>
+                ))}
+              </div>
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.confirmSecondary} onClick={() => setPendingAddPlace(null)}>
+                  取消
+                </button>
+                <button type="button" className={styles.confirmPrimary} onClick={() => confirmAddPlaceToDay('end')}>
+                  加到最後
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {pendingDelete ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingDelete(null)}>
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-place-confirm-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="delete-place-confirm-title">
+                {pendingDelete.type === 'custom' ? '刪除自訂景點？' : '從我的順序移除？'}
+              </h2>
+              <p>
+                {pendingDelete.type === 'custom'
+                  ? '這會從景點清單刪除，也會一起從我的順序移除。'
+                  : '這只會從我的順序移除，景點清單仍然會保留。'}
+              </p>
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.confirmSecondary} onClick={() => setPendingDelete(null)}>
+                  取消
+                </button>
+                <button type="button" className={styles.confirmDanger} onClick={confirmPendingDelete}>
+                  確認刪除
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
         {autoSortConfirmOpen ? (
           <div className={styles.confirmBackdrop} role="presentation" onClick={() => setAutoSortConfirmOpen(false)}>
             <section
@@ -1269,7 +4064,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               onClick={(e) => e.stopPropagation()}
             >
               <h2 id="auto-sort-confirm-title">要重新自動排序嗎？</h2>
-              <p>系統會依照目前加入的景點距離重新排列順序，原本手動排好的順序會被覆蓋。</p>
+              <p>
+                系統會依照{dayView === 'all' ? '全行程' : `第 ${dayView} 天`}的景點距離重新排列順序，原本手動排好的順序會被覆蓋。
+              </p>
               <div className={styles.confirmActions}>
                 <button type="button" className={styles.confirmSecondary} onClick={() => setAutoSortConfirmOpen(false)}>
                   取消
@@ -1282,8 +4079,57 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           </div>
         ) : null}
 
+        {updateShareConfirmOpen ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={() => setUpdateShareConfirmOpen(false)}>
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="shared-plan-update-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="shared-plan-update-title">更新共享行程？</h2>
+              <p>這會覆蓋這份共享行程，拿到同一條連結的人重新打開後都會看到新版。</p>
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.confirmSecondary} onClick={() => setUpdateShareConfirmOpen(false)}>
+                  取消
+                </button>
+                <button type="button" className={styles.confirmPrimary} onClick={confirmUpdateSharedPlan} disabled={shareSaving}>
+                  {shareSaving ? '儲存中...' : '儲存更新'}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {inAppPromptOpen && inAppBrowser ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={dismissInAppPrompt}>
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="in-app-browser-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="in-app-browser-title">建議用 {preferredBrowserName()} 開啟</h2>
+              <p>
+                你現在在 {inAppBrowserName(inAppBrowser)} 內建瀏覽器。排好的行程會先存在這裡，但 App 關掉後比較容易被清掉。
+              </p>
+              <p>複製連結到 {preferredBrowserName()} 開啟，行程比較不容易消失。</p>
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.confirmPrimary} onClick={copyInAppPromptLink}>
+                  {inAppPromptCopied ? '已複製' : '複製連結'}
+                </button>
+                <button type="button" className={styles.confirmSecondary} onClick={dismissInAppPrompt}>
+                  我先繼續
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
         {saveSheetUrl ? (
-          <div className={styles.saveBackdrop} role="presentation" onClick={() => setSaveSheetUrl(null)}>
+          <div className={styles.saveBackdrop} role="presentation" onClick={closeSaveSheet}>
             <section
               className={styles.saveSheet}
               role="dialog"
@@ -1295,29 +4141,57 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 type="button"
                 className={styles.saveClose}
                 aria-label="關閉"
-                onClick={() => setSaveSheetUrl(null)}
+                onClick={closeSaveSheet}
               >
                 ×
               </button>
-              <h2 id="save-plan-title">保存這個排序</h2>
+              <h2 id="save-plan-title">{plannerBookId ? '共享行程已更新' : '保存這個排序'}</h2>
               <p>
-                排序會暫存在目前瀏覽器；要跨手機/電腦使用，請把這條連結傳給自己保存。
+                {plannerBookId
+                  ? '已保存更新。用同一條連結打開，就會看到最新版。'
+                  : '要跨手機/電腦使用，請保存這條連結。'}
               </p>
               {inAppBrowser ? (
                 <p className={styles.saveHint}>
-                  你現在在 {inAppBrowserName(inAppBrowser)} 內建瀏覽器，建議複製到 {preferredBrowserName()} 開啟，或傳到 LINE / 備忘錄保存。
+                  建議複製到 {preferredBrowserName()} 開啟，或傳到 LINE / 備忘錄保存。
                 </p>
               ) : (
-                <p className={styles.saveHint}>電腦排完也可以把連結傳到手機，出發時打開就能還原順序。</p>
+                <p className={styles.saveHint}>電腦排完也可以傳到手機，出發時直接打開。</p>
               )}
-              <div className={styles.saveUrl}>{saveSheetUrl}</div>
+              <div className={styles.saveLinkGroup}>
+                <div className={styles.saveLinkHeader}>
+                  <span>行程連結</span>
+                </div>
+                <div className={styles.saveUrlRow}>
+                  <div className={styles.saveUrl}>{saveSheetUrl}</div>
+                  <button type="button" className={styles.saveCopyButton} onClick={copySavedLink}>
+                    {saveLinkCopied ? '已複製' : '複製'}
+                  </button>
+                </div>
+              </div>
+              {saveSheetPreviewUrl ? (
+                <div className={styles.saveLinkGroup}>
+                  <div className={styles.saveLinkHeader}>
+                    <span>預覽連結</span>
+                  </div>
+                  <p className={styles.saveHint}>只給朋友查看，不會出現編輯、拖曳或儲存更新。</p>
+                  <div className={styles.saveUrlRow}>
+                    <div className={styles.saveUrl}>{saveSheetPreviewUrl}</div>
+                    <button type="button" className={styles.saveCopyButton} onClick={copyPreviewLink}>
+                      {savePreviewCopied ? '已複製' : '複製'}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <div className={styles.saveActions}>
                 <button type="button" className={styles.confirmPrimary} onClick={shareSavedLink}>
                   分享連結
                 </button>
-                <button type="button" className={styles.confirmSecondary} onClick={copySavedLink}>
-                  {saveLinkCopied ? '已複製' : '複製連結'}
-                </button>
+                {saveSheetPreviewUrl ? (
+                  <button type="button" className={styles.confirmSecondary} onClick={sharePreviewLink}>
+                    分享預覽連結
+                  </button>
+                ) : null}
               </div>
             </section>
           </div>

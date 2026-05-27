@@ -1,10 +1,10 @@
-/**
+﻿/**
  * 東京地圖：景點由 `../tickets` 組裝（排除一日遊行程票、無固定東京釘點票）＋ `spotExtraActions`；
- * 免費景點見 Free／Food；住宿見 `../hotels`。
+ * 免費景點見 Free／Shop；住宿見 `../hotels`。
  * 一日遊行程票不顯示為個別地圖釘點，改以 free.ts 景點的 relatedTicketHref 串接。
  */
 import type { CityCardAction } from '@/components/CityTabbedList'
-import { tokyoFoodMapPlaces } from '@/data/tokyo/food'
+import { tokyoShopMapPlaces } from '@/data/tokyo/shop'
 import { tokyoFreeMapPlaces } from '@/data/tokyo/free'
 import { tokyoHotelCards } from '@/data/tokyo/hotels'
 import type { TokyoMapPlace } from '@/data/tokyo/map/types'
@@ -241,6 +241,6 @@ function hotelCardToPlace(card: (typeof tokyoHotelCards)[number]): TokyoMapPlace
 export const tokyoMapPlaces: TokyoMapPlace[] = [
   ...ticketCardsToSpots(),
   ...tokyoFreeMapPlaces,
-  ...tokyoFoodMapPlaces,
+  ...tokyoShopMapPlaces,
   ...tokyoHotelCards.map(hotelCardToPlace),
 ]

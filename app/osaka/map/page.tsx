@@ -42,6 +42,13 @@ export default function OsakaMapPage() {
           event: 'osakamap_top_transport',
           platform: 'transport',
         },
+        {
+          label: '排序',
+          href: '/osaka/planner',
+          event: 'osakamap_top_planner',
+          platform: 'planner',
+          placement: 'afterBelowContent',
+        },
       ]}
       belowContent={
         <article className="seo-page" aria-label="大阪景點地圖攻略">

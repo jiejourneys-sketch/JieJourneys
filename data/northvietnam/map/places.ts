@@ -1,5 +1,5 @@
-import type { CityCardAction } from '@/components/CityTabbedList'
-import { northVietnamFoodMapPlaces } from '@/data/northvietnam/food'
+﻿import type { CityCardAction } from '@/components/CityTabbedList'
+import { northVietnamShopMapPlaces } from '@/data/northvietnam/shop'
 import { northVietnamFreeMapPlaces } from '@/data/northvietnam/free'
 import { northVietnamHotelCards } from '@/data/northvietnam/hotels'
 import type { NorthVietnamMapPlace } from '@/data/northvietnam/map/types'
@@ -418,6 +418,6 @@ const nvTicketSpots: NorthVietnamMapPlace[] = [
 export const northVietnamMapPlaces: NorthVietnamMapPlace[] = [
   ...nvTicketSpots,
   ...nvFreeMapPlaces,
-  ...northVietnamFoodMapPlaces,
+  ...northVietnamShopMapPlaces,
   ...northVietnamHotelCards.map(hotelCardToPlace),
 ]

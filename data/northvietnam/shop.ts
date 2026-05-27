@@ -1,21 +1,21 @@
-import type { CityCardAction } from '@/components/CityTabbedList'
+﻿import type { CityCardAction } from '@/components/CityTabbedList'
 import type { NorthVietnamMapPlace } from '@/data/northvietnam/map/types'
 
 /**
- * 北越地圖｜美食類釘點（與 `hotels.ts`、`tickets.ts` 同層；複製後改 id／座標／按鈕）
+ * 北越地圖｜商店類釘點（與 `hotels.ts`、`tickets.ts` 同層；複製後改 id／座標／按鈕）
  */
 const exampleAction: CityCardAction[] = [
   {
     label: '範例連結（請改）',
     href: 'https://www.google.com/',
-    mapEvent: 'nv_map_food_example',
+    mapEvent: 'nv_map_shop_example',
   },
 ]
 
-export const northVietnamFoodMapPlaces: NorthVietnamMapPlace[] = [
+export const northVietnamShopMapPlaces: NorthVietnamMapPlace[] = [
   {
     id: 'northvietnam-TrangTienPlaza',
-    category: 'food',
+    category: 'shop',
     name: 'Trang Tien Plaza',
     description: '購物中心',
     lat: 21.0248168,
@@ -27,7 +27,7 @@ export const northVietnamFoodMapPlaces: NorthVietnamMapPlace[] = [
   },
   {
     id: 'northvietnam-VincomCenterMetropolis',
-    category: 'food',
+    category: 'shop',
     name: 'Vincom Center Metropolis',
     description: '購物中心',
     lat: 21.0313057,
@@ -39,7 +39,7 @@ export const northVietnamFoodMapPlaces: NorthVietnamMapPlace[] = [
   },
   {
     id: 'northvietnam-VincomCenterBaTrieu',
-    category: 'food',
+    category: 'shop',
     name: 'Vincom Center Ba Trieu',
     description: '購物中心',
     lat: 21.0108794,
@@ -51,7 +51,7 @@ export const northVietnamFoodMapPlaces: NorthVietnamMapPlace[] = [
   },
   {
     id: 'northvietnam-TheGardenShoppingCenter',
-    category: 'food',
+    category: 'shop',
     name: 'The Garden Shopping Center',
     description: '購物中心',
     lat: 21.0151696,

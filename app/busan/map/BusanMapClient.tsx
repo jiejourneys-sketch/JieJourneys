@@ -17,6 +17,7 @@ import {
   DEFAULT_CITY_MAP_CATEGORY_ON,
   cityMapCategoriesAllOn,
   cityMapSoloCategory,
+  type CityMapPlaceCategory,
 } from '@/lib/cityMapPlaceCategory'
 import { cityMapMarkerIcon, cityMapMarkerZIndex } from '@/lib/cityMapMarkers'
 import { getGtag } from '@/lib/gtag'
@@ -31,6 +32,20 @@ import {
 const MAP_GTAG_PREFIX = 'busanmap'
 
 const CATEGORY_LABEL = CITY_MAP_CATEGORY_LABEL
+
+function busanMapSectionRowClass(category: CityMapPlaceCategory) {
+  if (category === 'ticket' || category === 'spot') return styles.rowSpot
+  if (category === 'free') return styles.rowFree
+  if (category === 'restaurant' || category === 'shop' || category === 'food') return styles.rowFood
+  if (category === 'hotel') return styles.rowHotel
+  return styles.rowFree
+}
+
+function busanMapSectionLabel(category: CityMapPlaceCategory, label: string) {
+  if (category === 'ticket' || label.includes('票券')) return '票券頁相同連結'
+  if (category === 'hotel') return '與住宿頁相同連結'
+  return ''
+}
 
 function busanMapMarkerIcon(place: BusanMapPlace): google.maps.Icon {
   return cityMapMarkerIcon(place.category, google.maps)
@@ -375,69 +390,22 @@ export default function BusanMapClient() {
     [categoryOn],
   )
 
-  const spotPlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'spot'),
-    [filteredPlaces],
-  )
-
-  const freePlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'free'),
-    [filteredPlaces],
-  )
-
-  const foodPlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'food'),
-    [filteredPlaces],
-  )
-
-  const hotelPlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'hotel'),
-    [filteredPlaces],
-  )
-
   const busanListSections = useMemo(
-    () => [
-      {
-        places: spotPlaces,
-        title: CATEGORY_LABEL.spot,
-        sectionLabel: '票券頁相同連結',
-        rowClass: styles.rowSpot,
-        aria: CATEGORY_LABEL.spot,
-      },
-      {
-        places: freePlaces,
-        title: CATEGORY_LABEL.free,
-        sectionLabel: '',
-        rowClass: styles.rowFree,
-        aria: CATEGORY_LABEL.free,
-      },
-      {
-        places: foodPlaces,
-        title: CATEGORY_LABEL.food,
-        sectionLabel: '',
-        rowClass: styles.rowFood,
-        aria: CATEGORY_LABEL.food,
-      },
-      {
-        places: hotelPlaces,
-        title: CATEGORY_LABEL.hotel,
-        sectionLabel: '與住宿頁相同連結',
-        rowClass: styles.rowHotel,
-        aria: CATEGORY_LABEL.hotel,
-      },
-    ],
-    [spotPlaces, freePlaces, foodPlaces, hotelPlaces],
-  )
-
-  const hasAnyListPlaces = useMemo(
     () =>
-      spotPlaces.length > 0 ||
-      freePlaces.length > 0 ||
-      foodPlaces.length > 0 ||
-      hotelPlaces.length > 0,
-    [spotPlaces, freePlaces, foodPlaces, hotelPlaces],
+      CITY_MAP_CATEGORY_TOGGLE_ITEMS.map(({ key, label }) => {
+        const sectionTitle = CATEGORY_LABEL[key] ?? label
+        return {
+          places: filteredPlaces.filter((p) => p.category === key),
+          title: sectionTitle,
+          sectionLabel: busanMapSectionLabel(key, sectionTitle),
+          rowClass: busanMapSectionRowClass(key),
+          aria: sectionTitle,
+        }
+      }),
+    [filteredPlaces],
   )
 
+  const hasAnyListPlaces = filteredPlaces.length > 0
   const selectedPlace = useMemo(
     () => (selectedId ? busanMapPlaces.find((p) => p.id === selectedId) ?? null : null),
     [selectedId],
@@ -876,7 +844,9 @@ export default function BusanMapClient() {
                 onClick={() => {
                   setCategoryOn((prev) => {
                     const next = cityMapCategoriesAllOn(prev)
-                      ? { spot: false, free: false, food: false, hotel: false }
+                      ? Object.fromEntries(
+                          Object.keys(prev).map((category) => [category, false]),
+                        ) as Record<CityMapPlaceCategory, boolean>
                       : { ...DEFAULT_CITY_MAP_CATEGORY_ON }
                     const fn = getGtag()
                     if (typeof fn === 'function') {
@@ -911,7 +881,8 @@ export default function BusanMapClient() {
                         : { ...prev, [key]: !prev[key] }
                       const fn = getGtag()
                       if (typeof fn === 'function') {
-                        const area = (['spot', 'free', 'food', 'hotel'] as const)
+                        const area = CITY_MAP_CATEGORY_TOGGLE_ITEMS
+                          .map((item) => item.key)
                           .filter((k) => next[k])
                           .join(',')
                         fn('event', 'busan_map_tab', {

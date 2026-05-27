@@ -37,6 +37,13 @@ export default function FujiMapPage() {
           event: 'fujimap_top_transport',
           platform: 'transport',
         },
+        {
+          label: '排序',
+          href: '/fuji/planner',
+          event: 'fujimap_top_planner',
+          platform: 'planner',
+          placement: 'afterBelowContent',
+        },
       ]}
       belowContent={
         <article className="seo-page" aria-label="富士河口湖地圖攻略">

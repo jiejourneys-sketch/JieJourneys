@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import MapClient from '@/components/map/MapClient'
 import { tokyoMapPlaces, TOKYO_MAP_CENTER } from '@/data/tokyo'
@@ -11,11 +11,11 @@ export default function TokyoMapPage() {
       gtagPrefix="tokyomap"
       title="東京景點地圖"
       backHref="/tokyo"
-      defaultCategories={{ spot: true, free: true, food: false, hotel: true }}
+      defaultCategories={{ spot: true, free: true, shop: false, hotel: true }}
       categoryItems={[
         { key: 'spot', label: '票券' },
         { key: 'free', label: '景點' },
-        { key: 'food', label: '商店' },
+        { key: 'shop', label: '商店' },
         { key: 'hotel', label: '住宿' },
       ]}
       topActions={[
@@ -36,6 +36,13 @@ export default function TokyoMapPage() {
           href: 'https://www.jiejourneys.com/tokyo/transport',
           event: 'tokyomap_top_transport',
           platform: 'transport',
+        },
+        {
+          label: '排序',
+          href: '/tokyo/planner',
+          event: 'tokyomap_top_planner',
+          platform: 'planner',
+          placement: 'afterBelowContent',
         },
       ]}
       belowContent={

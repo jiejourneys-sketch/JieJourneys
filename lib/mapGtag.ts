@@ -32,8 +32,14 @@ export function mapMarkerGtagArea(category: string): string {
   switch (category) {
     case 'hotel':
       return '住宿'
+    case 'ticket':
+      return '票券'
     case 'free':
+    case 'spot':
       return '免費'
+    case 'restaurant':
+      return '餐廳'
+    case 'shop':
     case 'food':
       return '商店'
     default:

@@ -1,5 +1,6 @@
 import BusanPassPlannerClient from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import type { PlannerConfig } from '@/app/busan/pass-planner/BusanPassPlannerClient'
+import { osakaMapPlaces } from '@/data/osaka/map/places'
 import { OSAKA_PASS_MAP_CENTER, osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 
 const osakaPlannerConfig: Partial<PlannerConfig> = {
@@ -16,6 +17,7 @@ const osakaPlannerConfig: Partial<PlannerConfig> = {
   shareActionLabel: '分享/保存',
   saveReminderEnabled: true,
   backLinkLabel: '回周遊券地圖',
+  matchPlaces: osakaMapPlaces,
   categoryLabels: {
     spot: '免費設施',
     free: '優惠設施',
@@ -26,6 +28,12 @@ const osakaPlannerConfig: Partial<PlannerConfig> = {
     { key: 'spot', label: '免費設施' },
     { key: 'free', label: '優惠設施' },
     { key: 'food', label: '店家優惠' },
+  ],
+  customCategoryItems: [
+    { key: 'spot', label: '景點' },
+    { key: 'restaurant', label: '餐廳' },
+    { key: 'shop', label: '商店' },
+    { key: 'hotel', label: '住宿' },
   ],
   tierItems: [],
 }

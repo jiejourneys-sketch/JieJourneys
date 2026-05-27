@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 /// <reference types="google.maps" />
 
 import type {
@@ -392,8 +392,8 @@ export default function TokyoMapClient() {
     [filteredPlaces],
   )
 
-  const foodPlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'food'),
+  const shopPlaces = useMemo(
+    () => filteredPlaces.filter((p) => p.category === 'shop'),
     [filteredPlaces],
   )
 
@@ -419,11 +419,11 @@ export default function TokyoMapClient() {
         aria: CATEGORY_LABEL.free,
       },
       {
-        places: foodPlaces,
-        title: CATEGORY_LABEL.food,
+        places: shopPlaces,
+        title: CATEGORY_LABEL.shop,
         sectionLabel: '',
         rowClass: styles.rowFood,
-        aria: CATEGORY_LABEL.food,
+        aria: CATEGORY_LABEL.shop,
       },
       {
         places: hotelPlaces,
@@ -433,16 +433,16 @@ export default function TokyoMapClient() {
         aria: CATEGORY_LABEL.hotel,
       },
     ],
-    [spotPlaces, freePlaces, foodPlaces, hotelPlaces],
+    [spotPlaces, freePlaces, shopPlaces, hotelPlaces],
   )
 
   const hasAnyListPlaces = useMemo(
     () =>
       spotPlaces.length > 0 ||
       freePlaces.length > 0 ||
-      foodPlaces.length > 0 ||
+      shopPlaces.length > 0 ||
       hotelPlaces.length > 0,
-    [spotPlaces, freePlaces, foodPlaces, hotelPlaces],
+    [spotPlaces, freePlaces, shopPlaces, hotelPlaces],
   )
 
   const selectedPlace = useMemo(
@@ -881,7 +881,9 @@ export default function TokyoMapClient() {
                 onClick={() => {
                   setCategoryOn((prev) => {
                     const next = cityMapCategoriesAllOn(prev)
-                      ? { spot: false, free: false, food: false, hotel: false }
+                      ? Object.fromEntries(
+                          Object.keys(prev).map((category) => [category, false]),
+                        ) as Record<CityMapPlaceCategory, boolean>
                       : { ...DEFAULT_CITY_MAP_CATEGORY_ON }
                     const fn = getGtag()
                     if (typeof fn === 'function') {
@@ -916,7 +918,7 @@ export default function TokyoMapClient() {
                         : { ...prev, [key]: !prev[key] }
                       const fn = getGtag()
                       if (typeof fn === 'function') {
-                        const area = (['spot', 'free', 'food', 'hotel'] as const)
+                        const area = (['spot', 'free', 'shop', 'hotel'] as const)
                           .filter((k) => next[k])
                           .join(',')
                         fn('event', 'tokyo_map_tab', {

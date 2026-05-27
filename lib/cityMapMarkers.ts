@@ -24,11 +24,12 @@ function teardropPinDataUrl(fillHex: string): string {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(raw.replace(/\s+/g, ' ').trim())}`
 }
 
-const SPOT_PIN_URL = teardropPinDataUrl('#EA4335')
+const SPOT_PIN_URL = teardropPinDataUrl('#2563eb')
 // 景點（free）：藍色
 const FREE_PIN_URL = teardropPinDataUrl('#2563eb')
-// 商店（food）：黑色
-const FOOD_PIN_URL = teardropPinDataUrl('#0b0f19')
+// 餐廳：橘色；商店：青綠色
+const RESTAURANT_PIN_URL = teardropPinDataUrl('#f97316')
+const FOOD_PIN_URL = teardropPinDataUrl('#0f766e')
 
 function myMapsInnerIconSvg(styleId?: string): string {
   const iconId = styleId?.match(/^icon-(\d+)-/)?.[1]
@@ -138,7 +139,7 @@ export function cityMapMarkerIcon(
   const base = { scaledSize: new g.Size(w, h), anchor: new g.Point(ax, ay) }
   if (place?.markerColor && isHexColor(place.markerColor)) {
     const hasBadgeIcon = place.markerStyleId && myMapsInnerIconSvg(place.markerStyleId) !== ''
-    if (category === 'food' && place.markerStyleId && hasBadgeIcon) {
+    if (place.markerStyleId && hasBadgeIcon) {
       return {
         scaledSize: new g.Size(30, 30),
         anchor: new g.Point(15, 15),
@@ -150,17 +151,20 @@ export function cityMapMarkerIcon(
   if (category === 'hotel') {
     return { ...base, url: HOTEL_MARKER_URL }
   }
-  if (category === 'free') {
+  if (category === 'ticket' || category === 'spot' || category === 'free') {
     return { ...base, url: FREE_PIN_URL }
   }
-  if (category === 'food') {
+  if (category === 'restaurant') {
+    return { ...base, url: RESTAURANT_PIN_URL }
+  }
+  if (category === 'shop' || category === 'food') {
     return { ...base, url: FOOD_PIN_URL }
   }
   return { ...base, url: SPOT_PIN_URL }
 }
 
 export function cityMapMarkerZIndex(category: CityMapPlaceCategory): number {
-  if (category === 'spot') return 5
+  if (category === 'ticket' || category === 'spot') return 5
   if (category === 'hotel') return 2
   return 3
 }

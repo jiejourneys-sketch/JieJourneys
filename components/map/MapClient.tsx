@@ -26,6 +26,7 @@ import { getGtag } from '@/lib/gtag'
 import { fireMapMarkerGtag, mapBarCardDataEvent } from '@/lib/mapGtag'
 import styles from '@/app/tokyo/map/map.module.css'
 import type { MapPlace } from '@/lib/mapPlace'
+import type { MapRouteOverlay } from '@/lib/mapRoute'
 
 export type MapClientProps = {
   places: MapPlace[]
@@ -36,12 +37,14 @@ export type MapClientProps = {
   title: string
   backHref: string
   /** Override which categories are ON at mount. Defaults to solo 'spot'. */
-  defaultCategories?: Record<CityMapPlaceCategory, boolean>
+  defaultCategories?: Partial<Record<CityMapPlaceCategory, boolean>>
   /** Override which category toggle buttons to show. Defaults to all four. */
   categoryItems?: { key: CityMapPlaceCategory; label: string }[]
   /** Override category labels used in cards, list sections, and marker titles. */
   categoryLabels?: Partial<Record<CityMapPlaceCategory, string>>
   officialPassTierItems?: { key: NonNullable<MapPlace['officialPassTier']>; label: string }[]
+  routeLayers?: MapRouteOverlay[]
+  initialFitToPlaces?: boolean
   topActions?: {
     label: string
     href: string
@@ -96,12 +99,34 @@ function useSiteHeaderHeightPx() {
   return h
 }
 
+function cityMapSectionRowClass(category: CityMapPlaceCategory) {
+  if (category === 'ticket' || category === 'spot') return styles.rowSpot
+  if (category === 'free') return styles.rowFree
+  if (category === 'restaurant' || category === 'shop' || category === 'food') return styles.rowFood
+  if (category === 'hotel') return styles.rowHotel
+  return styles.rowFree
+}
+
+function cityMapSectionLabel(category: CityMapPlaceCategory, label: string) {
+  if (category === 'ticket' || label.includes('票券')) return '票券頁相同連結'
+  if (category === 'hotel') return '與住宿頁相同連結'
+  return ''
+}
+
 /** 與各城市地圖共用，避免重複插入 script */
 const SCRIPT_ID = 'gmaps-js'
 
 /** 以目前景點 lat/lng 開啟 Google 地圖釘點（非導航路線） */
 function googleMapsPinUrl(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${lat},${lng}`
+}
+
+function routeStopIconUrl(color: string): string {
+  const raw = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
+    <circle cx="15" cy="15" r="12" fill="${color}" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="15" cy="15" r="4" fill="#ffffff"/>
+  </svg>`
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(raw.replace(/\s+/g, ' ').trim())}`
 }
 
 const MAP_URL_PLACEHOLDER_TOKEN = 'PASTE_YOUR_MAPS_LINK'
@@ -473,6 +498,8 @@ export default function MapClient({
   categoryItems,
   categoryLabels,
   officialPassTierItems,
+  routeLayers,
+  initialFitToPlaces = false,
   topActions,
   belowContent,
 }: MapClientProps) {
@@ -494,6 +521,8 @@ export default function MapClient({
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.Marker[]>([])
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
+  const routeLineRefs = useRef<google.maps.Polyline[]>([])
+  const routeStopMarkerRefs = useRef<google.maps.Marker[]>([])
 
   const desktopListScrollRef = useRef<HTMLDivElement>(null)
   const mobileSheetBodyRef = useRef<HTMLDivElement>(null)
@@ -535,12 +564,18 @@ export default function MapClient({
   )
 
   const [categoryOn, setCategoryOn] =
-    useState<Record<CityMapPlaceCategory, boolean>>(() => defaultCategories ?? cityMapSoloCategory('spot'))
+    useState<Record<CityMapPlaceCategory, boolean>>(() => ({
+      ...DEFAULT_CITY_MAP_CATEGORY_ON,
+      ...(defaultCategories ?? cityMapSoloCategory('spot')),
+    }))
   const [officialPassTier, setOfficialPassTier] = useState<NonNullable<MapPlace['officialPassTier']> | 'all'>('all')
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [topActionsOpen, setTopActionsOpen] = useState(false)
+  const [routeLayerOn, setRouteLayerOn] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries((routeLayers ?? []).map((layer) => [layer.id, layer.defaultVisible ?? true])),
+  )
 
   const allCategoriesOn = cityMapCategoriesAllOn(categoryOn)
 
@@ -552,68 +587,23 @@ export default function MapClient({
     [places, categoryOn, officialPassTier],
   )
 
-  const spotPlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'spot'),
-    [filteredPlaces],
-  )
-
-  const freePlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'free'),
-    [filteredPlaces],
-  )
-
-  const foodPlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'food'),
-    [filteredPlaces],
-  )
-
-  const hotelPlaces = useMemo(
-    () => filteredPlaces.filter((p) => p.category === 'hotel'),
-    [filteredPlaces],
-  )
-
   const listSections = useMemo(
-    () => [
-      {
-        places: spotPlaces,
-        title: categoryLabelMap.spot,
-        sectionLabel: '票券頁相同連結',
-        rowClass: styles.rowSpot,
-        aria: categoryLabelMap.spot,
-      },
-      {
-        places: freePlaces,
-        title: categoryLabelMap.free,
-        sectionLabel: '',
-        rowClass: styles.rowFree,
-        aria: categoryLabelMap.free,
-      },
-      {
-        places: foodPlaces,
-        title: categoryLabelMap.food,
-        sectionLabel: '',
-        rowClass: styles.rowFood,
-        aria: categoryLabelMap.food,
-      },
-      {
-        places: hotelPlaces,
-        title: categoryLabelMap.hotel,
-        sectionLabel: '與住宿頁相同連結',
-        rowClass: styles.rowHotel,
-        aria: categoryLabelMap.hotel,
-      },
-    ],
-    [categoryLabelMap, spotPlaces, freePlaces, foodPlaces, hotelPlaces],
+    () =>
+      activeCategoryItems.map(({ key, label }) => {
+        const sectionTitle = categoryLabelMap[key] ?? label
+        return {
+          key,
+          places: filteredPlaces.filter((p) => p.category === key),
+          title: sectionTitle,
+          sectionLabel: cityMapSectionLabel(key, sectionTitle),
+          rowClass: cityMapSectionRowClass(key),
+          aria: sectionTitle,
+        }
+      }),
+    [activeCategoryItems, categoryLabelMap, filteredPlaces],
   )
 
-  const hasAnyListPlaces = useMemo(
-    () =>
-      spotPlaces.length > 0 ||
-      freePlaces.length > 0 ||
-      foodPlaces.length > 0 ||
-      hotelPlaces.length > 0,
-    [spotPlaces, freePlaces, foodPlaces, hotelPlaces],
-  )
+  const hasAnyListPlaces = filteredPlaces.length > 0
 
   const selectedPlace = useMemo(
     () => (selectedId ? places.find((p) => p.id === selectedId) ?? null : null),
@@ -765,6 +755,62 @@ export default function MapClient({
     syncMarkers(filteredPlaces)
   }, [mapReady, filteredPlaces, syncMarkers])
 
+  const clearRouteOverlays = useCallback(() => {
+    routeLineRefs.current.forEach((line) => line.setMap(null))
+    routeStopMarkerRefs.current.forEach((marker) => marker.setMap(null))
+    routeLineRefs.current = []
+    routeStopMarkerRefs.current = []
+  }, [])
+
+  useEffect(() => {
+    setRouteLayerOn((prev) =>
+      Object.fromEntries(
+        (routeLayers ?? []).map((layer) => [layer.id, prev[layer.id] ?? layer.defaultVisible ?? true]),
+      ),
+    )
+  }, [routeLayers])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!mapReady || !map || !window.google?.maps) return
+    clearRouteOverlays()
+    ;(routeLayers ?? []).forEach((routeLayer) => {
+      if (!routeLayerOn[routeLayer.id]) return
+      const line = new google.maps.Polyline({
+        map,
+        path: routeLayer.path,
+        strokeColor: routeLayer.color,
+        strokeOpacity: 0.9,
+        strokeWeight: 4,
+        zIndex: 1,
+      })
+      routeLineRefs.current.push(line)
+      routeLayer.stops.forEach((stop) => {
+        const marker = new google.maps.Marker({
+          map,
+          position: { lat: stop.lat, lng: stop.lng },
+          title: `${stop.order} ${stop.name}`,
+          zIndex: 4,
+          icon: {
+            url: routeStopIconUrl(routeLayer.color),
+            scaledSize: new google.maps.Size(24, 24),
+            anchor: new google.maps.Point(12, 12),
+            labelOrigin: new google.maps.Point(12, -8),
+          },
+          label: {
+            text: `${stop.order} ${stop.name}`,
+            className: styles.routeStopLabel,
+            color: '#0f172a',
+            fontSize: '12px',
+            fontWeight: '700',
+          },
+        })
+        routeStopMarkerRefs.current.push(marker)
+      })
+    })
+    return clearRouteOverlays
+  }, [clearRouteOverlays, mapReady, routeLayerOn, routeLayers])
+
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
     const t = window.setTimeout(() => {
@@ -816,6 +862,14 @@ export default function MapClient({
     }, 300)
     return () => window.clearTimeout(t)
   }, [mobileSheetExpanded, mapReady, isMobileMapLayout])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!mapReady || !map || !initialFitToPlaces || filteredPlaces.length === 0) return
+    const bounds = new google.maps.LatLngBounds()
+    filteredPlaces.forEach((place) => bounds.extend({ lat: place.lat, lng: place.lng }))
+    map.fitBounds(bounds, 64)
+  }, [filteredPlaces, initialFitToPlaces, mapReady])
 
   const prevMobileLayoutRef = useRef(false)
   useEffect(() => {
@@ -1152,7 +1206,9 @@ export default function MapClient({
                   onClick={() => {
                     setCategoryOn((prev) => {
                       const next = cityMapCategoriesAllOn(prev)
-                        ? { spot: false, free: false, food: false, hotel: false }
+                        ? (Object.fromEntries(
+                            Object.keys(prev).map((key) => [key, false]),
+                          ) as Record<CityMapPlaceCategory, boolean>)
                         : { ...DEFAULT_CITY_MAP_CATEGORY_ON }
                       const fn = getGtag()
                       if (typeof fn === 'function') {
@@ -1187,7 +1243,8 @@ export default function MapClient({
                           : { ...prev, [key]: !prev[key] }
                         const fn = getGtag()
                         if (typeof fn === 'function') {
-                          const area = (['spot', 'free', 'food', 'hotel'] as const)
+                          const area = activeCategoryItems
+                            .map((item) => item.key)
                             .filter((k) => next[k])
                             .join(',')
                           fn('event', tabGtagEvent, {
@@ -1242,6 +1299,32 @@ export default function MapClient({
                       }}
                     >
                       {label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {routeLayers && routeLayers.length > 0 ? (
+                <div className="tabs" id={`${gtagPrefix}RouteToggles`} role="group" aria-label="交通路線">
+                  {routeLayers.map((routeLayer) => (
+                    <button
+                      key={routeLayer.id}
+                      type="button"
+                      className={`tab ${routeLayerOn[routeLayer.id] ? 'active' : ''}`}
+                      aria-pressed={routeLayerOn[routeLayer.id]}
+                      style={{ borderColor: routeLayer.color, color: routeLayerOn[routeLayer.id] ? undefined : routeLayer.color }}
+                      onClick={() => {
+                        setRouteLayerOn((prev) => ({ ...prev, [routeLayer.id]: !prev[routeLayer.id] }))
+                        const fn = getGtag()
+                        if (typeof fn === 'function') {
+                          fn('event', `${gtagPrefix}_route_toggle`, {
+                            route_id: routeLayer.id,
+                            route_label: routeLayer.label,
+                            page_path: location.pathname,
+                          })
+                        }
+                      }}
+                    >
+                      {routeLayer.label}
                     </button>
                   ))}
                 </div>
@@ -1331,7 +1414,7 @@ export default function MapClient({
               {listSections.map((s) =>
                 s.places.length > 0 ? (
                   <section
-                    key={`desk-${s.aria}`}
+                    key={`desk-${s.key}`}
                     className={`${styles.desktopCardsSection} ${s.rowClass}`}
                     aria-label={s.aria}
                   >
@@ -1467,7 +1550,7 @@ export default function MapClient({
                     {listSections.map((s) =>
                       s.places.length > 0 ? (
                         <section
-                          key={`mob-${s.aria}`}
+                          key={`mob-${s.key}`}
                           className={`${styles.desktopCardsSection} ${s.rowClass}`}
                           aria-label={s.aria}
                         >

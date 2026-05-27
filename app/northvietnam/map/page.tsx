@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import MapClient from '@/components/map/MapClient'
 import { NORTH_VIETNAM_MAP_CENTER, northVietnamMapPlaces } from '@/data/northvietnam'
@@ -12,11 +12,11 @@ export default function NorthVietnamMapPage() {
       gtagPrefix="northvietnammap"
       title="北越景點地圖"
       backHref="/northvietnam"
-      defaultCategories={{ spot: true, free: true, food: false, hotel: true }}
+      defaultCategories={{ spot: true, free: true, shop: false, hotel: true }}
       categoryItems={[
         { key: 'spot', label: '票券' },
         { key: 'free', label: '景點' },
-        { key: 'food', label: '商店' },
+        { key: 'shop', label: '商店' },
         { key: 'hotel', label: '住宿' },
       ]}
       topActions={[
@@ -37,6 +37,13 @@ export default function NorthVietnamMapPage() {
           href: 'https://www.jiejourneys.com/northvietnam/transport',
           event: 'northvietnammap_top_transport',
           platform: 'transport',
+        },
+        {
+          label: '排序',
+          href: '/northvietnam/planner',
+          event: 'northvietnammap_top_planner',
+          platform: 'planner',
+          placement: 'afterBelowContent',
         },
       ]}
       belowContent={

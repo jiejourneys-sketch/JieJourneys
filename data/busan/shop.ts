@@ -2,7 +2,7 @@ import type { CityCardAction } from '@/components/CityTabbedList'
 import type { BusanMapPlace } from '@/data/busan/map/types'
 
 /**
- * 釜山地圖｜商店類別（`category: 'food'`，畫面上為「商店」）
+ * 釜山地圖｜商店類別（`category: 'shop'`）
  *
  * - `spotGoogleMapsUrl`：**地圖**按鈕開的連結，請貼 `https://maps.app.goo.gl/...`。
  *   若還沒有短網址，可暫留 `PASTE_YOUR_MAPS_LINK`，按鈕會改用 lat/lng 釘點。
@@ -10,10 +10,10 @@ import type { BusanMapPlace } from '@/data/busan/map/types'
  */
 const MAP_LINK_PLACEHOLDER = 'PASTE_YOUR_MAPS_LINK'
 
-export const busanFoodMapPlaces: BusanMapPlace[] = [
+export const busanShopMapPlaces: BusanMapPlace[] = [
   {
     id: 'busan-lotteoutlet',
-    category: 'food',
+    category: 'shop',
     name: '樂天Outlet',
     description: '',
     lat: 35.1916524,
@@ -35,7 +35,7 @@ export const busanFoodMapPlaces: BusanMapPlace[] = [
   },
   {
     id: 'busan-Seomyeonlotte',
-    category: 'food',
+    category: 'shop',
     name: '樂天百貨(釜山本店)',
     description: '',
     lat: 35.1564378,
@@ -57,7 +57,7 @@ export const busanFoodMapPlaces: BusanMapPlace[] = [
   },
   {
     id: 'busan-Nampodonglotte',
-    category: 'food',
+    category: 'shop',
     name: '樂天百貨(南浦洞光復店)',
     description: '',
     lat: 35.0981871,
@@ -79,7 +79,7 @@ export const busanFoodMapPlaces: BusanMapPlace[] = [
   },
   {
     id: 'busan-CentumCitylotte',
-    category: 'food',
+    category: 'shop',
     name: '新世界百貨(釜山Centum City店)',
     description: '',
     lat: 35.1689218,

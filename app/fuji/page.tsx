@@ -68,6 +68,43 @@ export default function FujiPage() {
             <Image className="link-icon" src="/assets/jiaotong.png" alt="交通" width={48} height={48} />
             <div className="link-text">通訊 / 交通</div>
           </Link>
+
+          <div className="link-item pass-card" data-section="quick">
+            <Image className="link-icon" src="/assets/ditu.png" alt="周遊券" width={48} height={48} />
+            <div className="pass-row">
+              <div className="pass-title">富士山周遊券</div>
+              <div className="pass-actions">
+                <a
+                  className="pass-btn primary"
+                  href="https://www.kkday.com/zh-tw/product/20106-mt-fuji-pass-lake-kawaguchi-attraction-ticket-japan?cid=22312"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="fuji_pass_kkday"
+                  data-platform="KKDAY"
+                >
+                  KKDAY
+                </a>
+                <a
+                  className="pass-btn"
+                  href="https://www.klook.com/zh-TW/activity/132532-mt-fuji-pass/?aid=93798"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="fuji_pass_klook"
+                  data-platform="KLOOK"
+                >
+                  KLOOK
+                </a>
+                <a
+                  className="pass-btn"
+                  href="/fuji/pass-map"
+                  data-event="fuji_pass_map"
+                  data-platform="map"
+                >
+                  地圖
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
       <Footer />
