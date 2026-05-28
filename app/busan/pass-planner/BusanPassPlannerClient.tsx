@@ -509,21 +509,29 @@ function parseGoogleMapsUrl(value: string) {
 }
 
 function parseGoogleMapsPlaceName(value: string) {
+  const cleanName = (name: string) => {
+    const normalized = name.trim().replace(/\s+/g, ' ')
+    if (!normalized) return ''
+    if (/^\d{3,6}\s*/.test(normalized)) return ''
+    if (/\d+.*(路|街|巷|弄|號|段|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized)) return ''
+    return normalized.slice(0, 80)
+  }
+
   const match = value.match(/\/place\/([^/?@]+)/)
   if (match) {
     try {
-      return decodeURIComponent(match[1].replace(/\+/g, ' ')).trim().slice(0, 80)
+      return cleanName(decodeURIComponent(match[1].replace(/\+/g, ' ')))
     } catch {
-      return match[1].replace(/\+/g, ' ').trim().slice(0, 80)
+      return cleanName(match[1].replace(/\+/g, ' '))
     }
   }
 
   const searchMatch = value.match(/\/search\/([^/?@]+)/)
   if (searchMatch) {
     try {
-      return decodeURIComponent(searchMatch[1].replace(/\+/g, ' ')).trim().slice(0, 80)
+      return cleanName(decodeURIComponent(searchMatch[1].replace(/\+/g, ' ')))
     } catch {
-      return searchMatch[1].replace(/\+/g, ' ').trim().slice(0, 80)
+      return cleanName(searchMatch[1].replace(/\+/g, ' '))
     }
   }
 
@@ -531,7 +539,7 @@ function parseGoogleMapsPlaceName(value: string) {
     const url = new URL(value)
     const query = url.searchParams.get('q') || url.searchParams.get('query')
     if (!query || /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(query.trim())) return ''
-    return query.trim().slice(0, 80)
+    return cleanName(query)
   } catch {
     return ''
   }
@@ -2902,6 +2910,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
 
   const confirmCustomPlaceName = () => {
+    const currentDraft = customDraftRef.current
+    const rawName = currentDraft.name.trim()
+    const confirmedName = rawName || 'Google Maps 景點'
+    const hasPosition = currentDraft.lat != null && currentDraft.lng != null
     setCustomDraft((draft) => ({
       ...draft,
       name: draft.name.trim() || 'Google Maps 景點',
@@ -2909,6 +2921,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       picking: true,
     }))
     setMobilePanelOpen(false)
+
+    if (hasPosition || !rawName || !window.google?.maps) return
+
+    const geocoder = new google.maps.Geocoder()
+    geocoder.geocode({ address: confirmedName }, (results, status) => {
+      if (status !== 'OK' || !results?.[0]?.geometry?.location) return
+      const location = results[0].geometry.location
+      setCustomDraft((draft) => {
+        if (!draft.id || !draft.nameConfirmed) return draft
+        return {
+          ...draft,
+          lat: location.lat(),
+          lng: location.lng(),
+          picking: true,
+        }
+      })
+    })
   }
 
   const handleDragEnd = (event: DragEndEvent) => {

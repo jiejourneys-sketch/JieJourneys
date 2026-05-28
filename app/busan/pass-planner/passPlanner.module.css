@@ -2343,6 +2343,12 @@
     font-size: 12px;
   }
 
+  .customPlaceForm input,
+  .customPlaceForm textarea,
+  .customPlaceForm select {
+    font-size: 16px;
+  }
+
   .mapLegend {
     top: 10px;
     right: 10px;
