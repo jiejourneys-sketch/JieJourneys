@@ -511,6 +511,10 @@ export default function MapClient({
     () => topActions?.filter((action) => action.placement === 'afterBelowContent') ?? [],
     [topActions],
   )
+  const hasManualBelowContentAction = useMemo(
+    () => topActions?.some((action) => action.label === '整理') ?? false,
+    [topActions],
+  )
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
   // Derived event strings
@@ -1121,7 +1125,7 @@ export default function MapClient({
     target.scrollIntoView({ behavior: 'smooth', block: 'start' })
     const fn = getGtag()
     if (typeof fn === 'function') {
-      fn('event', `${gtagPrefix}_mobile_scroll_below`, {
+      fn('event', `${gtagPrefix}_scroll_below`, {
         page_path: location.pathname,
       })
     }
@@ -1360,12 +1364,12 @@ export default function MapClient({
                         {action.label}
                       </a>
                     ))}
-                    {belowContent ? (
+                    {belowContent && !hasManualBelowContentAction ? (
                       <button
                         type="button"
-                        className={`${styles.mapTopAction} ${styles.mapTopActionButton} ${styles.mobileOnlyTopAction}`}
-                        data-event={`${gtagPrefix}_mobile_scroll_below`}
-                        data-section="map_mobile"
+                        className={`${styles.mapTopAction} ${styles.mapTopActionButton}`}
+                        data-event={`${gtagPrefix}_scroll_below`}
+                        data-section="map_top"
                         onClick={() => {
                           setTopActionsOpen(false)
                           scrollToBelowContent()

@@ -224,3 +224,16 @@ export async function GET(req: NextRequest) {
     updated_at: data.updated_at,
   })
 }
+
+export async function DELETE(req: NextRequest) {
+  const supabase = getTripSupabase()
+  if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
+
+  const id = req.nextUrl.searchParams.get('id')?.trim().slice(0, 32)
+  if (!id) return NextResponse.json({ error: 'missing_id' }, { status: 400 })
+
+  const { error } = await supabase.from(TABLE).delete().eq('id', id)
+  if (error) return NextResponse.json({ error: 'delete_failed', code: error.code }, { status: 503 })
+
+  return NextResponse.json({ deleted: true })
+}

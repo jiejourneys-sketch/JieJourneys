@@ -83,6 +83,7 @@ type Props = {
 export type PlannerConfig = {
   storageKey: string
   headerBackHref: string
+  headerBackForceReload: boolean
   eventPrefix: string
   title: string
   description: string
@@ -101,6 +102,10 @@ export type PlannerConfig = {
   matchPlaces?: MapPlace[]
   tierLabels: Partial<Record<NonNullable<MapPlace['officialPassTier']>, string>>
   tierItems: { key: Exclude<TierFilter, 'all'>; label: string }[]
+  shareSearchParams?: Record<string, string>
+  recentListKey?: string
+  recentRegionKey?: string
+  recentCountryName?: string
 }
 
 const SCRIPT_ID = 'gmaps-js'
@@ -167,6 +172,7 @@ const defaultTierItems: { key: Exclude<TierFilter, 'all'>; label: string }[] = [
 const defaultPlannerConfig: PlannerConfig = {
   storageKey: 'jiejourneys:busan-pass-planner:v1',
   headerBackHref: '/busan/pass-map',
+  headerBackForceReload: false,
   eventPrefix: 'busanpassplanner',
   title: '釜山Pass景點排序',
   description: '加入想去的景點，拖曳調整順序，地圖會用數字和連線同步顯示位置。',
@@ -508,30 +514,33 @@ function parseGoogleMapsUrl(value: string) {
   return null
 }
 
-function parseGoogleMapsPlaceName(value: string) {
-  const cleanName = (name: string) => {
-    const normalized = name.trim().replace(/\s+/g, ' ')
-    if (!normalized) return ''
-    if (/^\d{3,6}\s*/.test(normalized)) return ''
-    if (/\d+.*(路|街|巷|弄|號|段|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized)) return ''
-    return normalized.slice(0, 80)
-  }
+function cleanGoogleMapsPlaceName(name: string) {
+  const normalized = name
+    .trim()
+    .replace(/\s*[-|]\s*Google Maps\s*$/i, '')
+    .replace(/\s+/g, ' ')
+  if (!normalized) return ''
+  if (/^\d{3,6}\s*/.test(normalized)) return ''
+  if (/\d+.*(路|街|巷|弄|號|段|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized)) return ''
+  return normalized.slice(0, 80)
+}
 
+function parseGoogleMapsPlaceName(value: string) {
   const match = value.match(/\/place\/([^/?@]+)/)
   if (match) {
     try {
-      return cleanName(decodeURIComponent(match[1].replace(/\+/g, ' ')))
+      return cleanGoogleMapsPlaceName(decodeURIComponent(match[1].replace(/\+/g, ' ')))
     } catch {
-      return cleanName(match[1].replace(/\+/g, ' '))
+      return cleanGoogleMapsPlaceName(match[1].replace(/\+/g, ' '))
     }
   }
 
   const searchMatch = value.match(/\/search\/([^/?@]+)/)
   if (searchMatch) {
     try {
-      return cleanName(decodeURIComponent(searchMatch[1].replace(/\+/g, ' ')))
+      return cleanGoogleMapsPlaceName(decodeURIComponent(searchMatch[1].replace(/\+/g, ' ')))
     } catch {
-      return cleanName(searchMatch[1].replace(/\+/g, ' '))
+      return cleanGoogleMapsPlaceName(searchMatch[1].replace(/\+/g, ' '))
     }
   }
 
@@ -539,7 +548,7 @@ function parseGoogleMapsPlaceName(value: string) {
     const url = new URL(value)
     const query = url.searchParams.get('q') || url.searchParams.get('query')
     if (!query || /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(query.trim())) return ''
-    return cleanName(query)
+    return cleanGoogleMapsPlaceName(query)
   } catch {
     return ''
   }
@@ -707,19 +716,40 @@ function removeJsonCache(key: string) {
   }
 }
 
-function getResolvedMapUrlCache(url: string) {
+type ResolvedMapUrlData = {
+  url: string
+  name?: string
+}
+
+function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
   if (typeof window === 'undefined') return null
   try {
-    return window.localStorage.getItem(`${RESOLVED_MAP_URL_CACHE_PREFIX}${url}`)?.trim() || null
+    const raw = window.localStorage.getItem(`${RESOLVED_MAP_URL_CACHE_PREFIX}${url}`)?.trim()
+    if (!raw) return null
+    try {
+      const parsed = JSON.parse(raw) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const data = parsed as Record<string, unknown>
+        return typeof data.url === 'string'
+          ? {
+              url: data.url,
+              ...(typeof data.name === 'string' && data.name.trim() ? { name: data.name.trim() } : {}),
+            }
+          : null
+      }
+    } catch {
+      return { url: raw }
+    }
+    return null
   } catch {
     return null
   }
 }
 
-function setResolvedMapUrlCache(url: string, resolvedUrl: string) {
+function setResolvedMapUrlCache(url: string, data: ResolvedMapUrlData) {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(`${RESOLVED_MAP_URL_CACHE_PREFIX}${url}`, resolvedUrl)
+    window.localStorage.setItem(`${RESOLVED_MAP_URL_CACHE_PREFIX}${url}`, JSON.stringify(data))
   } catch {
     // Ignore storage limits or private-browser restrictions.
   }
@@ -1452,7 +1482,7 @@ function SortablePlanItem({
       {openPanel === 'note' ? (
         <div ref={detailElementRef} className={styles.noteBox}>
           <span>
-            備註 <small>儲存後會保留在此行程</small>
+            備註 {!readOnly ? <small>儲存後會保留在此行程</small> : null}
           </span>
           {readOnly ? (
             <p className={styles.noteReadOnly}>{note || '沒有備註'}</p>
@@ -1697,13 +1727,19 @@ function SortableDayDivider({
   dayNumber,
   onRemove,
   readOnly,
+  dividerRef,
 }: {
   id: string
   dayNumber: number
   onRemove: () => void
   readOnly: boolean
+  dividerRef?: (el: HTMLDivElement | null) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: readOnly })
+  const setRefs = (el: HTMLDivElement | null) => {
+    setNodeRef(el)
+    dividerRef?.(el)
+  }
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -1711,7 +1747,7 @@ function SortableDayDivider({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setRefs}
       style={style}
       className={`${styles.dayDivider} ${isDragging ? styles.dayDividerDragging : ''}`}
     >
@@ -1769,6 +1805,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customUrlResolveSeqRef = useRef(0)
   const addCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const planCardRefs = useRef<Record<string, HTMLElement | null>>({})
+  const dayDividerRefs = useRef<Record<string, HTMLElement | null>>({})
+  const pendingDayDividerScrollRef = useRef<string | null>(null)
   const panelBodyRef = useRef<HTMLDivElement | null>(null)
   const panelRef = useRef<HTMLElement | null>(null)
   const modeRef = useRef<PlannerMode>('add')
@@ -2039,6 +2077,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     setPlanItems(validPlanItems)
   }, [planItems, validPlanItems])
+
+  useEffect(() => {
+    const dividerId = pendingDayDividerScrollRef.current
+    if (!dividerId) return
+    if (!visiblePlanItems.includes(dividerId)) return
+
+    const timer = window.setTimeout(() => {
+      const divider = dayDividerRefs.current[dividerId]
+      if (!divider) return
+      if (isMobilePlannerViewport()) scrollCardFullyIntoView(divider)
+      else scrollCardToContainerCenter(divider)
+      pendingDayDividerScrollRef.current = null
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [visiblePlanItems])
 
   useEffect(() => {
     modeRef.current = mode
@@ -2675,9 +2729,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addDayDivider = () => {
     if (readOnlyPlan) return
+    const dividerId = `${DAY_ITEM_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+    pendingDayDividerScrollRef.current = dividerId
+    setMode('order')
+    setDayView('all')
+    setMobilePanelOpen(true)
     setPlanItems((items) => {
       const dayCount = items.filter(isDayItem).length + 2
-      const nextItems = [...items, `${DAY_ITEM_PREFIX}${Date.now().toString(36)}-${dayCount}`]
+      const nextItems = [...items, dividerId]
       trackPlannerEvent('add_day_divider', {
         day_count: dayCount,
         plan_count: validPlanIds.length,
@@ -2778,19 +2837,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ...draft,
       googleUrl,
       ...(!draft.name.trim() ? { name: parsedName || (googleUrl.trim() ? 'Google Maps 景點' : '') } : {}),
-      ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng, picking: false } : {}),
+      ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng, picking: true } : {}),
     }))
     if (coordinates || !shouldResolveGoogleMapsUrl(googleUrl)) return
 
-    const cachedResolvedUrl = getResolvedMapUrlCache(trimmedGoogleUrl)
-    if (cachedResolvedUrl) {
-      const resolvedCoordinates = parseGoogleMapsUrl(cachedResolvedUrl)
-      const resolvedName = parseGoogleMapsPlaceName(cachedResolvedUrl)
+    const cachedResolved = getResolvedMapUrlCache(trimmedGoogleUrl)
+    if (cachedResolved) {
+      const resolvedCoordinates = parseGoogleMapsUrl(cachedResolved.url)
+      const resolvedName = cachedResolved.name || parseGoogleMapsPlaceName(cachedResolved.url)
       setCustomDraft((draft) => ({
         ...draft,
-        googleUrl: cachedResolvedUrl,
+        googleUrl: cachedResolved.url,
         ...((!draft.name.trim() || draft.name === 'Google Maps 景點') && resolvedName ? { name: resolvedName } : {}),
-        ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: false } : {}),
+        ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: true } : {}),
       }))
       return
     }
@@ -2800,17 +2859,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       cache: 'no-store',
     })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { url?: unknown } | null) => {
+      .then((data: { url?: unknown; title?: unknown } | null) => {
         if (customUrlResolveSeqRef.current !== nextSeq || typeof data?.url !== 'string') return
         const resolvedUrl = data.url
-        setResolvedMapUrlCache(trimmedGoogleUrl, resolvedUrl)
+        const resolvedTitle = typeof data.title === 'string' ? cleanGoogleMapsPlaceName(data.title) : ''
+        setResolvedMapUrlCache(trimmedGoogleUrl, {
+          url: resolvedUrl,
+          ...(resolvedTitle ? { name: resolvedTitle } : {}),
+        })
         const resolvedCoordinates = parseGoogleMapsUrl(resolvedUrl)
-        const resolvedName = parseGoogleMapsPlaceName(resolvedUrl)
+        const resolvedName = resolvedTitle || parseGoogleMapsPlaceName(resolvedUrl)
         setCustomDraft((draft) => ({
           ...draft,
           googleUrl: resolvedUrl,
           ...((!draft.name.trim() || draft.name === 'Google Maps 景點') && resolvedName ? { name: resolvedName } : {}),
-          ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: false } : {}),
+          ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: true } : {}),
         }))
       })
       .catch(() => null)
@@ -3006,11 +3069,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const url = new URL(window.location.pathname, PUBLIC_SITE_ORIGIN)
     url.search = ''
     url.hash = ''
+    Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
+      if (value) url.searchParams.set(key, value)
+    })
     if (validPlanIds.length > 0) {
       url.searchParams.set(SHARE_PARAM, encodeSharedPlan(validPlanItems, lookupPlaces))
     }
     return url
-  }, [lookupPlaces, validPlanIds.length, validPlanItems])
+  }, [config.shareSearchParams, lookupPlaces, validPlanIds.length, validPlanItems])
 
   const saveAndSharePlan = useCallback(async () => {
     setShareSaving(true)
@@ -3050,7 +3116,28 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           window.localStorage.setItem(`${config.storageKey}:book-id`, book.id)
           if (savedReadToken) window.localStorage.setItem(`${config.storageKey}:book-read-token`, savedReadToken)
           window.localStorage.setItem(`${config.storageKey}:book-updated-at`, updatedAt)
+          if (config.recentListKey && config.recentRegionKey) {
+            const rawRecent = window.localStorage.getItem(config.recentListKey)
+            const recentItems = rawRecent ? (JSON.parse(rawRecent) as unknown) : []
+            const existingItems = Array.isArray(recentItems)
+              ? recentItems.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+              : []
+            const nextRecent = [
+              {
+                id: book.id,
+                readToken: savedReadToken ?? '',
+                regionKey: config.recentRegionKey,
+                countryName: config.recentCountryName ?? config.shareTitle,
+                updatedAt,
+              },
+              ...existingItems.filter((item) => item.id !== book.id),
+            ].slice(0, 12)
+            window.localStorage.setItem(config.recentListKey, JSON.stringify(nextRecent))
+          }
           url.search = ''
+          Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
+            if (value) url.searchParams.set(key, value)
+          })
           url.searchParams.set(PLANNER_BOOK_PARAM, book.id)
         } else {
           shortShareId = ''
@@ -3084,6 +3171,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           const token = savedReadToken
           const previewUrl = token ? new URL(window.location.pathname, PUBLIC_SITE_ORIGIN) : null
           if (previewUrl) {
+            Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
+              if (value) previewUrl.searchParams.set(key, value)
+            })
             previewUrl.searchParams.set(PLANNER_PREVIEW_PARAM, token)
             setSaveSheetPreviewUrl(previewUrl.toString())
           } else {
@@ -3123,6 +3213,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     config.saveReminderEnabled,
     config.shareText,
     config.shareTitle,
+    config.shareSearchParams,
+    config.recentCountryName,
+    config.recentListKey,
+    config.recentRegionKey,
     config.storageKey,
     lookupPlaces,
     customPlaces,
@@ -3386,7 +3480,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   return (
     <>
-      <CitySubpageHeader backHref={config.headerBackHref} eventPrefix={config.eventPrefix} />
+      <CitySubpageHeader
+        backHref={config.headerBackHref}
+        eventPrefix={config.eventPrefix}
+        forceBackReload={config.headerBackForceReload}
+      />
       <main
         className={styles.plannerPage}
         style={
@@ -3412,9 +3510,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 {shareSaving ? '儲存中...' : plannerBookId ? '儲存更新' : config.shareActionLabel}
               </button>
             ) : null}
-            <a className={styles.secondaryAction} href={config.headerBackHref}>
-              {config.backLinkLabel}
-            </a>
+            {config.backLinkLabel ? (
+              <a className={styles.secondaryAction} href={config.headerBackHref}>
+                {config.backLinkLabel}
+              </a>
+            ) : null}
           </div>
         </section>
 
@@ -3914,6 +4014,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   dayNumber={dayNumber}
                                   onRemove={() => removeDayDivider(item)}
                                   readOnly={readOnlyPlan}
+                                  dividerRef={(el) => {
+                                    dayDividerRefs.current[item] = el
+                                  }}
                                 />
                               )
                             }

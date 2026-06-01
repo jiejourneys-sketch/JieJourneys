@@ -1,6 +1,7 @@
 import BusanPassPlannerClient from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import type { PlannerConfig } from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import { FUJI_MAP_CENTER, fujiMapPlaces } from '@/data/fuji'
+import { fujiPassMapPlaces } from '@/data/fuji/pass-map/places'
 
 const fujiPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:fuji-map-planner:v1',
@@ -31,6 +32,7 @@ const fujiPlannerConfig: Partial<PlannerConfig> = {
     { key: 'shop', label: '商店' },
     { key: 'hotel', label: '住宿' },
   ],
+  matchPlaces: fujiPassMapPlaces,
   tierItems: [],
 }
 

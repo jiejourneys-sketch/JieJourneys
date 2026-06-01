@@ -7,9 +7,17 @@ type Props = {
   backHref: string
   /** 用於 GA 的 data-event 前綴（可選） */
   eventPrefix?: string
+  /** 同頁狀態式工具需要完整重載，才能真的回到入口畫面 */
+  forceBackReload?: boolean
 }
 
-export default function CitySubpageHeader({ backHref, eventPrefix = 'page' }: Props) {
+export default function CitySubpageHeader({ backHref, eventPrefix = 'page', forceBackReload = false }: Props) {
+  const backAttrs = {
+    className: 'home-link print-hidden',
+    'data-event': `${eventPrefix}_back`,
+    'data-item': 'back',
+  }
+
   return (
     <header>
       <nav className="nav nav-city">
@@ -24,14 +32,15 @@ export default function CitySubpageHeader({ backHref, eventPrefix = 'page' }: Pr
           <span>JieJourneys｜旅杰</span>
         </Link>
         <div className="nav-actions">
-          <Link
-            href={backHref}
-            className="home-link print-hidden"
-            data-event={`${eventPrefix}_back`}
-            data-item="back"
-          >
-            ← 上一頁
-          </Link>
+          {forceBackReload ? (
+            <a href={backHref} {...backAttrs}>
+              ← 上一頁
+            </a>
+          ) : (
+            <Link href={backHref} {...backAttrs}>
+              ← 上一頁
+            </Link>
+          )}
           <Link
             href="/"
             className="home-link print-hidden"

@@ -1,6 +1,7 @@
 import BusanPassPlannerClient from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import type { PlannerConfig } from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import { OSAKA_MAP_CENTER, osakaMapPlaces } from '@/data/osaka/map/places'
+import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 
 const osakaPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:osaka-map-planner:v1',
@@ -31,6 +32,7 @@ const osakaPlannerConfig: Partial<PlannerConfig> = {
     { key: 'shop', label: '商店' },
     { key: 'hotel', label: '住宿' },
   ],
+  matchPlaces: osakaPassMapPlaces,
   tierItems: [],
 }
 

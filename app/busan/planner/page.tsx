@@ -1,6 +1,7 @@
 import BusanPassPlannerClient from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import type { PlannerConfig } from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import { BUSAN_MAP_CENTER, busanMapPlaces } from '@/data/busan/map/places'
+import { busanPassMapPlaces } from '@/data/busan/pass-map/places'
 
 const busanPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:busan-map-planner:v1',
@@ -30,6 +31,7 @@ const busanPlannerConfig: Partial<PlannerConfig> = {
     { key: 'shop', label: '商店' },
     { key: 'hotel', label: '住宿' },
   ],
+  matchPlaces: busanPassMapPlaces,
   tierItems: [],
 }
 

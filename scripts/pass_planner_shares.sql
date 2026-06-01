@@ -62,4 +62,10 @@ create policy "Anyone can update planner books"
     and jsonb_typeof(user_links) = 'object'
   );
 
+drop policy if exists "Anyone can delete planner books" on public.pass_planner_books;
+create policy "Anyone can delete planner books"
+  on public.pass_planner_books
+  for delete
+  using (true);
+
 notify pgrst, 'reload schema';
