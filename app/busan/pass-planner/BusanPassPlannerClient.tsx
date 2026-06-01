@@ -1415,7 +1415,7 @@ function SortablePlanItem({
         <button
           className={styles.iconLink}
           type="button"
-          disabled={readOnly}
+          disabled={readOnly && !note}
           onClick={() => {
             setDraftNote(note)
             setOpenPanel((panel) => (panel === 'note' ? null : 'note'))
@@ -1454,6 +1454,10 @@ function SortablePlanItem({
           <span>
             備註 <small>儲存後會保留在此行程</small>
           </span>
+          {readOnly ? (
+            <p className={styles.noteReadOnly}>{note || '沒有備註'}</p>
+          ) : (
+            <>
           <textarea
             ref={noteTextareaRef}
             aria-label={`${displayName} 備註`}
@@ -1467,6 +1471,8 @@ function SortablePlanItem({
               儲存備註
             </button>
           </div>
+            </>
+          )}
         </div>
       ) : null}
       {openPanel === 'links' ? (
@@ -4060,8 +4066,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                     <a
                                       key={`${link.label}-${link.href}-${index}`}
                                       href={printLinkHref(link.href)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
                                     >
                                       {link.label}
                                     </a>

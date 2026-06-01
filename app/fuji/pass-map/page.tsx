@@ -50,12 +50,7 @@ export default function FujiPassMapPage() {
           href: '/fuji/pass-planner',
           event: 'fujipassmap_top_planner',
           platform: 'planner',
-        },
-        {
-          label: '整理',
-          href: '#fuji-pass-map-guide',
-          event: 'fujipassmap_top_guide',
-          platform: 'internal',
+          placement: 'afterBelowContent',
         },
       ]}
       belowContent={

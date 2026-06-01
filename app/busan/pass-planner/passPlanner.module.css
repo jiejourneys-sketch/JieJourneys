@@ -1358,6 +1358,15 @@
   box-shadow: 0 0 0 2px rgba(31, 122, 140, 0.1);
 }
 
+.noteReadOnly {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
 .emptyState {
   display: grid;
   place-items: center;
@@ -2527,7 +2536,17 @@
   .noteBox textarea {
     height: 42px;
     min-height: 42px;
-    font-size: 12px;
+    font-size: 16px;
+  }
+
+  .panel input,
+  .panel textarea,
+  .panel select,
+  .confirmBox input,
+  .confirmBox textarea,
+  .saveSheet input,
+  .saveSheet textarea {
+    font-size: 16px;
   }
 
   .removeButton {
