@@ -2812,6 +2812,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ...emptyCustomPlaceDraft,
       id: `${CUSTOM_PLACE_PREFIX}${Date.now().toString(36)}`,
       category: customCategoryItems[0]?.key ?? 'free',
+      nameConfirmed: true,
     })
     setCustomUrlResolving(false)
     setMobilePanelOpen(true)
@@ -3732,7 +3733,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         <div className={styles.customPlaceConfirm}>
                           <div className={styles.customPlaceStepTitle}>
                             <span>2</span>
-                            <strong>{customDraft.nameConfirmed ? '確認位置' : '確認名稱'}</strong>
+                            {'\u78ba\u8a8d\u8cc7\u6599'}
                           </div>
                           <>
                             <label>
@@ -3776,36 +3777,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               </div>
                             ) : null}
                           </>
-                          {!customDraft.nameConfirmed ? (
-                            <>
-                              <button
-                                type="button"
-                                className={styles.customPlaceAdjust}
-                                disabled={customUrlResolving}
-                                onClick={confirmCustomPlaceName}
-                              >
-                                下一步：選位置
-                              </button>
-                            </>
-                          ) : (
                             <>
                               <p className={styles.customPlaceStatus}>
                                 {customDraft.lat != null && customDraft.lng != null
-                                  ? '位置已選好。'
+                                  ? '\u5df2\u5e36\u5165\u4f4d\u7f6e\uff0c\u8acb\u770b\u4e0a\u65b9\u5730\u5716\u78ba\u8a8d\u6a19\u8a18\u5f8c\u518d\u5132\u5b58\u3002'
                                   : customDraft.picking
-                                    ? '請在地圖點一下位置。'
-                                    : '請選擇位置。'}
+                                    ? '\u9ede\u64ca\u5730\u5716\u8a2d\u5b9a\u4f4d\u7f6e\u3002'
+                                    : '\u8acb\u5148\u9078\u64c7\u4f4d\u7f6e\u3002'}
                               </p>
-                              <button
-                                type="button"
-                                className={styles.customPlaceAdjust}
-                                onClick={() => {
-                                  setCustomDraft((draft) => ({ ...draft, picking: true }))
-                                  setMobilePanelOpen(false)
-                                }}
-                              >
-                                重新選位置
-                              </button>
+                              {customDraft.lat == null || customDraft.lng == null ? (
+                                <button
+                                  type="button"
+                                  className={styles.customPlaceAdjust}
+                                  onClick={() => {
+                                    setCustomDraft((draft) => ({ ...draft, picking: true, nameConfirmed: true }))
+                                    setMobilePanelOpen(false)
+                                  }}
+                                >
+                                  {'\u5230\u5730\u5716\u9078\u4f4d\u7f6e'}
+                                </button>
+                              ) : null}
                               <div className={styles.customPlaceOptional}>
                                 <label>
                                   備註
@@ -3840,16 +3831,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                 </div>
                               </div>
                             </>
-                          )}
                         </div>
                       ) : null}
                       <button
                         type="button"
                         className={styles.customPlaceSave}
-                        disabled={!customDraft.nameConfirmed || customDraft.lat == null || customDraft.lng == null}
+                        disabled={customDraft.lat == null || customDraft.lng == null}
                         onClick={saveCustomPlace}
                       >
-                        {customDraft.nameConfirmed ? '儲存到清單' : '先確認名稱'}
+                        {'\u5132\u5b58\u5230\u6e05\u55ae'}
                       </button>
                     </div>
                   ) : (
