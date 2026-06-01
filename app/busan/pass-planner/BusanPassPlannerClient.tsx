@@ -517,12 +517,17 @@ function parseGoogleMapsUrl(value: string) {
 function cleanGoogleMapsPlaceName(name: string) {
   const normalized = name
     .trim()
-    .replace(/\s*[-|]\s*Google Maps\s*$/i, '')
+    .replace(/\s*[-|]\s*(?:Google Maps|Google\s*(?:\u5730\u5716|\u5730\u56fe))\s*$/i, '')
+    .replace(/^(?:Google Maps|Google\s*(?:\u5730\u5716|\u5730\u56fe))\s*$/i, '')
     .replace(/\s+/g, ' ')
   if (!normalized) return ''
   if (/^\d{3,6}\s*/.test(normalized)) return ''
   if (/\d+.*(路|街|巷|弄|號|段|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized)) return ''
   return normalized.slice(0, 80)
+}
+
+function isGenericGoogleMapsPlaceName(name: string) {
+  return /^(?:Google Maps|Google\s*(?:\u5730\u5716|\u5730\u56fe)|Google Maps \S+)$/.test(name.trim())
 }
 
 function parseGoogleMapsPlaceName(value: string) {
@@ -555,6 +560,15 @@ function parseGoogleMapsPlaceName(value: string) {
 }
 
 function shouldResolveGoogleMapsUrl(value: string) {
+  try {
+    const url = new URL(value.trim())
+    return ['maps.app.goo.gl', 'goo.gl', 'www.google.com', 'google.com', 'maps.google.com'].includes(url.hostname)
+  } catch {
+    return false
+  }
+}
+
+function isShortGoogleMapsUrl(value: string) {
   try {
     const url = new URL(value.trim())
     return url.hostname === 'maps.app.goo.gl' || url.hostname === 'goo.gl'
@@ -719,6 +733,8 @@ function removeJsonCache(key: string) {
 type ResolvedMapUrlData = {
   url: string
   name?: string
+  lat?: number
+  lng?: number
 }
 
 function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
@@ -734,6 +750,8 @@ function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
           ? {
               url: data.url,
               ...(typeof data.name === 'string' && data.name.trim() ? { name: data.name.trim() } : {}),
+              ...(typeof data.lat === 'number' && Number.isFinite(data.lat) ? { lat: data.lat } : {}),
+              ...(typeof data.lng === 'number' && Number.isFinite(data.lng) ? { lng: data.lng } : {}),
             }
           : null
       }
@@ -2836,19 +2854,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setCustomDraft((draft) => ({
       ...draft,
       googleUrl,
-      ...(!draft.name.trim() ? { name: parsedName || (googleUrl.trim() ? 'Google Maps 景點' : '') } : {}),
+      ...(!draft.name.trim() && parsedName ? { name: parsedName } : {}),
       ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng, picking: true } : {}),
     }))
-    if (coordinates || !shouldResolveGoogleMapsUrl(googleUrl)) return
+    const shouldResolveUrl =
+      shouldResolveGoogleMapsUrl(googleUrl) && (isShortGoogleMapsUrl(googleUrl) || !coordinates || !parsedName)
+    if (!shouldResolveUrl) return
 
     const cachedResolved = getResolvedMapUrlCache(trimmedGoogleUrl)
     if (cachedResolved) {
-      const resolvedCoordinates = parseGoogleMapsUrl(cachedResolved.url)
-      const resolvedName = cachedResolved.name || parseGoogleMapsPlaceName(cachedResolved.url)
+      const resolvedCoordinates =
+        typeof cachedResolved.lat === 'number' && typeof cachedResolved.lng === 'number'
+          ? { lat: cachedResolved.lat, lng: cachedResolved.lng }
+          : parseGoogleMapsUrl(cachedResolved.url)
+      const resolvedName = cleanGoogleMapsPlaceName(cachedResolved.name || '') || parseGoogleMapsPlaceName(cachedResolved.url)
       setCustomDraft((draft) => ({
         ...draft,
         googleUrl: cachedResolved.url,
-        ...((!draft.name.trim() || draft.name === 'Google Maps 景點') && resolvedName ? { name: resolvedName } : {}),
+        ...((!draft.name.trim() || isGenericGoogleMapsPlaceName(draft.name)) && resolvedName
+          ? { name: resolvedName }
+          : {}),
         ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: true } : {}),
       }))
       return
@@ -2859,20 +2884,27 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       cache: 'no-store',
     })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { url?: unknown; title?: unknown } | null) => {
+      .then((data: { url?: unknown; title?: unknown; lat?: unknown; lng?: unknown } | null) => {
         if (customUrlResolveSeqRef.current !== nextSeq || typeof data?.url !== 'string') return
         const resolvedUrl = data.url
         const resolvedTitle = typeof data.title === 'string' ? cleanGoogleMapsPlaceName(data.title) : ''
+        const resolvedLat = typeof data.lat === 'number' && Number.isFinite(data.lat) ? data.lat : null
+        const resolvedLng = typeof data.lng === 'number' && Number.isFinite(data.lng) ? data.lng : null
         setResolvedMapUrlCache(trimmedGoogleUrl, {
           url: resolvedUrl,
           ...(resolvedTitle ? { name: resolvedTitle } : {}),
+          ...(resolvedLat != null ? { lat: resolvedLat } : {}),
+          ...(resolvedLng != null ? { lng: resolvedLng } : {}),
         })
-        const resolvedCoordinates = parseGoogleMapsUrl(resolvedUrl)
+        const resolvedCoordinates =
+          resolvedLat != null && resolvedLng != null ? { lat: resolvedLat, lng: resolvedLng } : parseGoogleMapsUrl(resolvedUrl)
         const resolvedName = resolvedTitle || parseGoogleMapsPlaceName(resolvedUrl)
         setCustomDraft((draft) => ({
           ...draft,
           googleUrl: resolvedUrl,
-          ...((!draft.name.trim() || draft.name === 'Google Maps 景點') && resolvedName ? { name: resolvedName } : {}),
+          ...((!draft.name.trim() || isGenericGoogleMapsPlaceName(draft.name)) && resolvedName
+            ? { name: resolvedName }
+            : {}),
           ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: true } : {}),
         }))
       })
@@ -3521,19 +3553,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         <section className={styles.workspace} aria-label={config.workspaceAriaLabel}>
           <div className={styles.mapColumn}>
             <div className={styles.mapShell}>
-              {customDraft.picking ? (
-                <div className={styles.pickLocationHint}>
-                  <span>選位置</span>
-                  {customDraft.lat != null && customDraft.lng != null ? (
-                    <button type="button" onClick={finishCustomPlacePicking}>
-                      完成
-                    </button>
-                  ) : null}
-                  <button type="button" onClick={() => setCustomDraft((draft) => ({ ...draft, picking: false }))}>
-                    取消
-                  </button>
-                </div>
-              ) : null}
               {mapError ? <div className={styles.mapFallback}>{mapError}</div> : <div ref={mapElRef} className={styles.mapCanvas} />}
               {validPlanIds.length > 0 ? (
                 <div className={styles.mapLegend} aria-label="地圖分類說明">
