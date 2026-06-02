@@ -25,10 +25,13 @@ type PlannerRegion = {
   matchPlaces?: MapPlace[]
 }
 
+type PlannerSource = 'map' | 'pass'
+
 type RecentPlanner = {
   id: string
   readToken?: string
   regionKey: string
+  source?: PlannerSource
   countryName: string
   updatedAt?: string
 }
@@ -120,6 +123,7 @@ function slugifyCountry(value: string) {
 
 export default function ToolsPlannerPage() {
   const [countryInput, setCountryInput] = useState('')
+  const [preferredSource, setPreferredSource] = useState<PlannerSource>('map')
   const [recentPlanners, setRecentPlanners] = useState<RecentPlanner[]>([])
   const [deleteTarget, setDeleteTarget] = useState<RecentPlanner | null>(null)
   const [deletingPlannerId, setDeletingPlannerId] = useState<string | null>(null)
@@ -127,6 +131,9 @@ export default function ToolsPlannerPage() {
     region: PlannerRegion
     loadKnownPlaces: boolean
     countryName: string
+    source: PlannerSource
+    plannerId?: string
+    readToken?: string
   } | null>(null)
   const trimmedCountryInput = countryInput.trim()
 
@@ -134,11 +141,23 @@ export default function ToolsPlannerPage() {
     try {
       const params = new URLSearchParams(window.location.search)
       const regionKey = params.get('region')?.trim() ?? ''
+      const source = params.get('source') === 'pass' ? 'pass' : 'map'
+      setPreferredSource(source)
       const shouldLoadSharedPlan = Boolean(params.get('p') || params.get('v') || params.get('plan'))
       const region = knownRegions.find((item) => item.key === regionKey)
       if (region && shouldLoadSharedPlan) {
-        setStarted({ region, loadKnownPlaces: true, countryName: region.shortLabel })
+        setStarted({
+          region,
+          loadKnownPlaces: true,
+          countryName: region.shortLabel,
+          source,
+          plannerId: params.get('p')?.trim() || undefined,
+          readToken: params.get('v')?.trim() || undefined,
+        })
         return
+      }
+      if (region) {
+        setCountryInput(region.shortLabel)
       }
 
       const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
@@ -151,6 +170,7 @@ export default function ToolsPlannerPage() {
             id: typeof item.id === 'string' ? item.id : '',
             readToken: typeof item.readToken === 'string' ? item.readToken : undefined,
             regionKey: typeof item.regionKey === 'string' ? item.regionKey : '',
+            source: (item.source === 'pass' ? 'pass' : 'map') as PlannerSource,
             countryName: typeof item.countryName === 'string' ? item.countryName : '',
             updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : undefined,
           }))
@@ -191,8 +211,21 @@ export default function ToolsPlannerPage() {
       .slice(0, 5)
   }, [trimmedCountryInput])
 
-  const startPlanner = (region: PlannerRegion, countryName = region.shortLabel, shouldLoadKnownPlaces = true) => {
-    setStarted({ region, loadKnownPlaces: shouldLoadKnownPlaces, countryName })
+  const startPlanner = (
+    region: PlannerRegion,
+    countryName = region.shortLabel,
+    shouldLoadKnownPlaces = true,
+    source: PlannerSource = 'map',
+    planner?: Pick<RecentPlanner, 'id' | 'readToken'>,
+  ) => {
+    setStarted({
+      region,
+      loadKnownPlaces: shouldLoadKnownPlaces,
+      countryName,
+      source,
+      plannerId: planner?.id,
+      readToken: planner?.readToken,
+    })
   }
 
   const openRecentPlanner = (planner: RecentPlanner) => {
@@ -207,9 +240,10 @@ export default function ToolsPlannerPage() {
       }
     const params = new URLSearchParams()
     params.set('region', region.key)
+    if (planner.source === 'pass') params.set('source', 'pass')
     params.set('p', planner.id)
     window.history.replaceState(null, '', `/tools/planner?${params.toString()}`)
-    startPlanner(region, planner.countryName, true)
+    startPlanner(region, planner.countryName, true, planner.source ?? 'map', planner)
   }
 
   const deleteRecentPlanner = async () => {
@@ -218,7 +252,9 @@ export default function ToolsPlannerPage() {
     if (deletingPlannerId) return
     setDeletingPlannerId(planner.id)
     try {
-      const res = await fetch(`/api/pass-planner/book?id=${encodeURIComponent(planner.id)}`, {
+      const params = new URLSearchParams({ id: planner.id })
+      if (planner.readToken) params.set('read_token', planner.readToken)
+      const res = await fetch(`/api/pass-planner/book?${params.toString()}`, {
         method: 'DELETE',
       })
       if (!res.ok) {
@@ -228,8 +264,12 @@ export default function ToolsPlannerPage() {
       const nextRecent = recentPlanners.filter((item) => item.id !== planner.id)
       setRecentPlanners(nextRecent)
       window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(nextRecent))
+      window.sessionStorage.removeItem(`planner-book:id=${encodeURIComponent(planner.id)}`)
+      if (planner.readToken) {
+        window.sessionStorage.removeItem(`planner-book:v=${encodeURIComponent(planner.readToken)}`)
+      }
 
-      const storageKey = `jiejourneys:tools-planner:${planner.regionKey}:v1`
+      const storageKey = `jiejourneys:tools-planner:${planner.regionKey}${planner.source === 'pass' ? ':pass' : ''}:v1`
       if (window.localStorage.getItem(`${storageKey}:book-id`) === planner.id) {
         window.localStorage.removeItem(`${storageKey}:book-id`)
         window.localStorage.removeItem(`${storageKey}:book-read-token`)
@@ -247,7 +287,7 @@ export default function ToolsPlannerPage() {
       ? uniquePlaces([...matchedRegion.places, ...(matchedRegion.matchPlaces ?? [])])
       : []
     if (!forceBlank && matchedRegion) {
-      startPlanner(matchedRegion, countryName, true)
+      startPlanner(matchedRegion, countryName, true, preferredSource)
       return
     }
 
@@ -271,10 +311,17 @@ export default function ToolsPlannerPage() {
   }
 
   if (started) {
-    const { region, countryName } = started
-    const places = started.loadKnownPlaces ? region.places : []
+    const { region, countryName, source } = started
+    const sourcePlaces = source === 'pass' && region.matchPlaces?.length ? region.matchPlaces : region.places
+    const places = started.loadKnownPlaces ? sourcePlaces : []
+    const matchPlaces =
+      source === 'pass'
+        ? uniquePlaces([...region.places, ...(region.matchPlaces ?? [])])
+        : started.loadKnownPlaces
+          ? region.matchPlaces
+          : uniquePlaces([...region.places, ...(region.matchPlaces ?? [])])
     const config: Partial<PlannerConfig> = {
-      storageKey: `jiejourneys:tools-planner:${region.key}:v1`,
+      storageKey: `jiejourneys:tools-planner:${region.key}${source === 'pass' ? ':pass' : ''}:v1`,
       headerBackHref: '/tools/planner',
       headerBackForceReload: true,
       eventPrefix: `toolsplanner_${region.key}`,
@@ -288,15 +335,22 @@ export default function ToolsPlannerPage() {
       shareActionLabel: '分享/保存',
       saveReminderEnabled: true,
       backLinkLabel: '',
-      shareSearchParams: { region: region.key },
+      shareSearchParams: { region: region.key, ...(source === 'pass' ? { source: 'pass' } : {}) },
+      initialSearchParams: {
+        region: region.key,
+        ...(source === 'pass' ? { source: 'pass' } : {}),
+        ...(started.plannerId ? { p: started.plannerId } : {}),
+        ...(started.readToken ? { v: started.readToken } : {}),
+      },
       recentListKey: RECENT_PLANNERS_KEY,
       recentRegionKey: region.key,
+      recentSource: source,
       recentCountryName: countryName,
       mapZoom: region.zoom ?? 11,
       categoryLabels: semanticCategoryLabels,
       categoryItems: semanticCategories,
       customCategoryItems: semanticCategories.filter((item) => item.key !== 'ticket'),
-      matchPlaces: started.loadKnownPlaces ? region.matchPlaces : uniquePlaces([...region.places, ...(region.matchPlaces ?? [])]),
+      matchPlaces,
       tierItems: [],
     }
 

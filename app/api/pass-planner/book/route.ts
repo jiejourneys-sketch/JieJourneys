@@ -230,10 +230,27 @@ export async function DELETE(req: NextRequest) {
   if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
 
   const id = req.nextUrl.searchParams.get('id')?.trim().slice(0, 32)
+  const readToken = req.nextUrl.searchParams.get('read_token')?.trim().slice(0, 32)
   if (!id) return NextResponse.json({ error: 'missing_id' }, { status: 400 })
 
-  const { error } = await supabase.from(TABLE).delete().eq('id', id)
+  let findQuery = supabase.from(TABLE).select('id').eq('id', id)
+  if (readToken) findQuery = findQuery.eq('read_token', readToken)
+  const { data: existing, error: findError } = await findQuery.maybeSingle()
+  if (findError) return NextResponse.json({ error: 'load_failed', code: findError.code }, { status: 503 })
+  if (!existing?.id) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+
+  let deleteQuery = supabase.from(TABLE).delete().eq('id', id)
+  if (readToken) deleteQuery = deleteQuery.eq('read_token', readToken)
+  const { error } = await deleteQuery
   if (error) return NextResponse.json({ error: 'delete_failed', code: error.code }, { status: 503 })
+
+  const { data: remaining, error: verifyError } = await supabase
+    .from(TABLE)
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+  if (verifyError) return NextResponse.json({ error: 'verify_failed', code: verifyError.code }, { status: 503 })
+  if (remaining?.id) return NextResponse.json({ error: 'delete_not_applied' }, { status: 503 })
 
   return NextResponse.json({ deleted: true })
 }

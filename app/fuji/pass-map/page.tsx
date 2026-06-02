@@ -47,7 +47,7 @@ export default function FujiPassMapPage() {
         },
         {
           label: '排序',
-          href: '/fuji/pass-planner',
+          href: '/tools/planner?region=fuji&source=pass',
           event: 'fujipassmap_top_planner',
           platform: 'planner',
           placement: 'afterBelowContent',

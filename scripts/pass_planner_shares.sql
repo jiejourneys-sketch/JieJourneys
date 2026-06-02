@@ -31,6 +31,8 @@ create unique index if not exists pass_planner_books_read_token_idx
 
 alter table public.pass_planner_books enable row level security;
 
+grant select, insert, update, delete on public.pass_planner_books to anon, authenticated;
+
 drop policy if exists "Anyone can read planner books" on public.pass_planner_books;
 create policy "Anyone can read planner books"
   on public.pass_planner_books

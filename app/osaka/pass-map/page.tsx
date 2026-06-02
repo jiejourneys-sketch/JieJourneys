@@ -42,7 +42,7 @@ export default function OsakaPassMapPage() {
         },
         {
           label: '排序',
-          href: '/osaka/pass-planner',
+          href: '/tools/planner?region=osaka&source=pass',
           event: 'osakapassmap_top_planner',
           platform: 'internal',
           placement: 'afterBelowContent',

@@ -60,7 +60,7 @@ export default function BusanPassMapPage() {
         },
         {
           label: '排序',
-          href: '/busan/pass-planner',
+          href: '/tools/planner?region=busan&source=pass',
           event: 'busanpassmap_top_planner',
           platform: 'internal',
           placement: 'afterBelowContent',

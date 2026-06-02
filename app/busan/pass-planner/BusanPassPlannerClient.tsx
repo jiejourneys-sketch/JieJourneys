@@ -103,9 +103,11 @@ export type PlannerConfig = {
   tierLabels: Partial<Record<NonNullable<MapPlace['officialPassTier']>, string>>
   tierItems: { key: Exclude<TierFilter, 'all'>; label: string }[]
   shareSearchParams?: Record<string, string>
+  initialSearchParams?: Record<string, string>
   recentListKey?: string
   recentRegionKey?: string
   recentCountryName?: string
+  recentSource?: 'map' | 'pass'
 }
 
 const SCRIPT_ID = 'gmaps-js'
@@ -1105,8 +1107,11 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
   const query = viewToken
     ? `${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(viewToken)}`
     : `id=${encodeURIComponent(id ?? '')}`
-  const cacheKey = `planner-book:${query}`
-  const cachedData = getJsonCache<{
+  const res = await fetch(`/api/pass-planner/book?${query}`, {
+    cache: 'no-store',
+  })
+  if (!res.ok) return null
+  const data = (await res.json()) as {
     id?: unknown
     read_token?: unknown
     readonly?: unknown
@@ -1115,36 +1120,7 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
     notes?: unknown
     custom_places?: unknown
     user_links?: unknown
-  }>(cacheKey, PLANNER_BOOK_CACHE_TTL_MS)
-  const data =
-    cachedData ??
-    ((await (async () => {
-      const res = await fetch(`/api/pass-planner/book?${query}`, {
-        cache: 'no-store',
-      })
-      if (!res.ok) return null
-      const nextData = (await res.json()) as {
-        id?: unknown
-        read_token?: unknown
-        readonly?: unknown
-        updated_at?: unknown
-        items?: unknown
-        notes?: unknown
-        custom_places?: unknown
-        user_links?: unknown
-      }
-      setJsonCache(cacheKey, nextData)
-      return nextData
-    })()) as {
-      id?: unknown
-      read_token?: unknown
-      readonly?: unknown
-      updated_at?: unknown
-      items?: unknown
-      notes?: unknown
-      custom_places?: unknown
-      user_links?: unknown
-    } | null)
+  }
   if (!data) return null
 
   const customPlaces = cleanCustomPlaces(data.custom_places)
@@ -2017,7 +1993,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [autoSortConfirmOpen, setAutoSortConfirmOpen] = useState(false)
   const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
   const [pendingAddPlace, setPendingAddPlace] = useState<MapPlace | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<{ type: 'plan' | 'custom'; placeId: string } | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<
+    { type: 'plan' | 'custom'; placeId: string } | { type: 'day'; itemId: string } | null
+  >(null)
   const [recentlyAddedPlaceId, setRecentlyAddedPlaceId] = useState<string | null>(null)
   const [printOpen, setPrintOpen] = useState(false)
   const [shareSaving, setShareSaving] = useState(false)
@@ -2345,9 +2323,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const id = window.setTimeout(() => {
       ;(async () => {
         try {
-          const plannerBook = await fetchPlannerBook(window.location.search, placeById)
-          const shortSharedPlan = plannerBook ? null : await fetchShortSharedPlan(window.location.search, placeById)
-          const sharedPlan = shortSharedPlan?.items ?? parseSharedPlan(window.location.search, placeById, lookupPlaces)
+          const initialSearch = config.initialSearchParams
+            ? `?${new URLSearchParams(config.initialSearchParams).toString()}`
+            : window.location.search
+          const plannerBook = await fetchPlannerBook(initialSearch, placeById)
+          const shortSharedPlan = plannerBook ? null : await fetchShortSharedPlan(initialSearch, placeById)
+          const sharedPlan = shortSharedPlan?.items ?? parseSharedPlan(initialSearch, placeById, lookupPlaces)
           const cloudPlan = plannerBook ?? shortSharedPlan
           if (plannerBook) {
             setPlannerBookId(plannerBook.id)
@@ -2411,7 +2392,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })()
     }, 0)
     return () => window.clearTimeout(id)
-  }, [config.storageKey, lookupPlaces, placeById])
+  }, [config.initialSearchParams, config.storageKey, lookupPlaces, placeById])
 
   useEffect(() => {
     if (!storageReady || readOnlyPlan) return
@@ -2879,9 +2860,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPendingDelete({ type: 'custom', placeId })
   }
 
+  const requestRemoveDayDivider = (itemId: string) => {
+    if (readOnlyPlan) return
+    setPendingDelete({ type: 'day', itemId })
+  }
+
   const confirmPendingDelete = () => {
     if (!pendingDelete) return
     if (pendingDelete.type === 'custom') deleteCustomPlace(pendingDelete.placeId)
+    else if (pendingDelete.type === 'day') removeDayDivider(pendingDelete.itemId)
     else removePlace(pendingDelete.placeId)
     setPendingDelete(null)
   }
@@ -2897,7 +2884,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     pendingDayDividerScrollRef.current = dividerId
     setMode('order')
     setDayView('all')
-    setMobilePanelOpen(true)
+    setOpenPlannerMenu(null)
+    setMobilePanelOpen(false)
     setPlanItems((items) => {
       const dayCount = items.filter(isDayItem).length + 2
       const nextItems = [...items, dividerId]
@@ -3370,6 +3358,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 id: book.id,
                 readToken: savedReadToken ?? '',
                 regionKey: config.recentRegionKey,
+                source: config.recentSource ?? 'map',
                 countryName: config.recentCountryName ?? config.shareTitle,
                 updatedAt,
               },
@@ -3460,6 +3449,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     config.recentCountryName,
     config.recentListKey,
     config.recentRegionKey,
+    config.recentSource,
     config.storageKey,
     lookupPlaces,
     customPlaces,
@@ -4230,7 +4220,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   key={item}
                                   id={item}
                                   dayNumber={dayNumber}
-                                  onRemove={() => removeDayDivider(item)}
+                                  onRemove={() => requestRemoveDayDivider(item)}
                                   readOnly={readOnlyPlan}
                                   dividerRef={(el) => {
                                     dayDividerRefs.current[item] = el
@@ -4451,11 +4441,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               onClick={(e) => e.stopPropagation()}
             >
               <h2 id="delete-place-confirm-title">
-                {pendingDelete.type === 'custom' ? '刪除自訂景點？' : '從我的順序移除？'}
+                {pendingDelete.type === 'custom'
+                  ? '刪除自訂景點？'
+                  : pendingDelete.type === 'day'
+                    ? '刪除這個天數？'
+                    : '從我的順序移除？'}
               </h2>
               <p>
                 {pendingDelete.type === 'custom'
                   ? '這會從景點清單刪除，也會一起從我的順序移除。'
+                  : pendingDelete.type === 'day'
+                    ? '這會移除我的排序中的天數分隔線，景點會保留在原本順序中。'
                   : '這只會從我的順序移除，景點清單仍然會保留。'}
               </p>
               <div className={styles.confirmActions}>

@@ -86,6 +86,14 @@ const cards: CityCard[] = [
     ],
   },
   {
+    title: '富士山/河口湖｜包車',
+    meta: '交通', area: '交通', datasetKey: 'title', datasetValue: '富士山/河口湖｜包車',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/9558-tokyo-private-day-tour-mt-fuji-hakone-and-downtown-tokyo-japan?cid=22312', className: 'btn primary', event: 'fujitransport_spotbaoche_kkday', platform: 'KKDAY', section: 'transport_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/87199-tokyo-private-one-day-tour-kyoto/?aid=93798', className: 'btn', event: 'fujitransport_spotbaoche_klook', platform: 'KLOOK', section: 'transport_card' }, 
+    ],
+  },
+  {
     title: '機場/東京市區 ⇄ 富士山/河口湖｜自駕',
     meta: '交通', area: '交通', datasetKey: 'title', datasetValue: '機場/東京市區 ⇄ 富士山/河口湖｜自駕',
     actions: [

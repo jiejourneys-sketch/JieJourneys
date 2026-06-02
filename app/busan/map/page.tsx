@@ -39,7 +39,7 @@ export default function BusanMapPage() {
         },
         {
           label: '排序',
-          href: '/busan/planner',
+          href: '/tools/planner?region=busan',
           event: 'busanmap_top_planner',
           platform: 'planner',
           placement: 'afterBelowContent',

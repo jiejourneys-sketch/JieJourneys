@@ -39,7 +39,7 @@ export default function FujiMapPage() {
         },
         {
           label: '排序',
-          href: '/fuji/planner',
+          href: '/tools/planner?region=fuji',
           event: 'fujimap_top_planner',
           platform: 'planner',
           placement: 'afterBelowContent',

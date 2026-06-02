@@ -39,7 +39,7 @@ export default function TokyoMapPage() {
         },
         {
           label: '排序',
-          href: '/tokyo/planner',
+          href: '/tools/planner?region=tokyo',
           event: 'tokyomap_top_planner',
           platform: 'planner',
           placement: 'afterBelowContent',

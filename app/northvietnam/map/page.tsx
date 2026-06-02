@@ -40,7 +40,7 @@ export default function NorthVietnamMapPage() {
         },
         {
           label: '排序',
-          href: '/northvietnam/planner',
+          href: '/tools/planner?region=northvietnam',
           event: 'northvietnammap_top_planner',
           platform: 'planner',
           placement: 'afterBelowContent',

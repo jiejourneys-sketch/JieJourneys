@@ -44,7 +44,7 @@ export default function OsakaMapPage() {
         },
         {
           label: '排序',
-          href: '/osaka/planner',
+          href: '/tools/planner?region=osaka',
           event: 'osakamap_top_planner',
           platform: 'planner',
           placement: 'afterBelowContent',
