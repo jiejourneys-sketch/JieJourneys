@@ -755,9 +755,33 @@ function normalizePlaceMatchText(value: string) {
   return value
     .toLowerCase()
     .replace(/[（(].*?[）)]/g, '')
+    .replace(/\d+\s*元/g, '')
     .replace(/\s+/g, '')
     .replace(/[·・|｜\-–—_/\\.,，。:：'"]/g, '')
     .trim()
+}
+
+function longestCommonSubstringLength(a: string, b: string) {
+  if (!a || !b) return 0
+  const previous = new Array(b.length + 1).fill(0)
+  let best = 0
+  for (let i = 1; i <= a.length; i += 1) {
+    let diagonal = 0
+    for (let j = 1; j <= b.length; j += 1) {
+      const above = previous[j]
+      previous[j] = a[i - 1] === b[j - 1] ? diagonal + 1 : 0
+      if (previous[j] > best) best = previous[j]
+      diagonal = above
+    }
+  }
+  return best
+}
+
+function isLikelySamePlaceName(draftName: string, placeName: string) {
+  if (draftName.length < 2 || placeName.length < 2) return false
+  if (placeName.includes(draftName) || draftName.includes(placeName)) return true
+  const commonLength = longestCommonSubstringLength(draftName, placeName)
+  return commonLength >= 4 || commonLength >= Math.min(draftName.length, placeName.length, 6)
 }
 
 function normalizePlaceMatchUrl(value: string | undefined) {
@@ -2174,24 +2198,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [allPlaces, categoryOn, customCategoryItems, customOnly, plannerCategoryItems, tier])
 
   const customPlaceMatches = useMemo(() => {
-    if (!customDraft.id) return []
     const normalizedDraftName = normalizePlaceMatchText(customDraft.name)
     const normalizedDraftUrl = normalizePlaceMatchUrl(customDraft.googleUrl)
     const hasDraftPosition = customDraft.lat != null && customDraft.lng != null
+    if (!normalizedDraftName && !normalizedDraftUrl && !hasDraftPosition) return []
 
     return lookupPlaces
       .filter((place) => !isCustomPlaceId(place.id))
       .map((place) => {
         const normalizedPlaceName = normalizePlaceMatchText(place.name)
         const normalizedPlaceUrl = normalizePlaceMatchUrl(place.spotGoogleMapsUrl)
-        const nameMatch =
-          normalizedDraftName.length >= 2 &&
-          (normalizedPlaceName.includes(normalizedDraftName) || normalizedDraftName.includes(normalizedPlaceName))
+        const nameMatch = isLikelySamePlaceName(normalizedDraftName, normalizedPlaceName)
         const urlMatch = Boolean(normalizedDraftUrl && normalizedPlaceUrl && normalizedDraftUrl === normalizedPlaceUrl)
         const distance = hasDraftPosition
           ? distanceMeters({ lat: customDraft.lat ?? 0, lng: customDraft.lng ?? 0 }, { lat: place.lat, lng: place.lng })
           : Number.POSITIVE_INFINITY
-        const positionMatch = distance <= 300
+        const positionMatch = distance <= 600
         if (!urlMatch && !nameMatch && !positionMatch) return null
         return {
           place,
@@ -2202,7 +2224,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       .sort((a, b) => a.score - b.score)
       .slice(0, 3)
       .map((item) => item.place)
-  }, [customDraft.googleUrl, customDraft.id, customDraft.lat, customDraft.lng, customDraft.name, lookupPlaces])
+  }, [customDraft.googleUrl, customDraft.lat, customDraft.lng, customDraft.name, lookupPlaces])
 
   const selectedPlace = selectedId ? placeById.get(selectedId) ?? null : null
   const customDraftCategoryLabel =
@@ -3631,7 +3653,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     const scrollList = target.closest(`.${styles.addList}, .${styles.planList}`) as HTMLElement | null
     panelBodyTouchStartYRef.current = e.touches[0].clientY
-    panelBodyPullCanCollapseRef.current = (scrollList?.scrollTop ?? 0) <= 0
+    panelBodyPullCanCollapseRef.current = Boolean(scrollList && scrollList.scrollTop <= 0)
   }, [mobilePanelOpen])
 
   const handlePanelBodyTouchMove = useCallback((e: ReactTouchEvent<HTMLDivElement>) => {

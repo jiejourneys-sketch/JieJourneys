@@ -243,6 +243,9 @@ export default function ToolsPlannerPage() {
 
   const startCustomPlanner = (forceBlank = false) => {
     const countryName = trimmedCountryInput || '自由行'
+    const blankMatchPlaces = matchedRegion
+      ? uniquePlaces([...matchedRegion.places, ...(matchedRegion.matchPlaces ?? [])])
+      : []
     if (!forceBlank && matchedRegion) {
       startPlanner(matchedRegion, countryName, true)
       return
@@ -257,9 +260,10 @@ export default function ToolsPlannerPage() {
         key,
         label: countryName,
         shortLabel: countryName,
-        center: GENERIC_CENTER,
+        center: matchedRegion?.center ?? GENERIC_CENTER,
         places: [],
-        zoom: 7,
+        matchPlaces: blankMatchPlaces,
+        zoom: matchedRegion?.zoom ?? 7,
       },
       countryName,
       false,
