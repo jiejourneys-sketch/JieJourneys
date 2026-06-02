@@ -114,45 +114,48 @@
 .unavailableState {
   display: grid;
   justify-items: start;
-  gap: 12px;
-  width: min(680px, 100%);
-  margin: 46px auto 0;
-  border: 1px solid rgba(31, 122, 140, 0.18);
-  border-radius: 14px;
-  padding: 28px;
+  gap: 10px;
+  width: min(620px, 100%);
+  margin: 28px auto 0;
+  border: 1px solid rgba(31, 122, 140, 0.2);
+  border-radius: 12px;
+  padding: 22px;
   background: #ffffff;
-  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
 }
 
 .unavailableState p {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
   border-radius: 999px;
-  padding: 5px 10px;
-  background: #fff5f5;
-  color: #b91c1c;
+  padding: 3px 9px;
+  background: #eef9fb;
+  color: var(--cta);
   font-size: 13px;
   font-weight: 900;
 }
 
 .unavailableState h2 {
-  margin: 0;
+  margin: 2px 0 0;
   color: var(--brand);
-  font-size: 26px;
-  line-height: 1.25;
+  font-size: 23px;
+  line-height: 1.35;
 }
 
 .unavailableState span {
   color: var(--muted);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
 .unavailableActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .unavailableActions a,
@@ -160,9 +163,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
+  min-height: 38px;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 7px 12px;
   font: inherit;
   font-size: 14px;
   font-weight: 900;
@@ -184,11 +187,9 @@
 
 @media (max-width: 640px) {
   .unavailableState {
-    gap: 10px;
-    margin: 18px auto 0;
-    border-radius: 12px;
-    padding: 18px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+    gap: 9px;
+    margin: 12px 0 0;
+    padding: 16px;
   }
 
   .unavailableState p {
@@ -197,13 +198,13 @@
   }
 
   .unavailableState h2 {
-    font-size: 23px;
-    line-height: 1.32;
+    font-size: 20px;
+    line-height: 1.35;
   }
 
   .unavailableState span {
-    font-size: 14px;
-    line-height: 1.65;
+    font-size: 13px;
+    line-height: 1.6;
   }
 
   .unavailableActions {
@@ -216,9 +217,9 @@
 
   .unavailableActions a,
   .unavailableActions button {
-    min-height: 46px;
+    min-height: 40px;
     padding: 8px 10px;
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 
@@ -2259,6 +2260,15 @@
     max-height: var(--planner-mobile-height, calc(100dvh - var(--planner-header-offset)));
     padding: 0 12px 6px;
     overflow: hidden;
+  }
+
+  .plannerPage:has(.unavailableState) {
+    display: block;
+    height: auto;
+    min-height: calc(100dvh - var(--planner-header-offset));
+    max-height: none;
+    padding: 0 10px 24px;
+    overflow: visible;
   }
 
   .topBar {

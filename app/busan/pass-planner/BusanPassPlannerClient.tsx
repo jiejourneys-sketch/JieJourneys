@@ -2332,21 +2332,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             initialParams.get(PLANNER_BOOK_PARAM)?.trim() || initialParams.get(PLANNER_PREVIEW_PARAM)?.trim(),
           )
           const plannerBook = await fetchPlannerBook(initialSearch, placeById)
-          const shortSharedPlan = plannerBook ? null : await fetchShortSharedPlan(initialSearch, placeById)
-          const sharedPlan = shortSharedPlan?.items ?? parseSharedPlan(initialSearch, placeById, lookupPlaces)
-          const cloudPlan = plannerBook ?? shortSharedPlan
           if (plannerBook) {
             setPlannerLinkUnavailable(false)
             setPlannerBookId(plannerBook.id)
             setPlannerBookReadToken(plannerBook.readToken)
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
             setReadOnlyPlan(plannerBook.readonly)
-          }
-          if (plannerBook?.items ?? sharedPlan) {
-            if (cloudPlan?.customPlaces) setCustomPlaces(cloudPlan.customPlaces)
-            if (cloudPlan?.userLinks) setPlaceUserLinks(cloudPlan.userLinks)
-            setPlanItems(plannerBook?.items ?? sharedPlan ?? [])
-            if (cloudPlan?.notes) setPlaceNotes(cloudPlan.notes)
+            if (plannerBook.customPlaces) setCustomPlaces(plannerBook.customPlaces)
+            if (plannerBook.userLinks) setPlaceUserLinks(plannerBook.userLinks)
+            setPlanItems(plannerBook.items)
+            if (plannerBook.notes) setPlaceNotes(plannerBook.notes)
             setMode('order')
             setMobilePanelOpen(true)
             return
@@ -2364,6 +2359,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             return
           }
           setPlannerLinkUnavailable(false)
+
+          const shortSharedPlan = await fetchShortSharedPlan(initialSearch, placeById)
+          const sharedPlan = shortSharedPlan?.items ?? parseSharedPlan(initialSearch, placeById, lookupPlaces)
+          if (sharedPlan?.length) {
+            if (shortSharedPlan?.customPlaces) setCustomPlaces(shortSharedPlan.customPlaces)
+            if (shortSharedPlan?.userLinks) setPlaceUserLinks(shortSharedPlan.userLinks)
+            setPlanItems(sharedPlan)
+            if (shortSharedPlan?.notes) setPlaceNotes(shortSharedPlan.notes)
+            setMode('order')
+            setMobilePanelOpen(true)
+            return
+          }
 
           const raw = window.localStorage.getItem(config.storageKey)
           if (raw) {

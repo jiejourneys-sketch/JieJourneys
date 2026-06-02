@@ -135,30 +135,74 @@ export default function ToolsPlannerPage() {
     plannerId?: string
     readToken?: string
   } | null>(null)
+  const [unavailablePlanner, setUnavailablePlanner] = useState<{
+    countryName: string
+  } | null>(null)
+  const [checkingSharedPlanner, setCheckingSharedPlanner] = useState(false)
   const trimmedCountryInput = countryInput.trim()
 
   useEffect(() => {
+    let cancelled = false
+
     try {
       const params = new URLSearchParams(window.location.search)
       const regionKey = params.get('region')?.trim() ?? ''
       const source = params.get('source') === 'pass' ? 'pass' : 'map'
       setPreferredSource(source)
-      const shouldLoadSharedPlan = Boolean(params.get('p') || params.get('v') || params.get('plan'))
+      const plannerId = params.get('p')?.trim() || ''
+      const readToken = params.get('v')?.trim() || ''
+      const planParam = params.get('plan')?.trim() || ''
+      const shouldLoadSharedPlan = Boolean(plannerId || readToken || planParam)
       const region = knownRegions.find((item) => item.key === regionKey)
       if (region && shouldLoadSharedPlan) {
+        if (plannerId || readToken) {
+          setCheckingSharedPlanner(true)
+          ;(async () => {
+            const query = readToken ? `v=${encodeURIComponent(readToken)}` : `id=${encodeURIComponent(plannerId)}`
+            try {
+              const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
+              if (cancelled) return
+              setCheckingSharedPlanner(false)
+              if (!res.ok) {
+                setUnavailablePlanner({ countryName: region.shortLabel })
+                setStarted(null)
+                return
+              }
+              setUnavailablePlanner(null)
+              setStarted({
+                region,
+                loadKnownPlaces: true,
+                countryName: region.shortLabel,
+                source,
+                plannerId: plannerId || undefined,
+                readToken: readToken || undefined,
+              })
+            } catch {
+              if (cancelled) return
+              setCheckingSharedPlanner(false)
+              setUnavailablePlanner({ countryName: region.shortLabel })
+              setStarted(null)
+            }
+          })()
+          return () => {
+            cancelled = true
+          }
+        }
+
+        setUnavailablePlanner(null)
+        setCheckingSharedPlanner(false)
         setStarted({
           region,
           loadKnownPlaces: true,
           countryName: region.shortLabel,
           source,
-          plannerId: params.get('p')?.trim() || undefined,
-          readToken: params.get('v')?.trim() || undefined,
         })
         return
       }
       if (region) {
         setCountryInput(region.shortLabel)
       }
+      setCheckingSharedPlanner(false)
 
       const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
       const parsed = raw ? (JSON.parse(raw) as unknown) : []
@@ -179,6 +223,10 @@ export default function ToolsPlannerPage() {
       )
     } catch {
       setRecentPlanners([])
+    }
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -307,6 +355,52 @@ export default function ToolsPlannerPage() {
       },
       countryName,
       false,
+    )
+  }
+
+  if (checkingSharedPlanner) {
+    return (
+      <>
+        <CitySubpageHeader backHref="/" eventPrefix="toolsplanner" />
+        <main className={styles.page}>
+          <section className={`${styles.panel} ${styles.unavailablePanel}`} aria-label="確認行程連結">
+            <p className={styles.eyebrow}>確認行程連結中</p>
+            <h1>正在讀取行程</h1>
+            <p className={styles.lead}>正在確認這個分享連結是否還能使用。</p>
+          </section>
+        </main>
+      </>
+    )
+  }
+
+  if (unavailablePlanner) {
+    return (
+      <>
+        <CitySubpageHeader backHref="/" eventPrefix="toolsplanner" />
+        <main className={styles.page}>
+          <section className={`${styles.panel} ${styles.unavailablePanel}`} aria-label="行程連結狀態">
+            <p className={styles.eyebrow}>行程連結已失效</p>
+            <h1>{unavailablePlanner.countryName}行程不存在</h1>
+            <p className={styles.lead}>這個行程已刪除，或分享連結已經失效。請回到行程工具重新建立排序。</p>
+            <div className={styles.unavailableActions}>
+              <button
+                type="button"
+                className={styles.primary}
+                onClick={() => {
+                  window.history.replaceState(null, '', '/tools/planner')
+                  setUnavailablePlanner(null)
+                  setCountryInput(unavailablePlanner.countryName)
+                }}
+              >
+                回到行程工具
+              </button>
+              <button type="button" className={styles.secondaryAction} onClick={() => window.history.back()}>
+                回上一頁
+              </button>
+            </div>
+          </section>
+        </main>
+      </>
     )
   }
 
