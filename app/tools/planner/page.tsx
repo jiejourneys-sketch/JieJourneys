@@ -301,7 +301,7 @@ export default function ToolsPlannerPage() {
 
   return (
     <>
-      <CitySubpageHeader backHref="/tools" eventPrefix="toolsplanner" />
+      <CitySubpageHeader backHref="/" eventPrefix="toolsplanner" />
       <main className={styles.page}>
         <section className={styles.panel} aria-label="建立通用行程排序">
         <p className={styles.eyebrow}>JieJourneys Planner</p>

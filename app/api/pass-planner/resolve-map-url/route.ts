@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ALLOWED_HOSTS = new Set([
-  'maps.app.goo.gl',
-  'goo.gl',
-  'www.google.com',
-  'google.com',
-  'maps.google.com',
-])
-
 function isAllowedGoogleMapsUrl(value: string) {
   try {
     const url = new URL(value)
-    return url.protocol === 'https:' && ALLOWED_HOSTS.has(url.hostname)
+    return (
+      url.protocol === 'https:' &&
+      (url.hostname === 'maps.app.goo.gl' ||
+        url.hostname === 'goo.gl' ||
+        url.hostname.startsWith('maps.google.') ||
+        ((url.hostname === 'google.com' || url.hostname.startsWith('google.') || url.hostname.startsWith('www.google.')) &&
+          url.pathname.startsWith('/maps')))
+    )
   } catch {
     return false
   }

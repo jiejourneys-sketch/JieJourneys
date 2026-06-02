@@ -1,9 +1,0 @@
-@import "tailwindcss";
-
-/* Hide scrollbar (day tabs) */
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-
-/* Drag handle hover */
-.drag-handle { cursor: grab; }
-.drag-handle:active { cursor: grabbing; }

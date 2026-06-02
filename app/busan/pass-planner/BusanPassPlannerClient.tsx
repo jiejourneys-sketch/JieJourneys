@@ -514,6 +514,12 @@ function parseGoogleMapsUrl(value: string) {
   return null
 }
 
+function extractGoogleMapsUrlFromText(value: string) {
+  const trimmed = value.trim()
+  const match = trimmed.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.[^\s/]+|(?:www\.)?google\.[^\s/]+\/maps)[^\s<>"']*/i)
+  return (match?.[0] ?? trimmed).replace(/[)\].,，。]+$/g, '')
+}
+
 function cleanGoogleMapsPlaceName(name: string) {
   const normalized = name
     .trim()
@@ -524,6 +530,17 @@ function cleanGoogleMapsPlaceName(name: string) {
   if (/^\d{3,6}\s*/.test(normalized)) return ''
   if (/\d+.*(路|街|巷|弄|號|段|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized)) return ''
   return normalized.slice(0, 80)
+}
+
+function parseGoogleMapsSharedTextName(value: string, extractedUrl: string) {
+  if (!extractedUrl || value.trim() === extractedUrl) return ''
+  const beforeUrl = value.split(extractedUrl)[0] ?? ''
+  const candidate = beforeUrl
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .pop()
+  return candidate ? cleanGoogleMapsPlaceName(candidate) : ''
 }
 
 function isGenericGoogleMapsPlaceName(name: string) {
@@ -562,7 +579,13 @@ function parseGoogleMapsPlaceName(value: string) {
 function shouldResolveGoogleMapsUrl(value: string) {
   try {
     const url = new URL(value.trim())
-    return ['maps.app.goo.gl', 'goo.gl', 'www.google.com', 'google.com', 'maps.google.com'].includes(url.hostname)
+    return (
+      url.hostname === 'maps.app.goo.gl' ||
+      url.hostname === 'goo.gl' ||
+      url.hostname.startsWith('maps.google.') ||
+      ((url.hostname === 'google.com' || url.hostname.startsWith('google.') || url.hostname.startsWith('www.google.')) &&
+        url.pathname.startsWith('/maps'))
+    )
   } catch {
     return false
   }
@@ -2846,20 +2869,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
 
   const updateCustomGoogleUrl = (googleUrl: string) => {
-    const trimmedGoogleUrl = googleUrl.trim()
-    const coordinates = parseGoogleMapsUrl(googleUrl)
-    const parsedName = parseGoogleMapsPlaceName(googleUrl)
+    const extractedGoogleUrl = extractGoogleMapsUrlFromText(googleUrl)
+    const trimmedGoogleUrl = extractedGoogleUrl.trim()
+    const coordinates = parseGoogleMapsUrl(trimmedGoogleUrl)
+    const parsedName = parseGoogleMapsSharedTextName(googleUrl, trimmedGoogleUrl) || parseGoogleMapsPlaceName(trimmedGoogleUrl)
     const nextSeq = customUrlResolveSeqRef.current + 1
     customUrlResolveSeqRef.current = nextSeq
     setCustomUrlResolving(false)
     setCustomDraft((draft) => ({
       ...draft,
-      googleUrl,
+      googleUrl: trimmedGoogleUrl || googleUrl,
       ...(!draft.name.trim() && parsedName ? { name: parsedName } : {}),
       ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng, picking: true } : {}),
     }))
     const shouldResolveUrl =
-      shouldResolveGoogleMapsUrl(googleUrl) && (isShortGoogleMapsUrl(googleUrl) || !coordinates || !parsedName)
+      shouldResolveGoogleMapsUrl(trimmedGoogleUrl) && (isShortGoogleMapsUrl(trimmedGoogleUrl) || !coordinates || !parsedName)
     if (!shouldResolveUrl) return
 
     const cachedResolved = getResolvedMapUrlCache(trimmedGoogleUrl)

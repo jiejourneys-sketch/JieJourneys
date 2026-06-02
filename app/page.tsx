@@ -75,7 +75,17 @@ export default function HomePage() {
               data-event="sitetobill"
               data-item="tool"
             >
-              旅杰分帳
+              {'\u65c5\u6770\u5206\u5e33'}
+            </a>
+            <a
+              href="/tools/planner"
+              className="tool-bill-link"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="home_tools_planner"
+              data-item="tool"
+            >
+              {'\u65c5\u6770\u884c\u7a0b'}
             </a>
             <PromoLink
               href="https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys"
@@ -83,38 +93,10 @@ export default function HomePage() {
               data-event="home_tools_esimconnect"
               data-item="tool"
             >
-              eSIM優惠
+              eSIM{'\u512a\u60e0'}
             </PromoLink>
-            <PromoLink
-              href="https://www2.tocoo.jp/cn/?asp_id=2561&utm_source=2561&utm_medium=affiliate"
-              promoCode="BADN3O"
-              data-event="home_tools_tocoo_rentcar"
-              data-item="tool"
-              data-section="home_tools"
-              data-platform="TOCOO"
-              data-label="日本TOCOO!租車"
-            >
-              日本TOCOO!租車
-            </PromoLink>
-            <a
-              href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
-              className="tool-link-compact"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="wamazingbuy"
-              data-item="tool"
-            >
-              日本線上購物(合作)
-            </a>
-            <a
-              href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=2i98k457"
-              className="tool-link-compact"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="wamazingsnow"
-              data-item="tool"
-            >
-              日本滑雪預訂(合作)
+            <a href="/tools/resources" className="tool-bill-link" data-event="home_tools_resources" data-item="tool">
+              {'\u5176\u4ed6\u8cc7\u6e90'}
             </a>
           </div>
         </section>
