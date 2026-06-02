@@ -2326,6 +2326,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           const initialSearch = config.initialSearchParams
             ? `?${new URLSearchParams(config.initialSearchParams).toString()}`
             : window.location.search
+          const initialParams = new URLSearchParams(initialSearch)
+          const hasPlannerBookLink = Boolean(
+            initialParams.get(PLANNER_BOOK_PARAM)?.trim() || initialParams.get(PLANNER_PREVIEW_PARAM)?.trim(),
+          )
           const plannerBook = await fetchPlannerBook(initialSearch, placeById)
           const shortSharedPlan = plannerBook ? null : await fetchShortSharedPlan(initialSearch, placeById)
           const sharedPlan = shortSharedPlan?.items ?? parseSharedPlan(initialSearch, placeById, lookupPlaces)
@@ -2343,6 +2347,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             if (cloudPlan?.notes) setPlaceNotes(cloudPlan.notes)
             setMode('order')
             setMobilePanelOpen(true)
+            return
+          }
+          if (hasPlannerBookLink) {
+            setPlanItems([])
+            setPlaceNotes({})
+            setCustomPlaces({})
+            setPlaceUserLinks({})
+            setPlannerBookId(null)
+            setPlannerBookReadToken(null)
+            setPlannerBookUpdatedAt(null)
+            setReadOnlyPlan(true)
             return
           }
 
