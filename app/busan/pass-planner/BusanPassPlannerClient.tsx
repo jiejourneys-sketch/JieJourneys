@@ -2002,6 +2002,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
   const [plannerBookReadToken, setPlannerBookReadToken] = useState<string | null>(null)
   const [plannerBookUpdatedAt, setPlannerBookUpdatedAt] = useState<string | null>(null)
+  const [plannerLinkUnavailable, setPlannerLinkUnavailable] = useState(false)
   const [readOnlyPlan, setReadOnlyPlan] = useState(false)
   const [saveSheetUrl, setSaveSheetUrl] = useState<string | null>(null)
   const [saveSheetPreviewUrl, setSaveSheetPreviewUrl] = useState<string | null>(null)
@@ -2335,6 +2336,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           const sharedPlan = shortSharedPlan?.items ?? parseSharedPlan(initialSearch, placeById, lookupPlaces)
           const cloudPlan = plannerBook ?? shortSharedPlan
           if (plannerBook) {
+            setPlannerLinkUnavailable(false)
             setPlannerBookId(plannerBook.id)
             setPlannerBookReadToken(plannerBook.readToken)
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
@@ -2350,6 +2352,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             return
           }
           if (hasPlannerBookLink) {
+            setPlannerLinkUnavailable(true)
             setPlanItems([])
             setPlaceNotes({})
             setCustomPlaces({})
@@ -2360,6 +2363,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setReadOnlyPlan(true)
             return
           }
+          setPlannerLinkUnavailable(false)
 
           const raw = window.localStorage.getItem(config.storageKey)
           if (raw) {
@@ -2397,6 +2401,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlaceUserLinks(cleanUserLinks(JSON.parse(rawUserLinks)))
           }
         } catch {
+          setPlannerLinkUnavailable(false)
           setPlanItems([])
           setPlaceNotes({})
           setCustomPlaces({})
@@ -3766,6 +3771,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           </div>
         </section>
 
+        {plannerLinkUnavailable ? (
+          <section className={styles.unavailableState} aria-label="行程連結失效">
+            <p>行程連結已失效</p>
+            <h2>這個行程已刪除或連結不存在</h2>
+            <span>請回到旅杰行程重新建立排序，或使用最新儲存後產生的分享連結。</span>
+            <div className={styles.unavailableActions}>
+              <a href={config.headerBackHref}>回到行程工具</a>
+              <button type="button" onClick={() => window.history.back()}>
+                回上一頁
+              </button>
+            </div>
+          </section>
+        ) : (
         <section className={styles.workspace} aria-label={config.workspaceAriaLabel}>
           <div className={styles.mapColumn}>
             <div className={styles.mapShell}>
@@ -4290,6 +4308,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             ) : null}
           </aside>
         </section>
+        )}
 
         {printOpen ? (
           <div className={styles.printBackdrop} role="presentation" onClick={() => setPrintOpen(false)}>
