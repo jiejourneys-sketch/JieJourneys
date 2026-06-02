@@ -2821,7 +2821,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setRecentlyAddedPlaceId((id) => (id === place.id ? null : id))
     }, 1400)
     if (modeRef.current === 'order') setMobilePanelOpen(true)
-    maybeOpenInAppPrompt()
   }
 
   const addPlace = (place: MapPlace) => {
@@ -2978,7 +2977,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setCustomUrlResolving(false)
     setMobilePanelOpen(true)
     setMode('add')
-    maybeOpenInAppPrompt()
   }
 
   const editCustomPlace = (placeId: string) => {

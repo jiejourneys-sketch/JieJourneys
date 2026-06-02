@@ -365,6 +365,32 @@
   color: #1f7a8c;
 }
 
+.promptPrimary,
+.promptSecondary {
+  min-height: 48px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.promptPrimary {
+  border: 1px solid #1f7a8c;
+  background: #1f7a8c;
+  color: #ffffff;
+}
+
+.promptSecondary {
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  background: #ffffff;
+  color: #1f7a8c;
+}
+
+.promptPrimary:hover,
+.promptSecondary:hover {
+  filter: brightness(0.98);
+}
+
 .confirmDelete {
   border: 1px solid #b91c1c;
   background: #b91c1c;

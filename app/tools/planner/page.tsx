@@ -26,6 +26,7 @@ type PlannerRegion = {
 }
 
 type PlannerSource = 'map' | 'pass'
+type InAppBrowser = 'instagram' | 'line' | 'facebook' | null
 
 type RecentPlanner = {
   id: string
@@ -38,6 +39,45 @@ type RecentPlanner = {
 
 const GENERIC_CENTER = { lat: 23.8, lng: 121.0 }
 const RECENT_PLANNERS_KEY = 'jiejourneys:tools-planner:recent:v1'
+const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
+
+type PendingPlannerStart = {
+  region: PlannerRegion
+  countryName: string
+  shouldLoadKnownPlaces: boolean
+  source: PlannerSource
+}
+
+function detectInAppBrowser(): InAppBrowser {
+  if (typeof navigator === 'undefined') return null
+  const ua = navigator.userAgent
+  if (/Instagram/i.test(ua)) return 'instagram'
+  if (/Line\//i.test(ua)) return 'line'
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook'
+  return null
+}
+
+function preferredBrowserName() {
+  if (typeof navigator === 'undefined') return 'Safari/Chrome'
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'Safari' : 'Chrome'
+}
+
+function inAppBrowserName(browser: InAppBrowser) {
+  if (browser === 'instagram') return 'IG'
+  if (browser === 'line') return 'LINE'
+  if (browser === 'facebook') return 'Facebook'
+  return 'App'
+}
+
+function plannerStartUrl(start: PendingPlannerStart) {
+  const origin = typeof window === 'undefined' ? PUBLIC_SITE_ORIGIN : window.location.origin
+  const url = new URL('/tools/planner', origin)
+  if (start.shouldLoadKnownPlaces) {
+    url.searchParams.set('region', start.region.key)
+    if (start.source === 'pass') url.searchParams.set('source', 'pass')
+  }
+  return url.toString()
+}
 
 function uniquePlaces(places: MapPlace[]) {
   const seen = new Set<string>()
@@ -139,6 +179,10 @@ export default function ToolsPlannerPage() {
     countryName: string
   } | null>(null)
   const [checkingSharedPlanner, setCheckingSharedPlanner] = useState(false)
+  const [inAppBrowser, setInAppBrowser] = useState<InAppBrowser>(null)
+  const [inAppPromptOpen, setInAppPromptOpen] = useState(false)
+  const [inAppPromptCopied, setInAppPromptCopied] = useState(false)
+  const [pendingPlannerStart, setPendingPlannerStart] = useState<PendingPlannerStart | null>(null)
   const trimmedCountryInput = countryInput.trim()
 
   useEffect(() => {
@@ -146,6 +190,7 @@ export default function ToolsPlannerPage() {
 
     try {
       const params = new URLSearchParams(window.location.search)
+      setInAppBrowser(detectInAppBrowser())
       const regionKey = params.get('region')?.trim() ?? ''
       const source = params.get('source') === 'pass' ? 'pass' : 'map'
       setPreferredSource(source)
@@ -266,6 +311,12 @@ export default function ToolsPlannerPage() {
     source: PlannerSource = 'map',
     planner?: Pick<RecentPlanner, 'id' | 'readToken'>,
   ) => {
+    if (!planner && inAppBrowser) {
+      setPendingPlannerStart({ region, countryName, shouldLoadKnownPlaces, source })
+      setInAppPromptCopied(false)
+      setInAppPromptOpen(true)
+      return
+    }
     setStarted({
       region,
       loadKnownPlaces: shouldLoadKnownPlaces,
@@ -274,6 +325,36 @@ export default function ToolsPlannerPage() {
       plannerId: planner?.id,
       readToken: planner?.readToken,
     })
+  }
+
+  const continuePendingPlanner = () => {
+    const pending = pendingPlannerStart
+    if (!pending) {
+      setInAppPromptOpen(false)
+      return
+    }
+    setInAppPromptOpen(false)
+    setStarted({
+      region: pending.region,
+      loadKnownPlaces: pending.shouldLoadKnownPlaces,
+      countryName: pending.countryName,
+      source: pending.source,
+    })
+  }
+
+  const closeInAppPrompt = () => {
+    setInAppPromptOpen(false)
+    setPendingPlannerStart(null)
+  }
+
+  const copyInAppPromptLink = async () => {
+    if (!pendingPlannerStart) return
+    try {
+      await navigator.clipboard.writeText(plannerStartUrl(pendingPlannerStart))
+      setInAppPromptCopied(true)
+    } catch {
+      setInAppPromptCopied(false)
+    }
   }
 
   const openRecentPlanner = (planner: RecentPlanner) => {
@@ -532,6 +613,34 @@ export default function ToolsPlannerPage() {
         ) : null}
       </section>
       </main>
+      {inAppPromptOpen && inAppBrowser && pendingPlannerStart ? (
+        <div className={styles.confirmOverlay} role="presentation" onMouseDown={closeInAppPrompt}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="planner-browser-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button className={styles.confirmClose} type="button" onClick={closeInAppPrompt} aria-label="關閉">
+              ×
+            </button>
+            <h2 id="planner-browser-title">建議用 {preferredBrowserName()} 開啟</h2>
+            <p>
+              你現在在 {inAppBrowserName(inAppBrowser)} 內建瀏覽器。建立行程時，建議先複製連結到 {preferredBrowserName()} 開啟，資料比較不容易因為 App 關閉而消失。
+            </p>
+            <p>複製的是行程工具入口，不是已儲存行程連結。</p>
+            <div className={styles.confirmActions}>
+              <button type="button" className={styles.promptPrimary} onClick={copyInAppPromptLink}>
+                {inAppPromptCopied ? '已複製' : '複製連結'}
+              </button>
+              <button type="button" className={styles.promptSecondary} onClick={continuePendingPlanner}>
+                仍然開始排行程
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
       {deleteTarget ? (
         <div className={styles.confirmOverlay} role="presentation" onMouseDown={() => setDeleteTarget(null)}>
           <section
