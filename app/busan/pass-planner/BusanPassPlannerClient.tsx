@@ -532,6 +532,93 @@ function cleanGoogleMapsPlaceName(name: string) {
   return normalized.slice(0, 80)
 }
 
+function cleanGoogleMapsQueryPlaceName(name: string) {
+  const normalized = stripGoogleMapsPlusCode(name)
+    .trim()
+    .replace(/\s+/g, ' ')
+  const locationTailStripped = stripGoogleMapsLocationTail(normalized)
+  if (locationTailStripped !== normalized) return cleanGoogleMapsPlaceName(locationTailStripped)
+  const embeddedPlaceName = extractEmbeddedNonLatinPlaceName(normalized)
+  if (embeddedPlaceName && isLikelyGoogleMapsAddress(normalized)) return cleanGoogleMapsPlaceName(embeddedPlaceName)
+  if (isLikelyGoogleMapsAddress(normalized)) return ''
+  const addressStart = normalized.search(
+    /\d{1,6}\s*(?:[A-Za-z]|$)|\s(?:[A-Za-z0-9.-]+\s+)?(?:ro|gil|gu|dong|myeon|eup|si),|\s(?:[A-Za-z0-9.-]+-)?\d{1,5},/i,
+  )
+  if (addressStart > 1) return cleanGoogleMapsPlaceName(normalized.slice(0, addressStart).trim())
+  const stripped = normalized
+    .replace(/^(.{2,70}?)(?=\d{1,6}\s*[A-Za-z])/u, '$1')
+    .replace(/^(.{2,70}?)(?=\s+\d{1,6}\s)/u, '$1')
+    .replace(/^(.{2,70}?)(?=\s+(?:[A-Za-z0-9.-]+\s+)?(?:ro|gil|gu|dong|myeon|eup|si),)/iu, '$1')
+    .replace(/^(.{2,70}?)(?=\s+(?:[A-Za-z0-9.-]+-)?\d{1,5},)/u, '$1')
+    .replace(/^(.{2,70}?)(?=\s+(?:韓國|南韓|日本|台灣|臺灣|越南|Korea|Japan|Taiwan|Vietnam)\b)/iu, '$1')
+    .trim()
+  const candidate = stripped || normalized
+  return isLikelyGoogleMapsAddress(candidate) ? '' : cleanGoogleMapsPlaceName(candidate)
+}
+
+function stripGoogleMapsLocationTail(value: string) {
+  const commaIndex = value.lastIndexOf(',')
+  if (commaIndex <= 0) return value
+
+  const beforeCountry = value.slice(0, commaIndex).trim()
+  const country = value.slice(commaIndex + 1).trim()
+  const countryLooksLikeCountry =
+    /[^\x00-\x7F]/.test(country) ||
+    /^(?:South Korea|Korea|Japan|Taiwan|Vietnam|China|Thailand)$/i.test(country)
+  if (!countryLooksLikeCountry || country.length > 40) return value
+
+  const beforeCountryWithoutPlusCode = stripGoogleMapsPlusCode(beforeCountry)
+  const roadStart = beforeCountryWithoutPlusCode.search(
+    /\s+(?:(?:[A-Za-z0-9()'.-]+)\s+){0,4}(?:Road|Rd\.?|Street|St\.?|Avenue|Ave\.?|Boulevard|Blvd\.?|Lane|Ln\.?|Drive|Dr\.?)\b|\s+(?:Thanon|Soi)\s+[A-Za-z]/i,
+  )
+  if (roadStart > 1) return beforeCountryWithoutPlusCode.slice(0, roadStart).trim()
+
+  const adminStart = beforeCountryWithoutPlusCode.search(
+    /\s+(?:[A-Za-z0-9()'.-]+-)?(?:dong|gu|si|ga|ro|gil|daero|myeon|eup)\b/i,
+  )
+  if (adminStart > 1) return beforeCountryWithoutPlusCode.slice(0, adminStart).trim()
+
+  const asciiTailMatch = beforeCountryWithoutPlusCode.match(/^(.+?)\s+[A-Za-z][A-Za-z .'-]{1,40}$/u)
+  if (asciiTailMatch?.[1] && /[^\x00-\x7F]/.test(asciiTailMatch[1])) return asciiTailMatch[1].trim()
+
+  const stripped = beforeCountryWithoutPlusCode
+    .replace(
+      /\s+(?:Busan|Seoul|Tokyo|Osaka|Kyoto|Kobe|Nara|Fukuoka|Kawaguchiko|Fujikawaguchiko|Kinmen|Taipei|Hanoi|Ho Chi Minh City|Da Nang)$/iu,
+      '',
+    )
+    .trim()
+  return stripped.length >= 2 && stripped !== beforeCountry ? stripped : value
+}
+
+function stripGoogleMapsPlusCode(value: string) {
+  return value.replace(/^[23456789CFGHJMPQRVWX]{4,8}(?:\+|\s+)[23456789CFGHJMPQRVWX]{2,3}\s+/i, '').trim()
+}
+
+function extractEmbeddedNonLatinPlaceName(value: string) {
+  const normalized = stripGoogleMapsPlusCode(value).replace(/\s+/g, ' ').trim()
+  const matches = Array.from(
+    normalized.matchAll(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]{2,}/gu),
+  )
+    .map((match) =>
+      match[0]
+        .replace(/(?:新加坡|泰國|泰国|南韓|韓國|韩国|日本|台灣|臺灣|台湾|越南|中國|中国)$/u, '')
+        .trim(),
+    )
+    .filter((text) => text.length >= 2 && !isLikelyGoogleMapsAddress(text))
+
+  return matches.sort((a, b) => b.length - a.length)[0] ?? ''
+}
+
+function isLikelyGoogleMapsAddress(value: string) {
+  const normalized = value.trim()
+  return (
+    /^\d{1,6}\b/.test(normalized) ||
+    /\d+.*(?:\u8def|\u8857|\u5df7|\u5f04|\u865f|\u53f7|\u6bb5|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized) ||
+    /\b(?:Thanon|Soi)\s+[A-Za-z]/i.test(normalized) ||
+    /\b(?:[A-Za-z0-9()'.-]+-)?(?:dong|gu|si|ga|ro|gil|daero|myeon|eup)\b.*,/i.test(normalized)
+  )
+}
+
 function parseGoogleMapsSharedTextName(value: string, extractedUrl: string) {
   if (!extractedUrl || value.trim() === extractedUrl) return ''
   const beforeUrl = value.split(extractedUrl)[0] ?? ''
@@ -570,7 +657,18 @@ function parseGoogleMapsPlaceName(value: string) {
     const url = new URL(value)
     const query = url.searchParams.get('q') || url.searchParams.get('query')
     if (!query || /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(query.trim())) return ''
-    return cleanGoogleMapsPlaceName(query)
+    return cleanGoogleMapsQueryPlaceName(query)
+  } catch {
+    return ''
+  }
+}
+
+function parseGoogleMapsQuery(value: string) {
+  try {
+    const url = new URL(value)
+    const query = url.searchParams.get('q') || url.searchParams.get('query')
+    if (!query || /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(query.trim())) return ''
+    return query.replace(/\s+/g, ' ').trim()
   } catch {
     return ''
   }
@@ -756,6 +854,7 @@ function removeJsonCache(key: string) {
 type ResolvedMapUrlData = {
   url: string
   name?: string
+  query?: string
   lat?: number
   lng?: number
 }
@@ -773,6 +872,7 @@ function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
           ? {
               url: data.url,
               ...(typeof data.name === 'string' && data.name.trim() ? { name: data.name.trim() } : {}),
+              ...(typeof data.query === 'string' && data.query.trim() ? { query: data.query.trim() } : {}),
               ...(typeof data.lat === 'number' && Number.isFinite(data.lat) ? { lat: data.lat } : {}),
               ...(typeof data.lng === 'number' && Number.isFinite(data.lng) ? { lng: data.lng } : {}),
             }
@@ -1882,6 +1982,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [placeUserLinks, setPlaceUserLinks] = useState<Record<string, PlannerUserLink[]>>({})
   const [customPlaces, setCustomPlaces] = useState<Record<string, CustomPlannerPlace>>({})
   const [customDraft, setCustomDraft] = useState<CustomPlaceDraft>(emptyCustomPlaceDraft)
+  const [customPlaceSaveError, setCustomPlaceSaveError] = useState<'name' | 'location' | null>(null)
   const [customUrlResolving, setCustomUrlResolving] = useState(false)
   const [storageReady, setStorageReady] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -2868,6 +2969,46 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setMobilePanelOpen(true)
   }
 
+  const geocodeResolvedMapQuery = (
+    query: string,
+    resolvedUrl: string,
+    resolvedName: string,
+    cacheKey: string,
+    nextSeq: number,
+  ) => {
+    if (!query || !window.google?.maps?.Geocoder) return false
+    setCustomUrlResolving(true)
+    const geocoder = new window.google.maps.Geocoder()
+    geocoder.geocode({ address: query }, (results, status) => {
+      if (customUrlResolveSeqRef.current !== nextSeq) return
+      const location = status === 'OK' ? results?.[0]?.geometry?.location : null
+      if (!location) {
+        setCustomUrlResolving(false)
+        return
+      }
+      const lat = location.lat()
+      const lng = location.lng()
+      const name = resolvedName || cleanGoogleMapsQueryPlaceName(query)
+      setResolvedMapUrlCache(cacheKey, {
+        url: resolvedUrl,
+        ...(name ? { name } : {}),
+        query,
+        lat,
+        lng,
+      })
+      setCustomDraft((draft) => ({
+        ...draft,
+        googleUrl: resolvedUrl,
+        ...((!draft.name.trim() || isGenericGoogleMapsPlaceName(draft.name)) && name ? { name } : {}),
+        lat,
+        lng,
+        picking: true,
+      }))
+      setCustomUrlResolving(false)
+    })
+    return true
+  }
+
   const updateCustomGoogleUrl = (googleUrl: string) => {
     const extractedGoogleUrl = extractGoogleMapsUrlFromText(googleUrl)
     const trimmedGoogleUrl = extractedGoogleUrl.trim()
@@ -2892,16 +3033,25 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         typeof cachedResolved.lat === 'number' && typeof cachedResolved.lng === 'number'
           ? { lat: cachedResolved.lat, lng: cachedResolved.lng }
           : parseGoogleMapsUrl(cachedResolved.url)
-      const resolvedName = cleanGoogleMapsPlaceName(cachedResolved.name || '') || parseGoogleMapsPlaceName(cachedResolved.url)
-      setCustomDraft((draft) => ({
-        ...draft,
-        googleUrl: cachedResolved.url,
-        ...((!draft.name.trim() || isGenericGoogleMapsPlaceName(draft.name)) && resolvedName
-          ? { name: resolvedName }
-          : {}),
-        ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: true } : {}),
-      }))
-      return
+      const resolvedName =
+        cleanGoogleMapsQueryPlaceName(cachedResolved.name || '') || parseGoogleMapsPlaceName(cachedResolved.url)
+      if (!resolvedCoordinates && cachedResolved.query) {
+        geocodeResolvedMapQuery(cachedResolved.query, cachedResolved.url, resolvedName, trimmedGoogleUrl, nextSeq)
+        return
+      }
+      if (resolvedCoordinates) {
+        setCustomDraft((draft) => ({
+          ...draft,
+          googleUrl: cachedResolved.url,
+          ...((!draft.name.trim() || isGenericGoogleMapsPlaceName(draft.name)) && resolvedName
+            ? { name: resolvedName }
+            : {}),
+          lat: resolvedCoordinates.lat,
+          lng: resolvedCoordinates.lng,
+          picking: true,
+        }))
+        return
+      }
     }
 
     setCustomUrlResolving(true)
@@ -2909,21 +3059,28 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       cache: 'no-store',
     })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { url?: unknown; title?: unknown; lat?: unknown; lng?: unknown } | null) => {
+      .then((data: { url?: unknown; title?: unknown; query?: unknown; lat?: unknown; lng?: unknown } | null) => {
         if (customUrlResolveSeqRef.current !== nextSeq || typeof data?.url !== 'string') return
         const resolvedUrl = data.url
-        const resolvedTitle = typeof data.title === 'string' ? cleanGoogleMapsPlaceName(data.title) : ''
+        const resolvedTitle = typeof data.title === 'string' ? cleanGoogleMapsQueryPlaceName(data.title) : ''
+        const resolvedQuery =
+          typeof data.query === 'string' && data.query.trim() ? data.query.trim() : parseGoogleMapsQuery(resolvedUrl)
         const resolvedLat = typeof data.lat === 'number' && Number.isFinite(data.lat) ? data.lat : null
         const resolvedLng = typeof data.lng === 'number' && Number.isFinite(data.lng) ? data.lng : null
         setResolvedMapUrlCache(trimmedGoogleUrl, {
           url: resolvedUrl,
           ...(resolvedTitle ? { name: resolvedTitle } : {}),
+          ...(resolvedQuery ? { query: resolvedQuery } : {}),
           ...(resolvedLat != null ? { lat: resolvedLat } : {}),
           ...(resolvedLng != null ? { lng: resolvedLng } : {}),
         })
         const resolvedCoordinates =
           resolvedLat != null && resolvedLng != null ? { lat: resolvedLat, lng: resolvedLng } : parseGoogleMapsUrl(resolvedUrl)
         const resolvedName = resolvedTitle || parseGoogleMapsPlaceName(resolvedUrl)
+        if (!resolvedCoordinates && resolvedQuery) {
+          geocodeResolvedMapQuery(resolvedQuery, resolvedUrl, resolvedName, trimmedGoogleUrl, nextSeq)
+          return
+        }
         setCustomDraft((draft) => ({
           ...draft,
           googleUrl: resolvedUrl,
@@ -2941,8 +3098,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const saveCustomPlace = () => {
     const id = customDraft.id ?? `${CUSTOM_PLACE_PREFIX}${Date.now().toString(36)}`
-    const name = customDraft.name.trim() || 'Google Maps 景點'
-    if (customDraft.lat == null || customDraft.lng == null) return
+    const name = customDraft.name.trim()
+    if (!name) {
+      setCustomPlaceSaveError('name')
+      return
+    }
+    if (customDraft.lat == null || customDraft.lng == null) {
+      setCustomPlaceSaveError('location')
+      return
+    }
     const linkLabel = customDraft.linkLabel.trim()
     const linkUrl = customDraft.linkUrl.trim()
     const existingPlace = customPlaces[id]
@@ -3860,7 +4024,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       <button
                         type="button"
                         className={styles.customPlaceSave}
-                        disabled={customDraft.lat == null || customDraft.lng == null}
                         onClick={saveCustomPlace}
                       >
                         {'\u5132\u5b58\u5230\u6e05\u55ae'}
@@ -4279,6 +4442,46 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 </button>
                 <button type="button" className={styles.confirmDanger} onClick={confirmPendingDelete}>
                   確認刪除
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {customPlaceSaveError ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={() => setCustomPlaceSaveError(null)}>
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="custom-place-save-error-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="custom-place-save-error-title">
+                {customPlaceSaveError === 'name' ? '先確認景點名稱' : '先確認地圖位置'}
+              </h2>
+              <p>
+                {customPlaceSaveError === 'name'
+                  ? '這條 Google Maps 連結只解析到地址，請補上景點、餐廳或住宿名稱後再儲存。'
+                  : '請先看上方地圖確認標記位置，或點地圖設定位置後再儲存。'}
+              </p>
+              <div className={styles.confirmActions}>
+                <button
+                  type="button"
+                  className={styles.confirmPrimary}
+                  onClick={() => {
+                    const errorType = customPlaceSaveError
+                    setCustomPlaceSaveError(null)
+                    if (errorType === 'location') {
+                      setCustomDraft((draft) => ({ ...draft, picking: true, nameConfirmed: true }))
+                      setMobilePanelOpen(false)
+                    }
+                  }}
+                >
+                  {customPlaceSaveError === 'name' ? '回去填名稱' : '到地圖確認'}
+                </button>
+                <button type="button" className={styles.confirmSecondary} onClick={() => setCustomPlaceSaveError(null)}>
+                  先取消
                 </button>
               </div>
             </section>
