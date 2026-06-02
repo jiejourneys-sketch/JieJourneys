@@ -128,7 +128,7 @@
   margin: 0;
   border-radius: 999px;
   padding: 5px 10px;
-  background: #fef2f2;
+  background: #fff5f5;
   color: #b91c1c;
   font-size: 13px;
   font-weight: 900;
@@ -180,6 +180,46 @@
   border: 1px solid rgba(31, 122, 140, 0.26);
   background: #ffffff;
   color: var(--cta);
+}
+
+@media (max-width: 640px) {
+  .unavailableState {
+    gap: 10px;
+    margin: 18px auto 0;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+  }
+
+  .unavailableState p {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .unavailableState h2 {
+    font-size: 23px;
+    line-height: 1.32;
+  }
+
+  .unavailableState span {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .unavailableActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .unavailableActions a,
+  .unavailableActions button {
+    min-height: 46px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
 }
 
 .mapColumn {
