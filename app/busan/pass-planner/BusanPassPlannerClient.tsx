@@ -3651,7 +3651,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
 
-    const scrollList = target.closest(`.${styles.addList}, .${styles.planList}`) as HTMLElement | null
+    const scrollList = target.closest('[data-planner-scroll-list="true"]') as HTMLElement | null
     panelBodyTouchStartYRef.current = e.touches[0].clientY
     panelBodyPullCanCollapseRef.current = Boolean(scrollList && scrollList.scrollTop <= 0)
   }, [mobilePanelOpen])
@@ -3921,7 +3921,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 {!readOnlyPlan ? (
                 <div className={`${styles.customPlacePanel} ${customDraft.id ? styles.customPlacePanelActive : ''}`}>
                   {customDraft.id ? (
-                    <div className={styles.customPlaceForm}>
+                    <div className={styles.customPlaceForm} data-planner-scroll-list="true">
                       <div className={styles.customPlaceHeader}>
                         <strong>自訂{customDraftCategoryLabel}</strong>
                         <button type="button" onClick={cancelCustomPlaceDraft}>
