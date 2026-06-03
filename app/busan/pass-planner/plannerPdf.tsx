@@ -142,6 +142,9 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: 700,
   },
+  dayAnchor: {
+    height: 1,
+  },
   dayHeader: {
     display: 'flex',
     flexDirection: 'row',
@@ -270,7 +273,8 @@ function PlannerPdfDocument({ data }: { data: PlannerPdfData }) {
       </Page>
 
       {data.days.map((day, dayIndex) => (
-        <Page key={`day-page-${dayIndex + 1}`} id={`day-${dayIndex + 1}`} size="A4" style={styles.page} wrap>
+        <Page key={`day-page-${dayIndex + 1}`} size="A4" style={styles.page} wrap>
+          <View id={`day-${dayIndex + 1}`} style={styles.dayAnchor} />
           <View style={styles.dayHeader} fixed>
             <Text style={styles.dayTitle}>{day.title}</Text>
             <Link src="#cover" style={styles.backToCover}>
@@ -323,6 +327,4 @@ export async function downloadPlannerPdf(data: PlannerPdfData) {
   const blob = await pdf(<PlannerPdfDocument data={data} />).toBlob()
   downloadBlob(blob, `${safeFileName(data.title)}.pdf`)
 }
-
-
 
