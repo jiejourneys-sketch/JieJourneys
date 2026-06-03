@@ -18,6 +18,12 @@ export default function TokyoMapPage() {
         { key: 'shop', label: '商店' },
         { key: 'hotel', label: '住宿' },
       ]}
+      categoryLabels={{
+        spot: '\u7968\u5238',
+        free: '\u666f\u9ede',
+        shop: '\u5546\u5e97',
+        hotel: '\u4f4f\u5bbf',
+      }}
       topActions={[
         {
           label: '票券',

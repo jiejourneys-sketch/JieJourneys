@@ -27,9 +27,9 @@ function teardropPinDataUrl(fillHex: string): string {
 const SPOT_PIN_URL = teardropPinDataUrl('#2563eb')
 // 景點（free）：藍色
 const FREE_PIN_URL = teardropPinDataUrl('#2563eb')
-// 餐廳：橘色；商店：青綠色
+// 餐廳：橘色；商店：黑色
 const RESTAURANT_PIN_URL = teardropPinDataUrl('#f97316')
-const FOOD_PIN_URL = teardropPinDataUrl('#0f766e')
+const SHOP_PIN_URL = teardropPinDataUrl('#111827')
 
 function myMapsInnerIconSvg(styleId?: string): string {
   const iconId = styleId?.match(/^icon-(\d+)-/)?.[1]
@@ -119,8 +119,8 @@ function isHexColor(value: string): boolean {
 
 const HOTEL_MARKER_ENCODED = encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
-  <path fill="#dc2626" stroke="#ffffff" stroke-width="4" d="M5 17h28v18H5z"/>
-  <path fill="#fbbf24" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" d="M3 17L19 8l16 9"/>
+  <path fill="#8b5e34" stroke="#ffffff" stroke-width="4" d="M5 17h28v18H5z"/>
+  <path fill="#b7793f" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" d="M3 17L19 8l16 9"/>
   <rect x="14" y="24" width="10" height="11" rx="1.5" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"/>
 </svg>`.replace(/\s+/g, ' ')
     .trim(),
@@ -158,7 +158,7 @@ export function cityMapMarkerIcon(
     return { ...base, url: RESTAURANT_PIN_URL }
   }
   if (category === 'shop' || category === 'food') {
-    return { ...base, url: FOOD_PIN_URL }
+    return { ...base, url: SHOP_PIN_URL }
   }
   return { ...base, url: SPOT_PIN_URL }
 }

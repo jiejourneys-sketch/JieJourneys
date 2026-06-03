@@ -9,7 +9,7 @@ import type {
   TouchEvent as ReactTouchEvent,
   WheelEvent as ReactWheelEvent,
 } from 'react'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import type { CityCardAction } from '@/components/CityTabbedList'
 import Footer from '@/components/Footer'
@@ -39,7 +39,7 @@ export type MapClientProps = {
   /** Override which categories are ON at mount. Defaults to solo 'spot'. */
   defaultCategories?: Partial<Record<CityMapPlaceCategory, boolean>>
   /** Override which category toggle buttons to show. Defaults to all four. */
-  categoryItems?: { key: CityMapPlaceCategory; label: string }[]
+  categoryItems?: { key: CityMapPlaceCategory; label: string; keys?: CityMapPlaceCategory[] }[]
   /** Override category labels used in cards, list sections, and marker titles. */
   categoryLabels?: Partial<Record<CityMapPlaceCategory, string>>
   officialPassTierItems?: { key: NonNullable<MapPlace['officialPassTier']>; label: string }[]
@@ -107,6 +107,10 @@ function cityMapSectionRowClass(category: CityMapPlaceCategory) {
   return styles.rowFree
 }
 
+function categoryItemKeys(item: { key: CityMapPlaceCategory; keys?: CityMapPlaceCategory[] }) {
+  return item.keys?.length ? item.keys : [item.key]
+}
+
 function cityMapSectionLabel(category: CityMapPlaceCategory, label: string) {
   if (category === 'ticket' || label.includes('票券')) return '票券頁相同連結'
   if (category === 'hotel') return '與住宿頁相同連結'
@@ -145,6 +149,85 @@ function mapBarMapButtonEvent(place: MapPlace, defaultEvent: string): string {
 function mapBarMapButtonLabel(place: MapPlace): string {
   const t = place.mapButtonLabel?.trim()
   return t || '地圖'
+}
+
+function cityMapLegendDefaultColor(category: CityMapPlaceCategory) {
+  if (category === 'ticket' || category === 'spot' || category === 'free') return '#2563eb'
+  if (category === 'restaurant') return '#f97316'
+  if (category === 'shop' || category === 'food') return '#111827'
+  if (category === 'hotel') return '#8b5e34'
+  return '#2563eb'
+}
+
+function cityMapLegendColorName(color: string, context: string) {
+  if (context.includes('osakapassmap')) {
+    switch (color.toLowerCase()) {
+      case '#ff5252':
+        return '免費高'
+      case '#ffea00':
+        return '免費中'
+      case '#0f9d58':
+        return '免費低'
+      case '#757575':
+        return '優惠較好'
+      case '#bdbdbd':
+        return '優惠普通'
+      default:
+        return '標記'
+    }
+  }
+  switch (color.toLowerCase()) {
+    case '#ff5252':
+      return '價格高'
+    case '#ffea00':
+      return '價格中'
+    case '#0f9d58':
+      return '價格低'
+    case '#616161':
+    case '#757575':
+      return '高價值優惠'
+    case '#9e9e9e':
+    case '#bdbdbd':
+      return '低價值優惠'
+    default:
+      return '標記'
+  }
+}
+
+function cityMapLegendOrder(category: CityMapPlaceCategory, color: string, usesSourceMarkerColor: boolean) {
+  if (usesSourceMarkerColor) {
+    const colorOrder: Record<string, number> = {
+      '#ff5252': 10,
+      '#ffea00': 20,
+      '#0f9d58': 30,
+      '#616161': 40,
+      '#757575': 40,
+      '#9e9e9e': 50,
+      '#bdbdbd': 50,
+    }
+    return colorOrder[color.toLowerCase()] ?? 90
+  }
+  if (category === 'ticket' || category === 'spot' || category === 'free') return 100
+  if (category === 'restaurant') return 110
+  if (category === 'shop' || category === 'food') return 120
+  if (category === 'hotel') return 130
+  return 140
+}
+
+function cityMapLegendLabel(
+  category: CityMapPlaceCategory,
+  color: string,
+  usesSourceMarkerColor: boolean,
+  categoryLabels: Record<CityMapPlaceCategory, string>,
+  context: string,
+) {
+  if (usesSourceMarkerColor) {
+    const sourceLabel = cityMapLegendColorName(color, context)
+    return sourceLabel === '標記' ? categoryLabels[category] : sourceLabel
+  }
+  if (context.includes('passmap')) return categoryLabels[category]
+  if (category === 'ticket' || category === 'spot' || category === 'free') return '票券/景點'
+  return categoryLabels[category]
 }
 
 function relatedTicketButtonLabel(place: MapPlace): string {
@@ -591,13 +674,48 @@ export default function MapClient({
     [places, categoryOn, officialPassTier],
   )
 
+  const mapLegendItems = useMemo(() => {
+    const items: {
+      key: string
+      categoryKey: CityMapPlaceCategory
+      label: string
+      color: string
+      order: number
+      group: 'marker' | 'category'
+    }[] = []
+    const shown = new Set<string>()
+    const hasSourceMarkerColors = filteredPlaces.some((place) => Boolean(place.markerColor))
+
+    filteredPlaces.forEach((place) => {
+      const usesSourceMarkerColor = Boolean(place.markerColor)
+      if (hasSourceMarkerColors && !usesSourceMarkerColor) return
+      const color = place.markerColor ?? cityMapLegendDefaultColor(place.category)
+      const label = cityMapLegendLabel(place.category, color, usesSourceMarkerColor, categoryLabelMap, gtagPrefix)
+      const key = `${color.toLowerCase()}-${label}`
+      if (shown.has(key)) return
+      shown.add(key)
+      items.push({
+        key,
+        categoryKey: place.category,
+        label,
+        color,
+        order: cityMapLegendOrder(place.category, color, usesSourceMarkerColor),
+        group: usesSourceMarkerColor ? 'marker' : 'category',
+      })
+    })
+
+    return items.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, 'zh-Hant'))
+  }, [categoryLabelMap, filteredPlaces, gtagPrefix])
+
   const listSections = useMemo(
     () =>
-      activeCategoryItems.map(({ key, label }) => {
+      activeCategoryItems.map((item) => {
+        const { key, label } = item
+        const keys = categoryItemKeys(item)
         const sectionTitle = categoryLabelMap[key] ?? label
         return {
           key,
-          places: filteredPlaces.filter((p) => p.category === key),
+          places: filteredPlaces.filter((p) => keys.includes(p.category)),
           title: sectionTitle,
           sectionLabel: cityMapSectionLabel(key, sectionTitle),
           rowClass: cityMapSectionRowClass(key),
@@ -1233,42 +1351,52 @@ export default function MapClient({
                 >
                   全部
                 </button>
-                {activeCategoryItems.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`tab ${categoryOn[key] ? 'active' : ''}`}
-                    aria-pressed={categoryOn[key]}
-                    data-area={key}
-                    onClick={() => {
-                      setCategoryOn((prev) => {
-                        const next = cityMapCategoriesAllOn(prev)
-                          ? cityMapSoloCategory(key)
-                          : { ...prev, [key]: !prev[key] }
-                        const fn = getGtag()
-                        if (typeof fn === 'function') {
-                          const area = activeCategoryItems
-                            .map((item) => item.key)
-                            .filter((k) => next[k])
-                            .join(',')
-                          fn('event', tabGtagEvent, {
-                            area: area || 'none',
-                            page_path: location.pathname,
-                          })
+                {activeCategoryItems.map((item) => {
+                  const keys = categoryItemKeys(item)
+                  const active = keys.every((key) => categoryOn[key])
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`tab ${active ? 'active' : ''}`}
+                      aria-pressed={active}
+                      data-area={item.key}
+                      onClick={() => {
+                        setCategoryOn((prev) => {
+                          const next = cityMapCategoriesAllOn(prev)
+                            ? ({
+                                ...Object.fromEntries(Object.keys(prev).map((key) => [key, false])),
+                                ...Object.fromEntries(keys.map((key) => [key, true])),
+                              } as Record<CityMapPlaceCategory, boolean>)
+                            : ({
+                                ...prev,
+                                ...Object.fromEntries(keys.map((key) => [key, !active])),
+                              } as Record<CityMapPlaceCategory, boolean>)
+                          const fn = getGtag()
+                          if (typeof fn === 'function') {
+                            const area = activeCategoryItems
+                              .flatMap(categoryItemKeys)
+                              .filter((key) => next[key])
+                              .join(',')
+                            fn('event', tabGtagEvent, {
+                              area: area || 'none',
+                              page_path: location.pathname,
+                            })
+                          }
+                          return next
+                        })
+                        setSelectedId(null)
+                        setMobileSheetBrowseDual(true)
+                        if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
+                          setMobileSheetExpanded(false)
+                          mapClickSuppressUntilRef.current = Date.now() + 450
                         }
-                        return next
-                      })
-                      setSelectedId(null)
-                      setMobileSheetBrowseDual(true)
-                      if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
-                        setMobileSheetExpanded(false)
-                        mapClickSuppressUntilRef.current = Date.now() + 450
-                      }
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                })}
               </div>
               {officialPassTierItems && officialPassTierItems.length > 0 ? (
                 <div
@@ -1408,6 +1536,21 @@ export default function MapClient({
                   ) : (
                     <div ref={mapElRef} className={styles.mapCanvas} />
                   )}
+                  {mapLegendItems.length > 0 ? (
+                    <div className={styles.mapLegend} data-map-prefix={gtagPrefix} aria-label="地圖標記說明">
+                      {mapLegendItems.map((item, index) => (
+                        <Fragment key={item.key}>
+                          {index > 0 && item.group !== mapLegendItems[index - 1]?.group ? (
+                            <span className={styles.mapLegendBreak} aria-hidden="true" />
+                          ) : null}
+                          <span className={styles.mapLegendItem}>
+                            <span className={styles.mapLegendDot} style={{ backgroundColor: item.color }} aria-hidden="true" />
+                            {item.label}
+                          </span>
+                        </Fragment>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

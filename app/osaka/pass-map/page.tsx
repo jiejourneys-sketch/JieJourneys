@@ -3,6 +3,13 @@
 import MapClient from '@/components/map/MapClient'
 import { OSAKA_PASS_MAP_CENTER, osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 
+const categoryLabels = {
+  spot: '\u514d\u8cbb\u8a2d\u65bd',
+  free: '\u512a\u60e0\u8a2d\u65bd',
+  food: '\u5e97\u5bb6\u512a\u60e0',
+  hotel: '\u4f4f\u5bbf',
+}
+
 export default function OsakaPassMapPage() {
   return (
     <MapClient
@@ -12,10 +19,11 @@ export default function OsakaPassMapPage() {
       title="大阪周遊券地圖"
       backHref="/osaka"
       defaultCategories={{ spot: true, free: true, food: true, hotel: false }}
+      categoryLabels={categoryLabels}
       categoryItems={[
-        { key: 'spot', label: '免費設施' },
-        { key: 'free', label: '優惠設施' },
-        { key: 'food', label: '店家優惠' },
+        { key: 'spot', label: '\u514d\u8cbb\u8a2d\u65bd' },
+        { key: 'free', label: '\u512a\u60e0\u8a2d\u65bd' },
+        { key: 'food', label: '\u5e97\u5bb6\u512a\u60e0' },
       ]}
       topActions={[
         {

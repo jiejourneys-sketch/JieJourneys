@@ -4,10 +4,10 @@ import MapClient from '@/components/map/MapClient'
 import { BUSAN_PASS_MAP_CENTER, busanPassMapPlaces } from '@/data/busan/pass-map/places'
 
 const categoryLabels = {
-  spot: '價格高',
-  free: '價格中',
-  food: '價格低',
-  hotel: '住宿',
+  spot: '\u50f9\u683c\u9ad8',
+  free: '\u50f9\u683c\u4e2d',
+  food: '\u50f9\u683c\u4f4e',
+  hotel: '\u4f4f\u5bbf',
 }
 
 export default function BusanPassMapPage() {
@@ -21,9 +21,9 @@ export default function BusanPassMapPage() {
       defaultCategories={{ spot: true, free: true, food: true, hotel: false }}
       categoryLabels={categoryLabels}
       categoryItems={[
-        { key: 'spot', label: '價格高' },
-        { key: 'free', label: '價格中' },
-        { key: 'food', label: '價格低' },
+        { key: 'spot', label: '\u50f9\u683c\u9ad8' },
+        { key: 'free', label: '\u50f9\u683c\u4e2d' },
+        { key: 'food', label: '\u50f9\u683c\u4f4e' },
       ]}
       officialPassTierItems={[
         { key: 'purple', label: '紫色/A區景點' },

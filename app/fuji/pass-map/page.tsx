@@ -5,10 +5,10 @@ import { FUJI_PASS_MAP_CENTER, fujiPassMapPlaces } from '@/data/fuji/pass-map/pl
 import { fujiPassMapRoutes } from '@/data/fuji/pass-map/routes'
 
 const categoryLabels = {
-  spot: '觀光/遊覽船',
-  free: '溫泉優惠',
-  food: '飲食購物',
-  hotel: '住宿',
+  spot: '\u89c0\u5149/\u904a\u89bd\u8239',
+  free: '\u6eab\u6cc9\u512a\u60e0',
+  food: '\u98f2\u98df\u8cfc\u7269',
+  hotel: '\u4f4f\u5bbf',
 }
 
 export default function FujiPassMapPage() {
@@ -24,9 +24,9 @@ export default function FujiPassMapPage() {
       defaultCategories={{ spot: true, free: true, food: true, hotel: false }}
       categoryLabels={categoryLabels}
       categoryItems={[
-        { key: 'spot', label: '觀光/遊覽船' },
-        { key: 'free', label: '溫泉優惠' },
-        { key: 'food', label: '飲食購物' },
+        { key: 'spot', label: '\u89c0\u5149/\u904a\u89bd\u8239' },
+        { key: 'free', label: '\u6eab\u6cc9\u512a\u60e0' },
+        { key: 'food', label: '\u98f2\u98df\u8cfc\u7269' },
       ]}
       routeLayers={fujiPassMapRoutes}
       topActions={[

@@ -6,6 +6,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-tsutenkaku-dive-walk',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '通天閣 Dive＆Walk 600元',
     description: '現場換票、人多、短裙和涼鞋(X)。',
     lat: 34.6529838,
@@ -46,6 +47,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-umeda-sky-building',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '梅田蓝天大厦 眺望台 400元',
     description: '15:00前免費；15:00後打9折。',
     lat: 34.7054375,
@@ -86,6 +88,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-dotonbori-sightseeing-boat',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '道頓堀水上觀光船 400元',
     description: '傍晚以後的航班可能提前售完，可白天前去兌換，限換當日票，乘船時間20分鐘。',
     lat: 34.6691432,
@@ -110,6 +113,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-wonder-cruise',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '觀光遊艇 Wonder Cruise 400元',
     description: '可先線上預約，現場換票，乘船時間20分鐘。',
     lat: 34.6689201,
@@ -142,6 +146,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-aqualiner',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪水上巴士Aqualiner 400元',
     description: '現場兌換票券，乘船時間55分鐘。',
     lat: 34.6895858,
@@ -166,6 +171,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-santa-maria',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '觀光帆船 聖瑪麗亞號 360元/460元',
     description: '分成白天和黃昏時段，現場出示QR code，無需換票，乘船時間45分鐘。',
     lat: 34.6549492,
@@ -214,6 +220,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-castle-gozabune',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪城御座船 360元',
     description: '現場兌換票券，乘船時間20分鐘。',
     lat: 34.6892386,
@@ -238,6 +245,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-captain-line',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '船長線(Captain Line) 340元',
     description: '現場兌換票券，乘船時間10分鐘。',
     lat: 34.6538174,
@@ -278,6 +286,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-hachikenya-hama-pier',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '八軒家濱碼頭 320元',
     description: '現場換票，乘船時間25分鐘。',
     lat: 34.6907302,
@@ -294,6 +303,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-okawa-sakura-cruise',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大川櫻花遊覽船 300元',
     description: '現場兌換票券，乘船時間25分鐘。',
     lat: 34.6905625,
@@ -310,6 +320,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-kinutani-koji-sky-art-museum',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '絹谷幸二 天空美術館 260元',
     description: '位在梅田高樓中的美術館，結合繪畫與城市景觀。',
     lat: 34.705319,
@@ -358,6 +369,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-glion-museum',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'Glion Museum 260元',
     description: '以經典車款與復古倉庫氛圍為主題的汽車博物館。',
     lat: 34.6516558,
@@ -390,6 +402,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-tsutenkaku-observatory',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '通天閣 一般展望台 240元',
     description: '新世界經典展望台，可眺望大阪南區街景。',
     lat: 34.6524992,
@@ -430,6 +443,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-castle',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪城 天守閣 240元',
     description: '大阪代表城郭景點，可看天守閣展示與市區景色。',
     lat: 34.6872571,
@@ -478,6 +492,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-sakishima-cosmo-tower',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '咲洲宇宙塔展望台 240元',
     description: '大阪灣區高樓展望台，視野開闊適合看港灣夜景。',
     lat: 34.6380795,
@@ -518,6 +533,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-wheel',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'OSAKA WHEEL摩天輪 200元',
     description: '日本最高級別摩天輪之一，可俯瞰萬博與北大阪景色。',
     lat: 34.8063356,
@@ -542,6 +558,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-tower-slider',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'Tower Slider 滑梯 200元',
     description: '通天閣的透明滑梯體驗，適合想玩刺激路線的人。',
     lat: 34.652455,
@@ -574,6 +591,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-shinsekai-zaza-comedy',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'Shinsekai ZAZA Comedy 200元',
     description: '新世界小劇場演出，能感受大阪在地娛樂氣氛。',
     lat: 34.6518376,
@@ -598,6 +616,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-kaiyodo-figure-museum',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '海洋堂公仔博物館 200元',
     description: '收藏動漫與模型公仔，適合喜歡角色玩具的人。',
     lat: 34.6855553,
@@ -630,6 +649,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-tempozan-ferris-wheel',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '天保山大摩天輪 180元',
     description: '大阪港旁的大摩天輪，可順遊海遊館與天保山商場。',
     lat: 34.6562686,
@@ -670,6 +690,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-hep-five-ferris-wheel',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'HEP FIVE 摩天輪 160元',
     description: '梅田商場頂樓紅色摩天輪，交通方便又好拍。',
     lat: 34.7038153,
@@ -718,6 +739,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-shitennoji',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '四天王寺 160元',
     description: '大阪歷史悠久的寺院，可看五重塔與庭園景色。',
     lat: 34.6544581,
@@ -734,6 +756,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-yagura-special-opening',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '重要文化遺產 YAGURA特別公開 160元',
     description: '特別公開的大阪城櫓建築，適合喜歡城郭史的人。',
     lat: 34.68565,
@@ -750,6 +773,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-kamigata-ukiyoe-museum',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '上方浮世繪館 140元',
     description: '展示浮世繪與上方文化，位在難波鬧區很順路。',
     lat: 34.6679395,
@@ -782,6 +806,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-museum-of-housing-and-living',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪生活今昔館 120元',
     description: '重現大阪昔日街景與生活樣貌，適合雨天室內行程。',
     lat: 34.7103406,
@@ -822,6 +847,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-history-museum',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪歷史博物館 120元',
     description: '用展覽串起大阪從古代到近代的城市故事，常設展免費。',
     lat: 34.6826141,
@@ -846,6 +872,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-entrepreneurial-museum',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪企業家博物館 100元',
     description: '介紹關西企業家與商業發展，適合商業文化小旅行。',
     lat: 34.684036,
@@ -862,6 +889,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-tennoji-zoo',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪市天王寺動物園 100元',
     description: '天王寺公園內的動物園，親子行程安排很方便。',
     lat: 34.6510957,
@@ -902,6 +930,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-sakuya-konohana-kan',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '鮮花競放館 100元',
     description: '大型溫室植物園，能欣賞世界各地花卉與熱帶植物。',
     lat: 34.7100434,
@@ -918,6 +947,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-city-museum-of-fine-arts',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪市立美術館 原100元',
     description: '常設展免費。',
     lat: 34.650116,
@@ -934,6 +964,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-national-museum-of-art',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '國立國際美術館 80元',
     description: '入場只限收藏展。',
     lat: 34.6917819,
@@ -974,6 +1005,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-keitakuen-garden',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '慶澤園 60元',
     description: '天王寺公園旁的日式庭園，適合短暫散步休息。',
     lat: 34.6496571,
@@ -1014,6 +1046,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-museum-of-natural-history',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪市立自然史博物館 60元',
     description: '展示恐龍、昆蟲與自然標本，適合親子與自然迷。',
     lat: 34.6104087,
@@ -1038,6 +1071,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-nagai-botanical-garden',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪市立長居植物園 60元',
     description: '長居公園內的大型植物園，四季都有不同花景。',
     lat: 34.6123152,
@@ -1062,6 +1096,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-sakai-risho-no-mori',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '堺利晶之杜 60元',
     description: '認識千利休、與謝野晶子和堺市歷史文化的展館。',
     lat: 34.576015,
@@ -1086,6 +1121,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-osaka-international-peace-center',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪和平館 50元',
     description: '以和平與戰爭記憶為主題的小型資料館。',
     lat: 34.6817756,
@@ -1102,6 +1138,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-nishinomaru-garden',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大阪城 西之丸庭園 40元',
     description: '大阪城旁的開闊庭園，春季賞櫻特別受歡迎。',
     lat: 34.6867809,
@@ -1126,6 +1163,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-sakai-city-museum',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '堺市博物館 40元',
     description: '介紹堺市歷史、古墳文化與地方工藝的博物館；免費入場限常設展、企劃展。',
     lat: 34.558964,
@@ -1142,6 +1180,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-free-expo-commemorative-park',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '萬博紀念公園 52元',
     description: '太陽之塔所在的大型公園，適合散步、拍照與親子行程。',
     lat: 34.8083595,
@@ -1166,6 +1205,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-legoland-discovery-center',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '大阪樂高樂園 660元(視情況)',
     description: '謝絕只有成人(16歲以上)或只有兒童(15歲以下)的入場；指定日子免費入場，其餘日子折500日圓。',
     lat: 34.656179,
@@ -1214,6 +1254,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-ninja-trick-house',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'NINJA Trick House 折100元(原200元)',
     description: '體驗費用 1,000 日圓改為 500 日圓。',
     lat: 34.6654848,
@@ -1230,6 +1271,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-nakanoshima-river-cruise',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '中之島觀光船 折100元(原400元)',
     description: '成人票價折價 500 日圓。',
     lat: 34.6934173,
@@ -1254,6 +1296,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-solaniwa-onsen',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '空庭溫泉 折60元(原約600元)',
     description: '入場費享九折(消費稅、入湯稅另計)。',
     lat: 34.6703579,
@@ -1302,6 +1345,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-spa-world',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'Spa World 適泊溫泉大世界 折40元(原300元)',
     description: '入館費成人200日圓折扣、兒童100日圓折扣。',
     lat: 34.6498479,
@@ -1334,6 +1378,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-nani-wonder-bus',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '大阪觀光巴士Nani Wonder 折40元(原400元)',
     description: '行駛時間1小時，大人折價200日圓、兒童折價100日圓。',
     lat: 34.7026874,
@@ -1374,6 +1419,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-harukas-300',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'Harukas300展望台 折40元(原400元)',
     description: '入場費九折（無法與其他折扣併用）。',
     lat: 34.6463062,
@@ -1422,6 +1468,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-yamamoto-noh-theater',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '山本能樂堂 打9折(原價格不一定)',
     description: '指定演出當天票價享九折優待特典。',
     lat: 34.683942,
@@ -1438,6 +1485,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-osaka-castle-road-train',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '大阪城 Road Train & Electric Car 折40元(原200元)',
     description: '1 day券享200日圓折扣。',
     lat: 34.6833493,
@@ -1454,6 +1502,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-dotonbori-ferris-wheel',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '唐吉軻德 摩天輪 折20元(原200元)',
     description: '搭乘費用折價 100 日圓。',
     lat: 34.6692407,
@@ -1470,6 +1519,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-amagasaki-castle',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '尼崎城 折20元(原100元)',
     description: '入城費享八折優待特典。',
     lat: 34.7166785,
@@ -1486,6 +1536,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-natural-history-special-exhibition',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '自然史博物館特別展 折20元(原100元)',
     description: '特別展當日門票享100日圓折扣。',
     lat: 34.6104087,
@@ -1502,6 +1553,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-osaka-hyakusei-xr',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '歷史見證型 XR 大阪百世 送貼紙(付300元)',
     description: '凡體驗過 XR 的訪客，可獲贈「大阪百世」原創貼紙五枚組。',
     lat: 34.7103406,
@@ -1518,6 +1570,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-nifrel',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '水生美世界 NIFREL 送徽章',
     description: 'NIFREL 入館的客人贈送徽章。',
     lat: 34.8063187,
@@ -1558,6 +1611,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-discount-abeno-harukas-art-museum',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'Abeno Harukas Art Museum (視情況打折)',
     description: '將展覽參觀費用改為團體優惠價格。',
     lat: 34.6463189,
@@ -1582,6 +1636,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-kyk-hankyu-32',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: 'KYK炸豬排 阪急32番街店',
     description: '可享用餐九折優待特典。',
     lat: 34.7032817,
@@ -1596,6 +1651,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-kyk-hankyu-sanbangai',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: 'KYK炸豬排 阪急三番街店',
     description: '可享用餐九折優待特典。',
     lat: 34.7044674,
@@ -1610,6 +1666,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-kyk-nankai',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: 'KYK炸豬排 南海店',
     description: '可享用餐九折優待特典。',
     lat: 34.6631895,
@@ -1624,6 +1681,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-kyk-namba',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: 'KYK炸猪排 難波店',
     description: '可享用餐九折優待特典。',
     lat: 34.6650808,
@@ -1638,6 +1696,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-daiki-suisan-dotonbori',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '大起水產回轉壽司 道頓堀店',
     description: '享受餐飲費九折優待特典（必須出示大阪周遊卡）。',
     lat: 34.6685919,
@@ -1652,6 +1711,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-baisendo',
     category: 'food',
+    plannerCategory: 'shop',
     name: '梅仙堂',
     description: '享受總金額九折優待特典。',
     lat: 34.7053012,
@@ -1666,6 +1726,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-suika-kyk-abeno-harukas',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '粹花KYK阿倍野HARUKAS美食街店',
     description: '可享用餐九折優待特典。',
     lat: 34.645848,
@@ -1680,6 +1741,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-kyk-keihan-kyobashi',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: 'KYK 炸豬排 京阪京橋店',
     description: '可享用餐九折優待特典。',
     lat: 34.6972614,
@@ -1694,6 +1756,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-osaka-joiner',
     category: 'food',
+    plannerCategory: 'shop',
     name: 'Osaka JOINER Guide ＆ Tour Base',
     description: '正常導覽費九折。',
     lat: 34.6670677,
@@ -1708,6 +1771,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-kawaii-osaka',
     category: 'food',
+    plannerCategory: 'shop',
     name: 'KAWAII OSAKA',
     description: '商品販賣 8,000 日圓以上、出租 1day 以上方案享九折。',
     lat: 34.6695493,
@@ -1722,6 +1786,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-cocos-4-studio',
     category: 'food',
+    plannerCategory: 'shop',
     name: 'Cocos 4 Studio',
     description: '享七折優待特典。',
     lat: 34.6003722,
@@ -1736,6 +1801,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-kanadaya',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '難波拉麵一座「金田家」',
     description: '購買一碗拉麵贈送配料。',
     lat: 34.6656673,
@@ -1750,6 +1816,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-tsuruhashi-fugetsu-ebisubashi',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '鶴橋風月 戎橋店',
     description: '由部分菜單中免費贈送 1 道（每組限用 1 張優待特典券，限店內飲食）。',
     lat: 34.6686477,
@@ -1764,6 +1831,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-ek-chuah-karahori',
     category: 'food',
+    plannerCategory: 'shop',
     name: 'Ek Chuah 空堀「藏」本店',
     description: '消費滿 2,000 日圓贈送小禮物。',
     lat: 34.6752335,
@@ -1778,6 +1846,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-gotochi-namba',
     category: 'food',
+    plannerCategory: 'shop',
     name: 'GOTO－CHI難波店',
     description: '結帳金額享九五折。',
     lat: 34.6670827,
@@ -1792,6 +1861,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-edogawa-namba-walk',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '江戶川 難波WALK店',
     description: '結帳金額滿 3,300 日圓以上享九五折優待特典。',
     lat: 34.6669733,
@@ -1806,6 +1876,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-mmya',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '黑毛和牛純肉燒肉 M.M.ya',
     description: '購買 1 人份以上拼盤餐點，可享大阪啤酒 1 杯免費，並贈送牛肋燒肉 80g 1 盤。',
     lat: 34.6683894,
@@ -1820,6 +1891,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-edogawa-abeno-harukas',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '江戶川 阿倍野HARUKAS餐廳店',
     description: '結帳金額滿 3,300 日圓以上享九五折優待特典。',
     lat: 34.6459442,
@@ -1834,6 +1906,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-ganko-tempozan',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: 'GANKO天保山店',
     description: '每 1 張大阪周遊卡贈送 1 杯軟性飲品。',
     lat: 34.6557159,
@@ -1848,6 +1921,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-tsuruhashi-fugetsu-tempozan',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '鶴橋風月 天保山店',
     description: '由部分菜單中免費贈送 1 道（每組限用 1 張優待特典券，限店內飲食）。',
     lat: 34.6559232,
@@ -1862,6 +1936,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-takoyaki-market',
     category: 'food',
+    plannerCategory: 'restaurant',
     name: '大阪章魚燒市場',
     description: '購買章魚燒的顧客可享 1 杯飲料半價（含酒精飲料）。',
     lat: 34.7037666,
@@ -1876,6 +1951,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-arai-kimono',
     category: 'food',
+    plannerCategory: 'shop',
     name: '荒井吳服店',
     description: 'MY 木屐製作一般價格折扣 500 日圓。',
     lat: 34.6142076,
@@ -1890,6 +1966,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-teradazono-chaho',
     category: 'food',
+    plannerCategory: 'shop',
     name: '寺田園茶舖',
     description: '日本茶比較組一般價格 500 日圓改為 300 日圓。',
     lat: 34.6141958,
@@ -1904,6 +1981,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-atc',
     category: 'food',
+    plannerCategory: 'shop',
     name: '亞洲太平洋貿易中心（ATC）',
     description: '於 ITM 棟 2 樓綜合服務處贈送「OTOKU～PON」店舖優惠券（10:00～18:00）。',
     lat: 34.6371269,
@@ -1918,6 +1996,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
   {
     id: 'osaka-pass-shop-expocity',
     category: 'food',
+    plannerCategory: 'shop',
     name: 'EXPOCITY',
     description: '可至 LaLaport EXPOCITY 2F 中央遊客服務處／免稅櫃台領取 2026 年度特殊優惠券。',
     lat: 34.805489,

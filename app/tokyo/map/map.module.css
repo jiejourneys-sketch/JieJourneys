@@ -207,6 +207,7 @@
 }
 
 .mapShell {
+  position: relative;
   flex: 1;
   min-height: 220px;
   border-radius: 14px;
@@ -234,6 +235,51 @@
   color: var(--muted);
   line-height: 1.55;
   background: var(--bg);
+}
+
+.mapLegend {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  padding: 8px 10px;
+  border: 1px solid rgba(31, 122, 140, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.mapLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+  transform: translateY(-1px);
+}
+
+.mapLegendBreak {
+  flex-basis: 100%;
+  width: 100%;
+  height: 1px;
+  margin: 1px 0;
+  background: rgba(31, 122, 140, 0.12);
+}
+
+.mapLegendDot {
+  width: 10px;
+  height: 10px;
+  border: 1px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
 }
 
 .listColumn {
@@ -646,6 +692,55 @@
   .mapFallback {
     min-height: 0;
     height: 100%;
+  }
+
+  .mapLegend {
+    top: 70px;
+    right: auto;
+    bottom: auto;
+    left: 8px;
+    display: inline-block;
+    width: auto;
+    max-width: calc(100% - 16px);
+    padding: 5px 8px;
+    border: 1px solid rgba(31, 122, 140, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.93);
+    box-shadow: 0 2px 9px rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(8px);
+    line-height: 1.4;
+  }
+
+  .mapLegendItem {
+    display: inline-flex;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 10px;
+    vertical-align: middle;
+  }
+
+  .mapLegend[data-map-prefix='busanpassmap'],
+  .mapLegend[data-map-prefix='fujipassmap'] {
+    top: 82px;
+  }
+
+  .mapLegendItem + .mapLegendItem {
+    margin-left: 7px;
+  }
+
+  .mapLegendBreak {
+    display: block;
+    height: 1px;
+    margin: 4px 0;
+    background: rgba(31, 122, 140, 0.1);
+  }
+
+  .mapLegendDot {
+    width: 9px;
+    height: 9px;
   }
 
   .mobileSheet {

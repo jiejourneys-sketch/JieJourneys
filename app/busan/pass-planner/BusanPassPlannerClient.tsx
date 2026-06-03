@@ -241,6 +241,7 @@ function plannerPlaceCategory(
   place: MapPlace,
   categoryItems: { key: CityMapPlaceCategory; label: string }[],
 ) {
+  if (place.plannerCategory) return place.plannerCategory
   return semanticPlannerCategory(place.category, categoryItems)
 }
 
@@ -249,7 +250,7 @@ function plannerMarkerColor(category: CityMapPlaceCategory) {
   if (category === 'restaurant') return '#f97316'
   if (category === 'shop') return '#111827'
   if (category === 'food') return '#0f9d58'
-  if (category === 'hotel') return '#7c3aed'
+  if (category === 'hotel') return '#8b5e34'
   return '#1f7a8c'
 }
 
@@ -258,6 +259,78 @@ function plannerLegendColor(item: { key: CityMapPlaceCategory; label: string }) 
   if (item.label.includes('價格中')) return '#ffea00'
   if (item.label.includes('價格低')) return '#0f9d58'
   return plannerMarkerColor(item.key)
+}
+
+function plannerMarkerColorName(color: string, context = '') {
+  if (context.includes('osaka')) {
+    switch (color.toLowerCase()) {
+      case '#ff5252':
+        return '免費高'
+      case '#ffea00':
+        return '免費中'
+      case '#0f9d58':
+        return '免費低'
+      case '#757575':
+        return '優惠較好'
+      case '#bdbdbd':
+        return '優惠普通'
+      default:
+        return '標記色'
+    }
+  }
+  switch (color.toLowerCase()) {
+    case '#ff5252':
+      return '價格高'
+    case '#ffea00':
+      return '價格中'
+    case '#0f9d58':
+      return '價格低'
+    case '#616161':
+    case '#757575':
+      return '高價值優惠'
+    case '#9e9e9e':
+    case '#bdbdbd':
+      return '低價值優惠'
+    case '#8e24aa':
+      return '紫色標記'
+    case '#1e88e5':
+      return '藍色標記'
+    default:
+      return '標記色'
+  }
+}
+
+function plannerMarkerLegendOrder(category: CityMapPlaceCategory, color: string, usesSourceMarkerColor: boolean) {
+  if (usesSourceMarkerColor) {
+    const colorOrder: Record<string, number> = {
+      '#ff5252': 10,
+      '#ffea00': 20,
+      '#0f9d58': 30,
+      '#616161': 40,
+      '#757575': 40,
+      '#9e9e9e': 50,
+      '#bdbdbd': 50,
+    }
+    return colorOrder[color.toLowerCase()] ?? 90
+  }
+  if (category === 'ticket' || category === 'spot' || category === 'free') return 100
+  if (category === 'restaurant') return 110
+  if (category === 'shop' || category === 'food') return 120
+  if (category === 'hotel') return 130
+  return 140
+}
+
+function plannerMarkerLegendLabel(
+  category: CityMapPlaceCategory,
+  color: string,
+  usesSourceMarkerColor: boolean,
+  categoryLabels: Partial<Record<CityMapPlaceCategory, string>>,
+  categoryItems: { key: CityMapPlaceCategory; label: string }[],
+  context = '',
+) {
+  if (usesSourceMarkerColor) return plannerMarkerColorName(color, context)
+  if (category === 'ticket' || category === 'spot' || category === 'free') return '票券/景點'
+  return plannerCategoryLabel(category, categoryLabels, categoryItems)
 }
 
 function plannerPlaceColor(
@@ -278,6 +351,15 @@ function plannerPinDataUrl(fillHex: string) {
     <path fill="${fillHex}" stroke="#ffffff" stroke-width="1.75" stroke-linejoin="round" d="M15 4.5c-4.1 0-7.4 3.3-7.4 7.4 0 5.6 7.4 14 7.4 14s7.4-8.4 7.4-14c0-4.1-3.3-7.4-7.4-7.4z"/>
     <circle cx="15" cy="10.8" r="2.45" fill="#ffffff"/>
   </g>
+</svg>`
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(raw.replace(/\s+/g, ' ').trim())}`
+}
+
+function plannerHotelMarkerDataUrl() {
+  const raw = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 38 38">
+  <path fill="#8b5e34" stroke="#ffffff" stroke-width="4" d="M5 17h28v18H5z"/>
+  <path fill="#b7793f" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" d="M3 17L19 8l16 9"/>
+  <rect x="14" y="24" width="10" height="11" rx="1.5" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"/>
 </svg>`
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(raw.replace(/\s+/g, ' ').trim())}`
 }
@@ -317,6 +399,7 @@ function plannerMarkerIcon(
   maps: typeof google.maps,
   order: number | null,
   color: string,
+  category: CityMapPlaceCategory,
 ): google.maps.Icon | google.maps.Symbol {
   if (order) {
     return {
@@ -326,6 +409,13 @@ function plannerMarkerIcon(
       fillOpacity: 1,
       strokeColor: '#ffffff',
       strokeWeight: 3,
+    }
+  }
+  if (category === 'hotel') {
+    return {
+      scaledSize: new maps.Size(34, 34),
+      anchor: new maps.Point(17, 32),
+      url: plannerHotelMarkerDataUrl(),
     }
   }
   return {
@@ -2072,16 +2162,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     return plannedDays[dayView - 1]?.places ?? plannedPlaces
   }, [dayView, plannedDays, plannedPlaces])
   const mapLegendItems = useMemo(() => {
-    const hasTicket = config.categoryItems.some((item) => item.key === 'ticket')
-    const hasSpot = config.categoryItems.some((item) => item.key === 'spot')
     const items: { key: string; categoryKey: CityMapPlaceCategory; label: string; color: string; group: 'value' | 'category' }[] = []
     const shownCategories = new Set<CityMapPlaceCategory>()
 
-    if (hasTicket && hasSpot) {
-      items.push({ key: 'ticket-spot', categoryKey: 'spot', label: '票券/景點', color: plannerMarkerColor('spot'), group: 'category' })
-      shownCategories.add('ticket')
-      shownCategories.add('spot')
-    }
 
     config.categoryItems.forEach((item) => {
       if (shownCategories.has(item.key)) return
@@ -2175,6 +2258,69 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return true
     })
   }, [allPlaces, categoryOn, customCategoryItems, customOnly, plannerCategoryItems, tier])
+
+  const mapMarkerLegendItems = useMemo(() => {
+    const items: {
+      key: string
+      categoryKey: CityMapPlaceCategory
+      label: string
+      color: string
+      group: 'marker' | 'category'
+      order: number
+    }[] = []
+    const shown = new Set<string>()
+    const legendPlaces = mode === 'order' && visiblePlannedPlaces.length > 0 ? visiblePlannedPlaces : filteredPlaces
+
+    legendPlaces.forEach((place) => {
+      const itemsForPlace = isCustomPlaceId(place.id) && customCategoryItems.length > 0 ? customCategoryItems : plannerCategoryItems
+      const category = plannerPlaceCategory(place, itemsForPlace)
+      const color = plannerPlaceColor(place, itemsForPlace)
+      const usesSourceMarkerColor = Boolean(place.markerColor)
+      const label = plannerMarkerLegendLabel(
+        category,
+        color,
+        usesSourceMarkerColor,
+        categoryLabels,
+        itemsForPlace,
+        config.eventPrefix,
+      )
+      const key = `${color.toLowerCase()}-${label}`
+      if (shown.has(key)) return
+
+      items.push({
+        key,
+        categoryKey: category,
+        label,
+        color,
+        group: usesSourceMarkerColor ? 'marker' : 'category',
+        order: plannerMarkerLegendOrder(category, color, usesSourceMarkerColor),
+      })
+      shown.add(key)
+    })
+
+    if (items.length > 0) return items.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, 'zh-Hant'))
+
+    const fallbackSeen = new Set<string>()
+    return plannerCategoryItems
+      .map((item) => {
+        const color = plannerLegendColor(item)
+        const label = plannerMarkerLegendLabel(item.key, color, false, categoryLabels, plannerCategoryItems, config.eventPrefix)
+        return {
+          key: `${color.toLowerCase()}-${label}`,
+          categoryKey: item.key,
+          label,
+          color,
+          group: 'category' as const,
+          order: plannerMarkerLegendOrder(item.key, color, false),
+        }
+      })
+      .filter((item) => {
+        if (fallbackSeen.has(item.key)) return false
+        fallbackSeen.add(item.key)
+        return true
+      })
+      .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, 'zh-Hant'))
+  }, [categoryLabels, config.eventPrefix, customCategoryItems, filteredPlaces, mode, plannerCategoryItems, visiblePlannedPlaces])
 
   const customPlaceMatches = useMemo(() => {
     const normalizedDraftName = normalizePlaceMatchText(customDraft.name)
@@ -2619,6 +2765,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           maps,
           showOrderMarker ? Number(orderLabel) : null,
           plannerPlaceColor(place, markerCategoryItems),
+          category,
         ),
       )
       marker.setLabel(
@@ -3793,11 +3940,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           <div className={styles.mapColumn}>
             <div className={styles.mapShell}>
               {mapError ? <div className={styles.mapFallback}>{mapError}</div> : <div ref={mapElRef} className={styles.mapCanvas} />}
-              {validPlanIds.length > 0 ? (
+              {mapMarkerLegendItems.length > 0 ? (
                 <div className={styles.mapLegend} aria-label="地圖分類說明">
-                  {mapLegendItems.map((item, index) => (
+                  {mapMarkerLegendItems.map((item, index) => (
                     <Fragment key={item.key}>
-                      {index > 0 && item.group !== mapLegendItems[index - 1]?.group ? (
+                      {index > 0 && item.group !== mapMarkerLegendItems[index - 1]?.group ? (
                         <span className={styles.mapLegendBreak} aria-hidden="true" />
                       ) : null}
                       <span className={styles.mapLegendItem}>

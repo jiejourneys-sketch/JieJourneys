@@ -18,6 +18,11 @@ export default function FujiMapPage() {
         { key: 'free', label: '景點' },
         { key: 'hotel', label: '住宿' },
       ]}
+      categoryLabels={{
+        spot: '\u7968\u5238',
+        free: '\u666f\u9ede',
+        hotel: '\u4f4f\u5bbf',
+      }}
       topActions={[
         {
           label: '票券',

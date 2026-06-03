@@ -5,6 +5,7 @@ import type { CityMapPlaceCategory } from '@/lib/cityMapPlaceCategory'
 export type MapPlace = {
   id: string
   category: CityMapPlaceCategory
+  plannerCategory?: CityMapPlaceCategory
   name: string
   description: string
   lat: number

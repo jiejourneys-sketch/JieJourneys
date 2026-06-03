@@ -67,6 +67,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-daeyoung-taekwondo',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '大榮 跆拳道 1100元',
     description: '體驗韓國跆拳道文化與動作課程，適合想安排特色活動的人。',
     lat: 35.1380507,
@@ -90,6 +91,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-dadaepo-surfers',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '衝浪者 多大浦店 770元',
     description: '多大浦海邊的衝浪體驗據點，適合搭配海岸線行程。',
     lat: 35.0486824,
@@ -105,6 +107,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-lotte-world-adventure',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '釜山樂天世界冒險樂園 752元',
     description: '機張大型主題樂園，雲霄飛車與室內外遊樂設施都適合排半天。',
     lat: 35.196245,
@@ -121,6 +124,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-skyline-luge',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'Skyline Luge Busan 752元',
     description: '斜坡滑車體驗，位在東釜山樂園區，常和樂天世界排同區。',
     lat: 35.194057,
@@ -137,6 +141,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-diamond-bay-yacht',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '鑽石灣遊艇碼頭 714元',
     description: '從水上欣賞廣安大橋與海岸夜景的遊艇體驗，傍晚和夜間很受歡迎。',
     lat: 35.13277,
@@ -154,6 +159,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-songjeong-surfers',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '衝浪者 松亭店 660元',
     description: '松亭海水浴場附近的衝浪體驗，適合安排東釜山海邊行程。',
     lat: 35.1799607,
@@ -177,6 +183,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-club-d-oasis',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'Club D Oasis 623元',
     description: '海雲台 LCT 附近的水上樂園與汗蒸幕設施，雨天備案也好用。',
     lat: 35.160051,
@@ -193,6 +200,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-city-tour-bus',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '釜山觀光旅遊巴士 574元',
     description: '串連釜山市區與海岸景點的觀光巴士，適合第一次到釜山快速認路。',
     lat: 35.1145037,
@@ -208,6 +216,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-diaegg-escape-room',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'DiAegg 密室逃脫 541元',
     description: '西面一帶的室內密室逃脫體驗，適合多人同行或雨天安排。',
     lat: 35.1541563,
@@ -231,6 +240,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-haeundae-hanbok',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '海雲台韓服（韓服租借店）473元',
     description: '海雲台周邊韓服租借點，可搭配海邊散步或拍照行程。',
     lat: 35.1628089,
@@ -246,6 +256,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-x-the-sky',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: 'BUSAN X the SKY 455元',
     description: '海雲台 LCT 高樓展望台，可俯瞰海雲台、廣安大橋與城市海景。',
     lat: 35.159848,
@@ -262,6 +273,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-high-songdo-cable-car',
     category: 'spot',
+    plannerCategory: 'ticket',
     name: '松島海上纜車 454元',
     description: '跨越松島海面的纜車，可眺望海岸、天空步道與南港大橋。',
     lat: 35.0763876,
@@ -279,6 +291,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-spa-land',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'SPA LAND Centum City 442元',
     description: '新世界百貨內的人氣汗蒸幕與溫泉設施，適合購物行程中安排放鬆。',
     lat: 35.168234,
@@ -295,6 +308,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-songdo-laser-tag',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '松島雷射槍競技場 390元',
     description: '松島周邊的室內雷射槍遊戲，適合朋友或親子一起玩。',
     lat: 35.0767082,
@@ -310,6 +324,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-museum-1',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'MUSEUM 1 388元',
     description: '以大型媒體藝術和沉浸式展覽為主的美術館，適合雨天或拍照行程。',
     lat: 35.171329,
@@ -326,6 +341,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-running-man',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'Running Man 釜山 348元',
     description: '以韓綜 Running Man 為主題的互動闖關體驗，適合朋友和親子。',
     lat: 35.152888,
@@ -342,6 +358,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-hill-spa',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'HILL SPA 323元',
     description: '海雲台附近的汗蒸幕與溫泉設施，適合海邊行程後休息。',
     lat: 35.158469,
@@ -358,6 +375,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-flipbook-studio',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'Flipbook Studio 301元',
     description: '可製作翻頁動畫或拍攝紀念作品的體驗型工作室。',
     lat: 35.0987476,
@@ -391,6 +409,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-samjeong-tower-laser-tag',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'Samjeong Tower 雷射槍競技場 300元',
     description: '西面 Samjeong Tower 內的室內娛樂設施，適合穿插逛街行程。',
     lat: 35.1529425,
@@ -406,6 +425,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-red-brick-campus',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '釜山紅磚校園 290元',
     description: '紅磚建築與校園風格場景，適合安排拍照或輕鬆散步。',
     lat: 35.193429,
@@ -421,6 +441,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-hotel-aqua-palace',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'Hotel Aqua Palace 260元',
     description: '廣安里附近的飯店水療與泳池設施，可搭配海邊行程使用。',
     lat: 35.154079,
@@ -436,6 +457,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-cheolsu-younghee-hanbok',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '哲秀與英熙(甘川洞韓服租借）258元',
     description: '甘川文化村附近韓服租借，適合搭配彩色村落拍照。',
     lat: 35.097319,
@@ -452,6 +474,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-gamcheon-romantic-hanbok',
     category: 'free',
+    plannerCategory: 'ticket',
     name: '甘川浪漫韩服 258元',
     description: '甘川文化村周邊韓服體驗店，可換裝後在村落巷弄拍照。',
     lat: 35.0969954,
@@ -467,6 +490,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-ibgogage-hanbok',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'ibgogage（韓服租借店）258元',
     description: '甘川文化村附近韓服租借點，適合想拍韓服照片的旅人。',
     lat: 35.0983995,
@@ -491,6 +515,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-mid-arte-museum',
     category: 'free',
+    plannerCategory: 'ticket',
     name: 'ARTE MUSEUM Busan 258元',
     description: '沉浸式媒體藝術展館，適合拍照、雨天備案或安排室內景點。',
     lat: 35.087068,
@@ -507,6 +532,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-busan-tower',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '釜山塔 233元',
     description: '龍頭山公園內的釜山代表展望台，可俯瞰南浦洞與港口景色。',
     lat: 35.101193,
@@ -523,6 +549,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-movie-experience-museum',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '釜山電影體驗博物館 220元',
     description: '以電影製作與釜山影像文化為主題的互動型博物館。',
     lat: 35.101702,
@@ -538,6 +565,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-blueline-park-mipo',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '海雲台藍線公園 尾浦站 海岸列車 172元',
     description: '沿海行駛的藍線公園海岸列車，串連尾浦、青沙浦與松亭方向。',
     lat: 35.158284,
@@ -555,6 +583,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-ahopsan-forest',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '九頭山竹林 170元',
     description: '以竹林與自然景觀為主的戶外景點，位置較遠，適合順路安排。',
     lat: 35.287147,
@@ -570,6 +599,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-nakdong-river-eco-boat',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '洛東江生態探訪船 150元',
     description: '搭船欣賞洛東江濕地與自然生態，適合想看不同釜山風景的人。',
     lat: 35.109748,
@@ -585,6 +615,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-national-maritime-museum',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '國立海洋博物館 108元',
     description: '展示海洋文化、船舶與海洋生態的博物館，適合親子與室內行程。',
     lat: 35.078326,
@@ -600,6 +631,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-taejongdae-bus',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '太宗台巴士站 65元',
     description: '太宗台園區內接駁車據點，可省下步行時間遊覽海岸景觀。',
     lat: 35.059848,
@@ -616,6 +648,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-national-science-museum',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '國立釜山科學館 65元',
     description: '以科學展示與互動體驗為主的親子景點，位在東釜山方向。',
     lat: 35.204688,
@@ -631,6 +664,7 @@ const basePlaces: BusanPassMapBasePlace[] = [
   {
     id: 'busan-pass-low-songdo-yonggung-cloud-bridge',
     category: 'food',
+    plannerCategory: 'ticket',
     name: '松島龍宮空中步道 22元',
     description: '松島海邊的透明步道與海景散步點，常和松島纜車一起安排。',
     lat: 35.061897,
