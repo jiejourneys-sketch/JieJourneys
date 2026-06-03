@@ -2087,7 +2087,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     { type: 'plan' | 'custom'; placeId: string } | { type: 'day'; itemId: string } | null
   >(null)
   const [recentlyAddedPlaceId, setRecentlyAddedPlaceId] = useState<string | null>(null)
-  const [printOpen, setPrintOpen] = useState(false)
+  const [pdfDownloading, setPdfDownloading] = useState(false)
   const [shareSaving, setShareSaving] = useState(false)
   const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
   const [plannerBookReadToken, setPlannerBookReadToken] = useState<string | null>(null)
@@ -3644,6 +3644,84 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     void saveAndSharePlan()
   }, [plannerBookId, readOnlyPlan, saveAndSharePlan, shareSaving])
 
+  const handleDownloadPdf = useCallback(async () => {
+    if (pdfDownloading || plannedPlaces.length === 0) return
+    setPdfDownloading(true)
+    try {
+      const days = plannedDays.map((day, dayIndex) => ({
+        title: `DAY ${dayIndex + 1}`,
+        stops: day.items
+          .flatMap((item, placeIndex) => {
+            const place = planItemPlace(item, placeById)
+            if (!place) return []
+            const pdfCategoryItems =
+              isCustomPlaceId(place.id) && customCategoryItems.length > 0 ? customCategoryItems : plannerCategoryItems
+            const naverUrl = naverMapUrl(place)
+            const rawLinks = [
+              { label: 'Google Maps', href: googleMapsPinUrl(place) },
+              ...(naverUrl ? [{ label: 'Naver', href: naverUrl }] : []),
+              ...plannerActionLinks(place).map((link) => ({ label: link.label, href: link.href })),
+              ...(placeUserLinks[place.id] ?? []),
+            ]
+            const seenLinks = new Set<string>()
+            const links = rawLinks
+              .map((link) => ({ label: link.label.trim(), href: printLinkHref(link.href) }))
+              .filter((link) => {
+                if (!link.label || !link.href) return false
+                const key = `${link.label}::${link.href}`
+                if (seenLinks.has(key)) return false
+                seenLinks.add(key)
+                return true
+              })
+
+            return [
+              {
+                order: placeIndex + 1,
+                name: plannerPlaceName(place),
+                category: plannerCategoryLabel(
+                  plannerPlaceCategory(place, pdfCategoryItems),
+                  categoryLabels,
+                  pdfCategoryItems,
+                ),
+                color: plannerPlaceColor(place, pdfCategoryItems),
+                note: placeNotes[item]?.trim() || undefined,
+                links,
+              },
+            ]
+          }),
+      }))
+
+      const { downloadPlannerPdf } = await import('./plannerPdf')
+      await downloadPlannerPdf({
+        title: printTravelTitle(config.shareTitle),
+        updatedAt: plannerBookUpdatedAt ? formatPlannerUpdatedAt(plannerBookUpdatedAt) : undefined,
+        days,
+      })
+      trackPlannerEvent('download_pdf', {
+        day_count: days.length,
+        plan_count: plannedPlaces.length,
+      })
+      setOpenPlannerMenu(null)
+    } catch (error) {
+      console.error(error)
+      alert('PDF 產生失敗，請稍後再試一次')
+    } finally {
+      setPdfDownloading(false)
+    }
+  }, [
+    categoryLabels,
+    config.shareTitle,
+    customCategoryItems,
+    pdfDownloading,
+    placeById,
+    placeNotes,
+    placeUserLinks,
+    plannedDays,
+    plannedPlaces.length,
+    plannerBookUpdatedAt,
+    plannerCategoryItems,
+    trackPlannerEvent,
+  ])
   const confirmUpdateSharedPlan = useCallback(() => {
     if (shareSaving) return
     void (async () => {
@@ -4386,8 +4464,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               </button>
                             </>
                           ) : null}
-                          <button type="button" onClick={() => setPrintOpen(true)} disabled={plannedPlaces.length === 0}>
-                            列印 / 存 PDF
+                          <button type="button" onClick={handleDownloadPdf} disabled={plannedPlaces.length === 0 || pdfDownloading}>
+                            {pdfDownloading ? 'PDF 產生中...' : '下載 PDF'}
                           </button>
                         </div>
                         ) : null}
@@ -4461,126 +4539,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           </aside>
         </section>
         )}
-
-        {printOpen ? (
-          <div className={styles.printBackdrop} role="presentation" onClick={() => setPrintOpen(false)}>
-            <section
-              className={styles.printSheet}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="print-plan-title"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className={styles.printToolbar}>
-                <button type="button" className={styles.confirmSecondary} onClick={() => setPrintOpen(false)}>
-                  關閉
-                </button>
-                <button type="button" className={styles.confirmPrimary} onClick={() => window.print()}>
-                  列印 / 存 PDF
-                </button>
-              </div>
-              <article className={styles.printPage}>
-                <header className={styles.printHeader}>
-                  <div className={styles.printHeaderMain}>
-                    <h2 id="print-plan-title">{printTravelTitle(config.shareTitle)}</h2>
-                  </div>
-                  <div className={styles.printStats}>
-                    <span>{plannedDays.length} 天行程</span>
-                    <span>{plannedPlaces.length} 個地點</span>
-                    {plannerBookUpdatedAt ? <span>最後更新 {formatPlannerUpdatedAt(plannerBookUpdatedAt)}</span> : null}
-                  </div>
-                </header>
-                {false ? (
-                <section className={styles.printOverview} aria-label="行程總覽">
-                  <div>
-                    <p>Trip Overview</p>
-                    <h3>行程總覽</h3>
-                  </div>
-                  <div className={styles.printOverviewGrid}>
-                    {plannedDays.map((day, dayIndex) => (
-                      <div key={day.divider ?? `print-overview-day-${dayIndex + 1}`} className={styles.printOverviewCard}>
-                        <strong>DAY {dayIndex + 1}</strong>
-                        <span>
-                          {day.places
-                            .slice(0, 4)
-                            .map((place) => plannerPlaceName(place))
-                            .join('、')}
-                          {day.places.length > 4 ? ` 等 ${day.places.length} 個地點` : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-                ) : null}
-                <div className={styles.printDays}>
-                  {plannedDays.map((day, dayIndex) => (
-                    <section key={day.divider ?? `print-day-${dayIndex + 1}`} className={styles.printDay}>
-                      <div className={styles.printDayHeader}>
-                        <h3>DAY {dayIndex + 1}</h3>
-                        <span>{day.places.length} stops</span>
-                      </div>
-                      <div className={styles.printPlaceList}>
-                        {day.items.map((item, placeIndex) => {
-                          const place = planItemPlace(item, placeById)
-                          if (!place) return null
-                          const links = plannerActionLinks(place)
-                          const userLinks = placeUserLinks[place.id] ?? []
-                          const note = placeNotes[item]?.trim()
-                          const printLinks = [
-                            { label: 'Google Maps', href: googleMapsPinUrl(place) },
-                            ...(naverMapUrl(place) ? [{ label: 'Naver', href: naverMapUrl(place)! }] : []),
-                            ...links,
-                            ...userLinks,
-                          ]
-                          const printCategoryItems =
-                            isCustomPlaceId(place.id) && customCategoryItems?.length
-                              ? customCategoryItems
-                              : plannerCategoryItems
-                          return (
-                            <article
-                              key={item}
-                              className={styles.printPlaceCard}
-                              style={
-                                {
-                                  '--print-category-color': plannerPlaceColor(place, printCategoryItems),
-                                } as CSSProperties
-                              }
-                            >
-                              <div className={styles.printPlaceNumber}>{placeIndex + 1}</div>
-                              <div className={styles.printPlaceContent}>
-                                <div className={styles.printPlaceTitleRow}>
-                                  <h4>{plannerPlaceName(place)}</h4>
-                                  <span className={styles.printTag}>
-                                    {plannerCategoryLabel(
-                                      plannerPlaceCategory(place, printCategoryItems),
-                                      categoryLabels,
-                                      printCategoryItems,
-                                    )}
-                                  </span>
-                                </div>
-                                <div className={styles.printLinks}>
-                                  {printLinks.map((link, index) => (
-                                    <a
-                                      key={`${link.label}-${link.href}-${index}`}
-                                      href={printLinkHref(link.href)}
-                                    >
-                                      {link.label}
-                                    </a>
-                                  ))}
-                                </div>
-                                {note ? <p className={styles.printNote}>{note}</p> : null}
-                              </div>
-                            </article>
-                          )
-                        })}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              </article>
-            </section>
-          </div>
-        ) : null}
 
         {pendingAddPlace ? (
           <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingAddPlace(null)}>
