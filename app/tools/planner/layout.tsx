@@ -4,11 +4,11 @@ import type { ReactNode } from 'react'
 const PLANNER_URL = 'https://www.jiejourneys.com/tools/planner'
 const OG_IMAGE = 'https://www.jiejourneys.com/assets/og-share.png'
 const description =
-  '旅杰行程（JieJourneys Planner）是一款免費的自由行行程規劃工具，可整理景點、住宿、美食餐廳、交通資訊、備註與 Google 地圖連結，輕鬆規劃日本、韓國、越南等旅遊行程，並快速分享給朋友或手機查看。'
+  '旅杰規劃（JieJourneys Planner）是一款免費的自由行行程規劃工具，適合自助旅行前整理景點、票券、住宿、美食餐廳、商店、交通資訊、備註與 Google 地圖連結。可以從旅杰地圖帶入目的地資料，也能自行新增想去的地點、拖曳排序每日路線、儲存分享給朋友或手機查看，幫助日本、韓國、越南等自由行更快完成行前規劃。'
 
 export const metadata: Metadata = {
   metadataBase: new URL(PLANNER_URL),
-  title: '旅杰行程｜JieJourneys Planner',
+  title: '旅杰規劃｜JieJourneys Planner',
   description,
   alternates: {
     canonical: PLANNER_URL,
@@ -22,13 +22,13 @@ export const metadata: Metadata = {
     type: 'website',
     url: PLANNER_URL,
     siteName: 'JieJourneys',
-    title: '旅杰行程｜JieJourneys Planner',
+    title: '旅杰規劃｜JieJourneys Planner',
     description,
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: '旅杰行程 JieJourneys Planner' }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: '旅杰規劃 JieJourneys Planner' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: '旅杰行程｜JieJourneys Planner',
+    title: '旅杰規劃｜JieJourneys Planner',
     description,
     images: [OG_IMAGE],
   },

@@ -3927,9 +3927,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           <section className={styles.unavailableState} aria-label="行程連結失效">
             <p>行程連結已失效</p>
             <h2>這個行程已刪除或連結不存在</h2>
-            <span>請回到旅杰行程重新建立排序，或使用最新儲存後產生的分享連結。</span>
+            <span>請回到旅杰規劃重新建立排序，或使用最新儲存後產生的分享連結。</span>
             <div className={styles.unavailableActions}>
-              <a href={config.headerBackHref}>回到行程工具</a>
+              <a href={config.headerBackHref}>回到旅杰規劃</a>
               <button type="button" onClick={() => window.history.back()}>
                 回上一頁
               </button>

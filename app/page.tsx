@@ -85,7 +85,7 @@ export default function HomePage() {
               data-event="home_tools_planner"
               data-item="tool"
             >
-              {'\u65c5\u6770\u884c\u7a0b'}
+              {'\u65c5\u6770\u898f\u5283'}
             </a>
             <PromoLink
               href="https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys"

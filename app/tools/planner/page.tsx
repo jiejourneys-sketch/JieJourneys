@@ -462,7 +462,7 @@ export default function ToolsPlannerPage() {
           <section className={`${styles.panel} ${styles.unavailablePanel}`} aria-label="行程連結狀態">
             <p className={styles.eyebrow}>行程連結已失效</p>
             <h1>{unavailablePlanner.countryName}行程不存在</h1>
-            <p className={styles.lead}>這個行程已刪除，或分享連結已經失效。請回到行程工具重新建立排序。</p>
+            <p className={styles.lead}>這個行程已刪除，或分享連結已經失效。請回到旅杰規劃重新建立排序。</p>
             <div className={styles.unavailableActions}>
               <button
                 type="button"
@@ -473,7 +473,7 @@ export default function ToolsPlannerPage() {
                   setCountryInput(unavailablePlanner.countryName)
                 }}
               >
-                回到行程工具
+                回到旅杰規劃
               </button>
               <button type="button" className={styles.secondaryAction} onClick={() => window.history.back()}>
                 回上一頁
@@ -538,7 +538,7 @@ export default function ToolsPlannerPage() {
       <main className={styles.page}>
         <section className={styles.panel} aria-label="建立通用行程排序">
         <p className={styles.eyebrow}>JieJourneys Planner</p>
-        <h1>旅杰行程</h1>
+        <h1>旅杰規劃</h1>
         <p className={styles.lead}>輸入目的地，開始排行程。</p>
 
         <label className={styles.field}>
@@ -629,7 +629,7 @@ export default function ToolsPlannerPage() {
             <p>
               你現在在 {inAppBrowserName(inAppBrowser)} 內建瀏覽器。建立行程時，建議先複製連結到 {preferredBrowserName()} 開啟，資料比較不容易因為 App 關閉而消失。
             </p>
-            <p>複製的是行程工具入口，不是已儲存行程連結。</p>
+            <p>複製的是旅杰規劃入口，不是已儲存行程連結。</p>
             <div className={styles.confirmActions}>
               <button type="button" className={styles.promptPrimary} onClick={copyInAppPromptLink}>
                 {inAppPromptCopied ? '已複製' : '複製連結'}
