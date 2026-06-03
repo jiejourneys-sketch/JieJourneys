@@ -328,19 +328,24 @@
 }
 
 .rowSpot .sectionTitle {
-  color: #1f7a8c;
+  color: #2563eb;
 }
 
 .rowHotel .sectionTitle {
-  color: #c2410c;
+  color: #8b5e34;
 }
 
 .rowFree .sectionTitle {
-  color: #15803d;
+  color: #2563eb;
 }
 
+.rowRestaurant .sectionTitle {
+  color: #f97316;
+}
+
+.rowShop .sectionTitle,
 .rowFood .sectionTitle {
-  color: #2563eb;
+  color: #111827;
 }
 
 .sectionLabel {
@@ -462,13 +467,15 @@
 }
 
 .catPill {
+  --category-pill-color: var(--cta);
   display: inline-block;
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 6px;
-  background: #f0f9fb;
-  color: var(--cta);
+  border: 1px solid color-mix(in srgb, var(--category-pill-color) 26%, transparent);
+  background: color-mix(in srgb, var(--category-pill-color) 10%, #ffffff);
+  color: color-mix(in srgb, var(--category-pill-color) 74%, #0f172a);
   margin-bottom: 4px;
 }
 
@@ -491,6 +498,21 @@
   padding: 2px 8px;
   font-size: 11px;
   font-weight: 700;
+  line-height: 1.45;
+}
+
+.markerValuePill {
+  --marker-value-color: #1f7a8c;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--marker-value-color) 30%, transparent);
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--marker-value-color) 10%, #ffffff);
+  color: color-mix(in srgb, var(--marker-value-color) 74%, #0f172a);
+  font-size: 11px;
+  font-weight: 800;
   line-height: 1.45;
 }
 

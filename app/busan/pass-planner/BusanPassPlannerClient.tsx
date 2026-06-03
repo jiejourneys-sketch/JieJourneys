@@ -265,11 +265,11 @@ function plannerMarkerColorName(color: string, context = '') {
   if (context.includes('osaka')) {
     switch (color.toLowerCase()) {
       case '#ff5252':
-        return '免費高'
+        return '價值高'
       case '#ffea00':
-        return '免費中'
+        return '價值中'
       case '#0f9d58':
-        return '免費低'
+        return '價值低'
       case '#757575':
         return '優惠較好'
       case '#bdbdbd':

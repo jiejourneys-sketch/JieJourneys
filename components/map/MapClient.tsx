@@ -102,7 +102,8 @@ function useSiteHeaderHeightPx() {
 function cityMapSectionRowClass(category: CityMapPlaceCategory) {
   if (category === 'ticket' || category === 'spot') return styles.rowSpot
   if (category === 'free') return styles.rowFree
-  if (category === 'restaurant' || category === 'shop' || category === 'food') return styles.rowFood
+  if (category === 'restaurant') return styles.rowRestaurant
+  if (category === 'shop' || category === 'food') return styles.rowShop
   if (category === 'hotel') return styles.rowHotel
   return styles.rowFree
 }
@@ -163,11 +164,11 @@ function cityMapLegendColorName(color: string, context: string) {
   if (context.includes('osakapassmap')) {
     switch (color.toLowerCase()) {
       case '#ff5252':
-        return '免費高'
+        return '價值高'
       case '#ffea00':
-        return '免費中'
+        return '價值中'
       case '#0f9d58':
-        return '免費低'
+        return '價值低'
       case '#757575':
         return '優惠較好'
       case '#bdbdbd':
@@ -228,6 +229,23 @@ function cityMapLegendLabel(
   if (context.includes('passmap')) return categoryLabels[category]
   if (category === 'ticket' || category === 'spot' || category === 'free') return '票券/景點'
   return categoryLabels[category]
+}
+
+function cityMapMarkerValueLabel(
+  place: MapPlace,
+  categoryLabels: Record<CityMapPlaceCategory, string>,
+  context: string,
+) {
+  if (!place.markerColor) return null
+  const valueLabel = cityMapLegendColorName(place.markerColor, context)
+  if (valueLabel === '標記') return null
+  if (valueLabel === categoryLabels[place.category]) return null
+  return valueLabel
+}
+
+function cityMapCategoryPillStyle(place: MapPlace, context: string): CSSProperties | undefined {
+  if (context.includes('osakapassmap')) return undefined
+  return { '--category-pill-color': place.markerColor ?? cityMapLegendDefaultColor(place.category) } as CSSProperties
 }
 
 function relatedTicketButtonLabel(place: MapPlace): string {
@@ -351,6 +369,7 @@ function MapPlaceCard({
       : place.officialPassTier === 'blue'
         ? '藍色/B區景點'
         : null
+  const markerValueLabel = cityMapMarkerValueLabel(place, categoryLabels, gtagPrefix)
 
   return (
     <article
@@ -375,7 +394,14 @@ function MapPlaceCard({
     >
       <div>
         <div className={styles.mapCardPills}>
-          <span className={styles.catPill}>{categoryLabels[place.category]}</span>
+          <span className={styles.catPill} style={cityMapCategoryPillStyle(place, gtagPrefix)}>
+            {categoryLabels[place.category]}
+          </span>
+          {markerValueLabel ? (
+            <span className={styles.markerValuePill} style={{ '--marker-value-color': place.markerColor } as CSSProperties}>
+              {markerValueLabel}
+            </span>
+          ) : null}
           {officialPassTierLabel ? (
             <span className={`${styles.officialTierPill} ${styles[`officialTierPill_${place.officialPassTier}`]}`}>
               {officialPassTierLabel}
