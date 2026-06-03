@@ -37,6 +37,10 @@ type RecentPlanner = {
   updatedAt?: string
 }
 
+type PlannerBookMeta = {
+  city?: string
+}
+
 const GENERIC_CENTER = { lat: 23.8, lng: 121.0 }
 const RECENT_PLANNERS_KEY = 'jiejourneys:tools-planner:recent:v1'
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
@@ -161,6 +165,29 @@ function slugifyCountry(value: string) {
   )
 }
 
+function customRegionFromUrl(regionKey: string, countryName: string): PlannerRegion {
+  const key = regionKey.trim() || slugifyCountry(countryName) || 'custom'
+  const label = countryName.trim() || key
+  return {
+    key,
+    label,
+    shortLabel: label,
+    center: GENERIC_CENTER,
+    places: [],
+    zoom: 7,
+  }
+}
+
+async function fetchPlannerBookMeta(plannerId: string, readToken: string): Promise<PlannerBookMeta | null> {
+  const query = readToken ? `v=${encodeURIComponent(readToken)}` : `id=${encodeURIComponent(plannerId)}`
+  const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
+  if (!res.ok) return null
+  const data = (await res.json()) as { city?: unknown }
+  return {
+    city: typeof data.city === 'string' && data.city.trim() ? data.city.trim() : undefined,
+  }
+}
+
 export default function ToolsPlannerPage() {
   const [countryInput, setCountryInput] = useState('')
   const [preferredSource, setPreferredSource] = useState<PlannerSource>('map')
@@ -203,12 +230,11 @@ export default function ToolsPlannerPage() {
         if (plannerId || readToken) {
           setCheckingSharedPlanner(true)
           ;(async () => {
-            const query = readToken ? `v=${encodeURIComponent(readToken)}` : `id=${encodeURIComponent(plannerId)}`
             try {
-              const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
+              const book = await fetchPlannerBookMeta(plannerId, readToken)
               if (cancelled) return
               setCheckingSharedPlanner(false)
-              if (!res.ok) {
+              if (!book) {
                 setUnavailablePlanner({ countryName: region.shortLabel })
                 setStarted(null)
                 return
@@ -244,8 +270,53 @@ export default function ToolsPlannerPage() {
         })
         return
       }
+      if (shouldLoadSharedPlan && regionKey) {
+        const startCustomSharedPlanner = (book?: PlannerBookMeta | null) => {
+          const countryName = book?.city || regionKey
+          const customRegion = customRegionFromUrl(regionKey, countryName)
+          setUnavailablePlanner(null)
+          setStarted({
+            region: customRegion,
+            loadKnownPlaces: false,
+            countryName,
+            source,
+            plannerId: plannerId || undefined,
+            readToken: readToken || undefined,
+          })
+        }
+
+        if (plannerId || readToken) {
+          setCheckingSharedPlanner(true)
+          ;(async () => {
+            try {
+              const book = await fetchPlannerBookMeta(plannerId, readToken)
+              if (cancelled) return
+              setCheckingSharedPlanner(false)
+              if (!book) {
+                setUnavailablePlanner({ countryName: regionKey })
+                setStarted(null)
+                return
+              }
+              startCustomSharedPlanner(book)
+            } catch {
+              if (cancelled) return
+              setCheckingSharedPlanner(false)
+              setUnavailablePlanner({ countryName: regionKey })
+              setStarted(null)
+            }
+          })()
+          return () => {
+            cancelled = true
+          }
+        }
+
+        startCustomSharedPlanner()
+        return
+      }
       if (region) {
         setCountryInput(region.shortLabel)
+      } else if (regionKey) {
+        setCountryInput(regionKey)
       }
       setCheckingSharedPlanner(false)
 
