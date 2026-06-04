@@ -2849,3 +2849,559 @@
     color: #1f7a8c;
   }
 }
+
+.addTransportButton {
+  align-self: stretch;
+  position: relative;
+  margin: -4px 38px 0 38px;
+  border: none;
+  padding: 3px 0;
+  background: transparent;
+  color: var(--cta);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  opacity: 0.78;
+}
+
+.addTransportButton::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(31, 122, 140, 0.18);
+}
+
+.addTransportButton span {
+  position: relative;
+  display: inline-flex;
+  border: 1px solid rgba(31, 122, 140, 0.18);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #ffffff;
+}
+
+.addTransportButton:hover {
+  opacity: 1;
+}
+
+.transportItem {
+  width: 100%;
+}
+
+.transportCard {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  gap: 8px;
+  align-items: start;
+  border: 1px solid rgba(31, 122, 140, 0.18);
+  border-radius: 8px;
+  padding: 8px 6px 8px 0;
+  background: #f8fcfd;
+  touch-action: pan-y;
+}
+
+.transportDragHandle,
+.transportRemoveButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: var(--cta);
+  font-family: inherit;
+  font-weight: 900;
+  cursor: grab;
+  touch-action: none;
+}
+
+.transportRemoveButton {
+  color: #64748b;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.transportMain {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.transportHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.transportHeader a {
+  color: var(--cta);
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.transportFields {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: 7px;
+}
+
+.transportFields label {
+  display: grid;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.transportFields input,
+.transportFields select {
+  width: 100%;
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  border-radius: 7px;
+  padding: 6px 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.transportFields input:focus,
+.transportFields select:focus {
+  border-color: var(--cta);
+  box-shadow: 0 0 0 2px rgba(31, 122, 140, 0.1);
+}
+
+.transportWideField {
+  grid-column: 1 / -1;
+}
+
+
+.transportActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.transportActions button {
+  border: 1px solid rgba(31, 122, 140, 0.24);
+  border-radius: 7px;
+  padding: 5px 10px;
+  background: #ffffff;
+  color: var(--cta);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.transportActions button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.transportCardCompact {
+  align-items: center;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.transportSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.transportSummaryActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.transportSummaryActions a,
+.transportSummaryActions button {
+  border: none;
+  background: transparent;
+  color: var(--cta);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.transportCard .transportMain {
+  gap: 5px;
+}
+
+.transportCard .transportFields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.transportCard .transportFields label {
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.transportCard .transportFields input,
+.transportCard .transportFields select {
+  min-height: 30px;
+  padding: 5px 7px;
+}
+
+.transportCard .transportWideField {
+  grid-column: 1 / -1;
+}
+
+.transportActions > span {
+  margin-right: auto;
+}
+
+.transportSummary {
+  align-items: flex-start;
+}
+
+.transportSummaryText {
+  display: -webkit-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.transportSummaryActions {
+  align-self: flex-start;
+  white-space: nowrap;
+}
+
+.notePreview {
+  min-width: 0;
+  max-width: 100%;
+  -webkit-line-clamp: 2;
+}
+
+.noteEditRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.noteEditRow textarea {
+  height: 42px;
+  min-height: 42px;
+}
+
+.noteEditRow button {
+  align-self: stretch;
+  min-width: 92px;
+  border: 1px solid var(--cta);
+  border-radius: 8px;
+  padding: 5px 10px;
+  background: var(--cta);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.noteEditRow button:disabled {
+  border-color: rgba(31, 122, 140, 0.18);
+  background: #eef6f7;
+  color: #8aa5ad;
+  cursor: default;
+}
+
+.transportSummaryText {
+  flex: 1 1 auto;
+  width: 0;
+}
+
+.transportSummaryActions {
+  flex: 0 0 auto;
+}
+
+.transportCard .transportFields {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+}
+
+.transportCard .transportFields label {
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 5px;
+}
+
+@media (max-width: 720px) {
+  .noteEditRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.transportCard .transportFields {
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.38fr);
+}
+
+.transportCard .transportFields label {
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 4px;
+}
+
+.transportCard .transportFields input,
+.transportCard .transportFields select,
+.transportCard .transportFields textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.transportCard .transportFields textarea {
+  height: 58px;
+  min-height: 58px;
+  resize: vertical;
+  line-height: 1.35;
+  padding: 7px 8px;
+}
+
+.noteEditRow textarea,
+.noteBox textarea {
+  height: 58px;
+  min-height: 58px;
+  line-height: 1.35;
+}
+
+@media (max-width: 720px) {
+  .transportCard .transportFields {
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.42fr);
+  }
+
+  .transportCard .transportFields label {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .transportCard .transportFields input,
+  .transportCard .transportFields select,
+  .transportCard .transportFields textarea {
+    font-size: 15px;
+  }
+}
+
+.noteEditRow {
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.noteEditRow textarea,
+.noteBox textarea {
+  box-sizing: border-box;
+  height: 58px;
+  min-height: 58px;
+  line-height: 1.35;
+  resize: vertical;
+}
+
+.noteEditActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 5px;
+  min-width: 0;
+}
+
+.noteEditActions button {
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 7px;
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.notePrimaryAction {
+  grid-column: 1 / -1;
+  border: 1px solid var(--cta);
+  background: var(--cta);
+  color: #ffffff;
+}
+
+.notePrimaryAction:disabled {
+  border-color: rgba(31, 122, 140, 0.18);
+  background: #eef6f7;
+  color: #8aa5ad;
+  cursor: default;
+}
+
+.noteSecondaryAction {
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  background: #ffffff;
+  color: var(--cta);
+}
+
+.noteDangerAction {
+  border: 1px solid rgba(185, 66, 66, 0.28);
+  background: #fff7f7;
+  color: #a64040;
+}
+
+.transportCard .transportFields {
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.22fr);
+  gap: 6px 8px;
+}
+
+.transportCard .transportFields label {
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.transportCard .transportFields input,
+.transportCard .transportFields select,
+.transportCard .transportFields textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.transportCard .transportFields input,
+.transportCard .transportFields select {
+  min-height: 32px;
+  padding: 5px 7px;
+}
+
+.transportCard .transportFields select {
+  padding-right: 4px;
+}
+
+.transportCard .transportFields textarea {
+  height: 58px;
+  min-height: 58px;
+  padding: 7px 8px;
+  resize: vertical;
+}
+
+.transportCard .transportFields input::placeholder,
+.transportCard .transportFields textarea::placeholder {
+  color: #6b7280;
+  font-weight: 800;
+  opacity: 0.82;
+}
+
+@media (max-width: 720px) {
+  .noteEditRow {
+    grid-template-columns: minmax(0, 1fr) 94px;
+  }
+
+  .noteEditActions button {
+    font-size: 10.5px;
+  }
+
+  .transportCard .transportFields {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.24fr);
+    gap: 6px;
+  }
+
+  .transportCard .transportFields label {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 5px;
+    font-size: 11.5px;
+  }
+
+  .transportCard .transportFields input,
+  .transportCard .transportFields select,
+  .transportCard .transportFields textarea {
+    font-size: 13px;
+  }
+}
+
+.noteEditActions button:nth-child(2):last-child {
+  grid-column: 1 / -1;
+}
+
+.transportCardCompact {
+  align-items: center;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.transportCardCompact .transportMain {
+  gap: 0;
+  min-height: 0;
+}
+
+.transportCardCompact .transportSummary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 30px;
+  gap: 10px;
+  line-height: 1.28;
+}
+
+.transportCardCompact .transportSummaryText {
+  align-self: center;
+  display: -webkit-box;
+  min-width: 0;
+  width: auto;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.transportCardCompact .transportSummaryActions {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .transportCardCompact {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .transportCardCompact .transportSummary {
+    min-height: 28px;
+    gap: 8px;
+  }
+}

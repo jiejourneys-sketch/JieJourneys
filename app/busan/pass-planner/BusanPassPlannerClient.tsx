@@ -45,6 +45,8 @@ type TierFilter = NonNullable<MapPlace['officialPassTier']> | 'all'
 type FocusSource = 'marker' | 'list'
 type InAppBrowser = 'instagram' | 'line' | 'facebook' | null
 type PlannerItem = string
+type TransportMode = 'walk' | 'subway' | 'bus' | 'train' | 'taxi' | 'car' | 'custom'
+type TransportInfo = { id: string; mode: TransportMode; customLabel: string; duration: string; note: string; href: string }
 type DayView = 'all' | number
 type CustomPlannerLink = { label: string; href: string }
 type PlannerUserLink = CustomPlannerLink
@@ -121,6 +123,25 @@ const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:'
 const DAY_ITEM_PREFIX = 'day:'
 const VISIT_ITEM_PREFIX = 'visit:'
 const CUSTOM_PLACE_PREFIX = 'custom:'
+const TRANSPORT_ITEM_PREFIX = 'transport:'
+const TRANSPORT_MODE_LABELS: Record<TransportMode, string> = {
+  walk: '步行',
+  subway: '地鐵',
+  bus: '公車',
+  train: '火車',
+  taxi: '計程車',
+  car: '租車',
+  custom: '自訂',
+}
+const TRANSPORT_MODE_OPTIONS: { key: TransportMode; label: string }[] = [
+  { key: 'walk', label: '步行' },
+  { key: 'subway', label: '地鐵' },
+  { key: 'bus', label: '公車' },
+  { key: 'train', label: '火車' },
+  { key: 'taxi', label: '計程車' },
+  { key: 'car', label: '租車' },
+  { key: 'custom', label: '自訂' },
+]
 const DAY_ROUTE_COLORS = ['#1f7a8c', '#f97316', '#7c3aed', '#16a34a', '#db2777', '#0f766e']
 
 const emptyCustomPlaceDraft: CustomPlaceDraft = {
@@ -1031,8 +1052,64 @@ function isVisitItem(item: PlannerItem) {
   return item.startsWith(VISIT_ITEM_PREFIX)
 }
 
+function isTransportItem(item: PlannerItem) {
+  return item.startsWith(TRANSPORT_ITEM_PREFIX)
+}
+
+function encodeTransportPart(value: string) {
+  return encodeURIComponent(value.trim().slice(0, 500))
+}
+
+function decodeTransportPart(value: string | undefined) {
+  if (!value) return ''
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return ''
+  }
+}
+
+function serializeTransportItem(info: TransportInfo) {
+  return `${TRANSPORT_ITEM_PREFIX}${info.id}|${info.mode}|${encodeTransportPart(info.duration)}|${encodeTransportPart(info.note)}|${encodeTransportPart(info.href)}|${encodeTransportPart(info.customLabel)}`
+}
+
+function createTransportItem(info: Partial<Omit<TransportInfo, 'id'>> = {}) {
+  const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  return serializeTransportItem({
+    id: token,
+    mode: info.mode ?? 'walk',
+    customLabel: info.customLabel ?? '',
+    duration: info.duration ?? '',
+    note: info.note ?? '',
+    href: info.href ?? '',
+  })
+}
+
+function parseTransportItem(item: PlannerItem): TransportInfo | null {
+  if (!isTransportItem(item)) return null
+  const [rawId = '', rawMode = '', rawDuration = '', rawNote = '', rawHref = '', rawCustomLabel = ''] = item.slice(TRANSPORT_ITEM_PREFIX.length).split('|')
+  const mode = TRANSPORT_MODE_OPTIONS.some((option) => option.key === rawMode) ? (rawMode as TransportMode) : 'custom'
+  return {
+    id: rawId || 'transport',
+    mode,
+    customLabel: decodeTransportPart(rawCustomLabel).slice(0, 40),
+    duration: decodeTransportPart(rawDuration).slice(0, 40),
+    note: decodeTransportPart(rawNote).slice(0, 300),
+    href: decodeTransportPart(rawHref).slice(0, 500),
+  }
+}
+
+function transportLabel(info: TransportInfo) {
+  if (info.mode !== 'custom') return TRANSPORT_MODE_LABELS[info.mode]
+  return info.customLabel.trim() || TRANSPORT_MODE_LABELS.custom
+}
+
+function hasSavedTransportDetails(info: TransportInfo) {
+  return Boolean(info.customLabel.trim() || info.duration.trim() || info.note.trim() || info.href.trim() || info.mode !== 'walk')
+}
+
 function planItemPlaceId(item: PlannerItem) {
-  if (isDayItem(item)) return null
+  if (isDayItem(item) || isTransportItem(item)) return null
   if (!isVisitItem(item)) return item
   const separatorIndex = item.indexOf('|')
   return separatorIndex >= 0 ? item.slice(separatorIndex + 1) : null
@@ -1057,7 +1134,7 @@ function normalizePlanItems(items: PlannerItem[], placeById: Map<string, MapPlac
   const seenVisitItems = new Set<string>()
 
   return items.flatMap((item) => {
-    if (isDayItem(item)) return [item]
+    if (isDayItem(item) || isTransportItem(item)) return [item]
 
     const place = planItemPlace(item, placeById)
     if (!place) return []
@@ -1086,6 +1163,7 @@ function encodeSharedPlan(items: PlannerItem[], places: MapPlace[]) {
       if (days[days.length - 1].length > 0) days.push([])
       return
     }
+    if (isTransportItem(item)) return
     const placeId = planItemPlaceId(item)
     const index = placeId ? indexById.get(placeId) : undefined
     if (typeof index === 'number') days[days.length - 1].push(index.toString(36))
@@ -1166,7 +1244,7 @@ async function fetchShortSharedPlan(search: string, placeById: Map<string, MapPl
     ? data.items
         .filter((item): item is string => typeof item === 'string')
         .filter((item) => {
-          if (isDayItem(item)) return true
+          if (isDayItem(item) || isTransportItem(item)) return true
           const placeId = planItemPlaceId(item)
           if (!placeId || (!placeById.has(placeId) && !customPlaceById.has(placeId))) return false
           return true
@@ -1219,7 +1297,7 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
     ? data.items
         .filter((item): item is string => typeof item === 'string')
         .filter((item) => {
-          if (isDayItem(item)) return true
+          if (isDayItem(item) || isTransportItem(item)) return true
           const placeId = planItemPlaceId(item)
           if (!placeId || (!placeById.has(placeId) && !customPlaceById.has(placeId))) return false
           return true
@@ -1324,6 +1402,10 @@ function splitPlanItemsByDay(items: PlannerItem[], placeById: Map<string, MapPla
       days.push({ divider: item, items: [], places: [] })
       return
     }
+    if (isTransportItem(item)) {
+      days[days.length - 1].items.push(item)
+      return
+    }
     const place = planItemPlace(item, placeById)
     if (place) {
       days[days.length - 1].items.push(item)
@@ -1331,72 +1413,6 @@ function splitPlanItemsByDay(items: PlannerItem[], placeById: Map<string, MapPla
     }
   })
   return days.filter((day) => day.places.length > 0)
-}
-
-function sortPlanItemsByNearestNeighbor(items: PlannerItem[], placeById: Map<string, MapPlace>) {
-  const entries = items
-    .map((item) => {
-      const place = planItemPlace(item, placeById)
-      return place ? { item, place } : null
-    })
-    .filter(Boolean) as { item: PlannerItem; place: MapPlace }[]
-
-  if (entries.length <= 2) return entries.map((entry) => entry.item)
-
-  const sorted = [entries[0]]
-  const remaining = entries.slice(1)
-
-  while (remaining.length > 0) {
-    const current = sorted[sorted.length - 1]
-    let nearestIndex = 0
-    let nearestDistance = Number.POSITIVE_INFINITY
-
-    remaining.forEach((entry, index) => {
-      const distance = distanceKm(current.place, entry.place)
-      if (distance < nearestDistance) {
-        nearestDistance = distance
-        nearestIndex = index
-      }
-    })
-
-    const [next] = remaining.splice(nearestIndex, 1)
-    sorted.push(next)
-  }
-
-  return sorted.map((entry) => entry.item)
-}
-
-function sortPlanItemsWithinDays(items: PlannerItem[], placeById: Map<string, MapPlace>) {
-  const segments: { divider: string | null; ids: string[] }[] = [{ divider: null, ids: [] }]
-  items.forEach((item) => {
-    if (isDayItem(item)) {
-      segments.push({ divider: item, ids: [] })
-      return
-    }
-    if (planItemPlace(item, placeById)) segments[segments.length - 1].ids.push(item)
-  })
-
-  return segments.flatMap((segment) => {
-    const sortedIds = sortPlanItemsByNearestNeighbor(segment.ids, placeById)
-    return segment.divider ? [segment.divider, ...sortedIds] : sortedIds
-  })
-}
-
-function sortPlanItemsWithinSingleDay(items: PlannerItem[], placeById: Map<string, MapPlace>, dayNumber: number) {
-  const segments: { divider: string | null; ids: string[] }[] = [{ divider: null, ids: [] }]
-  items.forEach((item) => {
-    if (isDayItem(item)) {
-      segments.push({ divider: item, ids: [] })
-      return
-    }
-    if (planItemPlace(item, placeById)) segments[segments.length - 1].ids.push(item)
-  })
-
-  return segments.flatMap((segment, index) => {
-    const currentDayNumber = index + 1
-    const nextIds = currentDayNumber === dayNumber ? sortPlanItemsByNearestNeighbor(segment.ids, placeById) : segment.ids
-    return segment.divider ? [segment.divider, ...nextIds] : nextIds
-  })
 }
 
 function insertPlaceIntoDay(items: PlannerItem[], place: MapPlace, dayNumber: number | 'end') {
@@ -1609,6 +1625,15 @@ function SortablePlanItem({
     onNoteChange(draftNote)
     setOpenPanel(null)
   }
+  const cancelNote = () => {
+    setDraftNote(note)
+    setOpenPanel(null)
+  }
+  const deleteNote = () => {
+    onNoteChange('')
+    setDraftNote('')
+    setOpenPanel(null)
+  }
 
   useEffect(() => {
     if (!openPanel) return
@@ -1718,21 +1743,28 @@ function SortablePlanItem({
           {readOnly ? (
             <p className={styles.noteReadOnly}>{note || '沒有備註'}</p>
           ) : (
-            <>
-          <textarea
-            ref={noteTextareaRef}
-            aria-label={`${displayName} 備註`}
-            value={draftNote}
-            maxLength={500}
-            onChange={(event) => setDraftNote(event.target.value)}
-          />
-          <div className={styles.noteActions}>
-            {noteDirty ? <span>尚未儲存</span> : <span aria-hidden />}
-            <button type="button" onClick={saveNote} disabled={!noteDirty}>
-              儲存備註
-            </button>
-          </div>
-            </>
+            <div className={styles.noteEditRow}>
+              <textarea
+                ref={noteTextareaRef}
+                aria-label={`${displayName} 備註`}
+                value={draftNote}
+                maxLength={500}
+                onChange={(event) => setDraftNote(event.target.value)}
+              />
+              <div className={styles.noteEditActions}>
+                <button className={styles.notePrimaryAction} type="button" onClick={saveNote} disabled={!noteDirty}>
+                  儲存
+                </button>
+                <button className={styles.noteSecondaryAction} type="button" onClick={cancelNote}>
+                  取消
+                </button>
+                {note ? (
+                  <button className={styles.noteDangerAction} type="button" onClick={deleteNote}>
+                    刪除
+                  </button>
+                ) : null}
+              </div>
+            </div>
           )}
         </div>
       ) : null}
@@ -1952,6 +1984,146 @@ function PlannerInlineCardLinks({ place }: { place: MapPlace }) {
     </>
   )
 }
+function SortableTransportItem({
+  itemId,
+  info,
+  onChange,
+  onRemove,
+  readOnly,
+}: {
+  itemId: PlannerItem
+  info: TransportInfo
+  onChange: (info: TransportInfo) => void
+  onRemove: () => void
+  readOnly: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: itemId,
+    disabled: readOnly,
+  })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+  const saved = hasSavedTransportDetails(info)
+  const [draft, setDraft] = useState(info)
+  const [editing, setEditing] = useState(!saved)
+  const href = draft.href.trim()
+  const savedHref = info.href.trim()
+  const dirty =
+    draft.mode !== info.mode ||
+    draft.customLabel !== info.customLabel ||
+    draft.duration !== info.duration ||
+    draft.note !== info.note ||
+    draft.href !== info.href
+  const canSave = dirty && !readOnly
+  const summaryParts = [transportLabel(info), info.duration.trim(), info.note.trim()].filter(Boolean)
+
+  const commitDraft = () => {
+    if (readOnly) return
+    onChange({
+      ...draft,
+      customLabel: draft.customLabel.slice(0, 40),
+      duration: draft.duration.slice(0, 40),
+      note: draft.note.slice(0, 300),
+      href: draft.href.slice(0, 500),
+    })
+    setEditing(false)
+  }
+  const updateDraft = (patch: Partial<TransportInfo>) => setDraft((current) => ({ ...current, ...patch }))
+  const collapseEditor = () => {
+    setDraft(info)
+    setEditing(false)
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className={`${styles.transportItem} ${isDragging ? styles.planCardDragging : ''}`}>
+      <article className={`${styles.transportCard} ${!editing ? styles.transportCardCompact : ''}`}>
+        <button className={styles.transportDragHandle} type="button" aria-label="拖曳交通" disabled={readOnly} {...attributes} {...listeners}>
+          <span aria-hidden>☰</span>
+        </button>
+        <div className={styles.transportMain}>
+          {!editing ? (
+            <div className={styles.transportSummary}>
+              <span className={styles.transportSummaryText}>{summaryParts.length > 0 ? summaryParts.join(' · ') : '交通'}</span>
+              <span className={styles.transportSummaryActions}>
+                {savedHref ? (
+                  <a href={savedHref} target="_blank" rel="noopener noreferrer">
+                    導航
+                  </a>
+                ) : null}
+                {!readOnly ? (
+                  <button type="button" onClick={() => setEditing(true)}>
+                    編輯
+                  </button>
+                ) : null}
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className={styles.transportHeader}>
+                <span>{transportLabel(draft)}</span>
+                {href ? (
+                  <a href={href} target="_blank" rel="noopener noreferrer">
+                    導航
+                  </a>
+                ) : null}
+              </div>
+              <div className={styles.transportFields}>
+                <label>
+                  <span>方式</span>
+                  <select value={draft.mode} onChange={(event) => updateDraft({ mode: event.target.value as TransportMode })} disabled={readOnly}>
+                    {TRANSPORT_MODE_OPTIONS.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>時間</span>
+                  <input value={draft.duration} maxLength={40} placeholder="例如 25 分鐘" onChange={(event) => updateDraft({ duration: event.target.value })} readOnly={readOnly} />
+                </label>
+                {draft.mode === 'custom' ? (
+                  <label className={styles.transportWideField}>
+                    <span>交通名稱</span>
+                    <input value={draft.customLabel} maxLength={40} placeholder="例如 Grab、渡輪、包車" onChange={(event) => updateDraft({ customLabel: event.target.value })} readOnly={readOnly} />
+                  </label>
+                ) : null}
+                <label className={styles.transportWideField}>
+                  <span>連結</span>
+                  <input value={draft.href} maxLength={500} placeholder="Google Maps 導航連結" onChange={(event) => updateDraft({ href: event.target.value })} readOnly={readOnly} />
+                </label>
+                <label className={styles.transportWideField}>
+                  <span>備註</span>
+                  <textarea value={draft.note} maxLength={300} placeholder="例如 從 2 號出口走過去" onChange={(event) => updateDraft({ note: event.target.value })} readOnly={readOnly} />
+                </label>
+              </div>
+              {!readOnly ? (
+                <div className={styles.transportActions}>
+                  <span>{dirty ? '尚未儲存' : saved ? '已儲存' : '填寫後請儲存'}</span>
+                  <button type="button" onClick={commitDraft} disabled={!canSave}>
+                    儲存交通
+                  </button>
+                  {saved ? (
+                    <button type="button" onClick={collapseEditor}>
+                      取消
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+        {!readOnly ? (
+          <button className={styles.transportRemoveButton} type="button" onClick={onRemove} aria-label="移除交通">
+            ×
+          </button>
+        ) : null}
+      </article>
+    </div>
+  )
+}
 
 function SortableDayDivider({
   id,
@@ -2080,11 +2252,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false)
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
   const [mobilePanelDragHeight, setMobilePanelDragHeight] = useState<number | null>(null)
-  const [autoSortConfirmOpen, setAutoSortConfirmOpen] = useState(false)
   const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
   const [pendingAddPlace, setPendingAddPlace] = useState<MapPlace | null>(null)
   const [pendingDelete, setPendingDelete] = useState<
-    { type: 'plan' | 'custom'; placeId: string } | { type: 'day'; itemId: string } | null
+    { type: 'plan' | 'custom'; placeId: string } | { type: 'day' | 'transport'; itemId: string } | null
   >(null)
   const [recentlyAddedPlaceId, setRecentlyAddedPlaceId] = useState<string | null>(null)
   const [pdfDownloading, setPdfDownloading] = useState(false)
@@ -2835,7 +3006,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [apiKey, mapCenter, config.mapZoom])
 
   useEffect(() => {
-    if (!mapReady || initialMapFitDoneRef.current) return
+    if (!mapReady || initialMapFitDoneRef.current || allPlaces.length === 0) return
     initialMapFitDoneRef.current = true
     const fitTimer = window.setTimeout(() => {
       fitMapToPlaces(true)
@@ -2844,7 +3015,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     return () => {
       window.clearTimeout(fitTimer)
     }
-  }, [fitMapToPlaces, mapReady])
+  }, [allPlaces.length, fitMapToPlaces, mapReady])
 
   useEffect(() => {
     if (!mapReady) return
@@ -3038,11 +3209,66 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPendingDelete({ type: 'day', itemId })
   }
 
+  const addTransportAfter = (itemId: PlannerItem | null) => {
+    if (readOnlyPlan) return
+    const transportItem = createTransportItem()
+    setMode('order')
+    setOpenPlannerMenu(null)
+    setPlanItems((items) => {
+      const fallbackIndex = (() => {
+        for (let index = items.length - 1; index >= 0; index -= 1) {
+          if (planItemPlace(items[index], placeById)) return index
+        }
+        return -1
+      })()
+      const baseIndex = itemId ? items.indexOf(itemId) : -1
+      if (baseIndex < 0 && fallbackIndex < 0) return items
+      let insertIndex = (baseIndex >= 0 ? baseIndex : fallbackIndex) + 1
+      while (insertIndex < items.length && isTransportItem(items[insertIndex])) {
+        insertIndex += 1
+      }
+      const nextItems = [...items.slice(0, insertIndex), transportItem, ...items.slice(insertIndex)]
+      trackPlannerEvent('add_transport', {
+        plan_count: nextItems.length,
+        plan_code: encodeSharedPlan(nextItems, lookupPlaces),
+      })
+      return nextItems
+    })
+  }
+
+  const addTransportFromMenu = () => {
+    if (readOnlyPlan) return
+    const selectedItem = selectedId ? validPlanItems.find((item) => planItemPlaceId(item) === selectedId) : null
+    addTransportAfter(selectedItem ?? null)
+  }
+
+  const updateTransportItem = (itemId: PlannerItem, info: TransportInfo) => {
+    if (readOnlyPlan) return
+    const nextItem = serializeTransportItem(info)
+    setPlanItems((items) => items.map((item) => (item === itemId ? nextItem : item)))
+  }
+
+  const requestRemoveTransport = (itemId: string) => {
+    if (readOnlyPlan) return
+    const transport = parseTransportItem(itemId)
+    if (!transport || !hasSavedTransportDetails(transport)) {
+      removeTransport(itemId)
+      return
+    }
+    setPendingDelete({ type: 'transport', itemId })
+  }
+
+  const removeTransport = (itemId: string) => {
+    if (readOnlyPlan) return
+    setPlanItems((items) => items.filter((item) => item !== itemId))
+  }
+
   const confirmPendingDelete = () => {
     if (!pendingDelete) return
     if (pendingDelete.type === 'custom') deleteCustomPlace(pendingDelete.placeId)
     else if (pendingDelete.type === 'day') removeDayDivider(pendingDelete.itemId)
-    else removePlace(pendingDelete.placeId)
+    else if (pendingDelete.type === 'transport') removeTransport(pendingDelete.itemId)
+    else if (pendingDelete.type === 'plan') removePlace(pendingDelete.placeId)
     setPendingDelete(null)
   }
 
@@ -3050,7 +3276,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setCustomDraft((draft) => ({ ...draft, picking: false }))
     setMobilePanelOpen(true)
   }
-
   const addDayDivider = () => {
     if (readOnlyPlan) return
     const dividerId = `${DAY_ITEM_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
@@ -3060,8 +3285,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setOpenPlannerMenu(null)
     setMobilePanelOpen(false)
     setPlanItems((items) => {
+      const selectedItem = selectedId ? items.find((item) => planItemPlaceId(item) === selectedId) : null
+      const fallbackIndex = items.length
+      const baseIndex = selectedItem ? items.indexOf(selectedItem) : -1
+      let insertIndex = baseIndex >= 0 ? baseIndex + 1 : fallbackIndex
+      while (insertIndex < items.length && isTransportItem(items[insertIndex])) {
+        insertIndex += 1
+      }
       const dayCount = items.filter(isDayItem).length + 2
-      const nextItems = [...items, dividerId]
+      const nextItems = [...items.slice(0, insertIndex), dividerId, ...items.slice(insertIndex)]
       trackPlannerEvent('add_day_divider', {
         day_count: dayCount,
         plan_count: validPlanIds.length,
@@ -3436,37 +3668,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }
 
-  const autoSortPlan = () => {
-    if (readOnlyPlan) return
-    const targetPlaces = dayView === 'all' ? plannedPlaces : (plannedDays[dayView - 1]?.places ?? [])
-    if (targetPlaces.length <= 1) return
-    trackPlannerEvent('auto_sort_open', {
-      plan_count: targetPlaces.length,
-      target_day: dayView === 'all' ? '' : dayView,
-    })
-    setAutoSortConfirmOpen(true)
-  }
-
-  const confirmAutoSortPlan = () => {
-    const sortedItems =
-      dayView !== 'all'
-        ? sortPlanItemsWithinSingleDay(validPlanItems, placeById, dayView)
-        : validPlanItems.some(isDayItem)
-          ? sortPlanItemsWithinDays(validPlanItems, placeById)
-          : sortPlanItemsByNearestNeighbor(validPlanItems, placeById)
-    const sortedIds = sortedItems.filter((item) => planItemPlace(item, placeById))
-    trackPlannerEvent('auto_sort', {
-      plan_count: sortedIds.length,
-      plan_code: encodeSharedPlan(sortedItems, lookupPlaces),
-      first_place_id: planItemPlaceId(sortedIds[0] ?? '') ?? '',
-      day_count: sortedItems.filter(isDayItem).length + 1,
-      target_day: dayView === 'all' ? '' : dayView,
-    })
-    setPlanItems(sortedItems)
-    setMode('order')
-    setMobilePanelOpen(true)
-    setAutoSortConfirmOpen(false)
-  }
 
   const buildShareUrl = useCallback(() => {
     const url = new URL(window.location.pathname, PUBLIC_SITE_ORIGIN)
@@ -3652,6 +3853,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         title: `DAY ${dayIndex + 1}`,
         stops: day.items
           .flatMap((item, placeIndex) => {
+            const transport = parseTransportItem(item)
+            if (transport) {
+              const href = printLinkHref(transport.href)
+              return [
+                {
+                  order: placeIndex + 1,
+                  name: `${transportLabel(transport)}${transport.duration ? ` ${transport.duration}` : ''}`,
+                  category: '交通',
+                  color: '#1f6f85',
+                  note: transport.note.trim() || undefined,
+                  links: href ? [{ label: '導航', href }] : [],
+                },
+              ]
+            }
+
             const place = planItemPlace(item, placeById)
             if (!place) return []
             const pdfCategoryItems =
@@ -4455,12 +4671,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               <button type="button" onClick={addDayDivider} disabled={plannedPlaces.length === 0}>
                                 + 天數
                               </button>
-                              <button
-                                type="button"
-                                onClick={autoSortPlan}
-                                disabled={(dayView === 'all' ? plannedPlaces : (plannedDays[dayView - 1]?.places ?? [])).length <= 1}
-                              >
-                                自動排序
+                              <button type="button" onClick={addTransportFromMenu} disabled={plannedPlaces.length === 0}>
+                                + 交通
                               </button>
                             </>
                           ) : null}
@@ -4492,32 +4704,47 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               )
                             }
 
+                            const transport = parseTransportItem(item)
+                            if (transport) {
+                              return (
+                                <SortableTransportItem
+                                  key={item}
+                                  itemId={item}
+                                  info={transport}
+                                  onChange={(info) => updateTransportItem(item, info)}
+                                  onRemove={() => requestRemoveTransport(item)}
+                                  readOnly={readOnlyPlan}
+                                />
+                              )
+                            }
+
                             const place = planItemPlace(item, placeById)
                             if (!place) return null
                             return (
-                              <SortablePlanItem
-                                key={item}
-                                itemId={item}
-                                place={place}
-                                label={planOrderLabels.get(item) ?? ''}
-                                note={placeNotes[item] ?? ''}
-                                selected={selectedId === place.id}
-                                onFocus={() => focusPlace(place)}
-                                onRemove={() => requestRemovePlace(item)}
-                                onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id) : undefined}
-                                onNoteChange={(note) => updatePlaceNote(item, note)}
-                                userLinks={placeUserLinks[place.id] ?? []}
-                                onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
-                                onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}
-                                cardRef={(el) => {
-                                  planCardRefs.current[item] = el
-                                }}
-                                categoryLabels={categoryLabels}
-                                categoryItems={plannerCategoryItems}
-                                customCategoryItems={customCategoryItems}
-                                tierLabels={tierLabels}
-                                readOnly={readOnlyPlan}
-                              />
+                              <Fragment key={item}>
+                                <SortablePlanItem
+                                  itemId={item}
+                                  place={place}
+                                  label={planOrderLabels.get(item) ?? ''}
+                                  note={placeNotes[item] ?? ''}
+                                  selected={selectedId === place.id}
+                                  onFocus={() => focusPlace(place)}
+                                  onRemove={() => requestRemovePlace(item)}
+                                  onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id) : undefined}
+                                  onNoteChange={(note) => updatePlaceNote(item, note)}
+                                  userLinks={placeUserLinks[place.id] ?? []}
+                                  onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
+                                  onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}
+                                  cardRef={(el) => {
+                                    planCardRefs.current[item] = el
+                                  }}
+                                  categoryLabels={categoryLabels}
+                                  categoryItems={plannerCategoryItems}
+                                  customCategoryItems={customCategoryItems}
+                                  tierLabels={tierLabels}
+                                  readOnly={readOnlyPlan}
+                                />
+                              </Fragment>
                             )
                           })}
                         </div>
@@ -4589,13 +4816,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   ? '刪除自訂景點？'
                   : pendingDelete.type === 'day'
                     ? '刪除這個天數？'
-                    : '從我的順序移除？'}
+                    : pendingDelete.type === 'transport'
+                      ? '刪除這段已儲存的交通？'
+                      : '從我的順序移除？'}
               </h2>
               <p>
                 {pendingDelete.type === 'custom'
                   ? '這會從景點清單刪除，也會一起從我的順序移除。'
                   : pendingDelete.type === 'day'
                     ? '這會移除我的排序中的天數分隔線，景點會保留在原本順序中。'
+                    : pendingDelete.type === 'transport'
+                      ? '這會移除這段手動填寫的交通資訊。'
                   : '這只會從我的順序移除，景點清單仍然會保留。'}
               </p>
               <div className={styles.confirmActions}>
@@ -4644,31 +4875,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 </button>
                 <button type="button" className={styles.confirmSecondary} onClick={() => setCustomPlaceSaveError(null)}>
                   先取消
-                </button>
-              </div>
-            </section>
-          </div>
-        ) : null}
-
-        {autoSortConfirmOpen ? (
-          <div className={styles.confirmBackdrop} role="presentation" onClick={() => setAutoSortConfirmOpen(false)}>
-            <section
-              className={styles.confirmDialog}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="auto-sort-confirm-title"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 id="auto-sort-confirm-title">要重新自動排序嗎？</h2>
-              <p>
-                系統會依照{dayView === 'all' ? '全行程' : `第 ${dayView} 天`}的景點距離重新排列順序，原本手動排好的順序會被覆蓋。
-              </p>
-              <div className={styles.confirmActions}>
-                <button type="button" className={styles.confirmSecondary} onClick={() => setAutoSortConfirmOpen(false)}>
-                  取消
-                </button>
-                <button type="button" className={styles.confirmPrimary} onClick={confirmAutoSortPlan}>
-                  確認自動排序
                 </button>
               </div>
             </section>
