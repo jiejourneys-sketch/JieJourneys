@@ -1,10 +1,16 @@
-﻿'use client'
+'use client'
 
 import { Document, Font, Image, Link, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer'
 
 export type PlannerPdfLink = {
   label: string
   href: string
+}
+
+export type PlannerPdfTransport = {
+  label: string
+  note?: string
+  links: PlannerPdfLink[]
 }
 
 export type PlannerPdfStop = {
@@ -14,6 +20,7 @@ export type PlannerPdfStop = {
   color: string
   note?: string
   links: PlannerPdfLink[]
+  transportAfter?: PlannerPdfTransport[]
 }
 
 export type PlannerPdfDay = {
@@ -247,6 +254,49 @@ const styles = StyleSheet.create({
     color: '#475569',
     fontSize: 11,
   },
+  transport: {
+    marginTop: 4,
+    marginBottom: 4,
+    marginLeft: 31,
+    marginRight: 12,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    backgroundColor: '#eef7f9',
+    borderLeftWidth: 3,
+    borderLeftColor: '#1f6f85',
+  },
+  transportLabel: {
+    color: '#1f6f85',
+    fontSize: 10.8,
+    fontWeight: 700,
+    lineHeight: 1.25,
+  },
+  transportPrefix: {
+    color: '#64748b',
+    fontSize: 9.8,
+    fontWeight: 700,
+    lineHeight: 1.25,
+  },
+  transportLinks: {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 3,
+  },
+  transportLink: {
+    color: '#1f6f85',
+    fontSize: 10.2,
+    fontWeight: 700,
+    textDecoration: 'underline',
+  },
+  transportNote: {
+    color: '#475569',
+    fontSize: 10.2,
+    lineHeight: 1.35,
+    marginTop: 3,
+  },
 })
 
 function PlannerPdfDocument({ data }: { data: PlannerPdfData }) {
@@ -282,38 +332,58 @@ function PlannerPdfDocument({ data }: { data: PlannerPdfData }) {
             </Link>
           </View>
 
-          {day.stops.map((stop) => (
-            <View key={`${dayIndex + 1}-${stop.order}-${stop.name}`} style={styles.stop} wrap={false}>
-              <View style={styles.stopTopRow}>
-                <View style={[styles.stopNumberCircle, { backgroundColor: stop.color }]}>
-                  <Text style={styles.stopNumberText}>{stop.order}</Text>
+          {day.stops.map((stop, stopIndex) => (
+            <View key={`${dayIndex + 1}-${stop.order}-${stop.name}`} wrap={false}>
+              <View style={styles.stop}>
+                <View style={styles.stopTopRow}>
+                  <View style={[styles.stopNumberCircle, { backgroundColor: stop.color }]}>
+                    <Text style={styles.stopNumberText}>{stop.order}</Text>
+                  </View>
+                  <View style={styles.stopNameBox}>
+                    <Text style={styles.stopName}>{stop.name}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.categoryBadge,
+                      {
+                        backgroundColor: '#ffffff',
+                        borderWidth: 1,
+                        borderColor: stop.color,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.categoryText, { color: stop.color }]}>{stop.category}</Text>
+                  </View>
                 </View>
-                <View style={styles.stopNameBox}>
-                  <Text style={styles.stopName}>{stop.name}</Text>
-                </View>
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    {
-                      backgroundColor: '#ffffff',
-                      borderWidth: 1,
-                      borderColor: stop.color,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.categoryText, { color: stop.color }]}>{stop.category}</Text>
-                </View>
+                {stop.links.length > 0 ? (
+                  <View style={styles.links}>
+                    {stop.links.map((link, index) => (
+                      <Link key={`${link.label}-${link.href}-${index}`} src={link.href} style={styles.link}>
+                        {link.label}
+                      </Link>
+                    ))}
+                  </View>
+                ) : null}
+                {stop.note ? <Text style={styles.note}>{stop.note}</Text> : null}
               </View>
-              {stop.links.length > 0 ? (
-                <View style={styles.links}>
-                  {stop.links.map((link, index) => (
-                    <Link key={`${link.label}-${link.href}-${index}`} src={link.href} style={styles.link}>
-                      {link.label}
-                    </Link>
-                  ))}
+              {stop.transportAfter?.map((transport, index) => (
+                <View key={`transport-${index}`} style={styles.transport}>
+                  <Text style={styles.transportPrefix}>
+                    {stopIndex < day.stops.length - 1 ? '前往下一站' : '行程末段交通'}
+                  </Text>
+                  <Text style={styles.transportLabel}>{transport.label}</Text>
+                  {transport.links.length > 0 ? (
+                    <View style={styles.transportLinks}>
+                      {transport.links.map((link, linkIndex) => (
+                        <Link key={`${link.label}-${link.href}-${linkIndex}`} src={link.href} style={styles.transportLink}>
+                          {link.label}
+                        </Link>
+                      ))}
+                    </View>
+                  ) : null}
+                  {transport.note ? <Text style={styles.transportNote}>{transport.note}</Text> : null}
                 </View>
-              ) : null}
-              {stop.note ? <Text style={styles.note}>{stop.note}</Text> : null}
+              ))}
             </View>
           ))}
         </Page>

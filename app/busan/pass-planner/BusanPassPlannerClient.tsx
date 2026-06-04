@@ -1415,8 +1415,12 @@ function splitPlanItemsByDay(items: PlannerItem[], placeById: Map<string, MapPla
   return days.filter((day) => day.places.length > 0)
 }
 
-function insertPlaceIntoDay(items: PlannerItem[], place: MapPlace, dayNumber: number | 'end') {
-  const itemId = canRepeatPlanPlace(place) ? createVisitItem(place.id) : place.id
+function insertPlaceIntoDay(
+  items: PlannerItem[],
+  place: MapPlace,
+  dayNumber: number | 'end',
+  itemId: PlannerItem = canRepeatPlanPlace(place) ? createVisitItem(place.id) : place.id,
+) {
   if (!canRepeatPlanPlace(place) && items.some((item) => planItemPlaceId(item) === place.id)) return items
   if (dayNumber === 'end') return [...items, itemId]
   const dividerIndexes = items
@@ -2248,6 +2252,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [customUrlResolving, setCustomUrlResolving] = useState(false)
   const [storageReady, setStorageReady] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedPlanItem, setSelectedPlanItem] = useState<PlannerItem | null>(null)
   const [mobilePageHeight, setMobilePageHeight] = useState<number | null>(null)
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false)
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
@@ -2769,9 +2774,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [config.storageKey, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
 
-  const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list') => {
+  const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list', planItem: PlannerItem | null = null) => {
     if (source === 'marker') setMobilePanelOpen(true)
     if (source === 'list' && isMobilePlannerViewport()) setMobilePanelOpen(false)
+    setSelectedPlanItem(planItem)
     setSelectedId(place.id)
     const map = mapRef.current
     if (map) {
@@ -2805,6 +2811,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setMobilePanelOpen(true)
 
       if (!place) return
+      setSelectedPlanItem(null)
       setSelectedId(place.id)
       if (targetMode === 'add') {
         const isCustomPlace = isCustomPlaceId(place.id)
@@ -3120,9 +3127,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addPlaceToPlan = (place: MapPlace, dayNumber: number | 'end' = 'end') => {
     if (readOnlyPlan) return
+    const itemId = canRepeatPlanPlace(place) ? createVisitItem(place.id) : place.id
     setPlanItems((ids) => {
       if (!canRepeatPlanPlace(place) && ids.some((item) => planItemPlaceId(item) === place.id)) return ids
-      const nextIds = insertPlaceIntoDay(ids, place, dayNumber)
+      const nextIds = insertPlaceIntoDay(ids, place, dayNumber, itemId)
       trackPlannerEvent('add_place', {
         place_id: place.id,
         place_name: shortName(place.name),
@@ -3133,6 +3141,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       return nextIds
     })
+    setSelectedPlanItem(itemId)
     setSelectedId(place.id)
     setRecentlyAddedPlaceId(place.id)
     window.setTimeout(() => {
@@ -3171,6 +3180,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return nextIds
     })
     const placeId = planItemPlaceId(itemId) ?? itemId
+    setSelectedPlanItem((item) => (item === itemId ? null : item))
     setSelectedId((id) => (id === placeId ? null : id))
   }
 
@@ -3238,7 +3248,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addTransportFromMenu = () => {
     if (readOnlyPlan) return
-    const selectedItem = selectedId ? validPlanItems.find((item) => planItemPlaceId(item) === selectedId) : null
+    const selectedItem =
+      selectedPlanItem && validPlanItems.includes(selectedPlanItem) && planItemPlace(selectedPlanItem, placeById)
+        ? selectedPlanItem
+        : selectedId
+          ? validPlanItems.find((item) => planItemPlaceId(item) === selectedId) ?? null
+          : null
     addTransportAfter(selectedItem ?? null)
   }
 
@@ -3285,7 +3300,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setOpenPlannerMenu(null)
     setMobilePanelOpen(false)
     setPlanItems((items) => {
-      const selectedItem = selectedId ? items.find((item) => planItemPlaceId(item) === selectedId) : null
+      const selectedItem =
+        selectedPlanItem && items.includes(selectedPlanItem) && planItemPlace(selectedPlanItem, placeById)
+          ? selectedPlanItem
+          : selectedId
+            ? items.find((item) => planItemPlaceId(item) === selectedId) ?? null
+            : null
       const fallbackIndex = items.length
       const baseIndex = selectedItem ? items.indexOf(selectedItem) : -1
       let insertIndex = baseIndex >= 0 ? baseIndex + 1 : fallbackIndex
@@ -3849,64 +3869,75 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (pdfDownloading || plannedPlaces.length === 0) return
     setPdfDownloading(true)
     try {
-      const days = plannedDays.map((day, dayIndex) => ({
-        title: `DAY ${dayIndex + 1}`,
-        stops: day.items
-          .flatMap((item, placeIndex) => {
-            const transport = parseTransportItem(item)
-            if (transport) {
-              const href = printLinkHref(transport.href)
-              return [
-                {
-                  order: placeIndex + 1,
-                  name: `${transportLabel(transport)}${transport.duration ? ` ${transport.duration}` : ''}`,
-                  category: '交通',
-                  color: '#1f6f85',
-                  note: transport.note.trim() || undefined,
-                  links: href ? [{ label: '導航', href }] : [],
-                },
-              ]
-            }
+      const days = plannedDays.map((day, dayIndex) => {
+        const stops: Array<{
+          order: number
+          name: string
+          category: string
+          color: string
+          note?: string
+          links: Array<{ label: string; href: string }>
+          transportAfter?: Array<{ label: string; note?: string; links: Array<{ label: string; href: string }> }>
+        }> = []
 
-            const place = planItemPlace(item, placeById)
-            if (!place) return []
-            const pdfCategoryItems =
-              isCustomPlaceId(place.id) && customCategoryItems.length > 0 ? customCategoryItems : plannerCategoryItems
-            const naverUrl = naverMapUrl(place)
-            const rawLinks = [
-              { label: 'Google Maps', href: googleMapsPinUrl(place) },
-              ...(naverUrl ? [{ label: 'Naver', href: naverUrl }] : []),
-              ...plannerActionLinks(place).map((link) => ({ label: link.label, href: link.href })),
-              ...(placeUserLinks[place.id] ?? []),
-            ]
-            const seenLinks = new Set<string>()
-            const links = rawLinks
-              .map((link) => ({ label: link.label.trim(), href: printLinkHref(link.href) }))
-              .filter((link) => {
-                if (!link.label || !link.href) return false
-                const key = `${link.label}::${link.href}`
-                if (seenLinks.has(key)) return false
-                seenLinks.add(key)
-                return true
-              })
-
-            return [
+        day.items.forEach((item) => {
+          const transport = parseTransportItem(item)
+          if (transport) {
+            if (stops.length === 0) return
+            const href = printLinkHref(transport.href)
+            const transportAfter = stops[stops.length - 1].transportAfter ?? []
+            stops[stops.length - 1].transportAfter = [
+              ...transportAfter,
               {
-                order: placeIndex + 1,
-                name: plannerPlaceName(place),
-                category: plannerCategoryLabel(
-                  plannerPlaceCategory(place, pdfCategoryItems),
-                  categoryLabels,
-                  pdfCategoryItems,
-                ),
-                color: plannerPlaceColor(place, pdfCategoryItems),
-                note: placeNotes[item]?.trim() || undefined,
-                links,
+                label: `${transportLabel(transport)}${transport.duration ? `・${transport.duration}` : ''}`,
+                note: transport.note.trim() || undefined,
+                links: href ? [{ label: '導航', href }] : [],
               },
             ]
-          }),
-      }))
+            return
+          }
 
+          const place = planItemPlace(item, placeById)
+          if (!place) return
+          const pdfCategoryItems =
+            isCustomPlaceId(place.id) && customCategoryItems.length > 0 ? customCategoryItems : plannerCategoryItems
+          const naverUrl = naverMapUrl(place)
+          const rawLinks = [
+            { label: 'Google Maps', href: googleMapsPinUrl(place) },
+            ...(naverUrl ? [{ label: 'Naver', href: naverUrl }] : []),
+            ...plannerActionLinks(place).map((link) => ({ label: link.label, href: link.href })),
+            ...(placeUserLinks[place.id] ?? []),
+          ]
+          const seenLinks = new Set<string>()
+          const links = rawLinks
+            .map((link) => ({ label: link.label.trim(), href: printLinkHref(link.href) }))
+            .filter((link) => {
+              if (!link.label || !link.href) return false
+              const key = `${link.label}::${link.href}`
+              if (seenLinks.has(key)) return false
+              seenLinks.add(key)
+              return true
+            })
+
+          stops.push({
+            order: stops.length + 1,
+            name: plannerPlaceName(place),
+            category: plannerCategoryLabel(
+              plannerPlaceCategory(place, pdfCategoryItems),
+              categoryLabels,
+              pdfCategoryItems,
+            ),
+            color: plannerPlaceColor(place, pdfCategoryItems),
+            note: placeNotes[item]?.trim() || undefined,
+            links,
+          })
+        })
+
+        return {
+          title: `DAY ${dayIndex + 1}`,
+          stops,
+        }
+      })
       const { downloadPlannerPdf } = await import('./plannerPdf')
       await downloadPlannerPdf({
         title: printTravelTitle(config.shareTitle),
@@ -4345,6 +4376,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                             return plannerCategoryItems.some((item) => next[item.key]) ? next : allCategoryOn
                           })
                           setTier('all')
+                          setSelectedPlanItem(null)
                           setSelectedId(null)
                         }}
                       >
@@ -4359,6 +4391,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       onClick={() => {
                         setCustomOnly(true)
                         setTier('all')
+                        setSelectedPlanItem(null)
                         setSelectedId(null)
                       }}
                     >
@@ -4377,6 +4410,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         onClick={() => {
                           setCustomOnly(false)
                           setTier((prev) => (prev === key ? 'all' : key))
+                          setSelectedPlanItem(null)
                           setSelectedId(null)
                         }}
                         >
@@ -4727,8 +4761,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   place={place}
                                   label={planOrderLabels.get(item) ?? ''}
                                   note={placeNotes[item] ?? ''}
-                                  selected={selectedId === place.id}
-                                  onFocus={() => focusPlace(place)}
+                                  selected={selectedPlanItem ? selectedPlanItem === item : selectedId === place.id}
+                                  onFocus={() => focusPlace(place, 'list', item)}
                                   onRemove={() => requestRemovePlace(item)}
                                   onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id) : undefined}
                                   onNoteChange={(note) => updatePlaceNote(item, note)}
