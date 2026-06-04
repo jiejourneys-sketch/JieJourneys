@@ -403,12 +403,15 @@ function printLinkHref(href: string) {
 
 function printTravelTitle(title: string) {
   const base = title
+    .replace(/^(?:tools)?planner[_-]*/i, '')
+    .replace(/[_-]+/g, ' ')
     .replace(/Pass/gi, '')
     .replace(/周遊券/g, '')
     .replace(/景點/g, '')
     .replace(/地圖/g, '')
     .replace(/行程/g, '')
     .replace(/排序/g, '')
+    .replace(/\s+/g, ' ')
     .trim()
 
   if (!base) return '旅遊行程'
