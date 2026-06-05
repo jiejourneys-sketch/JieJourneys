@@ -41,6 +41,11 @@ type PlannerBookMeta = {
   city?: string
 }
 
+type PlannerBookMetaLookup = {
+  book: PlannerBookMeta | null
+  unavailable: boolean
+}
+
 const GENERIC_CENTER = { lat: 23.8, lng: 121.0 }
 const RECENT_PLANNERS_KEY = 'jiejourneys:tools-planner:recent:v1'
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
@@ -200,13 +205,17 @@ function customRegionFromUrl(regionKey: string, countryName: string): PlannerReg
   }
 }
 
-async function fetchPlannerBookMeta(plannerId: string, readToken: string): Promise<PlannerBookMeta | null> {
+async function fetchPlannerBookMeta(plannerId: string, readToken: string): Promise<PlannerBookMetaLookup> {
   const query = readToken ? `v=${encodeURIComponent(readToken)}` : `id=${encodeURIComponent(plannerId)}`
   const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
-  if (!res.ok) return null
+  if (res.status === 404 || res.status === 410) return { book: null, unavailable: true }
+  if (!res.ok) return { book: null, unavailable: false }
   const data = (await res.json()) as { city?: unknown }
   return {
-    city: typeof data.city === 'string' && data.city.trim() ? data.city.trim() : undefined,
+    book: {
+      city: typeof data.city === 'string' && data.city.trim() ? data.city.trim() : undefined,
+    },
+    unavailable: false,
   }
 }
 
@@ -244,6 +253,48 @@ function upsertRecentPlanner(planner: RecentPlanner) {
   const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
   const current = cleanRecentPlannerItems(raw ? JSON.parse(raw) : [])
   const next = [planner, ...current.filter((item) => item.id !== planner.id)].slice(0, 12)
+  window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(next))
+  return next
+}
+
+function removeRecentPlanner(planner: Pick<RecentPlanner, 'id' | 'readToken' | 'regionKey' | 'source'>) {
+  const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
+  const current = cleanRecentPlannerItems(raw ? JSON.parse(raw) : [])
+  const next = current.filter((item) => item.id !== planner.id)
+  window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(next))
+  window.sessionStorage.removeItem(`planner-book:id=${encodeURIComponent(planner.id)}`)
+  if (planner.readToken) {
+    window.sessionStorage.removeItem(`planner-book:v=${encodeURIComponent(planner.readToken)}`)
+  }
+
+  const storageKey = plannerStorageKey(planner.regionKey, planner.source ?? 'map')
+  if (window.localStorage.getItem(`${storageKey}:book-id`) === planner.id) {
+    window.localStorage.removeItem(`${storageKey}:book-id`)
+    window.localStorage.removeItem(`${storageKey}:book-read-token`)
+    window.localStorage.removeItem(`${storageKey}:book-updated-at`)
+  }
+  return next
+}
+
+async function pruneUnavailableRecentPlanners(items: RecentPlanner[]) {
+  const checked = await Promise.all(
+    items.map(async (item) => {
+      try {
+        const lookup = await fetchPlannerBookMeta(item.id, item.readToken ?? '')
+        if (lookup.unavailable) {
+          removeRecentPlanner(item)
+          return null
+        }
+        if (lookup.book) {
+          return { ...item, countryName: plannerDisplayName(lookup.book.city, item.regionKey) }
+        }
+      } catch {
+        // Keep the local entry when the network is temporarily unavailable.
+      }
+      return item
+    }),
+  )
+  const next = checked.filter((item): item is RecentPlanner => Boolean(item))
   window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(next))
   return next
 }
@@ -294,10 +345,21 @@ export default function ToolsPlannerPage() {
           setCheckingSharedPlanner(true)
           ;(async () => {
             try {
-              const book = await fetchPlannerBookMeta(plannerId, readToken)
+              const lookup = await fetchPlannerBookMeta(plannerId, readToken)
               if (cancelled) return
+              const book = lookup.book
               setCheckingSharedPlanner(false)
               if (!book) {
+                if (lookup.unavailable && plannerId) {
+                  setRecentPlanners(
+                    removeRecentPlanner({
+                      id: plannerId,
+                      readToken: readToken || undefined,
+                      regionKey: region.key,
+                      source,
+                    }).slice(0, 8),
+                  )
+                }
                 setUnavailablePlanner({ countryName: region.shortLabel })
                 setStarted(null)
                 return
@@ -377,10 +439,21 @@ export default function ToolsPlannerPage() {
           setCheckingSharedPlanner(true)
           ;(async () => {
             try {
-              const book = await fetchPlannerBookMeta(plannerId, readToken)
+              const lookup = await fetchPlannerBookMeta(plannerId, readToken)
               if (cancelled) return
+              const book = lookup.book
               setCheckingSharedPlanner(false)
               if (!book) {
+                if (lookup.unavailable && plannerId) {
+                  setRecentPlanners(
+                    removeRecentPlanner({
+                      id: plannerId,
+                      readToken: readToken || undefined,
+                      regionKey,
+                      source,
+                    }).slice(0, 8),
+                  )
+                }
                 setUnavailablePlanner({ countryName: regionKey })
                 setStarted(null)
                 return
@@ -408,7 +481,11 @@ export default function ToolsPlannerPage() {
       setCheckingSharedPlanner(false)
 
       const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
-      setRecentPlanners(cleanRecentPlannerItems(raw ? JSON.parse(raw) : []).slice(0, 8))
+      const localRecent = cleanRecentPlannerItems(raw ? JSON.parse(raw) : []).slice(0, 8)
+      setRecentPlanners(localRecent)
+      void pruneUnavailableRecentPlanners(localRecent).then((next) => {
+        if (!cancelled) setRecentPlanners(next.slice(0, 8))
+      })
     } catch {
       setRecentPlanners([])
     }
@@ -503,7 +580,7 @@ export default function ToolsPlannerPage() {
     }
   }
 
-  const openRecentPlanner = (planner: RecentPlanner) => {
+  const openRecentPlanner = async (planner: RecentPlanner) => {
     const region =
       knownRegions.find((item) => item.key === planner.regionKey) ?? {
         key: planner.regionKey,
@@ -513,12 +590,25 @@ export default function ToolsPlannerPage() {
         places: [],
         zoom: 7,
       }
+    const lookup = await fetchPlannerBookMeta(planner.id, planner.readToken ?? '')
+    if (!lookup.book) {
+      if (lookup.unavailable) {
+        setRecentPlanners(removeRecentPlanner(planner).slice(0, 8))
+        alert('這個行程已經刪除，已從最近行程移除')
+      } else {
+        alert('暫時無法讀取這個行程，請稍後再試')
+      }
+      return
+    }
+
+    const countryName = plannerDisplayName(lookup.book.city, planner.regionKey)
+    const nextPlanner = { ...planner, countryName }
     const params = new URLSearchParams()
     params.set('region', region.key)
     if (planner.source === 'pass') params.set('source', 'pass')
     params.set('p', planner.id)
     window.history.replaceState(null, '', `/tools/planner?${params.toString()}`)
-    startPlanner(region, planner.countryName, true, planner.source ?? 'map', planner)
+    startPlanner(region, countryName, true, planner.source ?? 'map', nextPlanner)
   }
 
   const openRenamePlanner = (planner: RecentPlanner) => {
