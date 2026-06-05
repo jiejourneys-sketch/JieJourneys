@@ -598,11 +598,76 @@
   margin-top: 8px;
 }
 
+.customPlaceLinkGroup {
+  display: grid;
+  gap: 6px;
+}
 .customPlaceLinkFields {
   display: grid;
   grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
   gap: 8px;
 }
+.customPlaceAddLink {
+  justify-self: start;
+  min-height: 30px;
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  border-radius: 8px;
+  padding: 5px 10px;
+  background: #ffffff;
+  color: var(--cta);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.customPlaceAddLink:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.customPlaceLinkList {
+  display: grid;
+  gap: 5px;
+}
+
+.customPlaceLinkItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(31, 122, 140, 0.16);
+  border-radius: 8px;
+  padding: 4px 5px 4px 8px;
+  background: #f8fcfd;
+}
+
+.customPlaceLinkItem a {
+  overflow: hidden;
+  color: var(--cta);
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customPlaceLinkItem button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
 
 .customPlaceForm input:focus,
 .customPlaceForm textarea:focus,
@@ -723,6 +788,50 @@
   padding: 12px;
 }
 
+.addCardCustom .addCardMain {
+  padding-right: 74px;
+}
+
+.addCardManage {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.addCardManage .editCustomButton,
+.addCardManage .deleteCustomButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  margin: 0;
+  padding: 0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.addCardManage .editCustomButton {
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  background: #ffffff;
+  color: var(--cta);
+}
+
+.addCardManage .deleteCustomButton {
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+}
 .addCardActive,
 .planCardActive {
   border-color: color-mix(in srgb, var(--planner-category-color, var(--cta)) 70%, #ffffff);
@@ -855,9 +964,14 @@
 }
 
 .addedButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(31, 122, 140, 0.2);
   background: #eef6f7;
   color: var(--cta);
+  cursor: default;
+  white-space: nowrap;
 }
 
 .editCustomButton {
@@ -1222,10 +1336,43 @@
   font-weight: 900;
 }
 
+.planCardManage {
+  grid-area: remove;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  gap: 6px;
+  width: 34px;
+  min-width: 0;
+}
+
+.cardEditButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-height: 28px;
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--cta);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cardEditButton:hover {
+  background: #eef8fb;
+}
 .iconLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 54px;
   padding: 6px 9px;
   border: 1px solid rgba(31, 122, 140, 0.22);
   color: var(--cta);
@@ -1268,12 +1415,19 @@
 .mapLinks {
   grid-area: links;
   align-self: center;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  align-items: center;
   gap: 5px;
   min-width: 0;
+  max-width: 100%;
   margin: 0;
-  padding: 0 0 7px 34px;
+  padding: 0 0 7px;
+}
+
+.mapLinks .iconLink {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 6px;
 }
 
 .noteBox,
@@ -2586,6 +2740,24 @@
     padding: 8px;
   }
 
+  .addCardCustom .addCardMain {
+    padding-right: 68px;
+  }
+
+  .addCardManage {
+    top: 7px;
+    right: 7px;
+    gap: 4px;
+  }
+
+  .addCardManage .editCustomButton,
+  .addCardManage .deleteCustomButton {
+    width: 29px;
+    min-width: 29px;
+    height: 29px;
+    min-height: 29px;
+    font-size: 16px;
+  }
   .addCardMain {
     grid-area: main;
     padding: 0;
@@ -2658,17 +2830,20 @@
   .mapLinks {
     grid-area: links;
     align-self: center;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    align-items: center;
     gap: 5px;
     min-width: 0;
+    max-width: 100%;
     margin: 0;
-    padding: 0 0 9px 38px;
+    padding: 0 0 9px;
   }
 
   .mapLinks .iconLink {
+    flex: 1 1 0;
     min-width: 0;
     margin-block: 0;
+    padding-inline: 5px;
   }
 
   .noteBox,
@@ -2693,6 +2868,18 @@
     font-size: 16px;
   }
 
+  .planCardManage {
+    grid-area: remove;
+    align-self: center;
+    width: 34px;
+    gap: 6px;
+  }
+
+  .cardEditButton {
+    width: 34px;
+    min-height: 30px;
+    font-size: 11px;
+  }
   .removeButton {
     grid-area: remove;
     align-self: center;

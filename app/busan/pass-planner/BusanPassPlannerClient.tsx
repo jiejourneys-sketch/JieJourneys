@@ -1123,8 +1123,8 @@ function createVisitItem(placeId: string) {
   return `${VISIT_ITEM_PREFIX}${token}|${placeId}`
 }
 
-function canRepeatPlanPlace(place: MapPlace) {
-  return place.category === 'hotel'
+function canRepeatPlanPlace(_place: MapPlace) {
+  return true
 }
 
 function planItemPlace(item: PlannerItem, placeById: Map<string, MapPlace>) {
@@ -1133,28 +1133,36 @@ function planItemPlace(item: PlannerItem, placeById: Map<string, MapPlace>) {
 }
 
 function normalizePlanItems(items: PlannerItem[], placeById: Map<string, MapPlace>) {
-  const seenSingleUsePlaces = new Set<string>()
+  const seenPlaceIds = new Set<string>()
   const seenVisitItems = new Set<string>()
 
   return items.flatMap((item) => {
     if (isDayItem(item) || isTransportItem(item)) return [item]
 
-    const place = planItemPlace(item, placeById)
-    if (!place) return []
+    const placeId = planItemPlaceId(item)
+    const place = placeId ? placeById.get(placeId) ?? null : null
+    if (!place || !placeId) return []
 
-    if (canRepeatPlanPlace(place)) {
-      if (isVisitItem(item) && !seenVisitItems.has(item)) {
-        seenVisitItems.add(item)
-        return [item]
+    if (isVisitItem(item)) {
+      if (seenVisitItems.has(item)) {
+        const visitItem = createVisitItem(placeId)
+        seenVisitItems.add(visitItem)
+        seenPlaceIds.add(placeId)
+        return [visitItem]
       }
-      const visitItem = createVisitItem(place.id)
+      seenVisitItems.add(item)
+      seenPlaceIds.add(placeId)
+      return [item]
+    }
+
+    if (seenPlaceIds.has(placeId)) {
+      const visitItem = createVisitItem(placeId)
       seenVisitItems.add(visitItem)
       return [visitItem]
     }
 
-    if (seenSingleUsePlaces.has(place.id)) return []
-    seenSingleUsePlaces.add(place.id)
-    return [place.id]
+    seenPlaceIds.add(placeId)
+    return [item]
   })
 }
 
@@ -1608,6 +1616,7 @@ function SortablePlanItem({
   const [linkLabel, setLinkLabel] = useState('')
   const [linkHref, setLinkHref] = useState('')
   const [draftNote, setDraftNote] = useState(note)
+  const [noteDeleteConfirm, setNoteDeleteConfirm] = useState(false)
   const cardElementRef = useRef<HTMLElement | null>(null)
   const detailElementRef = useRef<HTMLDivElement | null>(null)
   const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -1624,21 +1633,34 @@ function SortablePlanItem({
   }
 
   const noteDirty = draftNote !== note
-  const actionLinkCount = plannerActionLinks(place).length
+  const actionLinks = plannerActionLinks(place)
+  const actionLinkCount = actionLinks.length
+  const customActionLinkCount = isCustomPlaceId(place.id)
+    ? actionLinks.filter((link) => link.event === 'custom_place_link').length
+    : 0
+  const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
+  const visibleUserLinkCount = userLinks.filter((link) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim())).length
   const userLinkCount = userLinks.length
+  const displayLinkCount = visibleUserLinkCount + customActionLinkCount
   const hasAnyLinks = actionLinkCount + userLinkCount > 0
   const canEditCustom = Boolean(onEditCustom && isCustomPlaceId(place.id) && !readOnly)
   const saveNote = () => {
     onNoteChange(draftNote)
+    setNoteDeleteConfirm(false)
     setOpenPanel(null)
   }
   const cancelNote = () => {
     setDraftNote(note)
+    setNoteDeleteConfirm(false)
     setOpenPanel(null)
   }
   const deleteNote = () => {
+    setNoteDeleteConfirm(true)
+  }
+  const confirmDeleteNote = () => {
     onNoteChange('')
     setDraftNote('')
+    setNoteDeleteConfirm(false)
     setOpenPanel(null)
   }
 
@@ -1711,6 +1733,7 @@ function SortablePlanItem({
           disabled={readOnly && !note}
           onClick={() => {
             setDraftNote(note)
+            setNoteDeleteConfirm(false)
             setOpenPanel((panel) => (panel === 'note' ? null : 'note'))
           }}
         >
@@ -1721,7 +1744,7 @@ function SortablePlanItem({
           type="button"
           onClick={() => setOpenPanel((panel) => (panel === 'links' ? null : 'links'))}
         >
-          連結{userLinkCount > 0 ? ` ${userLinkCount}` : ''}
+          連結{displayLinkCount > 0 ? ` ${displayLinkCount}` : ''}
         </button>
         <button
           className={styles.iconLink}
@@ -1730,16 +1753,18 @@ function SortablePlanItem({
         >
           地圖
         </button>
-        {canEditCustom ? (
-          <button className={styles.iconLink} type="button" onClick={onEditCustom}>
-            編輯
-          </button>
-        ) : null}
       </span>
       {!readOnly ? (
-        <button className={styles.removeButton} type="button" onClick={onRemove} aria-label={`移除 ${displayName}`}>
-          ×
-        </button>
+        <span className={styles.planCardManage}>
+          {canEditCustom ? (
+            <button className={styles.cardEditButton} type="button" onClick={onEditCustom} aria-label={`編輯 ${displayName}`}>
+              ✎
+            </button>
+          ) : null}
+          <button className={styles.removeButton} type="button" onClick={onRemove} aria-label={`移除 ${displayName}`}>
+            ×
+          </button>
+        </span>
       ) : null}
       </article>
       {openPanel === 'note' ? (
@@ -1795,7 +1820,28 @@ function SortablePlanItem({
         />
       ) : null}
       {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={detailElementRef} place={place} /> : null}
-    </div>
+      {noteDeleteConfirm ? (
+        <div className={styles.confirmBackdrop} role="presentation" onClick={() => setNoteDeleteConfirm(false)}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`delete-note-${itemId}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id={`delete-note-${itemId}`}>刪除備註？</h2>
+            <p>{displayName} 的備註會被刪除。</p>
+            <div className={styles.confirmActions}>
+              <button type="button" className={styles.confirmSecondary} onClick={() => setNoteDeleteConfirm(false)}>
+                取消
+              </button>
+              <button type="button" className={styles.confirmDanger} onClick={confirmDeleteNote}>
+                確認刪除
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}    </div>
   )
 }
 
@@ -1823,6 +1869,10 @@ function PlannerActionPanel({
   readOnly: boolean
 }) {
   const actionLinks = plannerActionLinks(place)
+  const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
+  const visibleUserLinks = userLinks
+    .map((link, index) => ({ link, index }))
+    .filter(({ link }) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
 
   return (
     <div ref={panelRef} className={styles.plannerLinksBox}>
@@ -1846,9 +1896,9 @@ function PlannerActionPanel({
           ))}
         </div>
       ) : null}
-      {userLinks.length > 0 ? (
+      {visibleUserLinks.length > 0 ? (
         <div className={styles.userLinksList}>
-          {userLinks.map((link, index) => (
+          {visibleUserLinks.map(({ link, index }) => (
             <span key={`${link.label}-${link.href}-${index}`} className={styles.userLinkRow}>
               <a className={styles.userLinkOpen} href={link.href} target="_blank" rel="noopener noreferrer">
                 <span>{link.label}</span>
@@ -1996,12 +2046,14 @@ function SortableTransportItem({
   info,
   onChange,
   onRemove,
+  cardRef,
   readOnly,
 }: {
   itemId: PlannerItem
   info: TransportInfo
   onChange: (info: TransportInfo) => void
   onRemove: () => void
+  cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -2043,8 +2095,13 @@ function SortableTransportItem({
     setEditing(false)
   }
 
+  const setCardRefs = (el: HTMLDivElement | null) => {
+    setNodeRef(el)
+    cardRef?.(el)
+  }
+
   return (
-    <div ref={setNodeRef} style={style} className={`${styles.transportItem} ${isDragging ? styles.planCardDragging : ''}`}>
+    <div ref={setCardRefs} style={style} className={`${styles.transportItem} ${isDragging ? styles.planCardDragging : ''}`}>
       <article className={`${styles.transportCard} ${!editing ? styles.transportCardCompact : ''}`}>
         <button className={styles.transportDragHandle} type="button" aria-label="拖曳交通" disabled={readOnly} {...attributes} {...listeners}>
           <span aria-hidden>☰</span>
@@ -2061,7 +2118,7 @@ function SortableTransportItem({
                 ) : null}
                 {!readOnly ? (
                   <button type="button" onClick={() => setEditing(true)}>
-                    編輯
+                    ✎
                   </button>
                 ) : null}
               </span>
@@ -2142,6 +2199,7 @@ function SortableDayDivider({
   id: string
   dayNumber: number
   onRemove: () => void
+  cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
   dividerRef?: (el: HTMLDivElement | null) => void
 }) {
@@ -2216,6 +2274,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const addCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const planCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const dayDividerRefs = useRef<Record<string, HTMLElement | null>>({})
+  const transportCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const pendingDayDividerScrollRef = useRef<string | null>(null)
   const panelBodyRef = useRef<HTMLDivElement | null>(null)
   const panelRef = useRef<HTMLElement | null>(null)
@@ -2251,6 +2310,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [placeUserLinks, setPlaceUserLinks] = useState<Record<string, PlannerUserLink[]>>({})
   const [customPlaces, setCustomPlaces] = useState<Record<string, CustomPlannerPlace>>({})
   const [customDraft, setCustomDraft] = useState<CustomPlaceDraft>(emptyCustomPlaceDraft)
+  const [customDraftReturnMode, setCustomDraftReturnMode] = useState<'add' | 'order'>('add')
+  const [customDraftReturnItem, setCustomDraftReturnItem] = useState<PlannerItem | null>(null)
   const [customPlaceSaveError, setCustomPlaceSaveError] = useState<'name' | 'location' | null>(null)
   const [customUrlResolving, setCustomUrlResolving] = useState(false)
   const [storageReady, setStorageReady] = useState(false)
@@ -2262,6 +2323,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [mobilePanelDragHeight, setMobilePanelDragHeight] = useState<number | null>(null)
   const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
   const [pendingAddPlace, setPendingAddPlace] = useState<MapPlace | null>(null)
+  const [pendingAddPlaceNote, setPendingAddPlaceNote] = useState('')
   const [pendingDelete, setPendingDelete] = useState<
     { type: 'plan' | 'custom'; placeId: string } | { type: 'day' | 'transport'; itemId: string } | null
   >(null)
@@ -2425,6 +2487,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     return labels
   }, [dayView, placeById, plannedDays, validPlanItems])
   const plannedSet = useMemo(() => new Set(validPlanPlaceIds), [validPlanPlaceIds])
+  const plannedPlaceCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    validPlanPlaceIds.forEach((placeId) => {
+      counts.set(placeId, (counts.get(placeId) ?? 0) + 1)
+    })
+    return counts
+  }, [validPlanPlaceIds])
 
   const filteredPlaces = useMemo(() => {
     return allPlaces.filter((place) => {
@@ -2533,6 +2602,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const selectedPlace = selectedId ? placeById.get(selectedId) ?? null : null
   const customDraftCategoryLabel =
     customCategoryItems.find((item) => item.key === customDraft.category)?.label ?? '景點'
+  const customDraftLinks = customDraft.id ? (placeUserLinks[customDraft.id] ?? customPlaces[customDraft.id]?.links ?? []) : []
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -2851,6 +2921,35 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [customPlaces, placeById, plannerCategoryItems, selectedId, validPlanPlaceIds],
   )
 
+  const scrollPlannerCardIntoView = (card: HTMLElement | null | undefined, behavior: ScrollBehavior = 'smooth') => {
+    if (!card) return
+    if (isMobilePlannerViewport()) scrollCardFullyIntoView(card, behavior)
+    else scrollCardToContainerCenter(card, behavior)
+  }
+
+  const scrollBackToCustomCard = (placeId: string, returnMode: 'add' | 'order', returnItem: PlannerItem | null) => {
+    window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const fallbackItem = planItems.find((item) => planItemPlaceId(item) === placeId) ?? null
+          const card = returnMode === 'order'
+            ? (returnItem ? planCardRefs.current[returnItem] : null) ?? (fallbackItem ? planCardRefs.current[fallbackItem] : null)
+            : addCardRefs.current[placeId]
+          scrollPlannerCardIntoView(card)
+        })
+      })
+    }, 0)
+  }
+
+  const scrollToTransportCard = (itemId: PlannerItem) => {
+    window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollPlannerCardIntoView(transportCardRefs.current[itemId])
+        })
+      })
+    }, 0)
+  }
   const fitMapToPlaces = useCallback((force = false) => {
     const map = mapRef.current
     if (!map || !window.google?.maps || allPlaces.length === 0) return
@@ -3128,7 +3227,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [])
 
-  const addPlaceToPlan = (place: MapPlace, dayNumber: number | 'end' = 'end') => {
+  const addPlaceToPlan = (place: MapPlace, dayNumber: number | 'end' = 'end', initialNote = '') => {
     if (readOnlyPlan) return
     const itemId = canRepeatPlanPlace(place) ? createVisitItem(place.id) : place.id
     setPlanItems((ids) => {
@@ -3144,6 +3243,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       return nextIds
     })
+    if (initialNote.trim()) updatePlaceNote(itemId, initialNote)
     setSelectedPlanItem(itemId)
     setSelectedId(place.id)
     setRecentlyAddedPlaceId(place.id)
@@ -3153,18 +3253,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (modeRef.current === 'order') setMobilePanelOpen(true)
   }
 
-  const addPlace = (place: MapPlace) => {
+  const addPlace = (place: MapPlace, initialNote = '') => {
+    const noteForNewItem = initialNote || placeNotes[place.id] || ''
     if (hasDayDividers && (canRepeatPlanPlace(place) || !plannedSet.has(place.id))) {
       setPendingAddPlace(place)
+      setPendingAddPlaceNote(noteForNewItem)
       return
     }
-    addPlaceToPlan(place)
+    addPlaceToPlan(place, 'end', noteForNewItem)
   }
 
   const confirmAddPlaceToDay = (dayNumber: number | 'end') => {
     if (!pendingAddPlace) return
-    addPlaceToPlan(pendingAddPlace, dayNumber)
+    addPlaceToPlan(pendingAddPlace, dayNumber, pendingAddPlaceNote)
     setPendingAddPlace(null)
+    setPendingAddPlaceNote('')
   }
 
   const removePlace = (itemId: string) => {
@@ -3226,6 +3329,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan) return
     const transportItem = createTransportItem()
     setMode('order')
+    setMobilePanelOpen(true)
     setOpenPlannerMenu(null)
     setPlanItems((items) => {
       const fallbackIndex = (() => {
@@ -3247,6 +3351,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       return nextItems
     })
+    scrollToTransportCard(transportItem)
   }
 
   const addTransportFromMenu = () => {
@@ -3331,19 +3436,29 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPlanItems((items) => items.filter((item) => item !== itemId))
   }
 
-  const updatePlaceNote = (placeId: string, note: string) => {
+  const updateNoteKeys = (keys: string[], note: string) => {
     if (readOnlyPlan) return
     const trimmedNote = note.slice(0, 500)
+    const uniqueKeys = Array.from(new Set(keys.filter(Boolean)))
+    if (uniqueKeys.length === 0) return
     setPlaceNotes((notes) => {
-      if (!trimmedNote.trim()) {
-        const nextNotes = { ...notes }
-        delete nextNotes[placeId]
-        return nextNotes
-      }
-      return { ...notes, [placeId]: trimmedNote }
+      const nextNotes = { ...notes }
+      uniqueKeys.forEach((key) => {
+        if (!trimmedNote.trim()) delete nextNotes[key]
+        else nextNotes[key] = trimmedNote
+      })
+      return nextNotes
     })
   }
 
+  const updatePlaceNote = (placeId: string, note: string) => {
+    updateNoteKeys([placeId], note)
+  }
+
+  const updateCustomPlaceNote = (placeId: string, note: string) => {
+    const relatedItems = planItems.filter((item) => planItemPlaceId(item) === placeId)
+    updateNoteKeys([placeId, ...relatedItems], note)
+  }
   const addPlaceUserLink = (placeId: string, link: PlannerUserLink) => {
     if (readOnlyPlan) return
     const label = link.label.trim().slice(0, 40)
@@ -3368,8 +3483,33 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }
 
+  const setCustomPlacePrimaryUserLink = (placeId: string, labelValue: string, hrefValue: string) => {
+    if (readOnlyPlan) return
+    const label = labelValue.trim().slice(0, 40)
+    const href = hrefValue.trim().slice(0, 500)
+    if (!label || !href) return
+    const nextPrimary = { label, href }
+    const nextPrimaryKey = label + '::' + href
+    setPlaceUserLinks((links) => {
+      const restLinks = (links[placeId] ?? [])
+        .slice(1)
+        .filter((link) => link.label.trim() + '::' + link.href.trim() !== nextPrimaryKey)
+      return {
+        ...links,
+        [placeId]: [nextPrimary, ...restLinks].slice(0, 8),
+      }
+    })
+  }
+
+  const addCustomDraftLink = () => {
+    if (!customDraft.id) return
+    addPlaceUserLink(customDraft.id, { label: customDraft.linkLabel, href: customDraft.linkUrl })
+    setCustomDraft((draft) => ({ ...draft, linkLabel: '', linkUrl: '' }))
+  }
   const startCustomPlaceDraft = () => {
     if (readOnlyPlan) return
+    setCustomDraftReturnMode('add')
+    setCustomDraftReturnItem(null)
     setCustomDraft({
       ...emptyCustomPlaceDraft,
       id: `${CUSTOM_PLACE_PREFIX}${Date.now().toString(36)}`,
@@ -3381,18 +3521,27 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setMode('add')
   }
 
-  const editCustomPlace = (placeId: string) => {
+  const editCustomPlace = (placeId: string, returnMode: 'add' | 'order' = 'add', returnItem: PlannerItem | null = null) => {
     const place = customPlaces[placeId]
     if (!place) return
-    const firstLink = place.links?.[0]
+    const relatedItem = returnItem && planItemPlaceId(returnItem) === placeId
+      ? returnItem
+      : selectedPlanItem && planItemPlaceId(selectedPlanItem) === placeId
+        ? selectedPlanItem
+        : planItems.find((item) => planItemPlaceId(item) === placeId)
+    if ((place.links?.length ?? 0) > 0 && (placeUserLinks[placeId]?.length ?? 0) === 0) {
+      setPlaceUserLinks((links) => ({ ...links, [placeId]: place.links ?? [] }))
+    }
+    setCustomDraftReturnMode(returnMode)
+    setCustomDraftReturnItem(returnItem)
     setCustomDraft({
       id: place.id,
       name: place.name,
       googleUrl: place.googleUrl ?? '',
       naverUrl: place.naverUrl ?? '',
-      linkLabel: firstLink?.label ?? '',
-      linkUrl: firstLink?.href ?? '',
-      note: placeNotes[place.id] ?? '',
+      linkLabel: '',
+      linkUrl: '',
+      note: placeNotes[place.id] ?? (relatedItem ? placeNotes[relatedItem] : undefined) ?? '',
       category: cleanCustomPlaceCategory(place.category),
       lat: place.lat,
       lng: place.lng,
@@ -3547,7 +3696,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const linkLabel = customDraft.linkLabel.trim()
     const linkUrl = customDraft.linkUrl.trim()
     const existingPlace = customPlaces[id]
-    const nextLinks = linkLabel && linkUrl ? [{ label: linkLabel, href: linkUrl }] : (existingPlace?.links ?? [])
+    const baseLinks = placeUserLinks[id] ?? existingPlace?.links ?? []
+    const pendingLinks = linkLabel && linkUrl ? [{ label: linkLabel, href: linkUrl }] : []
+    const seenCustomLinks = new Set<string>()
+    const nextLinks = [...baseLinks, ...pendingLinks]
+      .map((link) => ({ label: link.label.trim().slice(0, 40), href: link.href.trim().slice(0, 500) }))
+      .filter((link) => {
+        if (!link.label || !link.href) return false
+        const key = link.label + '::' + link.href
+        if (seenCustomLinks.has(key)) return false
+        seenCustomLinks.add(key)
+        return true
+      })
     const customPlace: CustomPlannerPlace = {
       id,
       ...(existingPlace?.sourcePlaceId ? { sourcePlaceId: existingPlace.sourcePlaceId } : {}),
@@ -3561,23 +3721,27 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
-    updatePlaceNote(id, customDraft.note)
+    updateCustomPlaceNote(id, customDraft.note)
+    setPlaceUserLinks((links) => {
+      if (nextLinks.length === 0) {
+        const cleanLinks = { ...links }
+        delete cleanLinks[id]
+        return cleanLinks
+      }
+      return { ...links, [id]: nextLinks }
+    })
     setSelectedId(id)
-    setMode('add')
-    setCustomOnly(true)
+    const returnMode = customDraftReturnMode
+    const returnItem = customDraftReturnItem && planItemPlaceId(customDraftReturnItem) === id ? customDraftReturnItem : null
+    setMode(returnMode)
+    if (returnMode === 'add') setCustomOnly(true)
+    if (returnMode === 'order') setSelectedPlanItem(returnItem ?? planItems.find((item) => planItemPlaceId(item) === id) ?? null)
+    else setSelectedPlanItem(null)
     setMobilePanelOpen(true)
     setCustomDraft(emptyCustomPlaceDraft)
+    setCustomDraftReturnItem(null)
     setCustomUrlResolving(false)
-    window.setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const card = addCardRefs.current[id]
-          if (!card) return
-          if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
-          else scrollCardToContainerCenter(card)
-        })
-      })
-    }, 0)
+    scrollBackToCustomCard(id, returnMode, returnItem)
     trackPlannerEvent('add_custom_place', {
       place_id: id,
       place_name: name,
@@ -3603,8 +3767,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     const customMapPlace = customPlaceToMapPlace(customPlace, match, customCategoryItems)
     setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
-    updatePlaceNote(id, customDraft.note)
-    addPlace(customMapPlace)
+    updateCustomPlaceNote(id, customDraft.note)
+    setCustomPlacePrimaryUserLink(id, customDraft.linkLabel, customDraft.linkUrl)
+    addPlace(customMapPlace, customDraft.note)
     setSelectedId(id)
     setCustomDraft(emptyCustomPlaceDraft)
     setCustomUrlResolving(false)
@@ -3632,8 +3797,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
 
   const cancelCustomPlaceDraft = () => {
+    const returnMode = customDraftReturnMode
+    const placeId = customDraft.id
+    const returnItem = placeId && customDraftReturnItem && planItemPlaceId(customDraftReturnItem) === placeId ? customDraftReturnItem : null
     setCustomDraft(emptyCustomPlaceDraft)
+    setCustomDraftReturnItem(null)
     setCustomUrlResolving(false)
+    setMode(returnMode)
+    if (placeId) setSelectedId(placeId)
+    if (returnMode === 'order') {
+      setSelectedPlanItem(returnItem ?? (placeId ? planItems.find((item) => planItemPlaceId(item) === placeId) ?? null : null))
+      setMobilePanelOpen(true)
+    } else {
+      setSelectedPlanItem(null)
+      setMobilePanelOpen(true)
+    }
+    if (placeId) scrollBackToCustomCard(placeId, returnMode, returnItem)
   }
 
   const confirmCustomPlaceName = () => {
@@ -4523,27 +4702,55 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                     placeholder="可寫營業時間、想點的餐、訂房資訊"
                                   />
                                 </label>
-                                <div className={styles.customPlaceLinkFields}>
-                                  <label>
-                                    連結名稱
-                                    <input
-                                      value={customDraft.linkLabel}
-                                      onChange={(event) =>
-                                        setCustomDraft((draft) => ({ ...draft, linkLabel: event.target.value }))
-                                      }
-                                      placeholder="官網、訂房、菜單"
-                                    />
-                                  </label>
-                                  <label>
-                                    連結
-                                    <input
-                                      value={customDraft.linkUrl}
-                                      onChange={(event) =>
-                                        setCustomDraft((draft) => ({ ...draft, linkUrl: event.target.value }))
-                                      }
-                                      placeholder="https://..."
-                                    />
-                                  </label>
+                                <div className={styles.customPlaceLinkGroup}>
+                                  <div className={styles.customPlaceLinkFields}>
+                                    <label>
+                                      連結名稱
+                                      <input
+                                        value={customDraft.linkLabel}
+                                        onChange={(event) =>
+                                          setCustomDraft((draft) => ({ ...draft, linkLabel: event.target.value }))
+                                        }
+                                        placeholder="官網、訂房、菜單"
+                                      />
+                                    </label>
+                                    <label>
+                                      連結
+                                      <input
+                                        value={customDraft.linkUrl}
+                                        onChange={(event) =>
+                                          setCustomDraft((draft) => ({ ...draft, linkUrl: event.target.value }))
+                                        }
+                                        placeholder="https://..."
+                                      />
+                                    </label>
+                                  </div>
+                                  <button
+                                    className={styles.customPlaceAddLink}
+                                    type="button"
+                                    onClick={addCustomDraftLink}
+                                    disabled={!customDraft.linkLabel.trim() || !customDraft.linkUrl.trim()}
+                                  >
+                                    新增連結
+                                  </button>
+                                  {customDraftLinks.length > 0 ? (
+                                    <div className={styles.customPlaceLinkList}>
+                                      {customDraftLinks.map((link, index) => (
+                                        <span key={`${link.label}-${link.href}-${index}`} className={styles.customPlaceLinkItem}>
+                                          <a href={link.href} target="_blank" rel="noopener noreferrer">
+                                            {link.label}
+                                          </a>
+                                          <button
+                                            type="button"
+                                            aria-label={`刪除 ${link.label}`}
+                                            onClick={() => customDraft.id && removePlaceUserLink(customDraft.id, index)}
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : null}
                                 </div>
                               </div>
                             </>
@@ -4567,8 +4774,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 {!customDraft.id ? (
                 <div className={styles.addList} data-planner-scroll-list="true">
                   {filteredPlaces.map((place) => {
-                    const added = !canRepeatPlanPlace(place) && plannedSet.has(place.id)
+                    const addedCount = plannedPlaceCounts.get(place.id) ?? 0
                     const justAdded = recentlyAddedPlaceId === place.id
+                    const displayAddedCount = addedCount || (justAdded ? 1 : 0)
+                    const added = displayAddedCount > 0
                     const isCustomPlace = isCustomPlaceId(place.id)
                     return (
                       <article
@@ -4576,7 +4785,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         ref={(el) => {
                           addCardRefs.current[place.id] = el
                         }}
-                        className={`${styles.addCard} ${selectedId === place.id ? styles.addCardActive : ''}`}
+                        className={`${styles.addCard} ${isCustomPlace ? styles.addCardCustom : ''} ${selectedId === place.id ? styles.addCardActive : ''}`}
                         style={plannerPlaceStyle(place, plannerCategoryItems)}
                         onClick={(e) => {
                           const target = e.target as HTMLElement
@@ -4591,38 +4800,36 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           </span>
                           <span className={styles.placeDesc}>{place.description}</span>
                         </button>
+                        {isCustomPlace ? (
+                          <span className={styles.addCardManage}>
+                            <button
+                              className={styles.editCustomButton}
+                              type="button"
+                              aria-label={`編輯 ${plannerPlaceName(place)}`}
+                              onClick={() => editCustomPlace(place.id, 'add', null)}
+                            >
+                              ✎
+                            </button>
+                            <button
+                              className={styles.deleteCustomButton}
+                              type="button"
+                              aria-label={`刪除 ${plannerPlaceName(place)}`}
+                              onClick={() => requestDeleteCustomPlace(place.id)}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ) : null}
                         <span className={styles.addCardControls}>
                           <span className={styles.inlineMapLinks}>
                             <PlannerInlineCardLinks place={place} />
                           </span>
                           {!readOnlyPlan ? (
                             <span className={styles.addCardActions}>
-                              <button
-                                className={added || justAdded ? styles.addedButton : styles.addButton}
-                                type="button"
-                                onClick={() => addPlace(place)}
-                              >
-                                {added || justAdded ? '已加入' : '加入'}
+                              {added ? <span className={styles.addedButton}>已加入 {displayAddedCount}</span> : null}
+                              <button className={styles.addButton} type="button" onClick={() => addPlace(place)}>
+                                {added ? '再加入' : '加入'}
                               </button>
-                              {isCustomPlace ? (
-                                <button
-                                  className={styles.editCustomButton}
-                                  type="button"
-                                  onClick={() => editCustomPlace(place.id)}
-                                >
-                                  編輯
-                                </button>
-                              ) : null}
-                              {isCustomPlace ? (
-                                <button
-                                  className={styles.deleteCustomButton}
-                                  type="button"
-                                  aria-label={`Delete ${plannerPlaceName(place)}`}
-                                  onClick={() => requestDeleteCustomPlace(place.id)}
-                                >
-                                  ×
-                                </button>
-                              ) : null}
                             </span>
                           ) : null}
                         </span>
@@ -4750,6 +4957,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   info={transport}
                                   onChange={(info) => updateTransportItem(item, info)}
                                   onRemove={() => requestRemoveTransport(item)}
+                                  cardRef={(el) => {
+                                    transportCardRefs.current[item] = el
+                                  }}
                                   readOnly={readOnlyPlan}
                                 />
                               )
@@ -4763,12 +4973,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   itemId={item}
                                   place={place}
                                   label={planOrderLabels.get(item) ?? ''}
-                                  note={placeNotes[item] ?? ''}
+                                  note={isCustomPlaceId(place.id) ? (placeNotes[place.id] ?? placeNotes[item] ?? '') : (placeNotes[item] ?? '')}
                                   selected={selectedPlanItem ? selectedPlanItem === item : selectedId === place.id}
                                   onFocus={() => focusPlace(place, 'list', item)}
                                   onRemove={() => requestRemovePlace(item)}
-                                  onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id) : undefined}
-                                  onNoteChange={(note) => updatePlaceNote(item, note)}
+                                  onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id, 'order', item) : undefined}
+                                  onNoteChange={(note) => {
+                                    if (isCustomPlaceId(place.id)) updateCustomPlaceNote(place.id, note)
+                                    else updatePlaceNote(item, note)
+                                  }}
                                   userLinks={placeUserLinks[place.id] ?? []}
                                   onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
                                   onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}
@@ -4805,7 +5018,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         )}
 
         {pendingAddPlace ? (
-          <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingAddPlace(null)}>
+          <div
+            className={styles.confirmBackdrop}
+            role="presentation"
+            onClick={() => {
+              setPendingAddPlace(null)
+              setPendingAddPlaceNote('')
+            }}
+          >
             <section
               className={styles.confirmDialog}
               role="dialog"
@@ -4828,7 +5048,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 ))}
               </div>
               <div className={styles.confirmActions}>
-                <button type="button" className={styles.confirmSecondary} onClick={() => setPendingAddPlace(null)}>
+                <button
+                  type="button"
+                  className={styles.confirmSecondary}
+                  onClick={() => {
+                    setPendingAddPlace(null)
+                    setPendingAddPlaceNote('')
+                  }}
+                >
                   取消
                 </button>
                 <button type="button" className={styles.confirmPrimary} onClick={() => confirmAddPlaceToDay('end')}>
