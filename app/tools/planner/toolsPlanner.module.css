@@ -266,20 +266,45 @@
   font-weight: 950;
 }
 
+.recentActions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-right: 10px;
+}
+
+.recentEditButton,
 .recentDeleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
   width: 38px;
   height: 38px;
-  margin-right: 10px;
   border: 0;
   border-radius: 10px;
   padding: 0;
   background: #f1f5f9;
   color: #64748b;
-  font-size: 28px;
+  font-size: 22px;
   line-height: 1;
   font-weight: 950;
   cursor: pointer;
+}
+
+.recentEditButton {
+  color: #1f7a8c;
+  font-size: 18px;
+}
+
+.recentEditButton:hover {
+  background: #eef8fb;
+}
+
+.recentDeleteButton {
+  font-size: 28px;
 }
 
 .recentDeleteButton:hover:not(:disabled) {

@@ -166,9 +166,30 @@ function slugifyCountry(value: string) {
   )
 }
 
+function plannerDisplayName(rawName: string | undefined, regionKey: string) {
+  const knownRegion = knownRegions.find((region) => region.key === regionKey)
+  const raw = (rawName ?? '').trim()
+  const cleaned = raw
+    .replace(/^toolsplanner[_-]*/i, '')
+    .replace(/(?:map|pass)?planner$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .trim()
+  const normalized = cleaned.toLowerCase()
+  const matchedRegion = knownRegions.find(
+    (region) =>
+      normalized === region.key ||
+      normalized === region.label.toLowerCase() ||
+      normalized === region.shortLabel.toLowerCase(),
+  )
+  if (matchedRegion) return matchedRegion.shortLabel
+  if (cleaned && !/planner/i.test(cleaned)) return cleaned
+  if (knownRegion) return knownRegion.shortLabel
+  return regionKey.trim() || cleaned || '自由行'
+}
+
 function customRegionFromUrl(regionKey: string, countryName: string): PlannerRegion {
   const key = regionKey.trim() || slugifyCountry(countryName) || 'custom'
-  const label = countryName.trim() || key
+  const label = plannerDisplayName(countryName, key)
   return {
     key,
     label,
@@ -198,7 +219,7 @@ function cleanRecentPlannerItems(value: unknown): RecentPlanner[] {
       readToken: typeof item.readToken === 'string' ? item.readToken : undefined,
       regionKey: typeof item.regionKey === 'string' ? item.regionKey : '',
       source: (item.source === 'pass' ? 'pass' : 'map') as PlannerSource,
-      countryName: typeof item.countryName === 'string' ? item.countryName : '',
+      countryName: plannerDisplayName(typeof item.countryName === 'string' ? item.countryName : '', typeof item.regionKey === 'string' ? item.regionKey : ''),
       updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : undefined,
     }))
     .filter((item) => item.id && item.regionKey && item.countryName)
@@ -280,7 +301,7 @@ export default function ToolsPlannerPage() {
                 setStarted(null)
                 return
               }
-              const countryName = book.city || region.shortLabel
+              const countryName = plannerDisplayName(book.city, region.key)
               if (plannerId) {
                 setRecentPlanners(
                   upsertRecentPlanner({
@@ -326,7 +347,7 @@ export default function ToolsPlannerPage() {
       }
       if (shouldLoadSharedPlan && regionKey) {
         const startCustomSharedPlanner = (book?: PlannerBookMeta | null) => {
-          const countryName = book?.city || regionKey
+          const countryName = plannerDisplayName(book?.city, regionKey)
           const customRegion = customRegionFromUrl(regionKey, countryName)
           if (plannerId) {
             setRecentPlanners(
@@ -507,7 +528,7 @@ export default function ToolsPlannerPage() {
   const saveRenamePlanner = () => {
     const planner = renameTarget
     if (!planner) return
-    const nextName = renameValue.trim() || planner.countryName
+    const nextName = plannerDisplayName(renameValue, planner.regionKey) || planner.countryName
     const nextRecent = recentPlanners.map((item) =>
       item.id === planner.id && item.regionKey === planner.regionKey
         ? { ...item, countryName: nextName }
