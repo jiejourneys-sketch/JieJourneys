@@ -192,6 +192,8 @@ export default function ToolsPlannerPage() {
   const [countryInput, setCountryInput] = useState('')
   const [preferredSource, setPreferredSource] = useState<PlannerSource>('map')
   const [recentPlanners, setRecentPlanners] = useState<RecentPlanner[]>([])
+  const [renameTarget, setRenameTarget] = useState<RecentPlanner | null>(null)
+  const [renameValue, setRenameValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<RecentPlanner | null>(null)
   const [deletingPlannerId, setDeletingPlannerId] = useState<string | null>(null)
   const [started, setStarted] = useState<{
@@ -446,6 +448,26 @@ export default function ToolsPlannerPage() {
     startPlanner(region, planner.countryName, true, planner.source ?? 'map', planner)
   }
 
+  const openRenamePlanner = (planner: RecentPlanner) => {
+    setRenameTarget(planner)
+    setRenameValue(planner.countryName)
+  }
+
+  const saveRenamePlanner = () => {
+    const planner = renameTarget
+    if (!planner) return
+    const nextName = renameValue.trim() || planner.countryName
+    const nextRecent = recentPlanners.map((item) =>
+      item.id === planner.id && item.regionKey === planner.regionKey
+        ? { ...item, countryName: nextName }
+        : item,
+    )
+    setRecentPlanners(nextRecent)
+    window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(nextRecent))
+    setRenameTarget(null)
+    setRenameValue('')
+  }
+
   const deleteRecentPlanner = async () => {
     const planner = deleteTarget
     if (!planner) return
@@ -592,6 +614,7 @@ export default function ToolsPlannerPage() {
       recentRegionKey: region.key,
       recentSource: source,
       recentCountryName: countryName,
+      plannerBookCityName: countryName,
       mapZoom: region.zoom ?? 11,
       categoryLabels: semanticCategoryLabels,
       categoryItems: semanticCategories,
@@ -664,19 +687,33 @@ export default function ToolsPlannerPage() {
                       {planner.updatedAt ? <small>{new Date(planner.updatedAt).toLocaleString('zh-TW')}</small> : null}
                     </span>
                   </button>
-                  <button
-                    className={styles.recentDeleteButton}
-                    type="button"
-                    onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      setDeleteTarget(planner)
-                    }}
-                    disabled={deletingPlannerId === planner.id}
-                    aria-label={`刪除${planner.countryName}行程`}
-                  >
-                    ×
-                  </button>
+                  <span className={styles.recentActions}>
+                    <button
+                      className={styles.recentEditButton}
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        openRenamePlanner(planner)
+                      }}
+                      aria-label={`重新命名${planner.countryName}行程`}
+                    >
+                      ✎
+                    </button>
+                    <button
+                      className={styles.recentDeleteButton}
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        setDeleteTarget(planner)
+                      }}
+                      disabled={deletingPlannerId === planner.id}
+                      aria-label={`刪除${planner.countryName}行程`}
+                    >
+                      ×
+                    </button>
+                  </span>
                 </article>
               ))}
             </div>
@@ -684,6 +721,41 @@ export default function ToolsPlannerPage() {
         ) : null}
       </section>
       </main>
+      {renameTarget ? (
+        <div className={styles.confirmOverlay} role="presentation" onMouseDown={() => setRenameTarget(null)}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="planner-rename-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button className={styles.confirmClose} type="button" onClick={() => setRenameTarget(null)} aria-label="關閉">
+              ×
+            </button>
+            <h2 id="planner-rename-title">編輯行程名稱</h2>
+            <label className={styles.renameField}>
+              <span>名稱</span>
+              <input
+                value={renameValue}
+                onChange={(event) => setRenameValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') saveRenamePlanner()
+                }}
+                autoFocus
+              />
+            </label>
+            <div className={styles.confirmActions}>
+              <button type="button" className={styles.confirmCancel} onClick={() => setRenameTarget(null)}>
+                取消
+              </button>
+              <button type="button" className={styles.confirmSave} onClick={saveRenamePlanner}>
+                儲存
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
       {inAppPromptOpen && inAppBrowser && pendingPlannerStart ? (
         <div className={styles.confirmOverlay} role="presentation" onMouseDown={closeInAppPrompt}>
           <section

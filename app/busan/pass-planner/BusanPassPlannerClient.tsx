@@ -110,6 +110,7 @@ export type PlannerConfig = {
   recentRegionKey?: string
   recentCountryName?: string
   recentSource?: 'map' | 'pass'
+  plannerBookCityName?: string
 }
 
 const SCRIPT_ID = 'gmaps-js'
@@ -3902,7 +3903,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note),
         )
         const book = await savePlannerBook(
-          config.eventPrefix,
+          config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
           currentPlannerBookId,
           validPlanItems,
           sharedNotes,

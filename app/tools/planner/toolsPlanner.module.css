@@ -343,6 +343,31 @@
   line-height: 1.7;
 }
 
+.renameField {
+  display: grid;
+  gap: 8px;
+  color: #243044;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.renameField input {
+  width: 100%;
+  min-height: 48px;
+  border: 2px solid rgba(31, 122, 140, 0.22);
+  border-radius: 14px;
+  padding: 0 14px;
+  color: #243044;
+  font: inherit;
+  background: #ffffff;
+}
+
+.renameField input:focus {
+  border-color: #1f7a8c;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(31, 122, 140, 0.12);
+}
+
 .confirmActions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -351,6 +376,7 @@
 }
 
 .confirmCancel,
+.confirmSave,
 .confirmDelete {
   min-height: 48px;
   border-radius: 14px;
@@ -365,6 +391,7 @@
   color: #1f7a8c;
 }
 
+.confirmSave,
 .promptPrimary,
 .promptSecondary {
   min-height: 48px;
@@ -374,6 +401,7 @@
   cursor: pointer;
 }
 
+.confirmSave,
 .promptPrimary {
   border: 1px solid #1f7a8c;
   background: #1f7a8c;
