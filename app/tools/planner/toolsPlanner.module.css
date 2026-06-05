@@ -450,6 +450,7 @@
   color: #ffffff;
 }
 
+.confirmSave:disabled,
 .confirmDelete:disabled {
   opacity: 0.65;
   cursor: default;

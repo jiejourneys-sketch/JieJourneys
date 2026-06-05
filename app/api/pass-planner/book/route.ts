@@ -225,6 +225,28 @@ export async function GET(req: NextRequest) {
   })
 }
 
+export async function PATCH(req: NextRequest) {
+  const supabase = getTripSupabase()
+  if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
+
+  const input = (await req.json().catch(() => null)) as Record<string, unknown> | null
+  const id = typeof input?.id === 'string' ? input.id.trim().slice(0, 32) : ''
+  const readToken = typeof input?.read_token === 'string' ? input.read_token.trim().slice(0, 32) : ''
+  const city = typeof input?.city === 'string' ? input.city.trim().slice(0, 32) : ''
+  if (!id || !city) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
+
+  let updateQuery = supabase
+    .from(TABLE)
+    .update({ city, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (readToken) updateQuery = updateQuery.eq('read_token', readToken)
+  const { data, error } = await updateQuery.select('id, city, updated_at').maybeSingle()
+
+  if (error) return NextResponse.json({ error: 'update_failed', code: error.code }, { status: 503 })
+  if (!data?.id) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+
+  return NextResponse.json({ id: data.id, city: data.city, updated_at: data.updated_at })
+}
 export async function DELETE(req: NextRequest) {
   const supabase = getTripSupabase()
   if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })

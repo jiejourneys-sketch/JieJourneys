@@ -254,6 +254,7 @@ export default function ToolsPlannerPage() {
   const [recentPlanners, setRecentPlanners] = useState<RecentPlanner[]>([])
   const [renameTarget, setRenameTarget] = useState<RecentPlanner | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [renamingPlannerId, setRenamingPlannerId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<RecentPlanner | null>(null)
   const [deletingPlannerId, setDeletingPlannerId] = useState<string | null>(null)
   const [started, setStarted] = useState<{
@@ -525,19 +526,39 @@ export default function ToolsPlannerPage() {
     setRenameValue(planner.countryName)
   }
 
-  const saveRenamePlanner = () => {
+  const saveRenamePlanner = async () => {
     const planner = renameTarget
-    if (!planner) return
+    if (!planner || renamingPlannerId) return
     const nextName = plannerDisplayName(renameValue, planner.regionKey) || planner.countryName
-    const nextRecent = recentPlanners.map((item) =>
-      item.id === planner.id && item.regionKey === planner.regionKey
-        ? { ...item, countryName: nextName }
-        : item,
-    )
-    setRecentPlanners(nextRecent)
-    window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(nextRecent))
-    setRenameTarget(null)
-    setRenameValue('')
+    setRenamingPlannerId(planner.id)
+    try {
+      const res = await fetch('/api/pass-planner/book', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: planner.id,
+          read_token: planner.readToken ?? '',
+          city: nextName,
+        }),
+      })
+      if (!res.ok) {
+        alert('名稱儲存失敗，請稍後再試')
+        return
+      }
+      const saved = (await res.json().catch(() => null)) as { updated_at?: unknown } | null
+      const updatedAt = typeof saved?.updated_at === 'string' ? saved.updated_at : new Date().toISOString()
+      const nextRecent = recentPlanners.map((item) =>
+        item.id === planner.id && item.regionKey === planner.regionKey
+          ? { ...item, countryName: nextName, updatedAt }
+          : item,
+      )
+      setRecentPlanners(nextRecent)
+      window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(nextRecent))
+      setRenameTarget(null)
+      setRenameValue('')
+    } finally {
+      setRenamingPlannerId(null)
+    }
   }
 
   const deleteRecentPlanner = async () => {
@@ -812,7 +833,7 @@ export default function ToolsPlannerPage() {
                 value={renameValue}
                 onChange={(event) => setRenameValue(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter') saveRenamePlanner()
+                  if (event.key === 'Enter' && !renamingPlannerId) void saveRenamePlanner()
                 }}
                 autoFocus
               />
@@ -821,8 +842,8 @@ export default function ToolsPlannerPage() {
               <button type="button" className={styles.confirmCancel} onClick={() => setRenameTarget(null)}>
                 取消
               </button>
-              <button type="button" className={styles.confirmSave} onClick={saveRenamePlanner}>
-                儲存
+              <button type="button" className={styles.confirmSave} onClick={() => void saveRenamePlanner()} disabled={renamingPlannerId === renameTarget.id}>
+                {renamingPlannerId === renameTarget.id ? '儲存中...' : '儲存'}
               </button>
             </div>
           </section>
