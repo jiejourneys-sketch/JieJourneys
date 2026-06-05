@@ -50,6 +50,7 @@ type PendingPlannerStart = {
   countryName: string
   shouldLoadKnownPlaces: boolean
   source: PlannerSource
+  resetDraft?: boolean
 }
 
 function detectInAppBrowser(): InAppBrowser {
@@ -188,6 +189,44 @@ async function fetchPlannerBookMeta(plannerId: string, readToken: string): Promi
   }
 }
 
+function cleanRecentPlannerItems(value: unknown): RecentPlanner[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+    .map((item) => ({
+      id: typeof item.id === 'string' ? item.id : '',
+      readToken: typeof item.readToken === 'string' ? item.readToken : undefined,
+      regionKey: typeof item.regionKey === 'string' ? item.regionKey : '',
+      source: (item.source === 'pass' ? 'pass' : 'map') as PlannerSource,
+      countryName: typeof item.countryName === 'string' ? item.countryName : '',
+      updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : undefined,
+    }))
+    .filter((item) => item.id && item.regionKey && item.countryName)
+}
+
+function plannerStorageKey(regionKey: string, source: PlannerSource) {
+  return `jiejourneys:tools-planner:${regionKey}${source === 'pass' ? ':pass' : ''}:v1`
+}
+
+function clearPlannerLocalDraft(regionKey: string, source: PlannerSource) {
+  const key = plannerStorageKey(regionKey, source)
+  window.localStorage.removeItem(key)
+  window.localStorage.removeItem(`${key}:notes`)
+  window.localStorage.removeItem(`${key}:custom-places`)
+  window.localStorage.removeItem(`${key}:user-links`)
+  window.localStorage.removeItem(`${key}:book-id`)
+  window.localStorage.removeItem(`${key}:book-read-token`)
+  window.localStorage.removeItem(`${key}:book-updated-at`)
+}
+
+function upsertRecentPlanner(planner: RecentPlanner) {
+  const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
+  const current = cleanRecentPlannerItems(raw ? JSON.parse(raw) : [])
+  const next = [planner, ...current.filter((item) => item.id !== planner.id)].slice(0, 12)
+  window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(next))
+  return next
+}
+
 export default function ToolsPlannerPage() {
   const [countryInput, setCountryInput] = useState('')
   const [preferredSource, setPreferredSource] = useState<PlannerSource>('map')
@@ -241,11 +280,24 @@ export default function ToolsPlannerPage() {
                 setStarted(null)
                 return
               }
+              const countryName = book.city || region.shortLabel
+              if (plannerId) {
+                setRecentPlanners(
+                  upsertRecentPlanner({
+                    id: plannerId,
+                    readToken: readToken || undefined,
+                    regionKey: region.key,
+                    source,
+                    countryName,
+                    updatedAt: new Date().toISOString(),
+                  }).slice(0, 8),
+                )
+              }
               setUnavailablePlanner(null)
               setStarted({
                 region,
                 loadKnownPlaces: true,
-                countryName: region.shortLabel,
+                countryName,
                 source,
                 plannerId: plannerId || undefined,
                 readToken: readToken || undefined,
@@ -276,6 +328,18 @@ export default function ToolsPlannerPage() {
         const startCustomSharedPlanner = (book?: PlannerBookMeta | null) => {
           const countryName = book?.city || regionKey
           const customRegion = customRegionFromUrl(regionKey, countryName)
+          if (plannerId) {
+            setRecentPlanners(
+              upsertRecentPlanner({
+                id: plannerId,
+                readToken: readToken || undefined,
+                regionKey: customRegion.key,
+                source,
+                countryName,
+                updatedAt: new Date().toISOString(),
+              }).slice(0, 8),
+            )
+          }
           setUnavailablePlanner(null)
           setStarted({
             region: customRegion,
@@ -314,8 +378,7 @@ export default function ToolsPlannerPage() {
 
         startCustomSharedPlanner()
         return
-      }
-      if (region) {
+      }      if (region) {
         setCountryInput(region.shortLabel)
       } else if (regionKey) {
         setCountryInput(regionKey)
@@ -323,22 +386,7 @@ export default function ToolsPlannerPage() {
       setCheckingSharedPlanner(false)
 
       const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
-      const parsed = raw ? (JSON.parse(raw) as unknown) : []
-      if (!Array.isArray(parsed)) return
-      setRecentPlanners(
-        parsed
-          .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
-          .map((item) => ({
-            id: typeof item.id === 'string' ? item.id : '',
-            readToken: typeof item.readToken === 'string' ? item.readToken : undefined,
-            regionKey: typeof item.regionKey === 'string' ? item.regionKey : '',
-            source: (item.source === 'pass' ? 'pass' : 'map') as PlannerSource,
-            countryName: typeof item.countryName === 'string' ? item.countryName : '',
-            updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : undefined,
-          }))
-          .filter((item) => item.id && item.regionKey && item.countryName)
-          .slice(0, 8),
-      )
+      setRecentPlanners(cleanRecentPlannerItems(raw ? JSON.parse(raw) : []).slice(0, 8))
     } catch {
       setRecentPlanners([])
     }
@@ -383,13 +431,15 @@ export default function ToolsPlannerPage() {
     shouldLoadKnownPlaces = true,
     source: PlannerSource = 'map',
     planner?: Pick<RecentPlanner, 'id' | 'readToken'>,
+    resetDraft = !planner,
   ) => {
     if (!planner && inAppBrowser) {
-      setPendingPlannerStart({ region, countryName, shouldLoadKnownPlaces, source })
+      setPendingPlannerStart({ region, countryName, shouldLoadKnownPlaces, source, resetDraft })
       setInAppPromptCopied(false)
       setInAppPromptOpen(true)
       return
     }
+    if (resetDraft && !planner) clearPlannerLocalDraft(region.key, source)
     setStarted({
       region,
       loadKnownPlaces: shouldLoadKnownPlaces,
@@ -407,6 +457,7 @@ export default function ToolsPlannerPage() {
       return
     }
     setInAppPromptOpen(false)
+    if (pending.resetDraft) clearPlannerLocalDraft(pending.region.key, pending.source)
     setStarted({
       region: pending.region,
       loadKnownPlaces: pending.shouldLoadKnownPlaces,
@@ -491,7 +542,7 @@ export default function ToolsPlannerPage() {
         window.sessionStorage.removeItem(`planner-book:v=${encodeURIComponent(planner.readToken)}`)
       }
 
-      const storageKey = `jiejourneys:tools-planner:${planner.regionKey}${planner.source === 'pass' ? ':pass' : ''}:v1`
+      const storageKey = plannerStorageKey(planner.regionKey, planner.source ?? 'map')
       if (window.localStorage.getItem(`${storageKey}:book-id`) === planner.id) {
         window.localStorage.removeItem(`${storageKey}:book-id`)
         window.localStorage.removeItem(`${storageKey}:book-read-token`)
@@ -589,7 +640,7 @@ export default function ToolsPlannerPage() {
           ? region.matchPlaces
           : uniquePlaces([...region.places, ...(region.matchPlaces ?? [])])
     const config: Partial<PlannerConfig> = {
-      storageKey: `jiejourneys:tools-planner:${region.key}${source === 'pass' ? ':pass' : ''}:v1`,
+      storageKey: plannerStorageKey(region.key, source),
       headerBackHref: '/tools/planner',
       headerBackForceReload: true,
       eventPrefix: `toolsplanner_${region.key}`,
