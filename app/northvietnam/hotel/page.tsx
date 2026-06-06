@@ -28,7 +28,7 @@ export default function NorthVietnamHotelPage() {
         <h2 className="seo-h2" id="stayListTitle">北越住宿推薦飯店</h2>
         <CityTabbedList tabs={northVietnamHotelTabs} cards={northVietnamHotelCards} tabEvent="northvietnam_hotel_tab" />
 
-        <SeoCtaSection text="" href="/northvietnam/map" linkText="北越熱門景點地圖" newTab dataEvent="northvietnamhotel_SEO_map" />
+        <SeoCtaSection text="" href="/northvietnam/map" linkText="北越住宿地圖" newTab dataEvent="northvietnamhotel_SEO_map" />
 
         <SeoContentSection title="北越住宿區域怎麼選？">
           <h3 className="seo-h3">河內（旅遊基地）</h3>

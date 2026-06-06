@@ -130,6 +130,22 @@ const HOTEL_MARKER_URL = `data:image/svg+xml;charset=UTF-8,${HOTEL_MARKER_ENCODE
 
 const LAYOUT = { w: 30, h: 30, ax: 15, ay: 27 } as const
 
+export function selectedMarkerArrowIcon(g: typeof google.maps, anchorY = 54): google.maps.Icon {
+  const raw = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="26" viewBox="0 0 30 26">
+  <defs>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.4" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <path filter="url(#shadow)" d="M15 24 5.5 12.5h5.2V5h8.6v7.5h5.2z" fill="#b45309" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+</svg>`
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(raw.replace(/\s+/g, ' ').trim())}`,
+    scaledSize: new g.Size(30, 26),
+    anchor: new g.Point(15, anchorY),
+  }
+}
+
 export function cityMapMarkerIcon(
   category: CityMapPlaceCategory,
   g: typeof google.maps,

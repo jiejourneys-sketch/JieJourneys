@@ -35,7 +35,7 @@ import {
   cityMapSoloCategory,
   type CityMapPlaceCategory,
 } from '@/lib/cityMapPlaceCategory'
-import { cityMapMarkerZIndex } from '@/lib/cityMapMarkers'
+import { cityMapMarkerZIndex, selectedMarkerArrowIcon } from '@/lib/cityMapMarkers'
 import { getGtag } from '@/lib/gtag'
 import type { MapPlace } from '@/lib/mapPlace'
 import styles from './passPlanner.module.css'
@@ -2269,6 +2269,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const autoFittingMapRef = useRef(false)
   const userAdjustedMapRef = useRef(false)
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map())
+  const selectedMarkerArrowRef = useRef<google.maps.Marker | null>(null)
   const lineRefs = useRef<google.maps.Polyline[]>([])
   const customDraftMarkerRef = useRef<google.maps.Marker | null>(null)
   const customUrlResolveSeqRef = useRef(0)
@@ -3055,6 +3056,38 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       marker.setVisible(true)
       marker.setMap(map)
     })
+
+    const selectedMarkerEntry = markerEntries.find(({ key, place }) => {
+      if (mode === 'order') {
+        if (selectedPlanItem) return key === selectedPlanItem
+        return place.id === selectedId
+      }
+      return place.id === selectedId
+    })
+    const selectedMarker = selectedMarkerEntry ? markersRef.current.get(selectedMarkerEntry.key) : null
+    const selectedMarkerPosition = selectedMarker?.getPosition()
+    if (!selectedMarker || !selectedMarkerPosition) {
+      selectedMarkerArrowRef.current?.setMap(null)
+      selectedMarkerArrowRef.current = null
+      return
+    }
+
+    const selectedArrowAnchorY = mode === 'order' ? 44 : 54
+    selectedMarker.setZIndex(10000)
+    if (!selectedMarkerArrowRef.current) {
+      selectedMarkerArrowRef.current = new maps.Marker({
+        map,
+        position: selectedMarkerPosition,
+        icon: selectedMarkerArrowIcon(maps, selectedArrowAnchorY),
+        clickable: false,
+        zIndex: 10001,
+      })
+      return
+    }
+
+    selectedMarkerArrowRef.current.setIcon(selectedMarkerArrowIcon(maps, selectedArrowAnchorY))
+    selectedMarkerArrowRef.current.setMap(map)
+    selectedMarkerArrowRef.current.setPosition(selectedMarkerPosition)
   }, [
     dayView,
     filteredPlaces,
@@ -3064,6 +3097,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     customCategoryItems,
     plannerCategoryItems,
     planOrderLabels,
+    selectedId,
+    selectedPlanItem,
     visiblePlanItems,
     visiblePlannedDays,
   ])
@@ -4017,7 +4052,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [
     buildShareUrl,
-    config.eventPrefix,
     config.saveReminderEnabled,
     config.shareText,
     config.shareTitle,
@@ -4026,6 +4060,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     config.recentListKey,
     config.recentRegionKey,
     config.recentSource,
+    config.plannerBookCityName,
     config.storageKey,
     lookupPlaces,
     customPlaces,

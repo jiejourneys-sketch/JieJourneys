@@ -21,7 +21,7 @@ import {
   cityMapSoloCategory,
   type CityMapPlaceCategory,
 } from '@/lib/cityMapPlaceCategory'
-import { cityMapMarkerIcon, cityMapMarkerZIndex } from '@/lib/cityMapMarkers'
+import { cityMapMarkerIcon, cityMapMarkerZIndex, selectedMarkerArrowIcon } from '@/lib/cityMapMarkers'
 import { getGtag } from '@/lib/gtag'
 import { fireMapMarkerGtag, mapBarCardDataEvent } from '@/lib/mapGtag'
 import styles from '@/app/tokyo/map/map.module.css'
@@ -633,6 +633,8 @@ export default function MapClient({
   const mapElRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.Marker[]>([])
+  const markerByIdRef = useRef<Record<string, google.maps.Marker>>({})
+  const selectedMarkerArrowRef = useRef<google.maps.Marker | null>(null)
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
   const routeLineRefs = useRef<google.maps.Polyline[]>([])
   const routeStopMarkerRefs = useRef<google.maps.Marker[]>([])
@@ -833,6 +835,7 @@ export default function MapClient({
   const clearMarkers = useCallback(() => {
     markersRef.current.forEach((m) => m.setMap(null))
     markersRef.current = []
+    markerByIdRef.current = {}
   }, [])
 
   const syncMarkers = useCallback(
@@ -841,22 +844,58 @@ export default function MapClient({
       if (!map || !window.google?.maps) return
       clearMarkers()
       for (const p of ps) {
+        const selected = p.id === selectedId
         const marker = new google.maps.Marker({
           map,
           position: { lat: p.lat, lng: p.lng },
           title: `${categoryLabelMap[p.category]}｜${p.name}`,
           icon: cityMapMarkerIcon(p.category, google.maps, p),
-          zIndex: cityMapMarkerZIndex(p.category),
+          zIndex: selected ? 10000 : cityMapMarkerZIndex(p.category),
         })
         marker.addListener('click', () => {
           fireMapMarkerGtag(gtagPrefix, p)
           focusPlace(p, 'marker')
         })
         markersRef.current.push(marker)
+        markerByIdRef.current[p.id] = marker
       }
     },
-    [categoryLabelMap, clearMarkers, focusPlace, gtagPrefix],
+    [categoryLabelMap, clearMarkers, focusPlace, gtagPrefix, selectedId],
   )
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !window.google?.maps) return
+
+    filteredPlaces.forEach((place) => {
+      const marker = markerByIdRef.current[place.id]
+      if (!marker) return
+      const selected = place.id === selectedId
+      marker.setZIndex(selected ? 10000 : cityMapMarkerZIndex(place.category))
+      marker.setOpacity(1)
+    })
+
+    if (!selectedPlace) {
+      selectedMarkerArrowRef.current?.setMap(null)
+      selectedMarkerArrowRef.current = null
+      return
+    }
+
+    const position = { lat: selectedPlace.lat, lng: selectedPlace.lng }
+    if (!selectedMarkerArrowRef.current) {
+      selectedMarkerArrowRef.current = new google.maps.Marker({
+        map,
+        position,
+        icon: selectedMarkerArrowIcon(google.maps),
+        clickable: false,
+        zIndex: 10001,
+      })
+      return
+    }
+
+    selectedMarkerArrowRef.current.setMap(map)
+    selectedMarkerArrowRef.current.setPosition(position)
+  }, [filteredPlaces, selectedId, selectedPlace])
 
   useEffect(() => {
     if (!apiKey) {

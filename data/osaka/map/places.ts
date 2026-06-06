@@ -1,4 +1,9 @@
 import type { CityCardAction } from '@/components/CityTabbedList'
+import {
+  osakaAdditionalHotelMapPlaceBySlug,
+  osakaAdditionalHotelSlugs,
+} from '@/data/osaka/hotel'
+import { osakaShopMapPlaces } from '@/data/osaka/shop'
 import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 import type { MapPlace } from '@/lib/mapPlace'
 
@@ -857,9 +862,75 @@ const osakaHotelPlaces: MapPlace[] = [
   },
 ]
 
+const insertedAdditionalHotelSlugs = new Set([
+  'cross-hotel-osaka',
+  'karaksa-hotel-osaka-namba',
+  'hotel-monterey-grasmere-osaka',
+  'onyado-nono-namba',
+  'hiyori-hotel-osaka-namba-station',
+  'mimaru-osaka-shinsaibashi-west',
+  'hotel-the-flag-shinsaibashi',
+  'hotel-hankyu-international',
+  'hotel-granvia-osaka',
+  'hotel-monterey-osaka',
+  'villa-fontaine-grand-osaka-umeda',
+])
+
+function additionalHotelPlaces(slugs: string[]): MapPlace[] {
+  return slugs
+    .map((slug) => osakaAdditionalHotelMapPlaceBySlug[slug])
+    .filter((place): place is MapPlace => Boolean(place))
+}
+
+const osakaOrderedHotelPlaces: MapPlace[] = [
+  ...osakaHotelPlaces.flatMap((place) => {
+    if (place.id === 'osaka-hotel-candeo-namba') {
+      return [
+        place,
+        ...additionalHotelPlaces([
+          'cross-hotel-osaka',
+          'karaksa-hotel-osaka-namba',
+          'hotel-monterey-grasmere-osaka',
+          'onyado-nono-namba',
+          'hiyori-hotel-osaka-namba-station',
+        ]),
+      ]
+    }
+
+    if (place.id === 'osaka-hotel-sotetsu-fresa-shinsaibashi') {
+      return [
+        ...additionalHotelPlaces(['mimaru-osaka-shinsaibashi-west']),
+        place,
+        ...additionalHotelPlaces(['hotel-the-flag-shinsaibashi']),
+      ]
+    }
+
+    if (place.id === 'osaka-hotel-hankyu-respire') {
+      return [...additionalHotelPlaces(['hotel-hankyu-international']), place]
+    }
+
+    if (place.id === 'osaka-hotel-vischio') {
+      return [
+        place,
+        ...additionalHotelPlaces([
+          'hotel-granvia-osaka',
+          'hotel-monterey-osaka',
+          'villa-fontaine-grand-osaka-umeda',
+        ]),
+      ]
+    }
+
+    return [place]
+  }),
+  ...osakaAdditionalHotelSlugs
+    .filter((slug) => !insertedAdditionalHotelSlugs.has(slug))
+    .map((slug) => osakaAdditionalHotelMapPlaceBySlug[slug]),
+]
+
 export const osakaMapPlaces: MapPlace[] = [
   ...osakaTicketPlaces.map(ticketPlaceToMapPlace),
   ...osakaPassTicketPlaces,
   ...osakaSpotPlaces.map(spotPlaceToMapPlace),
-  ...osakaHotelPlaces,
+  ...osakaShopMapPlaces,
+  ...osakaOrderedHotelPlaces,
 ]

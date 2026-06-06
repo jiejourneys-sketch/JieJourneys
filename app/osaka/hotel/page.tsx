@@ -6,6 +6,10 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
+import {
+  osakaAdditionalHotelCardBySlug,
+  osakaAdditionalHotelSlugs,
+} from '@/data/osaka/hotel'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -13,9 +17,11 @@ const tabs = [
   { value: '心齋橋', label: '心齋橋', dataArea: '心齋橋' },
   { value: '梅田/大阪站', label: '梅田/大阪站', dataArea: '梅田/大阪站' },
   { value: '天王寺', label: '天王寺', dataArea: '天王寺' },
+  { value: '環球影城', label: '環球影城', dataArea: '環球影城' },
+  { value: '新今宮', label: '新今宮', dataArea: '新今宮' },
 ]
 
-const cards: CityCard[] = [
+const baseCards: CityCard[] = [
   {
     title: '大阪瑞士南海飯店',
     meta: '道頓堀/難波｜5星級、南海難波站樓上，機場Rapi:t直達最省力',
@@ -210,6 +216,28 @@ const cards: CityCard[] = [
   },
 ]
 
+const insertedAdditionalHotelSlugs = new Set([
+  'mimaru-osaka-shinsaibashi-west',
+  'hotel-hankyu-international',
+])
+
+const cards: CityCard[] = [
+  ...baseCards.flatMap((card) => {
+    if (card.title === '相鐵 FRESA INN 大阪心齋橋') {
+      return [osakaAdditionalHotelCardBySlug['mimaru-osaka-shinsaibashi-west'], card]
+    }
+
+    if (card.title === '阪急大阪龍仕柏飯店') {
+      return [osakaAdditionalHotelCardBySlug['hotel-hankyu-international'], card]
+    }
+
+    return [card]
+  }),
+  ...osakaAdditionalHotelSlugs
+    .filter((slug) => !insertedAdditionalHotelSlugs.has(slug))
+    .map((slug) => osakaAdditionalHotelCardBySlug[slug]),
+]
+
 export default function OsakaHotelPage() {
   return (
     <>
@@ -242,7 +270,7 @@ export default function OsakaHotelPage() {
         </h2>
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="osaka_hotel_tab" />
 
-        <SeoCtaSection text="" href="/osaka/map" linkText="大阪熱門景點地圖" newTab dataEvent="osakahotel_SEO_spotmap" />
+        <SeoCtaSection text="" href="/osaka/map" linkText="大阪住宿地圖" newTab dataEvent="osakahotel_SEO_spotmap" />
         <SeoCtaSection text="" href="/osaka/pass-map" linkText="大阪周遊券地圖" newTab dataEvent="osakahotel_SEO_passmap" />
 
         <SeoContentSection title="大阪住宿怎麼選？先看行程動線">
@@ -268,6 +296,26 @@ export default function OsakaHotelPage() {
           <h3 className="seo-h3">天王寺｜機場交通與 CP 值兼顧</h3>
           <p>
             天王寺的優勢是房價通常比難波、梅田好看，生活機能卻不弱。大阪萬豪都酒店位在阿倍野 HARUKAS，高樓層景觀很有記憶點；大阪阿倍野 Trusty 飯店、大阪天王寺都城市飯店、VIA INN 阿倍野天王寺都靠近車站與商圈，吃飯採買很方便。從天王寺搭 HARUKA 可以直達關西機場，安排第一晚或最後一晚也很順。
+          </p>
+
+          <h3 className="seo-h3">難波/道頓堀｜逛街吃宵夜最省腳力</h3>
+          <p>
+            難波和道頓堀適合把住宿、購物、美食放在同一條動線。大阪十字飯店在道頓堀旁，晚上吃宵夜和回飯店都直覺；唐草飯店大阪難波適合朋友同行或需要連通房的人；大阪蒙特利格拉斯米爾飯店靠近 JR 難波和 OCAT，機場巴士與跨區移動更方便；天然溫泉御宿野乃難波則適合想要大浴場的人；日和飯店大阪難波站前靠近南海難波，搭 Rapi:t 往返關西機場很順。
+          </p>
+
+          <h3 className="seo-h3">心齋橋｜購物與設計型住宿集中</h3>
+          <p>
+            心齋橋住宿的優勢是逛街密度高，白天可以從 PARCO、大丸心齋橋一路走到美國村和難波。MIMARU 大阪心齋橋 WEST 是 4 星級公寓式飯店，適合親子、多人同行或連住；HOTEL THE FLAG 心齋橋偏設計型，適合想住得有質感又靠近商店街的人。這區比道頓堀稍微安靜，但晚上還是很容易找到餐廳、藥妝和便利商店。
+          </p>
+
+          <h3 className="seo-h3">梅田/大阪站｜百貨和跨城市交通一起顧</h3>
+          <p>
+            梅田住宿很適合把大阪當成關西基地。阪急國際飯店是 5 星級高樓層飯店，茶屋町和阪急商圈就在旁邊；大阪格蘭比亞飯店直結 JR 大阪站，移動效率很高；大阪蒙特利飯店、Villa Fontaine Grand 大阪梅田則適合想住在梅田生活圈、又希望逛街吃飯選擇多的人。行程有京都、神戶、奈良時，梅田通常會比難波少轉車。
+          </p>
+
+          <h3 className="seo-h3">環球影城與新今宮｜特殊行程再單獨考慮</h3>
+          <p>
+            如果大阪行程重點是日本環球影城，環球影城前飯店最省時間，適合親子、早入園或想玩兩天的人；LIBER HOTEL 大阪在櫻島站旁，房間和大浴場評價穩，適合想離樂園近但稍微拉開一點距離的人。新今宮的 OMO7 大阪 by 星野集團則是另一種選擇，適合想壓預算、又希望飯店本身有特色，往難波、天王寺和機場動線也有彈性。
           </p>
         </SeoContentSection>
 

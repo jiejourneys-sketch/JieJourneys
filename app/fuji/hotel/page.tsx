@@ -45,7 +45,7 @@ export default function FujiHotelPage() {
         </h2>
         <CityTabbedList tabs={fujiHotelTabs} cards={fujiHotelCards} tabEvent="fuji_hotel_tab" />
 
-        <SeoCtaSection text="" href="/fuji/map" linkText="富士河口湖熱門景點地圖" newTab dataEvent="fujihotel_SEO_spotmap" />
+        <SeoCtaSection text="" href="/fuji/map" linkText="富士河口湖住宿點地圖" newTab dataEvent="fujihotel_SEO_spotmap" />
 
         <SeoContentSection title="富士河口湖住宿區域怎麼選？">
           <h3 className="seo-h3">富士山景｜想直接看富士山</h3>
