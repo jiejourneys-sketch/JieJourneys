@@ -14,6 +14,8 @@ const tabs = [
   { value: '大阪市區交通', label: '大阪市區交通', dataArea: '大阪市區交通' },
 ]
 
+const KIX_TRANSPORT_MAP_URL = 'https://www.google.com/maps/d/edit?mid=11LrZQhbY4ULNh46Oxe4NWci5Zas6UCA&usp=sharing'
+
 const cards: CityCard[] = [
   // ── 通訊 ─────────────────────────────────────────────────
   {
@@ -67,6 +69,7 @@ const cards: CityCard[] = [
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/599-kansai-airport-namba-train-ticket-osaka/?aid=93798', className: 'btn', event: 'osakatransport_rapit_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/57078589/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16697837', className: 'btn', event: 'osakatransport_rapit_trip', platform: 'Trip', section: 'transport_card' },
       { label: '時刻表', href: 'https://www.nankai.co.jp/tc_railway/access-timetable', className: 'btn', event: 'osakatransport_rapit_timetable', platform: 'Timetable', section: 'transport_card' },
+      { label: '地圖', href: KIX_TRANSPORT_MAP_URL, className: 'btn', event: 'osakatransport_rapit_map', platform: 'GoogleMap', section: 'transport_card' },
     ],
   },
   {
@@ -76,6 +79,7 @@ const cards: CityCard[] = [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/18940-kansai-airport-haruka-ticket-japan?cid=22312', className: 'btn primary', event: 'osakatransport_haruka_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/18400-jr-haruka-airport-express-train-tickets-osaka/?aid=93798', className: 'btn', event: 'osakatransport_haruka_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/87364606/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16697837', className: 'btn', event: 'osakatransport_haruka_trip', platform: 'Trip', section: 'transport_card' },
+      { label: '地圖', href: KIX_TRANSPORT_MAP_URL, className: 'btn', event: 'osakatransport_haruka_map', platform: 'GoogleMap', section: 'transport_card' },
     ],
   },
   {
@@ -86,6 +90,7 @@ const cards: CityCard[] = [
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/18203-kansai-airport-one-way-transfer-osaka/?aid=93798', className: 'btn', event: 'osakatransport_limousine_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/93684157?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16697837', className: 'btn', event: 'osakatransport_limousine_trip', platform: 'Trip', section: 'transport_card' },
       { label: '時刻表', href: 'https://www.kate.co.jp/tcn/timetable/index', className: 'btn', event: 'osakatransport_limousine_timetable', platform: 'Timetable', section: 'transport_card' },
+      { label: '地圖', href: KIX_TRANSPORT_MAP_URL, className: 'btn', event: 'osakatransport_limousine_map', platform: 'GoogleMap', section: 'transport_card' },
     ],
   },
   {
