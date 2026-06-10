@@ -131,7 +131,7 @@ const TRANSPORT_MODE_LABELS: Record<TransportMode, string> = {
   bus: '公車',
   train: '火車',
   taxi: '計程車',
-  car: '租車',
+  car: '開車',
   custom: '自訂',
 }
 const TRANSPORT_MODE_OPTIONS: { key: TransportMode; label: string }[] = [
@@ -140,7 +140,7 @@ const TRANSPORT_MODE_OPTIONS: { key: TransportMode; label: string }[] = [
   { key: 'bus', label: '公車' },
   { key: 'train', label: '火車' },
   { key: 'taxi', label: '計程車' },
-  { key: 'car', label: '租車' },
+  { key: 'car', label: '開車' },
   { key: 'custom', label: '自訂' },
 ]
 const DAY_ROUTE_COLORS = ['#1f7a8c', '#f97316', '#7c3aed', '#16a34a', '#db2777', '#0f766e']
@@ -1052,6 +1052,28 @@ function isDayItem(item: PlannerItem) {
   return item.startsWith(DAY_ITEM_PREFIX)
 }
 
+function dayItemTitle(item: PlannerItem | null | undefined) {
+  if (!item || !isDayItem(item)) return ''
+  const separatorIndex = item.indexOf('|')
+  if (separatorIndex < 0) return ''
+  return decodeTransportPart(item.slice(separatorIndex + 1)).slice(0, 40)
+}
+
+function dayTitle(dayNumber: number, item?: PlannerItem | null) {
+  return dayItemTitle(item) || `第 ${dayNumber} 天`
+}
+
+function updateDayItemTitle(item: PlannerItem, title: string) {
+  const rawId = item.slice(DAY_ITEM_PREFIX.length).split('|')[0] || Date.now().toString(36)
+  const trimmedTitle = title.trim().slice(0, 40)
+  return `${DAY_ITEM_PREFIX}${rawId}${trimmedTitle ? `|${encodeTransportPart(trimmedTitle)}` : ''}`
+}
+
+function createDayItem(title = '') {
+  const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+  return updateDayItemTitle(`${DAY_ITEM_PREFIX}${token}`, title)
+}
+
 function isVisitItem(item: PlannerItem) {
   return item.startsWith(VISIT_ITEM_PREFIX)
 }
@@ -1406,12 +1428,16 @@ function sortPlacesByNearestNeighbor(places: MapPlace[]) {
 }
 
 function splitPlanItemsByDay(items: PlannerItem[], placeById: Map<string, MapPlace>) {
-  const days: { divider: string | null; items: PlannerItem[]; places: MapPlace[] }[] = [
-    { divider: null, items: [], places: [] },
+  const days: { divider: string | null; items: PlannerItem[]; places: MapPlace[]; title: string }[] = [
+    { divider: null, items: [], places: [], title: dayTitle(1) },
   ]
   items.forEach((item) => {
     if (isDayItem(item)) {
-      days.push({ divider: item, items: [], places: [] })
+      if (days.length === 1 && days[0].items.length === 0 && days[0].places.length === 0 && !days[0].divider) {
+        days[0] = { divider: item, items: [], places: [], title: dayTitle(1, item) }
+        return
+      }
+      days.push({ divider: item, items: [], places: [], title: dayTitle(days.length + 1, item) })
       return
     }
     if (isTransportItem(item)) {
@@ -1438,14 +1464,17 @@ function insertPlaceIntoDay(
   const dividerIndexes = items
     .map((item, index) => (isDayItem(item) ? index : -1))
     .filter((index) => index >= 0)
+  const firstItemIsDayDivider = dividerIndexes[0] === 0
   if (dayNumber <= 1) {
-    const firstDividerIndex = dividerIndexes[0]
-    if (firstDividerIndex == null) return [...items, itemId]
-    return [...items.slice(0, firstDividerIndex), itemId, ...items.slice(firstDividerIndex)]
+    const firstDividerIndex = firstItemIsDayDivider ? dividerIndexes[0] : -1
+    const nextDividerIndex = firstItemIsDayDivider ? dividerIndexes[1] : dividerIndexes[0]
+    const insertIndex = nextDividerIndex ?? items.length
+    if (firstDividerIndex == null || firstDividerIndex < 0) return [...items.slice(0, insertIndex), itemId, ...items.slice(insertIndex)]
+    return [...items.slice(0, insertIndex), itemId, ...items.slice(insertIndex)]
   }
-  const startDividerIndex = dividerIndexes[dayNumber - 2]
+  const startDividerIndex = dividerIndexes[firstItemIsDayDivider ? dayNumber - 1 : dayNumber - 2]
   if (startDividerIndex == null) return [...items, itemId]
-  const nextDividerIndex = dividerIndexes[dayNumber - 1]
+  const nextDividerIndex = dividerIndexes[firstItemIsDayDivider ? dayNumber : dayNumber - 1]
   const insertIndex = nextDividerIndex ?? items.length
   return [...items.slice(0, insertIndex), itemId, ...items.slice(insertIndex)]
 }
@@ -2118,7 +2147,7 @@ function SortableTransportItem({
                   </a>
                 ) : null}
                 {!readOnly ? (
-                  <button type="button" onClick={() => setEditing(true)}>
+                  <button className={styles.transportEditButton} type="button" onClick={() => setEditing(true)} aria-label="編輯交通">
                     ✎
                   </button>
                 ) : null}
@@ -2193,18 +2222,24 @@ function SortableTransportItem({
 function SortableDayDivider({
   id,
   dayNumber,
+  title,
+  onTitleChange,
   onRemove,
   readOnly,
   dividerRef,
 }: {
   id: string
   dayNumber: number
+  title: string
+  onTitleChange: (title: string) => void
   onRemove: () => void
   cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
   dividerRef?: (el: HTMLDivElement | null) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: readOnly })
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [draftTitle, setDraftTitle] = useState(title)
   const setRefs = (el: HTMLDivElement | null) => {
     setNodeRef(el)
     dividerRef?.(el)
@@ -2213,6 +2248,16 @@ function SortableDayDivider({
     transform: CSS.Transform.toString(transform),
     transition,
   }
+  const fallbackTitle = dayTitle(dayNumber)
+  const displayTitle = title.trim() || fallbackTitle
+  const saveTitle = () => {
+    onTitleChange(draftTitle.trim())
+    setEditingTitle(false)
+  }
+
+  useEffect(() => {
+    setDraftTitle(title)
+  }, [title])
 
   return (
     <div
@@ -2224,7 +2269,39 @@ function SortableDayDivider({
         <span aria-hidden>☰</span>
       </button>
       <span className={styles.dayDividerLine} aria-hidden />
-      <span className={styles.dayDividerLabel}>第 {dayNumber} 天</span>
+      {editingTitle && !readOnly ? (
+        <input
+          className={styles.dayDividerInput}
+          value={draftTitle}
+          maxLength={40}
+          aria-label={`編輯${fallbackTitle}標題`}
+          placeholder={fallbackTitle}
+          onChange={(event) => setDraftTitle(event.target.value)}
+          onBlur={saveTitle}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') saveTitle()
+            if (event.key === 'Escape') {
+              setDraftTitle(title)
+              setEditingTitle(false)
+            }
+          }}
+          autoFocus
+        />
+      ) : (
+        <button
+          className={styles.dayDividerLabel}
+          type="button"
+          onClick={() => {
+            if (readOnly) return
+            setDraftTitle(title)
+            setEditingTitle(true)
+          }}
+          disabled={readOnly}
+          title={readOnly ? undefined : '點擊編輯日期或天數名稱'}
+        >
+          {displayTitle}
+        </button>
+      )}
       <span className={styles.dayDividerLine} aria-hidden />
       {!readOnly ? (
         <button className={styles.dayRemoveButton} type="button" onClick={onRemove} aria-label={`移除第 ${dayNumber} 天分隔`}>
@@ -2373,7 +2450,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const placeById = useMemo(() => new Map(lookupPlaces.map((place) => [place.id, place])), [lookupPlaces])
   const allCategoryOn = useMemo(() => plannerCategoriesOn(plannerCategoryItems), [plannerCategoryItems])
   const validPlanItems = useMemo(
-    () => normalizePlanItems(planItems, placeById),
+    () => {
+      const normalizedItems = normalizePlanItems(planItems, placeById)
+      if (normalizedItems.some(isDayItem) && !isDayItem(normalizedItems[0] ?? '')) {
+        return [createDayItem(), ...normalizedItems]
+      }
+      return normalizedItems
+    },
     [placeById, planItems],
   )
   const validPlanIds = useMemo(
@@ -2392,13 +2475,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     () => splitPlanItemsByDay(validPlanItems, placeById),
     [placeById, validPlanItems],
   )
-  const planDayCount = useMemo(() => validPlanItems.filter(isDayItem).length + 1, [validPlanItems])
+  const planDayCount = useMemo(
+    () => validPlanItems.filter(isDayItem).length + (isDayItem(validPlanItems[0] ?? '') ? 0 : 1),
+    [validPlanItems],
+  )
   const hasDayDividers = useMemo(() => validPlanItems.some(isDayItem), [validPlanItems])
   const visiblePlanItems = useMemo(() => {
     if (dayView === 'all') return validPlanItems
     const day = plannedDays[dayView - 1]
     if (!day) return validPlanItems
-    return day.items
+    return day.divider ? [day.divider, ...day.items] : day.items
   }, [dayView, plannedDays, validPlanItems])
   const visiblePlannedPlaces = useMemo(() => {
     if (dayView === 'all') return plannedPlaces
@@ -3290,7 +3376,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
 
   const addPlace = (place: MapPlace, initialNote = '') => {
-    const noteForNewItem = initialNote || placeNotes[place.id] || ''
+    const noteForNewItem = initialNote
     if (hasDayDividers && (canRepeatPlanPlace(place) || !plannedSet.has(place.id))) {
       setPendingAddPlace(place)
       setPendingAddPlaceNote(noteForNewItem)
@@ -3437,7 +3523,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
   const addDayDivider = () => {
     if (readOnlyPlan) return
-    const dividerId = `${DAY_ITEM_PREFIX}${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+    const dividerId = createDayItem()
     pendingDayDividerScrollRef.current = dividerId
     setMode('order')
     setDayView('all')
@@ -3450,14 +3536,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           : selectedId
             ? items.find((item) => planItemPlaceId(item) === selectedId) ?? null
             : null
-      const fallbackIndex = items.length
+      const hasFirstDayDivider = isDayItem(items[0] ?? '')
+      const firstDayDivider = hasFirstDayDivider ? null : createDayItem()
+      const workingItems = firstDayDivider ? [firstDayDivider, ...items] : items
+      const fallbackIndex = workingItems.length
       const baseIndex = selectedItem ? items.indexOf(selectedItem) : -1
-      let insertIndex = baseIndex >= 0 ? baseIndex + 1 : fallbackIndex
-      while (insertIndex < items.length && isTransportItem(items[insertIndex])) {
+      let insertIndex = baseIndex >= 0 ? baseIndex + 1 + (firstDayDivider ? 1 : 0) : fallbackIndex
+      while (insertIndex < workingItems.length && isTransportItem(workingItems[insertIndex])) {
         insertIndex += 1
       }
-      const dayCount = items.filter(isDayItem).length + 2
-      const nextItems = [...items.slice(0, insertIndex), dividerId, ...items.slice(insertIndex)]
+      const dayCount = workingItems.filter(isDayItem).length + (hasFirstDayDivider || firstDayDivider ? 1 : 2)
+      const nextItems = [...workingItems.slice(0, insertIndex), dividerId, ...workingItems.slice(insertIndex)]
       trackPlannerEvent('add_day_divider', {
         day_count: dayCount,
         plan_count: validPlanIds.length,
@@ -3470,6 +3559,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const removeDayDivider = (itemId: string) => {
     if (readOnlyPlan) return
     setPlanItems((items) => items.filter((item) => item !== itemId))
+  }
+
+  const updateDayDividerTitle = (itemId: string, title: string) => {
+    if (readOnlyPlan) return
+    const nextItem = updateDayItemTitle(itemId, title)
+    setPlanItems((items) => items.map((item) => (item === itemId ? nextItem : item)))
+    setSelectedPlanItem((item) => (item === itemId ? nextItem : item))
   }
 
   const updateNoteKeys = (keys: string[], note: string) => {
@@ -3487,14 +3583,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }
 
-  const updatePlaceNote = (placeId: string, note: string) => {
-    updateNoteKeys([placeId], note)
+  const updatePlaceNote = (itemId: string, note: string) => {
+    updateNoteKeys([itemId], note)
   }
 
-  const updateCustomPlaceNote = (placeId: string, note: string) => {
-    const relatedItems = planItems.filter((item) => planItemPlaceId(item) === placeId)
-    updateNoteKeys([placeId, ...relatedItems], note)
-  }
   const addPlaceUserLink = (placeId: string, link: PlannerUserLink) => {
     if (readOnlyPlan) return
     const label = link.label.trim().slice(0, 40)
@@ -3577,7 +3669,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       naverUrl: place.naverUrl ?? '',
       linkLabel: '',
       linkUrl: '',
-      note: placeNotes[place.id] ?? (relatedItem ? placeNotes[relatedItem] : undefined) ?? '',
+      note: relatedItem ? placeNotes[relatedItem] ?? '' : '',
       category: cleanCustomPlaceCategory(place.category),
       lat: place.lat,
       lng: place.lng,
@@ -3757,7 +3849,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
-    updateCustomPlaceNote(id, customDraft.note)
     setPlaceUserLinks((links) => {
       if (nextLinks.length === 0) {
         const cleanLinks = { ...links }
@@ -3803,9 +3894,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     const customMapPlace = customPlaceToMapPlace(customPlace, match, customCategoryItems)
     setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
-    updateCustomPlaceNote(id, customDraft.note)
     setCustomPlacePrimaryUserLink(id, customDraft.linkLabel, customDraft.linkUrl)
-    addPlace(customMapPlace, customDraft.note)
+    addPlace(customMapPlace)
     setSelectedId(id)
     setCustomDraft(emptyCustomPlaceDraft)
     setCustomUrlResolving(false)
@@ -4152,7 +4242,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         })
 
         return {
-          title: `DAY ${dayIndex + 1}`,
+          title: day.title,
           stops,
         }
       })
@@ -4728,6 +4818,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   {'\u5230\u5730\u5716\u9078\u4f4d\u7f6e'}
                                 </button>
                               ) : null}
+                              {false ? (
                               <div className={styles.customPlaceOptional}>
                                 <label>
                                   備註
@@ -4789,6 +4880,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   ) : null}
                                 </div>
                               </div>
+                              ) : null}
                             </>
                         </div>
                       ) : null}
@@ -4902,7 +4994,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               className={openPlannerMenu === 'day' ? styles.menuButtonActive : styles.menuButton}
                               onClick={() => setOpenPlannerMenu((menu) => (menu === 'day' ? null : 'day'))}
                             >
-                              {dayView === 'all' ? '全行程' : `第 ${dayView} 天`}
+                              {dayView === 'all' ? '全行程' : (plannedDays[dayView - 1]?.title ?? dayTitle(dayView))}
                             </button>
                             {openPlannerMenu === 'day' ? (
                             <div className={styles.dayMenuList}>
@@ -4926,7 +5018,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                     setOpenPlannerMenu(null)
                                   }}
                                 >
-                                  第 {index + 1} 天
+                                  {day.title}
                                 </button>
                               ))}
                             </div>
@@ -4969,12 +5061,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           {visiblePlanItems.map((item) => {
                             if (isDayItem(item)) {
                               const dayNumber =
-                                validPlanItems.slice(0, validPlanItems.indexOf(item)).filter(isDayItem).length + 2
+                                validPlanItems.slice(0, validPlanItems.indexOf(item)).filter(isDayItem).length +
+                                (isDayItem(validPlanItems[0] ?? '') ? 1 : 2)
                               return (
                                 <SortableDayDivider
                                   key={item}
                                   id={item}
                                   dayNumber={dayNumber}
+                                  title={dayItemTitle(item)}
+                                  onTitleChange={(title) => updateDayDividerTitle(item, title)}
                                   onRemove={() => requestRemoveDayDivider(item)}
                                   readOnly={readOnlyPlan}
                                   dividerRef={(el) => {
@@ -5009,15 +5104,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   itemId={item}
                                   place={place}
                                   label={planOrderLabels.get(item) ?? ''}
-                                  note={isCustomPlaceId(place.id) ? (placeNotes[place.id] ?? placeNotes[item] ?? '') : (placeNotes[item] ?? '')}
+                                  note={placeNotes[item] ?? ''}
                                   selected={selectedPlanItem ? selectedPlanItem === item : selectedId === place.id}
                                   onFocus={() => focusPlace(place, 'list', item)}
                                   onRemove={() => requestRemovePlace(item)}
                                   onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id, 'order', item) : undefined}
-                                  onNoteChange={(note) => {
-                                    if (isCustomPlaceId(place.id)) updateCustomPlaceNote(place.id, note)
-                                    else updatePlaceNote(item, note)
-                                  }}
+                                  onNoteChange={(note) => updatePlaceNote(item, note)}
                                   userLinks={placeUserLinks[place.id] ?? []}
                                   onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
                                   onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}

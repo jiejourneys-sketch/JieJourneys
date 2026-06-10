@@ -1212,6 +1212,7 @@
 .dayDividerLabel {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: 26px;
   border: 1px solid rgba(31, 122, 140, 0.22);
   border-radius: 999px;
@@ -1219,8 +1220,33 @@
   background: #eaf7f9;
   white-space: nowrap;
   color: var(--brand);
+  font-family: inherit;
   font-size: 12px;
   font-weight: 900;
+  cursor: pointer;
+}
+
+.dayDividerLabel:disabled {
+  cursor: default;
+}
+
+.dayDividerInput {
+  width: min(180px, 42vw);
+  min-height: 26px;
+  border: 1px solid rgba(31, 122, 140, 0.45);
+  border-radius: 999px;
+  padding: 3px 13px;
+  background: #ffffff;
+  color: var(--brand);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+  outline: none;
+}
+
+.dayDividerInput:focus {
+  box-shadow: 0 0 0 3px rgba(31, 122, 140, 0.14);
 }
 
 .dragHandle {
@@ -3226,16 +3252,46 @@
   flex-shrink: 0;
 }
 
-.transportSummaryActions a,
-.transportSummaryActions button {
-  border: none;
-  background: transparent;
+.transportSummaryActions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border: 1px solid rgba(31, 122, 140, 0.18);
+  border-radius: 8px;
+  padding: 0 8px;
+  background: #ffffff;
   color: var(--cta);
   font-family: inherit;
   font-size: 12px;
   font-weight: 900;
-  text-decoration: underline;
+  line-height: 1;
+  text-decoration: none;
   cursor: pointer;
+}
+
+.transportEditButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 28px;
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  border-radius: 8px;
+  padding: 0;
+  background: #ffffff;
+  color: var(--cta);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.transportSummaryActions a:hover,
+.transportEditButton:hover {
+  background: #eef8fb;
 }
 
 .transportCard .transportMain {
