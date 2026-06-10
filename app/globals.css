@@ -308,6 +308,35 @@ header {
   box-shadow: 0 4px 10px rgba(31, 122, 140, 0.1);
   transform: translateY(-2px);
 }
+.resources-grid .card {
+  box-sizing: border-box;
+  height: 56px;
+  overflow: hidden;
+}
+.popular-grid .card.promo-copied {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #fff;
+  cursor: default;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  text-align: center;
+  transform: none;
+}
+.popular-grid .card.promo-copied .card-body h3 {
+  color: #fff;
+}
+@media (max-width: 480px) {
+  .resources-grid .card {
+    height: 52px;
+  }
+  .popular-grid .card.promo-copied {
+    font-size: 13px;
+    padding: 9px 10px;
+  }
+}
 
 .social-row {
   display: flex;
