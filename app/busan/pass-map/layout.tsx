@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 const title = '釜山Pass地圖｜免費互動地圖｜高中低價值景點・A/B區景點・24/48小時路線'
 const description =
   '釜山Pass地圖整理 Visit Busan Pass 可用景點與設施，依價格高、中、低和紫色/A區、藍色/B區分類，放在互動地圖上比較位置與順路動線。快速規劃 24/48 小時、Big3、Big5 怎麼玩最划算，並附 KKDAY、KLOOK、Trip 購買連結。'
+const image = 'https://www.jiejourneys.com/assets/busan-passmap-og.png'
 
 export const metadata: Metadata = {
   title,
@@ -29,13 +30,13 @@ export const metadata: Metadata = {
     title,
     description,
     url: 'https://www.jiejourneys.com/busan/pass-map',
-    images: [{ url: 'https://www.jiejourneys.com/assets/og-share.png', width: 1200, height: 630 }],
+    images: [{ url: image, width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title,
     description,
-    images: ['https://www.jiejourneys.com/assets/og-share.png'],
+    images: [image],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/busan/pass-map' },
 }

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 
-const title = '釜山景點地圖｜免費互動地圖・住宿票券商店・GoogleMap/NaverMap一鍵導航'
+const title = '釜山景點地圖｜免費互動地圖・GoogleMap/NaverMap一鍵導航'
 const description =
-  '釜山景點地圖整理了所有熱門景點的位置，包含海雲台、廣安里、西面、南浦洞、甘川文化村、松島纜車、釜山塔、X the Sky、SPA LAND 等位置，並把住宿推薦、票券景點、商店美食放在同一張免費互動地圖。可切換票券、景點、商店、住宿分類，查看 KKDAY、KLOOK、Trip 購票連結，一鍵開啟 Google Map 或 Naver Map 導航。'
+  '去釜山前先收藏！這張免費互動地圖整合景點、美食、住宿、交通與票券資訊，支援分類篩選、導航與購票連結，一張地圖搞定整趟自由行。'
+const image = 'https://www.jiejourneys.com/assets/busan-map-og.png'
 
 export const metadata: Metadata = {
   title,
@@ -27,13 +28,13 @@ export const metadata: Metadata = {
     title,
     description,
     url: 'https://www.jiejourneys.com/busan/map',
-    images: [{ url: 'https://www.jiejourneys.com/assets/og-share.png', width: 1200, height: 630 }],
+    images: [{ url: image, width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title,
     description,
-    images: ['https://www.jiejourneys.com/assets/og-share.png'],
+    images: [image],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/busan/map' },
 }
