@@ -17,8 +17,6 @@ const tabs = [
   { value: '一日遊', label: '一日遊', dataArea: '一日遊' },
 ]
 
-const ticketPlatforms = new Set(['KKDAY', 'KLOOK', 'Trip'])
-
 const osakaOneDayTagOrder = [
   '天橋立View Land',
   '天橋立傘松公園',
@@ -161,7 +159,7 @@ const createPassMapCards = (category: 'spot' | 'free', area: string, meta: strin
     .filter((place) => place.category === category)
     .map((place): CityCard | null => {
       const actions = (place.spotActions ?? [])
-        .filter((action) => ticketPlatforms.has(action.label))
+        .filter((action) => action.href)
         .map((action) => ({
           ...action,
           event: action.event?.replace('osakapassmap_', 'osakaticket_'),

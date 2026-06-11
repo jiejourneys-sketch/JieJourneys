@@ -48,6 +48,7 @@ type PlannerItem = string
 type TransportMode = 'walk' | 'subway' | 'bus' | 'train' | 'taxi' | 'car' | 'custom'
 type TransportInfo = { id: string; mode: TransportMode; customLabel: string; duration: string; note: string; href: string }
 type DayView = 'all' | number
+type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
 type PlannerUserLink = CustomPlannerLink
 type CustomPlannerPlace = {
@@ -2407,7 +2408,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     { type: 'plan' | 'custom'; placeId: string } | { type: 'day' | 'transport'; itemId: string } | null
   >(null)
   const [recentlyAddedPlaceId, setRecentlyAddedPlaceId] = useState<string | null>(null)
-  const [pdfDownloading, setPdfDownloading] = useState(false)
+  const [pdfDownloadStatus, setPdfDownloadStatus] = useState<PdfDownloadStatus>('idle')
   const [shareSaving, setShareSaving] = useState(false)
   const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
   const [plannerBookReadToken, setPlannerBookReadToken] = useState<string | null>(null)
@@ -2423,6 +2424,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [inAppPromptCopied, setInAppPromptCopied] = useState(false)
   const [dayView, setDayView] = useState<DayView>('all')
   const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions'>(null)
+  const plannerPdfModuleRef = useRef<Promise<typeof import('./plannerPdf')> | null>(null)
+  const pdfDownloading = pdfDownloadStatus !== 'idle'
 
   const sourcePlaceById = useMemo(() => {
     const seen = new Map<string, MapPlace>()
@@ -2751,6 +2754,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     document.addEventListener('pointerdown', closeMenu)
     return () => document.removeEventListener('pointerdown', closeMenu)
   }, [openPlannerMenu])
+
+  const preloadPlannerPdf = useCallback(() => {
+    if (!plannerPdfModuleRef.current) {
+      plannerPdfModuleRef.current = import('./plannerPdf').catch((error) => {
+        plannerPdfModuleRef.current = null
+        throw error
+      })
+    }
+    return plannerPdfModuleRef.current
+  }, [])
+
+  useEffect(() => {
+    if (plannedPlaces.length === 0) return
+    if (openPlannerMenu !== 'actions') return
+    void preloadPlannerPdf()
+  }, [openPlannerMenu, plannedPlaces.length, preloadPlannerPdf])
 
   useEffect(() => {
     customDraftRef.current = customDraft
@@ -4175,7 +4194,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const handleDownloadPdf = useCallback(async () => {
     if (pdfDownloading || plannedPlaces.length === 0) return
-    setPdfDownloading(true)
+    setPdfDownloadStatus('loading')
     try {
       const days = plannedDays.map((day, dayIndex) => {
         const stops: Array<{
@@ -4246,7 +4265,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           stops,
         }
       })
-      const { downloadPlannerPdf } = await import('./plannerPdf')
+      const { downloadPlannerPdf } = await preloadPlannerPdf()
+      setPdfDownloadStatus('rendering')
       await downloadPlannerPdf({
         title: printTravelTitle(config.shareTitle),
         updatedAt: plannerBookUpdatedAt ? formatPlannerUpdatedAt(plannerBookUpdatedAt) : undefined,
@@ -4261,7 +4281,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       console.error(error)
       alert('PDF 產生失敗，請稍後再試一次')
     } finally {
-      setPdfDownloading(false)
+      setPdfDownloadStatus('idle')
     }
   }, [
     categoryLabels,
@@ -4275,6 +4295,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     plannedPlaces.length,
     plannerBookUpdatedAt,
     plannerCategoryItems,
+    preloadPlannerPdf,
     trackPlannerEvent,
   ])
   const confirmUpdateSharedPlan = useCallback(() => {
@@ -5049,7 +5070,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                             </>
                           ) : null}
                           <button type="button" onClick={handleDownloadPdf} disabled={plannedPlaces.length === 0 || pdfDownloading}>
-                            {pdfDownloading ? 'PDF 產生中...' : '下載 PDF'}
+                            {pdfDownloading ? <span className={styles.pdfSpinner} aria-hidden="true" /> : null}
+                            <span className={styles.pdfButtonText} aria-live="polite">
+                              {pdfDownloadStatus === 'loading'
+                                ? '載入 PDF 工具...'
+                                : pdfDownloadStatus === 'rendering'
+                                  ? '正在產生 PDF...'
+                                  : '下載 PDF'}
+                              {pdfDownloading ? <small>首次可能需要 10-20 秒</small> : null}
+                            </span>
                           </button>
                         </div>
                         ) : null}

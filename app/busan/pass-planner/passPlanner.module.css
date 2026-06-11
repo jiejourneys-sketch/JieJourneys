@@ -1011,7 +1011,7 @@
   right: 0;
   z-index: 5;
   display: grid;
-  min-width: 100%;
+  min-width: max(100%, 178px);
   gap: 7px;
   border: 1px solid rgba(31, 122, 140, 0.16);
   border-radius: 14px;
@@ -1021,15 +1021,49 @@
 }
 
 .orderTools button {
+  align-items: center;
   justify-content: flex-start;
   width: 100%;
   min-height: 32px;
   border-radius: 9px;
   padding: 6px 10px;
   font-size: 12px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.pdfSpinner {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  margin-right: 7px;
+  border: 2px solid rgba(31, 122, 140, 0.22);
+  border-top-color: var(--cta);
+  border-radius: 50%;
+  animation: pdfSpin 0.8s linear infinite;
+}
+
+.pdfButtonText {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.pdfButtonText small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+@keyframes pdfSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .dayViewControl {
