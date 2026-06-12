@@ -1182,6 +1182,19 @@
   user-select: none;
 }
 
+.planCardCollapsed {
+  grid-template-areas: "drag main";
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-rows: auto;
+  min-height: 48px;
+  padding-right: 10px;
+}
+
+.planCardCollapsed .planMain {
+  min-height: 48px;
+  padding: 4px 0;
+}
+
 .dayDivider {
   display: grid;
   grid-template-columns: 34px minmax(18px, 1fr) auto minmax(18px, 1fr) 34px;
@@ -2842,6 +2855,19 @@
     gap: 7px 8px;
     min-height: 108px;
     padding: 0 8px 0 0;
+  }
+
+  .planCardCollapsed {
+    grid-template-areas: "drag main";
+    grid-template-columns: 48px minmax(0, 1fr);
+    grid-template-rows: auto;
+    min-height: 54px;
+    padding-right: 10px;
+  }
+
+  .planCardCollapsed .planMain {
+    min-height: 54px;
+    padding: 5px 0;
   }
 
   .dragHandle {

@@ -1621,8 +1621,10 @@ function SortablePlanItem({
   place,
   label,
   note,
+  expanded,
   selected,
   onFocus,
+  onToggleExpanded,
   onRemove,
   onEditCustom,
   onNoteChange,
@@ -1640,8 +1642,10 @@ function SortablePlanItem({
   place: MapPlace
   label: string
   note: string
+  expanded: boolean
   selected: boolean
   onFocus: () => void
+  onToggleExpanded: () => void
   onRemove: () => void
   onEditCustom?: () => void
   onNoteChange: (note: string) => void
@@ -1711,6 +1715,11 @@ function SortablePlanItem({
     setOpenPanel(null)
   }
 
+  const toggleCard = () => {
+    onFocus()
+    onToggleExpanded()
+  }
+
   useEffect(() => {
     if (!openPanel) return
 
@@ -1744,6 +1753,12 @@ function SortablePlanItem({
     }
   }, [itemId, openPanel])
 
+  useEffect(() => {
+    if (expanded) return
+    const id = window.setTimeout(() => setOpenPanel(null), 0)
+    return () => window.clearTimeout(id)
+  }, [expanded])
+
   return (
     <div
       ref={setRefs}
@@ -1752,28 +1767,30 @@ function SortablePlanItem({
       data-plan-item-id={itemId}
     >
       <article
-        className={`${styles.planCard} ${selected ? styles.planCardActive : ''}`}
+        className={`${styles.planCard} ${expanded ? styles.planCardExpanded : styles.planCardCollapsed} ${selected ? styles.planCardActive : ''}`}
         style={plannerPlaceStyle(place, categoryItems)}
         onClick={(event) => {
           const target = event.target as HTMLElement | null
           if (target?.closest('a, button, textarea, input, [data-no-card-focus="true"]')) return
-          onFocus()
+          toggleCard()
         }}
       >
       <button className={styles.dragHandle} type="button" aria-label={`拖曳排序 ${displayName}`} disabled={readOnly} {...attributes} {...listeners}>
         <span aria-hidden>☰</span>
       </button>
-      <button className={styles.planMain} type="button" onClick={onFocus}>
+      <button className={styles.planMain} type="button" onClick={toggleCard} aria-expanded={expanded}>
           <span className={styles.planNumber}>{label}</span>
         <span className={styles.planText}>
           <span className={styles.placeName}>{displayName}</span>
-          <span className={styles.placeMeta}>
-            {placeMeta(place, categoryLabels, tierLabels, categoryItems, customCategoryItems)}
-          </span>
+          {expanded ? (
+            <span className={styles.placeMeta}>
+              {placeMeta(place, categoryLabels, tierLabels, categoryItems, customCategoryItems)}
+            </span>
+          ) : null}
           {note ? <span className={styles.notePreview}>{note}</span> : null}
         </span>
       </button>
-      <span className={styles.mapLinks}>
+      {expanded ? <span className={styles.mapLinks}>
         <button
           className={styles.iconLink}
           type="button"
@@ -1800,8 +1817,8 @@ function SortablePlanItem({
         >
           地圖
         </button>
-      </span>
-      {!readOnly ? (
+      </span> : null}
+      {expanded && !readOnly ? (
         <span className={styles.planCardManage}>
           {canEditCustom ? (
             <button className={styles.cardEditButton} type="button" onClick={onEditCustom} aria-label={`編輯 ${displayName}`}>
@@ -2424,6 +2441,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     { type: 'plan' | 'custom'; placeId: string } | { type: 'day' | 'transport'; itemId: string } | null
   >(null)
   const [recentlyAddedPlaceId, setRecentlyAddedPlaceId] = useState<string | null>(null)
+  const [expandedPlanItem, setExpandedPlanItem] = useState<PlannerItem | null>(null)
   const [pdfDownloadStatus, setPdfDownloadStatus] = useState<PdfDownloadStatus>('idle')
   const [shareSaving, setShareSaving] = useState(false)
   const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
@@ -2763,6 +2781,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   useEffect(() => {
     if (dayView !== 'all' && dayView > plannedDays.length) setDayView('all')
   }, [dayView, plannedDays.length])
+
+  useEffect(() => {
+    if (expandedPlanItem && !validPlanItems.includes(expandedPlanItem)) setExpandedPlanItem(null)
+  }, [expandedPlanItem, validPlanItems])
 
   useEffect(() => {
     if (!openPlannerMenu) return
@@ -3162,6 +3184,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         })
         marker.addListener('click', () => {
           focusPlace(place, 'marker')
+          if (modeRef.current === 'order') {
+            setExpandedPlanItem(key)
+          }
           window.setTimeout(() => {
             const card = modeRef.current === 'order' ? planCardRefs.current[key] : addCardRefs.current[place.id]
             if (!card) return
@@ -3419,6 +3444,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (initialNote.trim()) updatePlaceNote(itemId, initialNote)
     setSelectedPlanItem(itemId)
     setSelectedId(place.id)
+    setExpandedPlanItem(itemId)
     if (typeof dayNumber === 'number') setDayView(dayNumber)
     setRecentlyAddedPlaceId(place.id)
     window.setTimeout(() => {
@@ -5120,7 +5146,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     </div>
                     <DndContext sensors={sensors} collisionDetection={plannerCollisionDetection} onDragEnd={handleDragEnd}>
                       <SortableContext items={visiblePlanItems} strategy={verticalListSortingStrategy}>
-                        <div className={styles.planList} data-planner-scroll-list="true">
+                        <div
+                          className={styles.planList}
+                          data-planner-scroll-list="true"
+                          onTouchMove={() => setExpandedPlanItem(null)}
+                          onWheel={() => setExpandedPlanItem(null)}
+                        >
                           {visiblePlanItems.map((item) => {
                             if (isDayItem(item)) {
                               const dayNumber =
@@ -5168,8 +5199,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   place={place}
                                   label={planOrderLabels.get(item) ?? ''}
                                   note={placeNotes[item] ?? ''}
+                                  expanded={expandedPlanItem === item}
                                   selected={selectedPlanItem ? selectedPlanItem === item : selectedId === place.id}
                                   onFocus={() => focusPlace(place, 'list', item)}
+                                  onToggleExpanded={() => {
+                                    setExpandedPlanItem((current) => (current === item ? null : item))
+                                  }}
                                   onRemove={() => requestRemovePlace(item)}
                                   onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id, 'order', item) : undefined}
                                   onNoteChange={(note) => updatePlaceNote(item, note)}
