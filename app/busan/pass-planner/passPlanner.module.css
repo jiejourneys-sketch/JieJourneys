@@ -3664,8 +3664,15 @@
 
 .transportCardCompact {
   align-items: center;
-  padding-top: 5px;
-  padding-bottom: 5px;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  gap: 4px;
+  min-height: 32px;
+  margin: -5px 34px;
+  border-color: rgba(31, 122, 140, 0.08);
+  border-radius: 999px;
+  padding: 2px 4px 2px 0;
+  background: rgba(248, 252, 253, 0.42);
+  box-shadow: none;
 }
 
 .transportCardCompact .transportMain {
@@ -3677,8 +3684,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  min-height: 30px;
-  gap: 10px;
+  min-height: 24px;
+  gap: 5px;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 800;
   line-height: 1.28;
 }
 
@@ -3697,18 +3707,44 @@
   align-self: center;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   white-space: nowrap;
+}
+
+.transportCardCompact .transportDragHandle,
+.transportCardCompact .transportRemoveButton {
+  width: 24px;
+  height: 24px;
+  color: #78909a;
+  font-size: 13px;
+  opacity: 0.62;
+}
+
+.transportCardCompact .transportSummaryActions a,
+.transportCardCompact .transportEditButton {
+  min-height: 22px;
+  height: 22px;
+  border-color: rgba(31, 122, 140, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+  color: #3b7b88;
+  font-size: 10px;
+}
+
+.transportCardCompact .transportEditButton {
+  width: 24px;
+  min-width: 24px;
 }
 
 @media (max-width: 720px) {
   .transportCardCompact {
-    padding-top: 4px;
-    padding-bottom: 4px;
+    grid-template-columns: 24px minmax(0, 1fr) 24px;
+    min-height: 32px;
+    margin: -5px 24px;
+    padding: 2px 4px 2px 0;
   }
 
   .transportCardCompact .transportSummary {
-    min-height: 28px;
-    gap: 8px;
+    min-height: 24px;
+    gap: 5px;
   }
 }

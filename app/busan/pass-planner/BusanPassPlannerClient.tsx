@@ -7,8 +7,10 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   type TouchEvent as ReactTouchEvent,
+  type UIEvent as ReactUIEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -1562,6 +1564,25 @@ function scrollCardToContainerCenter(card: HTMLElement, behavior: ScrollBehavior
   if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior })
 }
 
+function cardIsNearlyOutsideScrollArea(card: HTMLElement, container: HTMLElement) {
+  const cRect = container.getBoundingClientRect()
+  const eRect = card.getBoundingClientRect()
+  const visibleTop = Math.max(eRect.top, cRect.top)
+  const visibleBottom = Math.min(eRect.bottom, cRect.bottom)
+  const visibleHeight = Math.max(0, visibleBottom - visibleTop)
+  return visibleHeight <= 4
+}
+
+function findStableVisiblePlanCard(container: HTMLElement, excludingItem?: PlannerItem | null) {
+  const cRect = container.getBoundingClientRect()
+  const cards = Array.from(container.querySelectorAll<HTMLElement>('[data-plan-item-id]'))
+  return cards.find((card) => {
+    if (excludingItem && card.dataset.planItemId === excludingItem) return false
+    const rect = card.getBoundingClientRect()
+    return rect.bottom > cRect.top + 8 && rect.top < cRect.bottom - 8
+  }) ?? null
+}
+
 function PlannerMapLinksPanel({
   panelRef,
   place,
@@ -2108,6 +2129,8 @@ function PlannerInlineCardLinks({ place }: { place: MapPlace }) {
 function SortableTransportItem({
   itemId,
   info,
+  expanded,
+  onToggleExpanded,
   onChange,
   onRemove,
   cardRef,
@@ -2115,6 +2138,8 @@ function SortableTransportItem({
 }: {
   itemId: PlannerItem
   info: TransportInfo
+  expanded: boolean
+  onToggleExpanded: () => void
   onChange: (info: TransportInfo) => void
   onRemove: () => void
   cardRef?: (el: HTMLElement | null) => void
@@ -2130,7 +2155,7 @@ function SortableTransportItem({
   }
   const saved = hasSavedTransportDetails(info)
   const [draft, setDraft] = useState(info)
-  const [editing, setEditing] = useState(!saved)
+  const editing = !saved || expanded
   const href = draft.href.trim()
   const savedHref = info.href.trim()
   const dirty =
@@ -2151,12 +2176,12 @@ function SortableTransportItem({
       note: draft.note.slice(0, 300),
       href: draft.href.slice(0, 500),
     })
-    setEditing(false)
+    if (expanded) onToggleExpanded()
   }
   const updateDraft = (patch: Partial<TransportInfo>) => setDraft((current) => ({ ...current, ...patch }))
   const collapseEditor = () => {
     setDraft(info)
-    setEditing(false)
+    if (expanded) onToggleExpanded()
   }
 
   const setCardRefs = (el: HTMLDivElement | null) => {
@@ -2165,8 +2190,20 @@ function SortableTransportItem({
   }
 
   return (
-    <div ref={setCardRefs} style={style} className={`${styles.transportItem} ${isDragging ? styles.planCardDragging : ''}`}>
-      <article className={`${styles.transportCard} ${!editing ? styles.transportCardCompact : ''}`}>
+    <div
+      ref={setCardRefs}
+      style={style}
+      className={`${styles.transportItem} ${isDragging ? styles.planCardDragging : ''}`}
+      data-plan-item-id={itemId}
+    >
+      <article
+        className={`${styles.transportCard} ${!editing ? styles.transportCardCompact : ''}`}
+        onClick={(event) => {
+          const target = event.target as HTMLElement
+          if (editing || target.closest('a, button, input, select, textarea')) return
+          onToggleExpanded()
+        }}
+      >
         <button className={styles.transportDragHandle} type="button" aria-label="拖曳交通" disabled={readOnly} {...attributes} {...listeners}>
           <span aria-hidden>☰</span>
         </button>
@@ -2179,11 +2216,6 @@ function SortableTransportItem({
                   <a href={savedHref} target="_blank" rel="noopener noreferrer">
                     導航
                   </a>
-                ) : null}
-                {!readOnly ? (
-                  <button className={styles.transportEditButton} type="button" onClick={() => setEditing(true)} aria-label="編輯交通">
-                    ✎
-                  </button>
                 ) : null}
               </span>
             </div>
@@ -2233,18 +2265,18 @@ function SortableTransportItem({
                   <button type="button" onClick={commitDraft} disabled={!canSave}>
                     儲存交通
                   </button>
-                  {saved ? (
-                    <button type="button" onClick={collapseEditor}>
-                      取消
-                    </button>
-                  ) : null}
                 </div>
               ) : null}
             </>
           )}
         </div>
-        {!readOnly ? (
+        {!readOnly && !editing ? (
           <button className={styles.transportRemoveButton} type="button" onClick={onRemove} aria-label="移除交通">
+            ×
+          </button>
+        ) : null}
+        {!readOnly && editing && saved ? (
+          <button className={styles.transportRemoveButton} type="button" onClick={collapseEditor} aria-label="取消編輯交通">
             ×
           </button>
         ) : null}
@@ -2407,6 +2439,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const panelControlTouchStartRef = useRef<{ x: number; y: number; collapsed: boolean } | null>(null)
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const initialPlannerLoadRef = useRef(false)
+  const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
+  const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
 
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(() =>
@@ -2786,6 +2820,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (expandedPlanItem && !validPlanItems.includes(expandedPlanItem)) setExpandedPlanItem(null)
   }, [expandedPlanItem, validPlanItems])
 
+  useLayoutEffect(() => {
+    const anchor = expandedPlanScrollAnchorRef.current
+    if (!anchor) return
+    expandedPlanScrollAnchorRef.current = null
+    const nextTop = anchor.element.getBoundingClientRect().top
+    const offset = nextTop - anchor.top
+    if (Math.abs(offset) > 1) anchor.container.scrollTop += offset
+  }, [expandedPlanItem])
+
+  useEffect(() => {
+    return () => {
+      if (expandedPlanScrollCollapseTimerRef.current != null) {
+        window.clearTimeout(expandedPlanScrollCollapseTimerRef.current)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (!openPlannerMenu) return
 
@@ -3111,6 +3162,55 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
     }, 0)
   }
+
+  const setExpandedPlanItemWithScrollCompensation = useCallback((nextItem: PlannerItem | null, preferredAnchor?: HTMLElement | null) => {
+    const previousItem = expandedPlanItem
+    if (expandedPlanScrollCollapseTimerRef.current != null) {
+      window.clearTimeout(expandedPlanScrollCollapseTimerRef.current)
+      expandedPlanScrollCollapseTimerRef.current = null
+    }
+    if (previousItem === nextItem) {
+      setExpandedPlanItem(nextItem)
+      return
+    }
+
+    const anchorCard = preferredAnchor ?? (
+      nextItem
+        ? planCardRefs.current[nextItem] ?? transportCardRefs.current[nextItem]
+        : previousItem
+          ? planCardRefs.current[previousItem] ?? transportCardRefs.current[previousItem]
+          : null
+    )
+    const container = anchorCard?.closest('[data-planner-scroll-list="true"]') as HTMLElement | null
+    if (!anchorCard || !container) {
+      expandedPlanScrollAnchorRef.current = null
+      setExpandedPlanItem(nextItem)
+      return
+    }
+
+    expandedPlanScrollAnchorRef.current = {
+      element: anchorCard,
+      top: anchorCard.getBoundingClientRect().top,
+      container,
+    }
+    setExpandedPlanItem(nextItem)
+  }, [expandedPlanItem])
+
+  const scheduleExpandedPlanItemCollapseIfNearlyOutside = useCallback((event: ReactUIEvent<HTMLDivElement>) => {
+    if (!expandedPlanItem) return
+    const container = event.currentTarget
+    if (expandedPlanScrollCollapseTimerRef.current != null) {
+      window.clearTimeout(expandedPlanScrollCollapseTimerRef.current)
+    }
+    expandedPlanScrollCollapseTimerRef.current = window.setTimeout(() => {
+      const card = planCardRefs.current[expandedPlanItem] ?? transportCardRefs.current[expandedPlanItem]
+      if (card && cardIsNearlyOutsideScrollArea(card, container)) {
+        setExpandedPlanItemWithScrollCompensation(null, findStableVisiblePlanCard(container, expandedPlanItem))
+      }
+      expandedPlanScrollCollapseTimerRef.current = null
+    }, 140)
+  }, [expandedPlanItem, setExpandedPlanItemWithScrollCompensation])
+
   const fitMapToPlaces = useCallback((force = false) => {
     const map = mapRef.current
     if (!map || !window.google?.maps || allPlaces.length === 0) return
@@ -3185,7 +3285,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         marker.addListener('click', () => {
           focusPlace(place, 'marker')
           if (modeRef.current === 'order') {
-            setExpandedPlanItem(key)
+            setExpandedPlanItemWithScrollCompensation(key)
           }
           window.setTimeout(() => {
             const card = modeRef.current === 'order' ? planCardRefs.current[key] : addCardRefs.current[place.id]
@@ -3261,6 +3361,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     planOrderLabels,
     selectedId,
     selectedPlanItem,
+    setExpandedPlanItemWithScrollCompensation,
     visiblePlanItems,
     visiblePlannedDays,
   ])
@@ -3444,7 +3545,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (initialNote.trim()) updatePlaceNote(itemId, initialNote)
     setSelectedPlanItem(itemId)
     setSelectedId(place.id)
-    setExpandedPlanItem(itemId)
+    setExpandedPlanItemWithScrollCompensation(itemId)
     if (typeof dayNumber === 'number') setDayView(dayNumber)
     setRecentlyAddedPlaceId(place.id)
     window.setTimeout(() => {
@@ -3551,6 +3652,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       return nextItems
     })
+    setExpandedPlanItemWithScrollCompensation(transportItem)
     scrollToTransportCard(transportItem)
   }
 
@@ -5009,7 +5111,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           </span>
                           <span className={styles.placeDesc}>{place.description}</span>
                         </button>
-                        {isCustomPlace ? (
+                        {isCustomPlace && !readOnlyPlan ? (
                           <span className={styles.addCardManage}>
                             <button
                               className={styles.editCustomButton}
@@ -5149,8 +5251,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         <div
                           className={styles.planList}
                           data-planner-scroll-list="true"
-                          onTouchMove={() => setExpandedPlanItem(null)}
-                          onWheel={() => setExpandedPlanItem(null)}
+                          onTouchMove={scheduleExpandedPlanItemCollapseIfNearlyOutside}
+                          onWheel={scheduleExpandedPlanItemCollapseIfNearlyOutside}
                         >
                           {visiblePlanItems.map((item) => {
                             if (isDayItem(item)) {
@@ -5180,6 +5282,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   key={item}
                                   itemId={item}
                                   info={transport}
+                                  expanded={expandedPlanItem === item}
+                                  onToggleExpanded={() => {
+                                    setExpandedPlanItemWithScrollCompensation(expandedPlanItem === item ? null : item)
+                                  }}
                                   onChange={(info) => updateTransportItem(item, info)}
                                   onRemove={() => requestRemoveTransport(item)}
                                   cardRef={(el) => {
@@ -5203,7 +5309,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   selected={selectedPlanItem ? selectedPlanItem === item : selectedId === place.id}
                                   onFocus={() => focusPlace(place, 'list', item)}
                                   onToggleExpanded={() => {
-                                    setExpandedPlanItem((current) => (current === item ? null : item))
+                                    setExpandedPlanItemWithScrollCompensation(expandedPlanItem === item ? null : item)
                                   }}
                                   onRemove={() => requestRemovePlace(item)}
                                   onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id, 'order', item) : undefined}
