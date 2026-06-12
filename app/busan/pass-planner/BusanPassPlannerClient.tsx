@@ -15,9 +15,12 @@ import {
 } from 'react'
 import {
   closestCenter,
+  type CollisionDetection,
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  pointerWithin,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -51,6 +54,19 @@ type DayView = 'all' | number
 type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
 type PlannerUserLink = CustomPlannerLink
+
+const plannerCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args)
+  return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args)
+}
+
+const mobileDragTargetIndex = (fromIndex: number, toIndex: number, deltaY: number) => {
+  if (!isMobilePlannerViewport() || Math.abs(toIndex - fromIndex) <= 1) return toIndex
+  const dragDirection = Math.sign(toIndex - fromIndex)
+  const maxSteps = Math.max(1, Math.floor(Math.abs(deltaY) / 96))
+  return fromIndex + dragDirection * Math.min(Math.abs(toIndex - fromIndex), maxSteps)
+}
+
 type CustomPlannerPlace = {
   id: string
   sourcePlaceId?: string
@@ -2483,6 +2499,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [validPlanItems],
   )
   const hasDayDividers = useMemo(() => validPlanItems.some(isDayItem), [validPlanItems])
+  const findPlanItemDayView = useCallback((targetItem: PlannerItem | null | undefined): DayView => {
+    if (!targetItem) return 'all'
+    const dayIndex = plannedDays.findIndex((day) => day.items.includes(targetItem))
+    return dayIndex >= 0 ? dayIndex + 1 : 'all'
+  }, [plannedDays])
   const visiblePlanItems = useMemo(() => {
     if (dayView === 'all') return validPlanItems
     const day = plannedDays[dayView - 1]
@@ -2696,7 +2717,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customDraftLinks = customDraft.id ? (placeUserLinks[customDraft.id] ?? customPlaces[customDraft.id]?.links ?? []) : []
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 110, tolerance: 10 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
@@ -3007,7 +3029,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       } else if (!validPlanPlaceIds.includes(place.id)) {
         return
       } else {
-        setDayView('all')
+        const targetItem = selectedPlanItem && planItemPlaceId(selectedPlanItem) === place.id
+          ? selectedPlanItem
+          : validPlanItems.find((item) => planItemPlaceId(item) === place.id) ?? null
+        setSelectedPlanItem(targetItem)
+        const targetDayView = findPlanItemDayView(targetItem)
+        if (targetDayView !== 'all') setDayView(targetDayView)
       }
 
       const map = mapRef.current
@@ -3025,8 +3052,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         })
       }, 0)
     },
-    [customPlaces, placeById, plannerCategoryItems, selectedId, validPlanPlaceIds],
+    [customPlaces, findPlanItemDayView, placeById, plannerCategoryItems, selectedId, selectedPlanItem, validPlanItems, validPlanPlaceIds],
   )
+
+  const openOrderMode = useCallback(() => {
+    setMode('order')
+    setMobilePanelOpen(true)
+  }, [])
 
   const scrollPlannerCardIntoView = (card: HTMLElement | null | undefined, behavior: ScrollBehavior = 'smooth') => {
     if (!card) return
@@ -3387,6 +3419,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (initialNote.trim()) updatePlaceNote(itemId, initialNote)
     setSelectedPlanItem(itemId)
     setSelectedId(place.id)
+    if (typeof dayNumber === 'number') setDayView(dayNumber)
     setRecentlyAddedPlaceId(place.id)
     window.setTimeout(() => {
       setRecentlyAddedPlaceId((id) => (id === place.id ? null : id))
@@ -3999,7 +4032,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const oldIndex = items.indexOf(String(active.id))
       const newIndex = items.indexOf(String(over.id))
       if (oldIndex < 0 || newIndex < 0) return items
-      const nextIds = arrayMove(items, oldIndex, newIndex)
+      const targetIndex = mobileDragTargetIndex(oldIndex, newIndex, event.delta.y)
+      const nextIds = arrayMove(items, oldIndex, targetIndex)
       const placeId = planItemPlaceId(String(active.id)) ?? String(active.id)
       const place = placeById.get(placeId)
       trackPlannerEvent('drag_sort', {
@@ -4007,7 +4041,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         place_name: place ? shortName(place.name) : '',
         place_category: place?.category,
         from_index: oldIndex + 1,
-        to_index: newIndex + 1,
+        to_index: targetIndex + 1,
         plan_count: nextIds.length,
         plan_code: encodeSharedPlan(nextIds, lookupPlaces),
       })
@@ -4672,7 +4706,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               <button
                 className={mode === 'order' ? styles.tabActive : styles.tab}
                 type="button"
-                onClick={() => scrollSelectedPlaceInMode('order')}
+                onClick={openOrderMode}
               >
                 我的順序 <span>{plannedPlaces.length}</span>
               </button>
@@ -5084,7 +5118,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         ) : null}
                       </div>
                     </div>
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <DndContext sensors={sensors} collisionDetection={plannerCollisionDetection} onDragEnd={handleDragEnd}>
                       <SortableContext items={visiblePlanItems} strategy={verticalListSortingStrategy}>
                         <div className={styles.planList} data-planner-scroll-list="true">
                           {visiblePlanItems.map((item) => {
@@ -5193,16 +5227,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               <h2 id="add-place-day-title">加入哪一天？</h2>
               <p>{shortName(pendingAddPlace.name)}</p>
               <div className={styles.dayChoiceList}>
-                {Array.from({ length: planDayCount }, (_, index) => index + 1).map((dayNumber) => (
-                  <button
-                    key={dayNumber}
-                    type="button"
-                    className={styles.dayChoiceButton}
-                    onClick={() => confirmAddPlaceToDay(dayNumber)}
-                  >
-                    第 {dayNumber} 天
-                  </button>
-                ))}
+                {Array.from({ length: planDayCount }, (_, index) => {
+                  const dayNumber = index + 1
+                  return (
+                    <button
+                      key={dayNumber}
+                      type="button"
+                      className={styles.dayChoiceButton}
+                      onClick={() => confirmAddPlaceToDay(dayNumber)}
+                    >
+                      {plannedDays[index]?.title ?? dayTitle(dayNumber)}
+                    </button>
+                  )
+                })}
               </div>
               <div className={styles.confirmActions}>
                 <button
@@ -5214,9 +5251,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   }}
                 >
                   取消
-                </button>
-                <button type="button" className={styles.confirmPrimary} onClick={() => confirmAddPlaceToDay('end')}>
-                  加到最後
                 </button>
               </div>
             </section>

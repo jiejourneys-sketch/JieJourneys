@@ -1179,6 +1179,7 @@
 
 .planCardDragging {
   opacity: 0.74;
+  user-select: none;
 }
 
 .dayDivider {
@@ -1298,6 +1299,9 @@
   font-size: 18px;
   cursor: grab;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .dragHandle::before {
@@ -2833,7 +2837,7 @@
     grid-template-areas:
       "drag main remove"
       "drag links remove";
-    grid-template-columns: 44px minmax(0, 1fr) 42px;
+    grid-template-columns: 48px minmax(0, 1fr) 42px;
     grid-template-rows: auto auto;
     gap: 7px 8px;
     min-height: 108px;
@@ -2842,7 +2846,7 @@
 
   .dragHandle {
     grid-area: drag;
-    width: 44px;
+    width: 48px;
     height: auto;
     align-self: stretch;
     border-radius: 8px 0 0 8px;
