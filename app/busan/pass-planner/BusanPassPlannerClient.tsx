@@ -2708,17 +2708,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [clearFocusScrollTimers, scrollFocusTargetToCenter],
   )
 
+  const flushPendingHalfPanelFocus = useCallback(
+    (behavior: ScrollBehavior = 'auto') => {
+      const pendingFocus = pendingHalfPanelFocusRef.current
+      if (!pendingFocus) return
+      pendingHalfPanelFocusRef.current = null
+      scheduleFocusTargetCenter(pendingFocus, behavior)
+    },
+    [scheduleFocusTargetCenter],
+  )
+
   useEffect(() => {
     mobilePanelStateRef.current = mobilePanelState
   }, [mobilePanelState])
 
   useEffect(() => {
     if (mobilePanelState !== 'half') return
-    const pendingFocus = pendingHalfPanelFocusRef.current
-    if (!pendingFocus) return
-    pendingHalfPanelFocusRef.current = null
-    scheduleFocusTargetCenter(pendingFocus, 'auto', 210)
-  }, [mobilePanelState, scheduleFocusTargetCenter])
+    if (!pendingHalfPanelFocusRef.current) return
+    const fallbackTimer = window.setTimeout(() => flushPendingHalfPanelFocus('auto'), 360)
+    return () => window.clearTimeout(fallbackTimer)
+  }, [flushPendingHalfPanelFocus, mobilePanelState])
 
   const sourcePlaceById = useMemo(() => {
     const seen = new Map<string, MapPlace>()
@@ -5033,6 +5042,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             onTouchMove={panelControlSwipeProps.onTouchMove}
             onTouchEnd={panelControlSwipeProps.onTouchEnd}
             onTouchCancel={panelControlSwipeProps.onTouchCancel}
+            onTransitionEnd={(event) => {
+              if (event.currentTarget !== event.target) return
+              if (event.propertyName !== 'height') return
+              if (mobilePanelStateRef.current !== 'half') return
+              flushPendingHalfPanelFocus('auto')
+            }}
             onClick={() => {
               if (Date.now() < panelClickSuppressUntilRef.current) return
               setMobilePanelState((state) => (state === 'collapsed' ? 'half' : state))
@@ -5524,6 +5539,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   info={transport}
                                   expanded={expandedPlanItem === item}
                                   onToggleExpanded={() => {
+                                    if (mobilePanelStateRef.current === 'full' && isMobilePlannerViewport()) {
+                                      pendingHalfPanelFocusRef.current = { mode: 'transport', itemId: item }
+                                      setMobilePanelState('half')
+                                      return
+                                    }
                                     setExpandedPlanItemWithScrollCompensation(expandedPlanItem === item ? null : item)
                                   }}
                                   onChange={(info) => updateTransportItem(item, info)}
@@ -5549,6 +5569,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   selected={selectedPlanItem ? selectedPlanItem === item : selectedId === place.id}
                                   onFocus={() => focusPlace(place, 'list', item)}
                                   onToggleExpanded={() => {
+                                    if (mobilePanelStateRef.current === 'full' && isMobilePlannerViewport()) {
+                                      return
+                                    }
                                     setExpandedPlanItemWithScrollCompensation(expandedPlanItem === item ? null : item)
                                   }}
                                   onRemove={() => requestRemovePlace(item)}
