@@ -904,8 +904,8 @@
   align-self: center;
 }
 
-.inlineMapLinks a,
-.inlineMapLinks button {
+.inlineMapLinks > a,
+.inlineMapLinks > button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1760,6 +1760,12 @@
   justify-content: space-between;
   flex: 0 0 auto;
   gap: 12px;
+  min-width: 0;
+}
+
+.noteModalHeader > div {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .noteModalEyebrow {
@@ -1776,21 +1782,25 @@
   color: var(--ink);
   font-size: 18px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .noteModalClose {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
+  flex: 0 0 42px;
+  width: 42px;
+  max-width: 42px;
+  height: 42px;
+  min-width: 42px;
   border: 1px solid rgba(31, 122, 140, 0.16);
   border-radius: 10px;
+  padding: 0;
   background: #f8fafc;
   color: #64748b;
   font: inherit;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
 }
@@ -1869,6 +1879,7 @@
   gap: 12px;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding-right: 2px;
 }
 
@@ -1920,12 +1931,13 @@
   .noteModalBackdrop {
     align-items: end;
     padding: 10px;
+    padding-top: calc(var(--planner-header-offset) + 10px);
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   .noteModal {
     width: 100%;
-    max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - var(--planner-header-offset) - 20px - env(safe-area-inset-bottom, 0px));
     border-radius: 16px;
     padding: 14px;
   }
@@ -1941,7 +1953,7 @@
   }
 
   .linksModalBody {
-    max-height: calc(100dvh - 150px - env(safe-area-inset-bottom, 0px));
+    max-height: none;
   }
 
   .noteModalFooter {

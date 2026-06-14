@@ -1624,7 +1624,14 @@ function PlannerMapLinksPanel({
   const links = plannerMapLinks(place, userLinks)
 
   return (
-    <div className={styles.noteModalBackdrop} role="presentation" onClick={onClose}>
+    <div
+      className={styles.noteModalBackdrop}
+      role="presentation"
+      onTouchStart={(event) => event.stopPropagation()}
+      onTouchMove={(event) => event.stopPropagation()}
+      onTouchEnd={(event) => event.stopPropagation()}
+      onTouchCancel={(event) => event.stopPropagation()}
+    >
       <section
         ref={panelRef}
         className={`${styles.noteModal} ${styles.mapModal}`}
@@ -1651,7 +1658,6 @@ function PlannerMapLinksPanel({
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={onClose}
               >
                 {link.label}
               </a>
@@ -1967,7 +1973,14 @@ function SortablePlanItem({
       ) : null}
       </article>
       {openPanel === 'note' ? (
-        <div className={styles.noteModalBackdrop} role="presentation" onClick={cancelNote}>
+        <div
+          className={styles.noteModalBackdrop}
+          role="presentation"
+          onTouchStart={(event) => event.stopPropagation()}
+          onTouchMove={(event) => event.stopPropagation()}
+          onTouchEnd={(event) => event.stopPropagation()}
+          onTouchCancel={(event) => event.stopPropagation()}
+        >
           <section
             ref={detailElementRef}
             className={styles.noteModal}
@@ -2109,7 +2122,14 @@ function PlannerActionPanel({
     .filter(({ link }) => !isPlannerUserMapLink(link.href) && !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
 
   return (
-    <div className={styles.noteModalBackdrop} role="presentation" onClick={onClose}>
+    <div
+      className={styles.noteModalBackdrop}
+      role="presentation"
+      onTouchStart={(event) => event.stopPropagation()}
+      onTouchMove={(event) => event.stopPropagation()}
+      onTouchEnd={(event) => event.stopPropagation()}
+      onTouchCancel={(event) => event.stopPropagation()}
+    >
       <section
         ref={panelRef}
         className={`${styles.noteModal} ${styles.linksModal}`}
@@ -2141,7 +2161,6 @@ function PlannerActionPanel({
               data-item={place.id}
               data-platform={action.platform}
               data-section={action.mapSection ?? 'planner_card'}
-              onClick={onClose}
             >
               {action.label}
             </a>
@@ -2152,7 +2171,7 @@ function PlannerActionPanel({
         <div className={styles.userLinksList}>
           {visibleUserLinks.map(({ link, index }) => (
             <span key={`${link.label}-${link.href}-${index}`} className={styles.userLinkRow}>
-              <a className={styles.userLinkOpen} href={link.href} target="_blank" rel="noopener noreferrer" onClick={onClose}>
+              <a className={styles.userLinkOpen} href={link.href} target="_blank" rel="noopener noreferrer">
                 <span>{link.label}</span>
                 <span>開啟</span>
               </a>
@@ -2232,10 +2251,13 @@ function PlannerActionLinks({ place }: { place: MapPlace }) {
   )
 }
 
-function PlannerInlineCardLinks({ place }: { place: MapPlace }) {
+function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; userLinks?: PlannerUserLink[] }) {
   const [openPanel, setOpenPanel] = useState<'links' | 'map' | null>(null)
   const panelRef = useRef<HTMLDivElement | null>(null)
   const actionLinks = plannerActionLinks(place)
+  const [linkLabel, setLinkLabel] = useState('')
+  const [linkHref, setLinkHref] = useState('')
+  const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href))
 
   useEffect(() => {
     if (!openPanel) return
@@ -2253,7 +2275,7 @@ function PlannerInlineCardLinks({ place }: { place: MapPlace }) {
 
   return (
     <>
-      {actionLinks.length > 0 ? (
+      {hasInlineLinks ? (
         <button
           className={styles.iconLink}
           type="button"
@@ -2277,28 +2299,28 @@ function PlannerInlineCardLinks({ place }: { place: MapPlace }) {
         地圖
       </button>
       {openPanel === 'links' ? (
-        <div ref={panelRef} className={styles.plannerLinksBox}>
-          <span>連結</span>
-          <div className={styles.plannerLinksGrid}>
-            {actionLinks.map((action) => (
-              <a
-                key={`${action.label}-${action.href}`}
-                className={styles.plannerLinkChip}
-                href={action.href}
-                target={action.href.startsWith('http') ? '_blank' : undefined}
-                rel={action.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                data-event={action.mapEvent ?? action.event}
-                data-item={place.id}
-                data-platform={action.platform}
-                data-section={action.mapSection ?? 'planner_card'}
-              >
-                {action.label}
-              </a>
-            ))}
-          </div>
-        </div>
+        <PlannerActionPanel
+          panelRef={panelRef}
+          place={place}
+          userLinks={userLinks}
+          linkLabel={linkLabel}
+          linkHref={linkHref}
+          onLinkLabelChange={setLinkLabel}
+          onLinkHrefChange={setLinkHref}
+          onAddUserLink={() => undefined}
+          onRemoveUserLink={() => undefined}
+          onClose={() => setOpenPanel(null)}
+          readOnly={true}
+        />
       ) : null}
-      {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={panelRef} place={place} onClose={() => setOpenPanel(null)} /> : null}
+      {openPanel === 'map' ? (
+        <PlannerMapLinksPanel
+          panelRef={panelRef}
+          place={place}
+          userLinks={userLinks}
+          onClose={() => setOpenPanel(null)}
+        />
+      ) : null}
     </>
   )
 }
@@ -5434,7 +5456,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         ) : null}
                         <span className={styles.addCardControls}>
                           <span className={styles.inlineMapLinks}>
-                            <PlannerInlineCardLinks place={place} />
+                            <PlannerInlineCardLinks place={place} userLinks={placeUserLinks[place.id] ?? []} />
                           </span>
                           {!readOnlyPlan ? (
                             <span className={styles.addCardActions}>
