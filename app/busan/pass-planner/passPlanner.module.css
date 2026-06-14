@@ -1736,6 +1736,8 @@
   place-items: center;
   padding: 18px;
   background: rgba(15, 23, 42, 0.46);
+  overscroll-behavior: contain;
+  touch-action: none;
   overflow: hidden;
 }
 
@@ -1752,6 +1754,8 @@
   padding: 18px;
   background: #ffffff;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+  overscroll-behavior: contain;
+  touch-action: auto;
 }
 
 .noteModalHeader {
@@ -1820,6 +1824,9 @@
   font: inherit;
   font-size: 15px;
   line-height: 1.55;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .noteModalTextarea:focus {
@@ -1880,6 +1887,8 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding-right: 2px;
 }
 

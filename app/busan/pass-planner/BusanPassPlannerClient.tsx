@@ -8,6 +8,7 @@ import {
   type RefObject,
   type TouchEvent as ReactTouchEvent,
   type UIEvent as ReactUIEvent,
+  type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -1610,6 +1611,29 @@ function findStableVisiblePlanCard(container: HTMLElement, excludingItem?: Plann
   }) ?? null
 }
 
+function allowsModalInternalScroll(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(target.closest(`.${styles.linksModalBody}, .${styles.noteModalTextarea}, .${styles.noteReadOnly}`))
+}
+
+function stopModalTouch(event: ReactTouchEvent<HTMLElement>) {
+  event.stopPropagation()
+}
+
+function lockModalBackgroundTouch(event: ReactTouchEvent<HTMLElement>) {
+  event.stopPropagation()
+  if (!allowsModalInternalScroll(event.target) && event.cancelable) {
+    event.preventDefault()
+  }
+}
+
+function lockModalBackgroundWheel(event: ReactWheelEvent<HTMLElement>) {
+  event.stopPropagation()
+  if (!allowsModalInternalScroll(event.target) && event.cancelable) {
+    event.preventDefault()
+  }
+}
+
 function PlannerMapLinksPanel({
   panelRef,
   place,
@@ -1627,10 +1651,11 @@ function PlannerMapLinksPanel({
     <div
       className={styles.noteModalBackdrop}
       role="presentation"
-      onTouchStart={(event) => event.stopPropagation()}
-      onTouchMove={(event) => event.stopPropagation()}
-      onTouchEnd={(event) => event.stopPropagation()}
-      onTouchCancel={(event) => event.stopPropagation()}
+      onTouchStart={stopModalTouch}
+      onTouchMove={lockModalBackgroundTouch}
+      onTouchEnd={stopModalTouch}
+      onTouchCancel={stopModalTouch}
+      onWheel={lockModalBackgroundWheel}
     >
       <section
         ref={panelRef}
@@ -1976,10 +2001,11 @@ function SortablePlanItem({
         <div
           className={styles.noteModalBackdrop}
           role="presentation"
-          onTouchStart={(event) => event.stopPropagation()}
-          onTouchMove={(event) => event.stopPropagation()}
-          onTouchEnd={(event) => event.stopPropagation()}
-          onTouchCancel={(event) => event.stopPropagation()}
+          onTouchStart={stopModalTouch}
+          onTouchMove={lockModalBackgroundTouch}
+          onTouchEnd={stopModalTouch}
+          onTouchCancel={stopModalTouch}
+          onWheel={lockModalBackgroundWheel}
         >
           <section
             ref={detailElementRef}
@@ -2125,10 +2151,11 @@ function PlannerActionPanel({
     <div
       className={styles.noteModalBackdrop}
       role="presentation"
-      onTouchStart={(event) => event.stopPropagation()}
-      onTouchMove={(event) => event.stopPropagation()}
-      onTouchEnd={(event) => event.stopPropagation()}
-      onTouchCancel={(event) => event.stopPropagation()}
+      onTouchStart={stopModalTouch}
+      onTouchMove={lockModalBackgroundTouch}
+      onTouchEnd={stopModalTouch}
+      onTouchCancel={stopModalTouch}
+      onWheel={lockModalBackgroundWheel}
     >
       <section
         ref={panelRef}
