@@ -2602,6 +2602,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
   const pendingHalfPanelFocusRef = useRef<PlannerFocusTarget | null>(null)
   const focusScrollTimerRef = useRef<number | null>(null)
+  const pendingHalfPanelFocusRetryRef = useRef(0)
   const initialPlannerLoadRef = useRef(false)
   const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
@@ -2683,7 +2684,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const scrollFocusTargetToCenter = useCallback(
     (target: PlannerFocusTarget, behavior: ScrollBehavior = 'smooth') => {
       const card = focusTargetCard(target)
-      if (card) scrollPlannerCardToFocusPosition(card, behavior)
+      if (!card) return false
+      scrollPlannerCardToFocusPosition(card, behavior)
+      return true
     },
     [focusTargetCard],
   )
@@ -2712,10 +2715,25 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     (behavior: ScrollBehavior = 'auto') => {
       const pendingFocus = pendingHalfPanelFocusRef.current
       if (!pendingFocus) return
-      pendingHalfPanelFocusRef.current = null
-      scheduleFocusTargetCenter(pendingFocus, behavior)
+      const didScroll = scrollFocusTargetToCenter(pendingFocus, behavior)
+      if (didScroll) {
+        pendingHalfPanelFocusRef.current = null
+        pendingHalfPanelFocusRetryRef.current = 0
+        return
+      }
+      if (pendingHalfPanelFocusRetryRef.current >= 4) {
+        pendingHalfPanelFocusRef.current = null
+        pendingHalfPanelFocusRetryRef.current = 0
+        return
+      }
+      pendingHalfPanelFocusRetryRef.current += 1
+      clearFocusScrollTimers()
+      focusScrollTimerRef.current = window.setTimeout(() => {
+        focusScrollTimerRef.current = null
+        flushPendingHalfPanelFocus(behavior)
+      }, 80)
     },
-    [scheduleFocusTargetCenter],
+    [clearFocusScrollTimers, scrollFocusTargetToCenter],
   )
 
   useEffect(() => {
@@ -3296,6 +3314,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       mobilePanelStateRef.current === 'full' && isMobilePlannerViewport() && (source === 'list' || source === 'marker')
     if (shouldScrollAfterPanelShrink) {
       pendingHalfPanelFocusRef.current = focusTarget
+      pendingHalfPanelFocusRetryRef.current = 0
     }
     if (source === 'marker' || (source === 'list' && isMobilePlannerViewport())) setMobilePanelState('half')
     setSelectedPlanItem(planItem)
@@ -5541,6 +5560,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   onToggleExpanded={() => {
                                     if (mobilePanelStateRef.current === 'full' && isMobilePlannerViewport()) {
                                       pendingHalfPanelFocusRef.current = { mode: 'transport', itemId: item }
+                                      pendingHalfPanelFocusRetryRef.current = 0
                                       setMobilePanelState('half')
                                       return
                                     }
