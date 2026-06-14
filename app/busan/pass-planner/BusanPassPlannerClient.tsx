@@ -1558,14 +1558,30 @@ function scrollCardFullyIntoView(card: HTMLElement, behavior: ScrollBehavior = '
   if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior })
 }
 
+function elementTopWithinContainer(element: HTMLElement, container: HTMLElement) {
+  let top = 0
+  let current: HTMLElement | null = element
+
+  while (current && current !== container) {
+    top += current.offsetTop
+    current = current.offsetParent as HTMLElement | null
+  }
+
+  if (current === container) return top
+
+  const cRect = container.getBoundingClientRect()
+  const eRect = element.getBoundingClientRect()
+  return eRect.top - cRect.top + container.scrollTop
+}
+
 function scrollCardToContainerCenter(card: HTMLElement, behavior: ScrollBehavior = 'smooth') {
   const container = card.closest('[data-planner-scroll-list="true"]') as HTMLElement | null
   if (!container) return
 
-  const cRect = container.getBoundingClientRect()
-  const eRect = card.getBoundingClientRect()
-  const delta = eRect.top - cRect.top - (cRect.height / 2 - eRect.height / 2)
-  if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior })
+  const targetTop = elementTopWithinContainer(card, container) - (container.clientHeight / 2 - card.offsetHeight / 2)
+  const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
+  const nextScrollTop = Math.min(maxScrollTop, Math.max(0, targetTop))
+  if (Math.abs(nextScrollTop - container.scrollTop) > 1) container.scrollTo({ top: nextScrollTop, behavior })
 }
 
 function scrollPlannerCardToFocusPosition(
