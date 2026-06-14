@@ -1736,6 +1736,7 @@
   place-items: center;
   padding: 18px;
   background: rgba(15, 23, 42, 0.46);
+  overflow: hidden;
 }
 
 .noteModal {
@@ -1743,7 +1744,9 @@
   flex-direction: column;
   gap: 14px;
   width: min(520px, 100%);
-  max-height: min(680px, calc(100vh - 36px));
+  max-height: min(680px, calc(100dvh - 36px));
+  min-height: 0;
+  overflow: hidden;
   border: 1px solid rgba(31, 122, 140, 0.22);
   border-radius: 18px;
   padding: 18px;
@@ -1755,6 +1758,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex: 0 0 auto;
   gap: 12px;
 }
 
@@ -1793,9 +1797,10 @@
 
 .noteModalTextarea {
   box-sizing: border-box;
+  flex: 1 1 auto;
   width: 100%;
   min-height: 220px;
-  max-height: min(48vh, 420px);
+  max-height: min(48dvh, 420px);
   resize: vertical;
   border: 1.5px solid rgba(31, 122, 140, 0.22);
   border-radius: 12px;
@@ -1817,6 +1822,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: 0 0 auto;
   gap: 12px;
 }
 
@@ -1849,16 +1855,17 @@
 }
 
 .linksModal {
-  max-height: min(700px, calc(100vh - 36px));
+  max-height: min(700px, calc(100dvh - 36px));
 }
 
 .mapModal {
-  max-height: min(520px, calc(100vh - 36px));
+  max-height: min(520px, calc(100dvh - 36px));
 }
 
 .linksModalBody {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   gap: 12px;
   min-height: 0;
   overflow-y: auto;
@@ -1918,7 +1925,7 @@
 
   .noteModal {
     width: 100%;
-    max-height: min(78vh, 620px);
+    max-height: calc(100dvh - 20px - env(safe-area-inset-bottom, 0px));
     border-radius: 16px;
     padding: 14px;
   }
@@ -1928,9 +1935,13 @@
   }
 
   .noteModalTextarea {
-    min-height: 210px;
-    max-height: 44vh;
+    min-height: 160px;
+    max-height: 38dvh;
     font-size: 16px;
+  }
+
+  .linksModalBody {
+    max-height: calc(100dvh - 150px - env(safe-area-inset-bottom, 0px));
   }
 
   .noteModalFooter {
@@ -2737,11 +2748,13 @@
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     position: relative;
+    width: min(100%, 430px);
     max-width: none;
     height: var(--planner-mobile-height, calc(100dvh - var(--planner-header-offset)));
     min-height: var(--planner-mobile-height, calc(100dvh - var(--planner-header-offset)));
     max-height: var(--planner-mobile-height, calc(100dvh - var(--planner-header-offset)));
-    padding: 0 12px 6px;
+    margin-inline: auto;
+    padding: 0 6px 4px;
     overflow: hidden;
   }
 
@@ -2757,7 +2770,7 @@
   .topBar {
     flex: 0 0 auto;
     align-items: center;
-    padding: 10px 0 8px;
+    padding: 7px 0 6px;
     background: transparent;
     border-bottom: none;
     box-shadow: none;
@@ -2821,8 +2834,8 @@
     flex: 1;
     min-height: 0;
     height: 100%;
-    border-radius: 14px;
-    border: 2px solid #1f7a8c;
+    border-radius: 12px;
+    border: 1.5px solid #1f7a8c;
   }
 
   .mapCanvas,
@@ -2842,8 +2855,8 @@
     min-height: 0;
     height: min(66%, 540px);
     align-self: stretch;
-    border: 2px solid rgba(31, 122, 140, 0.25);
-    border-radius: 14px;
+    border: 1.5px solid rgba(31, 122, 140, 0.25);
+    border-radius: 12px;
     transition:
       height 180ms ease,
       transform 180ms ease;
@@ -2895,6 +2908,10 @@
 
   .panelOpen {
     height: min(58%, 500px);
+  }
+
+  .panelFull {
+    height: 100%;
   }
 
   .panelDragging {

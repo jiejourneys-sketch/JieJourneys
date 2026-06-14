@@ -49,6 +49,7 @@ type PlannerMode = 'add' | 'order'
 type TierFilter = NonNullable<MapPlace['officialPassTier']> | 'all'
 type FocusSource = 'marker' | 'list'
 type InAppBrowser = 'instagram' | 'line' | 'facebook' | null
+type MobilePanelState = 'collapsed' | 'half' | 'full'
 type PlannerItem = string
 type TransportMode = 'walk' | 'subway' | 'bus' | 'train' | 'taxi' | 'car' | 'custom'
 type TransportInfo = { id: string; mode: TransportMode; customLabel: string; duration: string; note: string; href: string }
@@ -1056,15 +1057,14 @@ function setResolvedMapUrlCache(url: string, data: ResolvedMapUrlData) {
   }
 }
 
-function panMobilePlaceAbovePanel(map: google.maps.Map) {
-  if (!isMobilePlannerViewport()) return
-  map.panBy(0, Math.round(window.innerHeight * 0.2))
-}
-
 function focusMapOnPlace(map: google.maps.Map, place: MapPlace) {
-  map.setCenter({ lat: place.lat, lng: place.lng })
+  const center = { lat: place.lat, lng: place.lng }
+  map.setCenter(center)
   map.setZoom(16)
-  window.setTimeout(() => panMobilePlaceAbovePanel(map), 140)
+  window.setTimeout(() => {
+    map.setCenter(center)
+    if (isMobilePlannerViewport()) map.panBy(0, Math.round(window.innerHeight * 0.2))
+  }, 140)
 }
 
 function isDayItem(item: PlannerItem) {
@@ -1554,14 +1554,24 @@ function scrollCardFullyIntoView(card: HTMLElement, behavior: ScrollBehavior = '
   if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior })
 }
 
-function scrollCardToContainerCenter(card: HTMLElement, behavior: ScrollBehavior = 'smooth') {
+function scrollCardToContainerCenter(card: HTMLElement, behavior: ScrollBehavior = 'smooth', upwardBiasPx = 0) {
   const container = card.closest('[data-planner-scroll-list="true"]') as HTMLElement | null
   if (!container) return
 
   const cRect = container.getBoundingClientRect()
   const eRect = card.getBoundingClientRect()
-  const delta = eRect.top - cRect.top - (cRect.height / 2 - eRect.height / 2)
+  const delta = eRect.top - cRect.top - (cRect.height / 2 - eRect.height / 2) + upwardBiasPx
   if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior })
+}
+
+function scrollPlannerCardToFocusPosition(
+  card: HTMLElement,
+  behavior: ScrollBehavior = 'smooth',
+  targetMode?: PlannerMode,
+  useMobileAddBias = false,
+) {
+  const upwardBiasPx = useMobileAddBias && targetMode === 'add' && isMobilePlannerViewport() ? 34 : 0
+  scrollCardToContainerCenter(card, behavior, upwardBiasPx)
 }
 
 function cardIsNearlyOutsideScrollArea(card: HTMLElement, container: HTMLElement) {
@@ -2580,6 +2590,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     startHeightPx: number
     collapsedPx: number
     expandedPx: number
+    fullPx: number
   } | null>(null)
   const panelLiveHeightRef = useRef<number | null>(null)
   const panelClickSuppressUntilRef = useRef(0)
@@ -2587,6 +2598,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const panelBodyPullCanCollapseRef = useRef(false)
   const panelControlTouchStartRef = useRef<{ x: number; y: number; collapsed: boolean } | null>(null)
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
+  const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
   const initialPlannerLoadRef = useRef(false)
   const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
@@ -2614,7 +2626,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedPlanItem, setSelectedPlanItem] = useState<PlannerItem | null>(null)
   const [mobilePageHeight, setMobilePageHeight] = useState<number | null>(null)
-  const [mobilePanelOpen, setMobilePanelOpen] = useState(false)
+  const [mobilePanelState, setMobilePanelState] = useState<MobilePanelState>('collapsed')
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
   const [mobilePanelDragHeight, setMobilePanelDragHeight] = useState<number | null>(null)
   const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
@@ -2643,6 +2655,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions'>(null)
   const plannerPdfModuleRef = useRef<Promise<typeof import('./plannerPdf')> | null>(null)
   const pdfDownloading = pdfDownloadStatus !== 'idle'
+  const mobilePanelOpen = mobilePanelState !== 'collapsed'
+  const setMobilePanelOpen = useCallback((next: boolean | ((open: boolean) => boolean)) => {
+    setMobilePanelState((state) => {
+      const currentlyOpen = state !== 'collapsed'
+      const resolved = typeof next === 'function' ? next(currentlyOpen) : next
+      return resolved ? 'half' : 'collapsed'
+    })
+  }, [])
+
+  useEffect(() => {
+    mobilePanelStateRef.current = mobilePanelState
+  }, [mobilePanelState])
 
   const sourcePlaceById = useMemo(() => {
     const seen = new Map<string, MapPlace>()
@@ -3021,9 +3045,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const getMobilePanelMetrics = useCallback(() => {
     const pageHeight = mobilePageHeight ?? (typeof window === 'undefined' ? 720 : window.innerHeight)
+    const expandedPx = Math.min(Math.round(pageHeight * 0.52), 430)
     return {
       collapsedPx: 72,
-      expandedPx: Math.min(Math.round(pageHeight * 0.52), 430),
+      expandedPx,
+      fullPx: Math.max(expandedPx, pageHeight - 8),
     }
   }, [mobilePageHeight])
 
@@ -3165,7 +3191,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })()
     }, 0)
     return () => window.clearTimeout(id)
-  }, [config.initialSearchParams, config.storageKey, lookupPlaces, placeById])
+  }, [config.initialSearchParams, config.storageKey, lookupPlaces, placeById, setMobilePanelOpen])
 
   useEffect(() => {
     if (!storageReady || readOnlyPlan) return
@@ -3199,8 +3225,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [config.storageKey, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
 
   const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list', planItem: PlannerItem | null = null) => {
-    if (source === 'marker') setMobilePanelOpen(true)
-    if (source === 'list' && isMobilePlannerViewport()) setMobilePanelOpen(false)
+    const shouldRescrollAfterPanelShrink =
+      mobilePanelStateRef.current === 'full' && isMobilePlannerViewport() && (source === 'list' || source === 'marker')
+    if (source === 'marker' || (source === 'list' && isMobilePlannerViewport())) setMobilePanelState('half')
     setSelectedPlanItem(planItem)
     setSelectedId(place.id)
     const map = mapRef.current
@@ -3208,17 +3235,32 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       focusMapOnPlace(map, place)
     }
 
-    if (source === 'marker') {
+    const scrollFocusedCard = (behavior: ScrollBehavior = 'smooth') => {
+      const currentMode = modeRef.current
+      const card =
+        currentMode === 'order'
+          ? (planItem ? planCardRefs.current[planItem] : null) ?? planCardRefs.current[place.id]
+          : addCardRefs.current[place.id]
+      if (card) scrollPlannerCardToFocusPosition(card, behavior, currentMode)
+    }
+
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const refs = modeRef.current === 'order' ? planCardRefs.current : addCardRefs.current
-          const card = refs[place.id]
-          if (card) {
-            if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
-            else scrollCardToContainerCenter(card)
-          }
-        })
+        scrollFocusedCard()
       })
+    })
+
+    if (shouldRescrollAfterPanelShrink) {
+      window.setTimeout(() => {
+        requestAnimationFrame(() => {
+          const currentMode = modeRef.current
+          const card =
+            currentMode === 'order'
+              ? (planItem ? planCardRefs.current[planItem] : null) ?? planCardRefs.current[place.id]
+              : addCardRefs.current[place.id]
+          if (card) scrollPlannerCardToFocusPosition(card, 'auto', currentMode, true)
+        })
+      }, 220)
     }
   }, [])
 
@@ -3232,9 +3274,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             ? customPlaceToMapPlace(customPlaces[placeId])
             : null
       setMode(targetMode)
-      setMobilePanelOpen(true)
+      setMobilePanelState((state) => (state === 'collapsed' ? 'half' : state))
 
       if (!place) return
+      let targetPlanItem: PlannerItem | null = null
       setSelectedPlanItem(null)
       setSelectedId(place.id)
       if (targetMode === 'add') {
@@ -3254,6 +3297,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const targetItem = selectedPlanItem && planItemPlaceId(selectedPlanItem) === place.id
           ? selectedPlanItem
           : validPlanItems.find((item) => planItemPlaceId(item) === place.id) ?? null
+        targetPlanItem = targetItem
         setSelectedPlanItem(targetItem)
         const targetDayView = findPlanItemDayView(targetItem)
         if (targetDayView !== 'all') setDayView(targetDayView)
@@ -3266,10 +3310,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             const refs = targetMode === 'order' ? planCardRefs.current : addCardRefs.current
-            const card = refs[place.id]
+            const card = targetMode === 'order' && targetPlanItem ? planCardRefs.current[targetPlanItem] : refs[place.id]
             if (!card) return
-            if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
-            else scrollCardToContainerCenter(card)
+            scrollPlannerCardToFocusPosition(card, 'smooth', targetMode)
           })
         })
       }, 0)
@@ -3279,13 +3322,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const openOrderMode = useCallback(() => {
     setMode('order')
-    setMobilePanelOpen(true)
+    setMobilePanelState((state) => (state === 'collapsed' ? 'half' : state))
   }, [])
 
   const scrollPlannerCardIntoView = (card: HTMLElement | null | undefined, behavior: ScrollBehavior = 'smooth') => {
     if (!card) return
-    if (isMobilePlannerViewport()) scrollCardFullyIntoView(card, behavior)
-    else scrollCardToContainerCenter(card, behavior)
+    scrollPlannerCardToFocusPosition(card, behavior, modeRef.current)
   }
 
   const scrollBackToCustomCard = (placeId: string, returnMode: 'add' | 'order', returnItem: PlannerItem | null) => {
@@ -3437,10 +3479,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setExpandedPlanItemWithScrollCompensation(key)
           }
           window.setTimeout(() => {
-            const card = modeRef.current === 'order' ? planCardRefs.current[key] : addCardRefs.current[place.id]
+            const currentMode = modeRef.current
+            const card = currentMode === 'order' ? planCardRefs.current[key] : addCardRefs.current[place.id]
             if (!card) return
-            if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
-            else scrollCardToContainerCenter(card)
+            scrollPlannerCardToFocusPosition(card, 'smooth', currentMode)
           }, 0)
         })
         markersRef.current.set(key, marker)
@@ -3560,7 +3602,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     return () => {
       cancelled = true
     }
-  }, [apiKey, mapCenter, config.mapZoom])
+  }, [apiKey, mapCenter, config.mapZoom, setMobilePanelOpen])
 
   useEffect(() => {
     if (!mapReady || initialMapFitDoneRef.current || allPlaces.length === 0) return
@@ -3625,7 +3667,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     window.setTimeout(() => {
       map.panTo(position)
       if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
-      if (isMobilePlannerViewport()) map.panBy(0, 120)
     }, 160)
   }, [customDraft.lat, customDraft.lng, customDraft.picking, mapReady])
 
@@ -4237,8 +4278,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         requestAnimationFrame(() => {
           const card = addCardRefs.current[id]
           if (!card) return
-          if (isMobilePlannerViewport()) scrollCardFullyIntoView(card)
-          else scrollCardToContainerCenter(card)
+          scrollPlannerCardToFocusPosition(card, 'smooth', 'add')
         })
       })
     }, 0)
@@ -4713,7 +4753,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const panel = panelRef.current
       if (!panel) return
 
-      const { collapsedPx, expandedPx } = getMobilePanelMetrics()
+      const { collapsedPx, expandedPx, fullPx } = getMobilePanelMetrics()
       const startHeightPx = Math.round(panel.getBoundingClientRect().height)
       panelDragSessionRef.current = {
         pointerId: e.pointerId,
@@ -4721,6 +4761,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         startHeightPx,
         collapsedPx,
         expandedPx,
+        fullPx,
       }
       panelLiveHeightRef.current = startHeightPx
       setMobilePanelDragHeight(startHeightPx)
@@ -4740,7 +4781,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     const delta = drag.startY - e.clientY
     const nextHeight = Math.round(drag.startHeightPx + delta)
-    const clampedHeight = Math.min(drag.expandedPx, Math.max(drag.collapsedPx, nextHeight))
+    const clampedHeight = Math.min(drag.fullPx, Math.max(drag.collapsedPx, nextHeight))
     panelLiveHeightRef.current = clampedHeight
     setMobilePanelDragHeight(clampedHeight)
     if (Math.abs(delta) > 6) setMobilePanelDragging(true)
@@ -4765,7 +4806,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     if (moved) {
       panelClickSuppressUntilRef.current = Date.now() + 250
-      setMobilePanelOpen(finalHeight >= (drag.collapsedPx + drag.expandedPx) / 2)
+      const snapPoints = [
+        { state: 'collapsed' as const, height: drag.collapsedPx },
+        { state: 'half' as const, height: drag.expandedPx },
+        { state: 'full' as const, height: drag.fullPx },
+      ]
+      const nearest = snapPoints.reduce((best, point) =>
+        Math.abs(point.height - finalHeight) < Math.abs(best.height - finalHeight) ? point : best,
+      )
+      setMobilePanelState(nearest.state)
     }
   }, [])
 
@@ -4792,7 +4841,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       e.preventDefault()
       panelBodyTouchStartYRef.current = null
       panelBodyPullCanCollapseRef.current = false
-      setMobilePanelOpen(false)
+      setMobilePanelState((state) => (state === 'full' ? 'half' : 'collapsed'))
     }
   }, [mobilePanelOpen])
 
@@ -4826,16 +4875,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (e.cancelable) e.preventDefault()
       start.collapsed = true
       setOpenPlannerMenu(null)
-      setMobilePanelOpen(false)
+      setMobilePanelState((state) => (state === 'full' ? 'half' : 'collapsed'))
       return
     }
 
     if (!mobilePanelOpen && deltaY < 0) {
       if (e.cancelable) e.preventDefault()
       start.collapsed = true
-      setMobilePanelOpen(true)
+      setMobilePanelState('half')
+      return
     }
-  }, [mobilePanelOpen])
+
+    if (mobilePanelState === 'half' && deltaY < 0) {
+      if (e.cancelable) e.preventDefault()
+      start.collapsed = true
+      setMobilePanelState('full')
+    }
+  }, [mobilePanelOpen, mobilePanelState])
 
   const handlePanelControlTouchEnd = useCallback(() => {
     panelControlTouchStartRef.current = null
@@ -4929,7 +4985,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
           <aside
             ref={panelRef}
-            className={`${styles.panel} ${mobilePanelOpen ? styles.panelOpen : styles.panelCollapsed} ${
+            className={`${styles.panel} ${
+              mobilePanelState === 'full'
+                ? styles.panelFull
+                : mobilePanelOpen
+                  ? styles.panelOpen
+                  : styles.panelCollapsed
+            } ${
               mobilePanelDragging ? styles.panelDragging : ''
             }`}
             aria-label={config.panelAriaLabel}
@@ -4944,7 +5006,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             onTouchCancel={panelControlSwipeProps.onTouchCancel}
             onClick={() => {
               if (Date.now() < panelClickSuppressUntilRef.current) return
-              setMobilePanelOpen(true)
+              setMobilePanelState((state) => (state === 'collapsed' ? 'half' : state))
             }}
             onClickCapture={(e) => {
               if (Date.now() >= panelClickSuppressUntilRef.current) return
@@ -4958,7 +5020,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 role="button"
                 tabIndex={0}
                 aria-expanded={mobilePanelOpen}
-                aria-label={mobilePanelOpen ? '向下拖曳收合面板' : '向上拖曳展開面板'}
+                aria-label={mobilePanelState === 'full' ? '向下拖曳縮小面板' : mobilePanelOpen ? '拖曳調整面板高度' : '向上拖曳展開面板'}
                 onPointerDown={startMobilePanelDrag}
                 onPointerMove={moveMobilePanelDrag}
                 onPointerUp={endMobilePanelDrag}
@@ -4966,7 +5028,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
-                    setMobilePanelOpen((open) => !open)
+                    setMobilePanelState((state) => (state === 'collapsed' ? 'half' : state === 'half' ? 'full' : 'collapsed'))
                   }
                 }}
               />
