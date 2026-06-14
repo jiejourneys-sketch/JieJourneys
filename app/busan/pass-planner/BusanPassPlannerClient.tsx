@@ -4,6 +4,7 @@
 import {
   Fragment,
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   type TouchEvent as ReactTouchEvent,
@@ -862,6 +863,27 @@ function isPlannerRouteAction(action: { label: string; platform?: string }) {
   return label === '路線' || label === 'route' || platform === 'route'
 }
 
+function plannerReturnAwareHref(href: string) {
+  if (typeof window === 'undefined') return href
+  try {
+    const url = new URL(href, window.location.origin)
+    if (url.origin !== window.location.origin) return href
+    url.searchParams.set('from', 'planner')
+    url.searchParams.set('return', `${window.location.pathname}${window.location.search}${window.location.hash}`)
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return href
+  }
+}
+
+function preparePlannerActionLinkClick(
+  event: ReactMouseEvent<HTMLAnchorElement>,
+  action: { href: string; platform?: string },
+) {
+  if (action.platform?.trim().toLowerCase() !== 'ticket') return
+  event.currentTarget.href = plannerReturnAwareHref(action.href)
+}
+
 function plannerActionLinks(place: MapPlace) {
   const links = [
     ...(place.spotActionRows?.flat() ?? []),
@@ -1611,25 +1633,40 @@ function findStableVisiblePlanCard(container: HTMLElement, excludingItem?: Plann
   }) ?? null
 }
 
-function allowsModalInternalScroll(target: EventTarget | null) {
+let plannerModalTouchY = 0
+
+function modalScrollableElement(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false
-  return Boolean(target.closest(`.${styles.linksModalBody}, .${styles.noteModalTextarea}, .${styles.noteReadOnly}`))
+  return target.closest<HTMLElement>(`.${styles.linksModalBody}, .${styles.noteModalTextarea}, .${styles.noteReadOnly}`)
+}
+
+function canModalElementScroll(element: HTMLElement | false | null, deltaY: number) {
+  if (!element) return false
+  const scrollable = element.scrollHeight > element.clientHeight + 1
+  if (!scrollable) return false
+  if (deltaY < 0) return element.scrollTop + element.clientHeight < element.scrollHeight - 1
+  if (deltaY > 0) return element.scrollTop > 1
+  return true
 }
 
 function stopModalTouch(event: ReactTouchEvent<HTMLElement>) {
   event.stopPropagation()
+  plannerModalTouchY = event.touches[0]?.clientY ?? plannerModalTouchY
 }
 
 function lockModalBackgroundTouch(event: ReactTouchEvent<HTMLElement>) {
   event.stopPropagation()
-  if (!allowsModalInternalScroll(event.target) && event.cancelable) {
+  const nextY = event.touches[0]?.clientY ?? plannerModalTouchY
+  const deltaY = nextY - plannerModalTouchY
+  plannerModalTouchY = nextY
+  if (!canModalElementScroll(modalScrollableElement(event.target), deltaY) && event.cancelable) {
     event.preventDefault()
   }
 }
 
 function lockModalBackgroundWheel(event: ReactWheelEvent<HTMLElement>) {
   event.stopPropagation()
-  if (!allowsModalInternalScroll(event.target) && event.cancelable) {
+  if (!canModalElementScroll(modalScrollableElement(event.target), -event.deltaY) && event.cancelable) {
     event.preventDefault()
   }
 }
@@ -1866,36 +1903,13 @@ function SortablePlanItem({
 
   useEffect(() => {
     if (!openPanel) return
-
-    const closePanel = (event: PointerEvent) => {
-      const target = event.target as Node | null
-      if (target && cardElementRef.current?.contains(target)) return
-      if (target && detailElementRef.current?.contains(target)) return
-      setOpenPanel(null)
-    }
-
-    document.addEventListener('pointerdown', closePanel, true)
-
-    const scrollIntoView = () => {
-      const target = detailElementRef.current ?? cardElementRef.current
-      if (!target) return
-      scrollCardFullyIntoView(target, 'auto')
-    }
-    const firstId = window.setTimeout(() => {
-      scrollIntoView()
-    }, 0)
-    const secondId = window.setTimeout(() => {
+    const focusId = window.setTimeout(() => {
       if (openPanel === 'note') noteTextareaRef.current?.focus({ preventScroll: true })
-      scrollIntoView()
     }, 160)
-    const thirdId = window.setTimeout(scrollIntoView, 320)
     return () => {
-      document.removeEventListener('pointerdown', closePanel, true)
-      window.clearTimeout(firstId)
-      window.clearTimeout(secondId)
-      window.clearTimeout(thirdId)
+      window.clearTimeout(focusId)
     }
-  }, [itemId, openPanel])
+  }, [openPanel])
 
   useEffect(() => {
     if (expanded) return
@@ -2188,6 +2202,7 @@ function PlannerActionPanel({
               data-item={place.id}
               data-platform={action.platform}
               data-section={action.mapSection ?? 'planner_card'}
+              onClick={(event) => preparePlannerActionLinkClick(event, action)}
             >
               {action.label}
             </a>
@@ -2267,6 +2282,7 @@ function PlannerActionLinks({ place }: { place: MapPlace }) {
                 data-item={place.id}
                 data-platform={action.platform}
                 data-section={action.mapSection ?? 'planner_card'}
+                onClick={(event) => preparePlannerActionLinkClick(event, action)}
               >
                 {action.label}
               </a>
@@ -2285,20 +2301,6 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
   const [linkLabel, setLinkLabel] = useState('')
   const [linkHref, setLinkHref] = useState('')
   const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href))
-
-  useEffect(() => {
-    if (!openPanel) return
-    const firstId = window.setTimeout(() => {
-      if (panelRef.current) scrollCardFullyIntoView(panelRef.current, 'auto')
-    }, 0)
-    const secondId = window.setTimeout(() => {
-      if (panelRef.current) scrollCardFullyIntoView(panelRef.current, 'smooth')
-    }, 140)
-    return () => {
-      window.clearTimeout(firstId)
-      window.clearTimeout(secondId)
-    }
-  }, [openPanel])
 
   return (
     <>
@@ -5282,6 +5284,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                             placeholder="貼上 Google Maps 分享連結"
                           />
                         </label>
+                        {customUrlResolving ? (
+                          <p className={styles.customPlaceStatus}>
+                            {'\u6b63\u5728\u641c\u5c0b\u666f\u9ede\u540d\u7a31\u2026'}
+                          </p>
+                        ) : null}
                       </div>
                       {customDraft.googleUrl.trim() || customDraft.lat != null || customUrlResolving ? (
                         <div className={styles.customPlaceConfirm}>
@@ -5333,7 +5340,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           </>
                             <>
                               <p className={styles.customPlaceStatus}>
-                                {customDraft.lat != null && customDraft.lng != null
+                                {customUrlResolving
+                                  ? '\u6b63\u5728\u641c\u5c0b\u666f\u9ede\u540d\u7a31\u8207\u4f4d\u7f6e\uff0c\u8acb\u7a0d\u5019\u3002'
+                                  : customDraft.lat != null && customDraft.lng != null
                                   ? '\u5df2\u5e36\u5165\u4f4d\u7f6e\uff0c\u8acb\u770b\u4e0a\u65b9\u5730\u5716\u78ba\u8a8d\u6a19\u8a18\u5f8c\u518d\u5132\u5b58\u3002'
                                   : customDraft.picking
                                     ? '\u9ede\u64ca\u5730\u5716\u8a2d\u5b9a\u4f4d\u7f6e\u3002'

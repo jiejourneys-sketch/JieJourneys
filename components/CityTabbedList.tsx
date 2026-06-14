@@ -108,7 +108,10 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
     const tag = params.get('tag')?.trim()
     const id = window.setTimeout(() => {
       const from = params.get('from')
-      if (from === 'map' || from === 'pass-map') {
+      if (from === 'planner') {
+        const returnParam = params.get('return')?.trim()
+        if (returnParam?.startsWith('/tools/planner')) setReturnHref(returnParam)
+      } else if (from === 'map' || from === 'pass-map') {
         const place = params.get('place')?.trim()
         const mapPath = window.location.pathname.replace(/\/ticket\/?$/, from === 'pass-map' ? '/pass-map' : '/map')
         setReturnHref(place ? `${mapPath}?place=${encodeURIComponent(place)}` : mapPath)
@@ -191,7 +194,7 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
           )}
           {returnHref ? (
             <a className="tag-clear tag-return" href={returnHref}>
-              {returnMapLabel}
+              {returnHref.startsWith('/tools/planner') ? '← 返回行程排序' : returnMapLabel}
             </a>
           ) : null}
         </div>
