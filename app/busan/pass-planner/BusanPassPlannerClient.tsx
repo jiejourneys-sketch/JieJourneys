@@ -2601,7 +2601,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
   const pendingHalfPanelFocusRef = useRef<PlannerFocusTarget | null>(null)
-  const focusScrollTimersRef = useRef<number[]>([])
+  const focusScrollTimerRef = useRef<number | null>(null)
   const initialPlannerLoadRef = useRef(false)
   const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
@@ -2674,8 +2674,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [])
 
   const clearFocusScrollTimers = useCallback(() => {
-    focusScrollTimersRef.current.forEach((timer) => window.clearTimeout(timer))
-    focusScrollTimersRef.current = []
+    if (focusScrollTimerRef.current != null) {
+      window.clearTimeout(focusScrollTimerRef.current)
+      focusScrollTimerRef.current = null
+    }
   }, [])
 
   const scrollFocusTargetToCenter = useCallback(
@@ -2687,15 +2689,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   )
 
   const scheduleFocusTargetCenter = useCallback(
-    (target: PlannerFocusTarget, behavior: ScrollBehavior = 'smooth') => {
+    (target: PlannerFocusTarget, behavior: ScrollBehavior = 'smooth', delay = 0) => {
       clearFocusScrollTimers()
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => scrollFocusTargetToCenter(target, behavior))
-      })
-      ;[120, 260, 420].forEach((delay) => {
-        const timer = window.setTimeout(() => scrollFocusTargetToCenter(target, 'auto'), delay)
-        focusScrollTimersRef.current.push(timer)
-      })
+      const run = () => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => scrollFocusTargetToCenter(target, behavior))
+        })
+      }
+      if (delay > 0) {
+        focusScrollTimerRef.current = window.setTimeout(() => {
+          focusScrollTimerRef.current = null
+          run()
+        }, delay)
+        return
+      }
+      run()
     },
     [clearFocusScrollTimers, scrollFocusTargetToCenter],
   )
@@ -2709,7 +2717,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const pendingFocus = pendingHalfPanelFocusRef.current
     if (!pendingFocus) return
     pendingHalfPanelFocusRef.current = null
-    scheduleFocusTargetCenter(pendingFocus, 'auto')
+    scheduleFocusTargetCenter(pendingFocus, 'auto', 210)
   }, [mobilePanelState, scheduleFocusTargetCenter])
 
   const sourcePlaceById = useMemo(() => {
@@ -3392,6 +3400,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (nextItem && isMobilePlannerViewport()) {
       expandedPlanScrollAnchorRef.current = null
       setExpandedPlanItem(nextItem)
+      if (mobilePanelStateRef.current === 'full') return
       const placeId = planItemPlaceId(nextItem)
       scheduleFocusTargetCenter(
         placeId ? { mode: 'order', placeId, itemId: nextItem } : { mode: 'transport', itemId: nextItem },
@@ -3512,14 +3521,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           if (modeRef.current === 'order') {
             setExpandedPlanItemWithScrollCompensation(key)
           }
-          window.setTimeout(() => {
-            const currentMode = modeRef.current
-            scheduleFocusTargetCenter(
-              currentMode === 'order'
-                ? { mode: 'order', placeId: place.id, itemId: key }
-                : { mode: 'add', placeId: place.id },
-            )
-          }, 0)
         })
         markersRef.current.set(key, marker)
       }
@@ -3589,7 +3590,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     selectedId,
     selectedPlanItem,
     setExpandedPlanItemWithScrollCompensation,
-    scheduleFocusTargetCenter,
     visiblePlanItems,
     visiblePlannedDays,
   ])
@@ -5526,10 +5526,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   onToggleExpanded={() => {
                                     setExpandedPlanItemWithScrollCompensation(expandedPlanItem === item ? null : item)
                                   }}
-                                  onChange={(info) => {
-                                    updateTransportItem(item, info)
-                                    scheduleFocusTargetCenter({ mode: 'transport', itemId: item }, 'auto')
-                                  }}
+                                  onChange={(info) => updateTransportItem(item, info)}
                                   onRemove={() => requestRemoveTransport(item)}
                                   cardRef={(el) => {
                                     transportCardRefs.current[item] = el
@@ -5556,19 +5553,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   }}
                                   onRemove={() => requestRemovePlace(item)}
                                   onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id, 'order', item) : undefined}
-                                  onNoteChange={(note) => {
-                                    updatePlaceNote(item, note)
-                                    scheduleFocusTargetCenter({ mode: 'order', placeId: place.id, itemId: item }, 'auto')
-                                  }}
+                                  onNoteChange={(note) => updatePlaceNote(item, note)}
                                   userLinks={placeUserLinks[place.id] ?? []}
-                                  onAddUserLink={(link) => {
-                                    addPlaceUserLink(place.id, link)
-                                    scheduleFocusTargetCenter({ mode: 'order', placeId: place.id, itemId: item }, 'auto')
-                                  }}
-                                  onRemoveUserLink={(index) => {
-                                    removePlaceUserLink(place.id, index)
-                                    scheduleFocusTargetCenter({ mode: 'order', placeId: place.id, itemId: item }, 'auto')
-                                  }}
+                                  onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
+                                  onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}
                                   cardRef={(el) => {
                                     planCardRefs.current[item] = el
                                   }}
