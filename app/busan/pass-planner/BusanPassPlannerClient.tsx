@@ -1586,11 +1586,13 @@ function findStableVisiblePlanCard(container: HTMLElement, excludingItem?: Plann
 function PlannerMapLinksPanel({
   panelRef,
   place,
+  userLinks = [],
 }: {
   panelRef?: RefObject<HTMLDivElement | null>
   place: MapPlace
+  userLinks?: PlannerUserLink[]
 }) {
-  const links = plannerMapLinks(place)
+  const links = plannerMapLinks(place, userLinks)
 
   return (
     <div ref={panelRef} className={styles.plannerLinksBox}>
@@ -1606,12 +1608,30 @@ function PlannerMapLinksPanel({
   )
 }
 
-function plannerMapLinks(place: MapPlace) {
+function isPlannerUserMapLink(href: string) {
+  const normalized = href.trim().toLowerCase()
+  return normalized.includes('naver.me') || normalized.includes('map.naver.com')
+}
+
+function plannerMapLinks(place: MapPlace, userLinks: PlannerUserLink[] = []) {
   const naverUrl = naverMapUrl(place)
-  return [
+  const links = [
     { label: 'Google', href: googleMapsPinUrl(place) },
     ...(naverUrl ? [{ label: 'Naver', href: naverUrl }] : []),
+    ...userLinks
+      .filter((link) => isPlannerUserMapLink(link.href))
+      .map((link) => ({
+        label: link.label.trim() || 'Naver',
+        href: link.href.trim(),
+      })),
   ]
+  const seen = new Set<string>()
+  return links.filter((link) => {
+    const key = link.href.trim().toLowerCase()
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function PlannerMapLinks({ place }: { place: MapPlace }) {
@@ -1727,8 +1747,9 @@ function SortablePlanItem({
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
   const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
-  const visibleUserLinkCount = userLinks.filter((link) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim())).length
-  const userLinkCount = userLinks.length
+  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href))
+  const visibleUserLinkCount = generalUserLinks.filter((link) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim())).length
+  const userLinkCount = generalUserLinks.length
   const displayLinkCount = visibleUserLinkCount + customActionLinkCount
   const hasAnyLinks = actionLinkCount + userLinkCount > 0
   const canEditCustom = Boolean(onEditCustom && isCustomPlaceId(place.id) && !readOnly)
@@ -1851,7 +1872,7 @@ function SortablePlanItem({
           className={styles.iconLink}
           type="button"
           onClick={() => {
-            const links = plannerMapLinks(place)
+            const links = plannerMapLinks(place, userLinks)
             if (links.length === 1) {
               window.open(links[0].href, '_blank', 'noopener,noreferrer')
               return
@@ -1927,7 +1948,7 @@ function SortablePlanItem({
           readOnly={readOnly}
         />
       ) : null}
-      {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={detailElementRef} place={place} /> : null}
+      {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={detailElementRef} place={place} userLinks={userLinks} /> : null}
       {noteDeleteConfirm ? (
         <div className={styles.confirmBackdrop} role="presentation" onClick={() => setNoteDeleteConfirm(false)}>
           <section
@@ -1980,7 +2001,7 @@ function PlannerActionPanel({
   const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
   const visibleUserLinks = userLinks
     .map((link, index) => ({ link, index }))
-    .filter(({ link }) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
+    .filter(({ link }) => !isPlannerUserMapLink(link.href) && !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
 
   return (
     <div ref={panelRef} className={styles.plannerLinksBox}>
