@@ -1399,6 +1399,12 @@
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.notePreview:hover {
+  color: var(--planner-category-color, var(--cta));
 }
 
 .iconLink,
@@ -1713,11 +1719,253 @@
 
 .noteReadOnly {
   margin: 0;
+  max-height: min(48vh, 360px);
+  overflow-y: auto;
   white-space: pre-wrap;
   color: var(--ink);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.55;
+}
+
+.noteModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.noteModal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(520px, 100%);
+  max-height: min(680px, calc(100vh - 36px));
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  border-radius: 18px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+}
+
+.noteModalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.noteModalEyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--planner-category-color, var(--cta));
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.noteModalHeader h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.noteModalClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(31, 122, 140, 0.16);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.noteModalTextarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 220px;
+  max-height: min(48vh, 420px);
+  resize: vertical;
+  border: 1.5px solid rgba(31, 122, 140, 0.22);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fbfdfe;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.noteModalTextarea:focus {
+  border-color: var(--cta);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(31, 122, 140, 0.12);
+}
+
+.noteModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.noteModalFooter > span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.noteModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.noteModalActions button {
+  min-height: 38px;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.noteModalActions .notePrimaryAction {
+  grid-column: auto;
+}
+
+.linksModal {
+  max-height: min(700px, calc(100vh - 36px));
+}
+
+.mapModal {
+  max-height: min(520px, calc(100vh - 36px));
+}
+
+.linksModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.linksModal .plannerLinksGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mapModal .plannerLinksGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.linksModal .plannerLinkChip,
+.mapModal .plannerLinkChip,
+.linksModal .userLinkOpen {
+  min-height: 42px;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 13px;
+}
+
+.linksModal .userLinksList {
+  gap: 8px;
+}
+
+.linksModal .userLinkRow button {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+}
+
+.linksModal .userLinkForm {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) auto;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.linksModal .userLinkForm input,
+.linksModal .userLinkForm button {
+  min-height: 40px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .noteModalBackdrop {
+    align-items: end;
+    padding: 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .noteModal {
+    width: 100%;
+    max-height: min(78vh, 620px);
+    border-radius: 16px;
+    padding: 14px;
+  }
+
+  .noteModalHeader h2 {
+    font-size: 16px;
+  }
+
+  .noteModalTextarea {
+    min-height: 210px;
+    max-height: 44vh;
+    font-size: 16px;
+  }
+
+  .noteModalFooter {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .noteModalActions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .noteModalActions button {
+    padding-inline: 8px;
+    font-size: 13px;
+  }
+
+  .linksModal .plannerLinksGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mapModal .plannerLinksGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .linksModal .userLinkForm {
+    grid-template-columns: 1fr;
+  }
+
+  .linksModal .userLinkForm input,
+  .linksModal .userLinkForm button {
+    font-size: 15px;
+  }
 }
 
 .emptyState {
@@ -1768,7 +2016,7 @@
 .confirmBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 90;
   display: grid;
   place-items: center;
   padding: 20px;

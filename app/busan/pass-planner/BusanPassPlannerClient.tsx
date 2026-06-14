@@ -1587,23 +1587,51 @@ function PlannerMapLinksPanel({
   panelRef,
   place,
   userLinks = [],
+  onClose,
 }: {
   panelRef?: RefObject<HTMLDivElement | null>
   place: MapPlace
   userLinks?: PlannerUserLink[]
+  onClose: () => void
 }) {
   const links = plannerMapLinks(place, userLinks)
 
   return (
-    <div ref={panelRef} className={styles.plannerLinksBox}>
-      <span>地圖</span>
-      <div className={styles.plannerLinksGrid}>
-        {links.map((link) => (
-          <a key={`${link.label}-${link.href}`} className={styles.plannerLinkChip} href={link.href} target="_blank" rel="noopener noreferrer">
-            {link.label}
-          </a>
-        ))}
-      </div>
+    <div className={styles.noteModalBackdrop} role="presentation" onClick={onClose}>
+      <section
+        ref={panelRef}
+        className={`${styles.noteModal} ${styles.mapModal}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`map-modal-${place.id}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className={styles.noteModalHeader}>
+          <div>
+            <span className={styles.noteModalEyebrow}>地圖</span>
+            <h2 id={`map-modal-${place.id}`}>{plannerPlaceName(place)}</h2>
+          </div>
+          <button className={styles.noteModalClose} type="button" onClick={onClose} aria-label="關閉地圖">
+            ×
+          </button>
+        </div>
+        <div className={styles.linksModalBody}>
+          <div className={styles.plannerLinksGrid}>
+            {links.map((link) => (
+              <a
+                key={`${link.label}-${link.href}`}
+                className={styles.plannerLinkChip}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
@@ -1668,7 +1696,7 @@ function PlannerMapLinks({ place }: { place: MapPlace }) {
       >
         地圖
       </button>
-      {mapOpen ? <PlannerMapLinksPanel panelRef={mapBoxRef} place={place} /> : null}
+      {mapOpen ? <PlannerMapLinksPanel panelRef={mapBoxRef} place={place} onClose={() => setMapOpen(false)} /> : null}
     </>
   )
 }
@@ -1845,7 +1873,22 @@ function SortablePlanItem({
               {placeMeta(place, categoryLabels, tierLabels, categoryItems, customCategoryItems)}
             </span>
           ) : null}
-          {note ? <span className={styles.notePreview}>{note}</span> : null}
+          {note ? (
+            <span
+              className={styles.notePreview}
+              data-no-card-focus="true"
+              onClick={(event) => {
+                if (!expanded) return
+                event.preventDefault()
+                event.stopPropagation()
+                setDraftNote(note)
+                setNoteDeleteConfirm(false)
+                setOpenPanel('note')
+              }}
+            >
+              {note}
+            </span>
+          ) : null}
         </span>
       </button>
       {expanded ? <span className={styles.mapLinks}>
@@ -1897,36 +1940,62 @@ function SortablePlanItem({
       ) : null}
       </article>
       {openPanel === 'note' ? (
-        <div ref={detailElementRef} className={styles.noteBox}>
-          <span>
-            備註 {!readOnly ? <small>儲存後會保留在此行程</small> : null}
-          </span>
-          {readOnly ? (
-            <p className={styles.noteReadOnly}>{note || '沒有備註'}</p>
-          ) : (
-            <div className={styles.noteEditRow}>
+        <div className={styles.noteModalBackdrop} role="presentation" onClick={cancelNote}>
+          <section
+            ref={detailElementRef}
+            className={styles.noteModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`note-modal-${itemId}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.noteModalHeader}>
+              <div>
+                <span className={styles.noteModalEyebrow}>備註</span>
+                <h2 id={`note-modal-${itemId}`}>{displayName}</h2>
+              </div>
+              <button className={styles.noteModalClose} type="button" onClick={cancelNote} aria-label="關閉備註">
+                ×
+              </button>
+            </div>
+            {readOnly ? (
+              <p className={styles.noteReadOnly}>{note || '沒有備註'}</p>
+            ) : (
               <textarea
                 ref={noteTextareaRef}
+                className={styles.noteModalTextarea}
                 aria-label={`${displayName} 備註`}
                 value={draftNote}
                 maxLength={500}
                 onChange={(event) => setDraftNote(event.target.value)}
+                placeholder="輸入這張卡片的備註"
               />
-              <div className={styles.noteEditActions}>
-                <button className={styles.notePrimaryAction} type="button" onClick={saveNote} disabled={!noteDirty}>
-                  儲存
-                </button>
-                <button className={styles.noteSecondaryAction} type="button" onClick={cancelNote}>
-                  取消
-                </button>
-                {note ? (
-                  <button className={styles.noteDangerAction} type="button" onClick={deleteNote}>
-                    刪除
+            )}
+            <div className={styles.noteModalFooter}>
+              {!readOnly ? <span>{draftNote.length}/500</span> : <span />}
+              <div className={styles.noteModalActions}>
+                {!readOnly ? (
+                  <>
+                    <button className={styles.notePrimaryAction} type="button" onClick={saveNote} disabled={!noteDirty}>
+                      儲存
+                    </button>
+                    {note ? (
+                      <button className={styles.noteDangerAction} type="button" onClick={deleteNote}>
+                        刪除
+                      </button>
+                    ) : null}
+                    <button className={styles.noteSecondaryAction} type="button" onClick={cancelNote}>
+                      取消
+                    </button>
+                  </>
+                ) : (
+                  <button className={styles.notePrimaryAction} type="button" onClick={cancelNote}>
+                    關閉
                   </button>
-                ) : null}
+                )}
               </div>
             </div>
-          )}
+          </section>
         </div>
       ) : null}
       {openPanel === 'links' ? (
@@ -1942,13 +2011,20 @@ function SortablePlanItem({
             onAddUserLink({ label: linkLabel, href: linkHref })
             setLinkLabel('')
             setLinkHref('')
-            setOpenPanel(null)
           }}
           onRemoveUserLink={onRemoveUserLink}
+          onClose={() => setOpenPanel(null)}
           readOnly={readOnly}
         />
       ) : null}
-      {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={detailElementRef} place={place} userLinks={userLinks} /> : null}
+      {openPanel === 'map' ? (
+        <PlannerMapLinksPanel
+          panelRef={detailElementRef}
+          place={place}
+          userLinks={userLinks}
+          onClose={() => setOpenPanel(null)}
+        />
+      ) : null}
       {noteDeleteConfirm ? (
         <div className={styles.confirmBackdrop} role="presentation" onClick={() => setNoteDeleteConfirm(false)}>
           <section
@@ -1984,6 +2060,7 @@ function PlannerActionPanel({
   onLinkHrefChange,
   onAddUserLink,
   onRemoveUserLink,
+  onClose,
   readOnly,
 }: {
   panelRef: RefObject<HTMLDivElement | null>
@@ -1995,6 +2072,7 @@ function PlannerActionPanel({
   onLinkHrefChange: (value: string) => void
   onAddUserLink: () => void
   onRemoveUserLink: (index: number) => void
+  onClose: () => void
   readOnly: boolean
 }) {
   const actionLinks = plannerActionLinks(place)
@@ -2004,8 +2082,25 @@ function PlannerActionPanel({
     .filter(({ link }) => !isPlannerUserMapLink(link.href) && !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
 
   return (
-    <div ref={panelRef} className={styles.plannerLinksBox}>
-      <span>連結</span>
+    <div className={styles.noteModalBackdrop} role="presentation" onClick={onClose}>
+      <section
+        ref={panelRef}
+        className={`${styles.noteModal} ${styles.linksModal}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`links-modal-${place.id}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className={styles.noteModalHeader}>
+          <div>
+            <span className={styles.noteModalEyebrow}>連結</span>
+            <h2 id={`links-modal-${place.id}`}>{plannerPlaceName(place)}</h2>
+          </div>
+          <button className={styles.noteModalClose} type="button" onClick={onClose} aria-label="關閉連結">
+            ×
+          </button>
+        </div>
+        <div className={styles.linksModalBody}>
       {actionLinks.length > 0 ? (
         <div className={styles.plannerLinksGrid}>
           {actionLinks.map((action) => (
@@ -2019,6 +2114,7 @@ function PlannerActionPanel({
               data-item={place.id}
               data-platform={action.platform}
               data-section={action.mapSection ?? 'planner_card'}
+              onClick={onClose}
             >
               {action.label}
             </a>
@@ -2029,7 +2125,7 @@ function PlannerActionPanel({
         <div className={styles.userLinksList}>
           {visibleUserLinks.map(({ link, index }) => (
             <span key={`${link.label}-${link.href}-${index}`} className={styles.userLinkRow}>
-              <a className={styles.userLinkOpen} href={link.href} target="_blank" rel="noopener noreferrer">
+              <a className={styles.userLinkOpen} href={link.href} target="_blank" rel="noopener noreferrer" onClick={onClose}>
                 <span>{link.label}</span>
                 <span>開啟</span>
               </a>
@@ -2042,15 +2138,17 @@ function PlannerActionPanel({
           ))}
         </div>
       ) : null}
-      {!readOnly ? (
-        <div className={styles.userLinkForm}>
-          <input value={linkLabel} onChange={(event) => onLinkLabelChange(event.target.value)} placeholder="名稱" />
-          <input value={linkHref} onChange={(event) => onLinkHrefChange(event.target.value)} placeholder="連結" />
-          <button type="button" onClick={onAddUserLink} disabled={!linkLabel.trim() || !linkHref.trim()}>
-            新增
-          </button>
+          {!readOnly ? (
+            <div className={styles.userLinkForm}>
+              <input value={linkLabel} onChange={(event) => onLinkLabelChange(event.target.value)} placeholder="名稱" />
+              <input value={linkHref} onChange={(event) => onLinkHrefChange(event.target.value)} placeholder="連結" />
+              <button type="button" onClick={onAddUserLink} disabled={!linkLabel.trim() || !linkHref.trim()}>
+                新增
+              </button>
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      </section>
     </div>
   )
 }
@@ -2173,7 +2271,7 @@ function PlannerInlineCardLinks({ place }: { place: MapPlace }) {
           </div>
         </div>
       ) : null}
-      {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={panelRef} place={place} /> : null}
+      {openPanel === 'map' ? <PlannerMapLinksPanel panelRef={panelRef} place={place} onClose={() => setOpenPanel(null)} /> : null}
     </>
   )
 }
