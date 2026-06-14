@@ -1590,10 +1590,7 @@ function PlannerMapLinksPanel({
   panelRef?: RefObject<HTMLDivElement | null>
   place: MapPlace
 }) {
-  const links = [
-    { label: 'Google', href: googleMapsPinUrl(place) },
-    ...(naverMapUrl(place) ? [{ label: 'Naver', href: naverMapUrl(place)! }] : []),
-  ]
+  const links = plannerMapLinks(place)
 
   return (
     <div ref={panelRef} className={styles.plannerLinksBox}>
@@ -1607,6 +1604,14 @@ function PlannerMapLinksPanel({
       </div>
     </div>
   )
+}
+
+function plannerMapLinks(place: MapPlace) {
+  const naverUrl = naverMapUrl(place)
+  return [
+    { label: 'Google', href: googleMapsPinUrl(place) },
+    ...(naverUrl ? [{ label: 'Naver', href: naverUrl }] : []),
+  ]
 }
 
 function PlannerMapLinks({ place }: { place: MapPlace }) {
@@ -1629,7 +1634,18 @@ function PlannerMapLinks({ place }: { place: MapPlace }) {
 
   return (
     <>
-      <button className={styles.iconLink} type="button" onClick={() => setMapOpen((open) => !open)}>
+      <button
+        className={styles.iconLink}
+        type="button"
+        onClick={() => {
+          const links = plannerMapLinks(place)
+          if (links.length === 1) {
+            window.open(links[0].href, '_blank', 'noopener,noreferrer')
+            return
+          }
+          setMapOpen((open) => !open)
+        }}
+      >
         地圖
       </button>
       {mapOpen ? <PlannerMapLinksPanel panelRef={mapBoxRef} place={place} /> : null}
@@ -1834,7 +1850,14 @@ function SortablePlanItem({
         <button
           className={styles.iconLink}
           type="button"
-          onClick={() => setOpenPanel((panel) => (panel === 'map' ? null : 'map'))}
+          onClick={() => {
+            const links = plannerMapLinks(place)
+            if (links.length === 1) {
+              window.open(links[0].href, '_blank', 'noopener,noreferrer')
+              return
+            }
+            setOpenPanel((panel) => (panel === 'map' ? null : 'map'))
+          }}
         >
           地圖
         </button>
@@ -2096,7 +2119,14 @@ function PlannerInlineCardLinks({ place }: { place: MapPlace }) {
       <button
         className={styles.iconLink}
         type="button"
-        onClick={() => setOpenPanel((panel) => (panel === 'map' ? null : 'map'))}
+        onClick={() => {
+          const links = plannerMapLinks(place)
+          if (links.length === 1) {
+            window.open(links[0].href, '_blank', 'noopener,noreferrer')
+            return
+          }
+          setOpenPanel((panel) => (panel === 'map' ? null : 'map'))
+        }}
       >
         地圖
       </button>
