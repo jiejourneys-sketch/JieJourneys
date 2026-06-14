@@ -2617,6 +2617,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
   const pendingHalfPanelFocusRef = useRef<PlannerFocusTarget | null>(null)
+  const pendingHalfPanelExpandItemRef = useRef<PlannerItem | null>(null)
   const focusScrollTimerRef = useRef<number | null>(null)
   const pendingHalfPanelFocusRetryRef = useRef(0)
   const initialPlannerLoadRef = useRef(false)
@@ -2734,11 +2735,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const didScroll = scrollFocusTargetToCenter(pendingFocus, behavior)
       if (didScroll) {
         pendingHalfPanelFocusRef.current = null
+        const pendingExpandItem = pendingHalfPanelExpandItemRef.current
+        pendingHalfPanelExpandItemRef.current = null
+        if (pendingExpandItem && planItemPlaceId(pendingExpandItem)) {
+          setExpandedPlanItem(pendingExpandItem)
+          window.setTimeout(() => scrollFocusTargetToCenter(pendingFocus, 'auto'), 80)
+        }
         pendingHalfPanelFocusRetryRef.current = 0
         return
       }
       if (pendingHalfPanelFocusRetryRef.current >= 4) {
         pendingHalfPanelFocusRef.current = null
+        pendingHalfPanelExpandItemRef.current = null
         pendingHalfPanelFocusRetryRef.current = 0
         return
       }
@@ -3330,7 +3338,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       mobilePanelStateRef.current === 'full' && isMobilePlannerViewport() && (source === 'list' || source === 'marker')
     if (shouldScrollAfterPanelShrink) {
       pendingHalfPanelFocusRef.current = focusTarget
+      pendingHalfPanelExpandItemRef.current = focusTarget.mode === 'order' && focusTarget.itemId ? focusTarget.itemId : null
       pendingHalfPanelFocusRetryRef.current = 0
+    } else {
+      pendingHalfPanelExpandItemRef.current = null
     }
     if (source === 'marker' || (source === 'list' && isMobilePlannerViewport())) setMobilePanelState('half')
     setSelectedPlanItem(planItem)
