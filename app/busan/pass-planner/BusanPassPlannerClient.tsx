@@ -1554,24 +1554,21 @@ function scrollCardFullyIntoView(card: HTMLElement, behavior: ScrollBehavior = '
   if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior })
 }
 
-function scrollCardToContainerCenter(card: HTMLElement, behavior: ScrollBehavior = 'smooth', upwardBiasPx = 0) {
+function scrollCardToContainerCenter(card: HTMLElement, behavior: ScrollBehavior = 'smooth') {
   const container = card.closest('[data-planner-scroll-list="true"]') as HTMLElement | null
   if (!container) return
 
   const cRect = container.getBoundingClientRect()
   const eRect = card.getBoundingClientRect()
-  const delta = eRect.top - cRect.top - (cRect.height / 2 - eRect.height / 2) + upwardBiasPx
+  const delta = eRect.top - cRect.top - (cRect.height / 2 - eRect.height / 2)
   if (Math.abs(delta) > 1) container.scrollBy({ top: delta, behavior })
 }
 
 function scrollPlannerCardToFocusPosition(
   card: HTMLElement,
   behavior: ScrollBehavior = 'smooth',
-  targetMode?: PlannerMode,
-  useMobileAddBias = false,
 ) {
-  const upwardBiasPx = useMobileAddBias && targetMode === 'add' && isMobilePlannerViewport() ? 34 : 0
-  scrollCardToContainerCenter(card, behavior, upwardBiasPx)
+  scrollCardToContainerCenter(card, behavior)
 }
 
 function cardIsNearlyOutsideScrollArea(card: HTMLElement, container: HTMLElement) {
@@ -2599,6 +2596,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const panelControlTouchStartRef = useRef<{ x: number; y: number; collapsed: boolean } | null>(null)
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
+  const pendingHalfPanelFocusRef = useRef<{ mode: PlannerMode; placeId: string; planItem: PlannerItem | null } | null>(null)
   const initialPlannerLoadRef = useRef(false)
   const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
@@ -2666,6 +2664,33 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   useEffect(() => {
     mobilePanelStateRef.current = mobilePanelState
+  }, [mobilePanelState])
+
+  useEffect(() => {
+    if (mobilePanelState !== 'half') return
+    const pendingFocus = pendingHalfPanelFocusRef.current
+    if (!pendingFocus) return
+    pendingHalfPanelFocusRef.current = null
+
+    const scrollPendingCard = () => {
+      const card =
+        pendingFocus.mode === 'order'
+          ? (pendingFocus.planItem ? planCardRefs.current[pendingFocus.planItem] : null) ??
+            planCardRefs.current[pendingFocus.placeId]
+          : addCardRefs.current[pendingFocus.placeId]
+      if (card) scrollPlannerCardToFocusPosition(card, 'auto')
+    }
+
+    let frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(scrollPendingCard)
+    })
+    const settleTimer = window.setTimeout(scrollPendingCard, 210)
+    const finalTimer = window.setTimeout(scrollPendingCard, 300)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(settleTimer)
+      window.clearTimeout(finalTimer)
+    }
   }, [mobilePanelState])
 
   const sourcePlaceById = useMemo(() => {
@@ -3225,8 +3250,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [config.storageKey, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
 
   const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list', planItem: PlannerItem | null = null) => {
-    const shouldRescrollAfterPanelShrink =
+    const currentMode = modeRef.current
+    const shouldScrollAfterPanelShrink =
       mobilePanelStateRef.current === 'full' && isMobilePlannerViewport() && (source === 'list' || source === 'marker')
+    if (shouldScrollAfterPanelShrink) {
+      pendingHalfPanelFocusRef.current = { mode: currentMode, placeId: place.id, planItem }
+    }
     if (source === 'marker' || (source === 'list' && isMobilePlannerViewport())) setMobilePanelState('half')
     setSelectedPlanItem(planItem)
     setSelectedId(place.id)
@@ -3236,31 +3265,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     const scrollFocusedCard = (behavior: ScrollBehavior = 'smooth') => {
-      const currentMode = modeRef.current
       const card =
         currentMode === 'order'
           ? (planItem ? planCardRefs.current[planItem] : null) ?? planCardRefs.current[place.id]
           : addCardRefs.current[place.id]
-      if (card) scrollPlannerCardToFocusPosition(card, behavior, currentMode)
+      if (card) scrollPlannerCardToFocusPosition(card, behavior)
     }
 
-    requestAnimationFrame(() => {
+    if (!shouldScrollAfterPanelShrink) {
       requestAnimationFrame(() => {
-        scrollFocusedCard()
-      })
-    })
-
-    if (shouldRescrollAfterPanelShrink) {
-      window.setTimeout(() => {
         requestAnimationFrame(() => {
-          const currentMode = modeRef.current
-          const card =
-            currentMode === 'order'
-              ? (planItem ? planCardRefs.current[planItem] : null) ?? planCardRefs.current[place.id]
-              : addCardRefs.current[place.id]
-          if (card) scrollPlannerCardToFocusPosition(card, 'auto', currentMode, true)
+          scrollFocusedCard()
         })
-      }, 220)
+      })
     }
   }, [])
 
@@ -3312,7 +3329,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             const refs = targetMode === 'order' ? planCardRefs.current : addCardRefs.current
             const card = targetMode === 'order' && targetPlanItem ? planCardRefs.current[targetPlanItem] : refs[place.id]
             if (!card) return
-            scrollPlannerCardToFocusPosition(card, 'smooth', targetMode)
+            scrollPlannerCardToFocusPosition(card)
           })
         })
       }, 0)
@@ -3327,7 +3344,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const scrollPlannerCardIntoView = (card: HTMLElement | null | undefined, behavior: ScrollBehavior = 'smooth') => {
     if (!card) return
-    scrollPlannerCardToFocusPosition(card, behavior, modeRef.current)
+    scrollPlannerCardToFocusPosition(card, behavior)
   }
 
   const scrollBackToCustomCard = (placeId: string, returnMode: 'add' | 'order', returnItem: PlannerItem | null) => {
@@ -3482,7 +3499,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             const currentMode = modeRef.current
             const card = currentMode === 'order' ? planCardRefs.current[key] : addCardRefs.current[place.id]
             if (!card) return
-            scrollPlannerCardToFocusPosition(card, 'smooth', currentMode)
+            scrollPlannerCardToFocusPosition(card)
           }, 0)
         })
         markersRef.current.set(key, marker)
@@ -4278,7 +4295,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         requestAnimationFrame(() => {
           const card = addCardRefs.current[id]
           if (!card) return
-          scrollPlannerCardToFocusPosition(card, 'smooth', 'add')
+          scrollPlannerCardToFocusPosition(card)
         })
       })
     }, 0)
