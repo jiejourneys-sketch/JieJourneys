@@ -2745,6 +2745,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const panelBodyPullCanCollapseRef = useRef(false)
   const panelControlTouchStartRef = useRef<{ x: number; y: number; collapsed: boolean } | null>(null)
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
+  const localDraftRef = useRef<{
+    items: PlannerItem[]
+    notes: Record<string, string>
+    customPlaces: Record<string, CustomPlannerPlace>
+    userLinks: Record<string, PlannerUserLink[]>
+  }>({ items: [], notes: {}, customPlaces: {}, userLinks: {} })
   const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
   const pendingHalfPanelFocusRef = useRef<PlannerFocusTarget | null>(null)
   const pendingHalfPanelExpandItemRef = useRef<PlannerItem | null>(null)
@@ -2936,6 +2942,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     },
     [placeById, planItems],
   )
+  localDraftRef.current = {
+    items: validPlanItems,
+    notes: placeNotes,
+    customPlaces,
+    userLinks: placeUserLinks,
+  }
   const validPlanIds = useMemo(
     () => validPlanItems.filter((item) => Boolean(planItemPlace(item, placeById))),
     [placeById, validPlanItems],
@@ -3277,6 +3289,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     customDraftRef.current = customDraft
   }, [customDraft])
 
+  const persistLocalDraftNow = useCallback(() => {
+    if (!storageReady || readOnlyPlan) return
+    const draft = localDraftRef.current
+    window.localStorage.setItem(config.storageKey, JSON.stringify(draft.items))
+    window.localStorage.setItem(`${config.storageKey}:notes`, JSON.stringify(draft.notes))
+    window.localStorage.setItem(`${config.storageKey}:custom-places`, JSON.stringify(draft.customPlaces))
+    window.localStorage.setItem(`${config.storageKey}:user-links`, JSON.stringify(draft.userLinks))
+  }, [config.storageKey, readOnlyPlan, storageReady])
+
   const getMobilePanelMetrics = useCallback(() => {
     const pageHeight = mobilePageHeight ?? (typeof window === 'undefined' ? 720 : window.innerHeight)
     const expandedPx = Math.min(Math.round(pageHeight * 0.52), 430)
@@ -3457,6 +3478,28 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       window.localStorage.setItem(`${config.storageKey}:book-updated-at`, plannerBookUpdatedAt)
     }
   }, [config.storageKey, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
+
+  useEffect(() => {
+    if (!storageReady || readOnlyPlan) return
+
+    const persistBeforeLinkNavigation = (event: PointerEvent) => {
+      const target = event.target as Element | null
+      if (target?.closest('a')) persistLocalDraftNow()
+    }
+    const persistBeforePageHide = () => persistLocalDraftNow()
+    const persistBeforeVisibilityHidden = () => {
+      if (document.visibilityState === 'hidden') persistLocalDraftNow()
+    }
+
+    document.addEventListener('pointerdown', persistBeforeLinkNavigation, true)
+    window.addEventListener('pagehide', persistBeforePageHide)
+    document.addEventListener('visibilitychange', persistBeforeVisibilityHidden)
+    return () => {
+      document.removeEventListener('pointerdown', persistBeforeLinkNavigation, true)
+      window.removeEventListener('pagehide', persistBeforePageHide)
+      document.removeEventListener('visibilitychange', persistBeforeVisibilityHidden)
+    }
+  }, [persistLocalDraftNow, readOnlyPlan, storageReady])
 
   const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list', planItem: PlannerItem | null = null) => {
     const currentMode = modeRef.current
@@ -4237,7 +4280,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       nameConfirmed: true,
     })
     setCustomUrlResolving(false)
-    setMobilePanelOpen(true)
+    setMobilePanelState('full')
     setMode('add')
   }
 
