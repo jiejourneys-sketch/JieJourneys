@@ -1121,12 +1121,12 @@ function setResolvedMapUrlCache(url: string, data: ResolvedMapUrlData) {
   }
 }
 
-function focusMapOnPosition(map: google.maps.Map, center: { lat: number; lng: number }) {
+function focusMapOnPosition(map: google.maps.Map, center: { lat: number; lng: number }, mobileOffsetRatio = 0.2) {
   map.setCenter(center)
   map.setZoom(16)
   window.setTimeout(() => {
     map.setCenter(center)
-    if (isMobilePlannerViewport()) map.panBy(0, Math.round(window.innerHeight * 0.2))
+    if (isMobilePlannerViewport()) map.panBy(0, Math.round(window.innerHeight * mobileOffsetRatio))
   }, 140)
 }
 
@@ -3285,6 +3285,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [customDraft])
 
   useEffect(() => {
+    if (customDraft.id && customDraft.lat != null && customDraft.lng != null) return
+    pendingCustomMapFocusRef.current = null
+  }, [customDraft.id, customDraft.lat, customDraft.lng])
+
+  useEffect(() => {
     return () => {
       customMapFocusTimersRef.current.forEach((timer) => window.clearTimeout(timer))
       customMapFocusTimersRef.current = []
@@ -3872,34 +3877,45 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       customDraftMarkerRef.current = null
       return
     }
-      if (!customDraftMarkerRef.current) {
-        customDraftMarkerRef.current = new google.maps.Marker({
-          map,
-          zIndex: 3000,
-          title: customDraft.name || '自訂景點',
-          draggable: true,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 16,
-            fillColor: '#475569',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
-          },
-          label: { text: '?', color: '#ffffff', fontSize: '13px', fontWeight: '900' },
-        })
-        customDraftMarkerRef.current.addListener('dragend', (e: google.maps.MapMouseEvent) => {
-          if (!e.latLng) return
-          setCustomDraft((draft) => ({
-            ...draft,
-            lat: e.latLng?.lat() ?? draft.lat,
-            lng: e.latLng?.lng() ?? draft.lng,
-          }))
-        })
-      }
-    customDraftMarkerRef.current.setPosition({ lat: customDraft.lat, lng: customDraft.lng })
+    const draftPosition = { lat: customDraft.lat, lng: customDraft.lng }
+    if (!customDraftMarkerRef.current) {
+      customDraftMarkerRef.current = new google.maps.Marker({
+        map,
+        zIndex: 3000,
+        title: customDraft.name || '自訂景點',
+        draggable: true,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 16,
+          fillColor: '#475569',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3,
+        },
+        label: { text: '?', color: '#ffffff', fontSize: '13px', fontWeight: '900' },
+      })
+      customDraftMarkerRef.current.addListener('dragend', (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng) return
+        setCustomDraft((draft) => ({
+          ...draft,
+          lat: e.latLng?.lat() ?? draft.lat,
+          lng: e.latLng?.lng() ?? draft.lng,
+        }))
+      })
+    }
+    customDraftMarkerRef.current.setPosition(draftPosition)
     customDraftMarkerRef.current.setTitle(customDraft.name || '自訂景點')
     customDraftMarkerRef.current.setDraggable(true)
+    customDraftMarkerRef.current.setIcon({
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 16,
+      fillColor: '#475569',
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 3,
+    })
+    customDraftMarkerRef.current.setLabel({ text: '?', color: '#ffffff', fontSize: '13px', fontWeight: '900' })
+    customDraftMarkerRef.current.setZIndex(3000)
     customDraftMarkerRef.current.setMap(map)
   }, [customDraft.lat, customDraft.lng, customDraft.name, mapReady])
 
@@ -3907,8 +3923,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const map = mapRef.current
     if (!map || !mapReady || !customDraft.picking || customDraft.lat == null || customDraft.lng == null) return
     const position = { lat: customDraft.lat, lng: customDraft.lng }
+    const pendingPosition = pendingCustomMapFocusRef.current
+    if (
+      pendingPosition &&
+      Math.abs(pendingPosition.lat - position.lat) < 0.0000001 &&
+      Math.abs(pendingPosition.lng - position.lng) < 0.0000001
+    ) {
+      return
+    }
     window.setTimeout(() => {
-      focusMapOnPosition(map, position)
+      focusMapOnPosition(map, position, 0.25)
     }, 160)
   }, [customDraft.lat, customDraft.lng, customDraft.picking, mapReady])
 
@@ -4299,18 +4323,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const map = mapRef.current
     if (!map || !window.google?.maps) return
     google.maps.event.trigger(map, 'resize')
-    focusMapOnPosition(map, position)
+    focusMapOnPosition(map, position, 0.25)
   }, [])
+
+  const refocusPendingCustomMapPosition = useCallback(() => {
+    const position = pendingCustomMapFocusRef.current
+    if (!position) return
+    window.setTimeout(() => focusCustomMapPosition(position), 260)
+  }, [focusCustomMapPosition])
 
   const scheduleCustomMapFocus = useCallback((position: { lat: number; lng: number }) => {
     pendingCustomMapFocusRef.current = position
     customMapFocusTimersRef.current.forEach((timer) => window.clearTimeout(timer))
-    customMapFocusTimersRef.current = [0, 220, 460, 820].map((delay) =>
+    customMapFocusTimersRef.current = [260].map((delay) =>
       window.setTimeout(() => {
         focusCustomMapPosition(position)
-        if (delay === 820 && pendingCustomMapFocusRef.current === position) {
-          pendingCustomMapFocusRef.current = null
-        }
       }, delay),
     )
   }, [focusCustomMapPosition])
@@ -5451,6 +5478,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           <input
                             value={customDraft.googleUrl}
                             onChange={(event) => updateCustomGoogleUrl(event.target.value)}
+                            onBlur={refocusPendingCustomMapPosition}
                             placeholder="貼上 Google Maps 分享連結"
                           />
                         </label>
