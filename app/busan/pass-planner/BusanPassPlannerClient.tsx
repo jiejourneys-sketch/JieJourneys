@@ -1121,14 +1121,17 @@ function setResolvedMapUrlCache(url: string, data: ResolvedMapUrlData) {
   }
 }
 
-function focusMapOnPlace(map: google.maps.Map, place: MapPlace) {
-  const center = { lat: place.lat, lng: place.lng }
+function focusMapOnPosition(map: google.maps.Map, center: { lat: number; lng: number }) {
   map.setCenter(center)
   map.setZoom(16)
   window.setTimeout(() => {
     map.setCenter(center)
     if (isMobilePlannerViewport()) map.panBy(0, Math.round(window.innerHeight * 0.2))
   }, 140)
+}
+
+function focusMapOnPlace(map: google.maps.Map, place: MapPlace) {
+  focusMapOnPosition(map, { lat: place.lat, lng: place.lng })
 }
 
 function isDayItem(item: PlannerItem) {
@@ -3896,8 +3899,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (!map || !mapReady || !customDraft.picking || customDraft.lat == null || customDraft.lng == null) return
     const position = { lat: customDraft.lat, lng: customDraft.lng }
     window.setTimeout(() => {
-      map.panTo(position)
-      if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+      focusMapOnPosition(map, position)
     }, 160)
   }, [customDraft.lat, customDraft.lng, customDraft.picking, mapReady])
 
@@ -4298,14 +4300,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const map = mapRef.current
       if (!map || !window.google?.maps) return
       google.maps.event.trigger(map, 'resize')
-      map.setCenter(position)
-      map.setZoom(16)
-      window.setTimeout(() => {
-        map.setCenter(position)
-        map.panBy(0, Math.round(window.innerHeight * 0.2))
-      }, 140)
+      focusMapOnPosition(map, position)
     }, 220)
   }, [])
+
+  const continueCustomPlaceManually = useCallback((fallbackName = '') => {
+    setCustomDraft((draft) => ({
+      ...draft,
+      name: draft.name.trim() || fallbackName.trim() || '自填名稱',
+      picking: true,
+      nameConfirmed: true,
+    }))
+    revealResolvedCustomPlace(null)
+    window.setTimeout(() => {
+      const map = mapRef.current
+      if (!map || !window.google?.maps) return
+      google.maps.event.trigger(map, 'resize')
+      map.setCenter(mapCenter)
+      map.setZoom(config.mapZoom)
+    }, 220)
+  }, [config.mapZoom, mapCenter, revealResolvedCustomPlace])
 
   const geocodeResolvedMapQuery = (
     query: string,
@@ -4321,6 +4335,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (customUrlResolveSeqRef.current !== nextSeq) return
       const location = status === 'OK' ? results?.[0]?.geometry?.location : null
       if (!location) {
+        continueCustomPlaceManually(resolvedName || cleanGoogleMapsQueryPlaceName(query))
         setCustomUrlResolving(false)
         return
       }
@@ -4376,7 +4391,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const resolvedName =
         cleanGoogleMapsQueryPlaceName(cachedResolved.name || '') || parseGoogleMapsPlaceName(cachedResolved.url)
       if (!resolvedCoordinates && cachedResolved.query) {
-        geocodeResolvedMapQuery(cachedResolved.query, cachedResolved.url, resolvedName, trimmedGoogleUrl, nextSeq)
+        if (geocodeResolvedMapQuery(cachedResolved.query, cachedResolved.url, resolvedName, trimmedGoogleUrl, nextSeq)) return
+        continueCustomPlaceManually(resolvedName)
         return
       }
       if (resolvedCoordinates) {
@@ -4396,12 +4412,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     setCustomUrlResolving(true)
+    const resolveController = new AbortController()
+    const resolveTimeout = window.setTimeout(() => resolveController.abort(), 12000)
     fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(trimmedGoogleUrl)}`, {
       cache: 'no-store',
+      signal: resolveController.signal,
     })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { url?: unknown; title?: unknown; query?: unknown; lat?: unknown; lng?: unknown } | null) => {
-        if (customUrlResolveSeqRef.current !== nextSeq || typeof data?.url !== 'string') return
+        if (customUrlResolveSeqRef.current !== nextSeq) return
+        if (typeof data?.url !== 'string') {
+          continueCustomPlaceManually(parsedName)
+          return
+        }
         const resolvedUrl = data.url
         const resolvedTitle = typeof data.title === 'string' ? cleanGoogleMapsQueryPlaceName(data.title) : ''
         const resolvedQuery =
@@ -4419,7 +4442,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           resolvedLat != null && resolvedLng != null ? { lat: resolvedLat, lng: resolvedLng } : parseGoogleMapsUrl(resolvedUrl)
         const resolvedName = resolvedTitle || parseGoogleMapsPlaceName(resolvedUrl)
         if (!resolvedCoordinates && resolvedQuery) {
-          geocodeResolvedMapQuery(resolvedQuery, resolvedUrl, resolvedName, trimmedGoogleUrl, nextSeq)
+          if (geocodeResolvedMapQuery(resolvedQuery, resolvedUrl, resolvedName, trimmedGoogleUrl, nextSeq)) return
+          continueCustomPlaceManually(resolvedName)
           return
         }
         setCustomDraft((draft) => ({
@@ -4431,9 +4455,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: true } : {}),
         }))
         if (resolvedCoordinates) revealResolvedCustomPlace(resolvedCoordinates)
+        else continueCustomPlaceManually(resolvedName)
       })
-      .catch(() => null)
+      .catch(() => {
+        if (customUrlResolveSeqRef.current === nextSeq) continueCustomPlaceManually(parsedName)
+      })
       .finally(() => {
+        window.clearTimeout(resolveTimeout)
         if (customUrlResolveSeqRef.current === nextSeq) setCustomUrlResolving(false)
       })
   }
@@ -5460,7 +5488,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   : customDraft.lat != null && customDraft.lng != null
                                   ? '\u5df2\u5e36\u5165\u4f4d\u7f6e\uff0c\u8acb\u770b\u4e0a\u65b9\u5730\u5716\u78ba\u8a8d\u6a19\u8a18\u5f8c\u518d\u5132\u5b58\u3002'
                                   : customDraft.picking
-                                    ? '\u9ede\u64ca\u5730\u5716\u8a2d\u5b9a\u4f4d\u7f6e\u3002'
+                                    ? '\u627e\u4e0d\u5230\u5b8c\u6574\u4f4d\u7f6e\uff0c\u5df2\u5207\u63db\u70ba\u624b\u52d5\u5efa\u7acb\u3002\u8acb\u78ba\u8a8d\u540d\u7a31\uff0c\u518d\u5230\u5730\u5716\u9ede\u4e00\u4e0b\u6a19\u8a18\u4f4d\u7f6e\u3002'
                                     : '\u8acb\u5148\u9078\u64c7\u4f4d\u7f6e\u3002'}
                               </p>
                               {customDraft.lat == null || customDraft.lng == null ? (
@@ -5472,7 +5500,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                     setMobilePanelOpen(false)
                                   }}
                                 >
-                                  {'\u5230\u5730\u5716\u9078\u4f4d\u7f6e'}
+                                  {'\u5230\u5730\u5716\u6a19\u8a18\u4f4d\u7f6e'}
                                 </button>
                               ) : null}
                               {false ? (
