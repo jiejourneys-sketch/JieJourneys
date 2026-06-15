@@ -2749,6 +2749,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const panelControlTouchStartRef = useRef<{ x: number; y: number; collapsed: boolean } | null>(null)
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const customConfirmRef = useRef<HTMLDivElement | null>(null)
+  const pendingCustomMapFocusRef = useRef<{ lat: number; lng: number } | null>(null)
+  const customMapFocusTimersRef = useRef<number[]>([])
   const planListRef = useRef<HTMLDivElement | null>(null)
   const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
   const pendingHalfPanelFocusRef = useRef<PlannerFocusTarget | null>(null)
@@ -3281,6 +3283,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   useEffect(() => {
     customDraftRef.current = customDraft
   }, [customDraft])
+
+  useEffect(() => {
+    return () => {
+      customMapFocusTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+      customMapFocusTimersRef.current = []
+    }
+  }, [])
 
   const getMobilePanelMetrics = useCallback(() => {
     const pageHeight = mobilePageHeight ?? (typeof window === 'undefined' ? 720 : window.innerHeight)
@@ -4286,6 +4295,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setMobilePanelOpen(true)
   }
 
+  const focusCustomMapPosition = useCallback((position: { lat: number; lng: number }) => {
+    const map = mapRef.current
+    if (!map || !window.google?.maps) return
+    google.maps.event.trigger(map, 'resize')
+    focusMapOnPosition(map, position)
+  }, [])
+
+  const scheduleCustomMapFocus = useCallback((position: { lat: number; lng: number }) => {
+    pendingCustomMapFocusRef.current = position
+    customMapFocusTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+    customMapFocusTimersRef.current = [0, 220, 460, 820].map((delay) =>
+      window.setTimeout(() => {
+        focusCustomMapPosition(position)
+        if (delay === 820 && pendingCustomMapFocusRef.current === position) {
+          pendingCustomMapFocusRef.current = null
+        }
+      }, delay),
+    )
+  }, [focusCustomMapPosition])
+
   const revealResolvedCustomPlace = useCallback((position: { lat: number; lng: number } | null) => {
     if (!isMobilePlannerViewport()) return
     setMode('add')
@@ -4296,13 +4325,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }, 180)
 
     if (!position) return
-    window.setTimeout(() => {
-      const map = mapRef.current
-      if (!map || !window.google?.maps) return
-      google.maps.event.trigger(map, 'resize')
-      focusMapOnPosition(map, position)
-    }, 220)
-  }, [])
+    scheduleCustomMapFocus(position)
+  }, [scheduleCustomMapFocus])
 
   const continueCustomPlaceManually = useCallback((fallbackName = '') => {
     setCustomDraft((draft) => ({
@@ -5285,6 +5309,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             onTransitionEnd={(event) => {
               if (event.currentTarget !== event.target) return
               if (event.propertyName !== 'height') return
+              if (mobilePanelStateRef.current === 'half' && pendingCustomMapFocusRef.current) {
+                focusCustomMapPosition(pendingCustomMapFocusRef.current)
+              }
               if (mobilePanelStateRef.current !== 'half') return
               flushPendingHalfPanelFocus('auto')
             }}
