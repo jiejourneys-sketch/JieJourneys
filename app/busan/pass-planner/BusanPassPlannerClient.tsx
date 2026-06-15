@@ -2271,8 +2271,8 @@ function PlannerActionPanel({
               key={`${action.label}-${action.href}`}
               className={styles.plannerLinkChip}
               href={action.href}
-              target={action.href.startsWith('http') ? '_blank' : undefined}
-              rel={action.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
               data-event={action.mapEvent ?? action.event}
               data-item={place.id}
               data-platform={action.platform}
@@ -2355,8 +2355,8 @@ function PlannerActionLinks({ place }: { place: MapPlace }) {
                 key={`${action.label}-${action.href}`}
                 className={styles.plannerLinkChip}
                 href={action.href}
-                target={action.href.startsWith('http') ? '_blank' : undefined}
-                rel={action.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                target="_blank"
+                rel="noopener noreferrer"
                 data-event={action.mapEvent ?? action.event}
                 data-item={place.id}
                 data-platform={action.platform}
@@ -2745,12 +2745,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const panelBodyPullCanCollapseRef = useRef(false)
   const panelControlTouchStartRef = useRef<{ x: number; y: number; collapsed: boolean } | null>(null)
   const customDraftRef = useRef<CustomPlaceDraft>(emptyCustomPlaceDraft)
-  const localDraftRef = useRef<{
-    items: PlannerItem[]
-    notes: Record<string, string>
-    customPlaces: Record<string, CustomPlannerPlace>
-    userLinks: Record<string, PlannerUserLink[]>
-  }>({ items: [], notes: {}, customPlaces: {}, userLinks: {} })
+  const customConfirmRef = useRef<HTMLDivElement | null>(null)
+  const planListRef = useRef<HTMLDivElement | null>(null)
   const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
   const pendingHalfPanelFocusRef = useRef<PlannerFocusTarget | null>(null)
   const pendingHalfPanelExpandItemRef = useRef<PlannerItem | null>(null)
@@ -2942,12 +2938,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     },
     [placeById, planItems],
   )
-  localDraftRef.current = {
-    items: validPlanItems,
-    notes: placeNotes,
-    customPlaces,
-    userLinks: placeUserLinks,
-  }
   const validPlanIds = useMemo(
     () => validPlanItems.filter((item) => Boolean(planItemPlace(item, placeById))),
     [placeById, validPlanItems],
@@ -3289,15 +3279,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     customDraftRef.current = customDraft
   }, [customDraft])
 
-  const persistLocalDraftNow = useCallback(() => {
-    if (!storageReady || readOnlyPlan) return
-    const draft = localDraftRef.current
-    window.localStorage.setItem(config.storageKey, JSON.stringify(draft.items))
-    window.localStorage.setItem(`${config.storageKey}:notes`, JSON.stringify(draft.notes))
-    window.localStorage.setItem(`${config.storageKey}:custom-places`, JSON.stringify(draft.customPlaces))
-    window.localStorage.setItem(`${config.storageKey}:user-links`, JSON.stringify(draft.userLinks))
-  }, [config.storageKey, readOnlyPlan, storageReady])
-
   const getMobilePanelMetrics = useCallback(() => {
     const pageHeight = mobilePageHeight ?? (typeof window === 'undefined' ? 720 : window.innerHeight)
     const expandedPx = Math.min(Math.round(pageHeight * 0.52), 430)
@@ -3479,27 +3460,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [config.storageKey, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
 
-  useEffect(() => {
-    if (!storageReady || readOnlyPlan) return
-
-    const persistBeforeLinkNavigation = (event: PointerEvent) => {
-      const target = event.target as Element | null
-      if (target?.closest('a')) persistLocalDraftNow()
-    }
-    const persistBeforePageHide = () => persistLocalDraftNow()
-    const persistBeforeVisibilityHidden = () => {
-      if (document.visibilityState === 'hidden') persistLocalDraftNow()
-    }
-
-    document.addEventListener('pointerdown', persistBeforeLinkNavigation, true)
-    window.addEventListener('pagehide', persistBeforePageHide)
-    document.addEventListener('visibilitychange', persistBeforeVisibilityHidden)
-    return () => {
-      document.removeEventListener('pointerdown', persistBeforeLinkNavigation, true)
-      window.removeEventListener('pagehide', persistBeforePageHide)
-      document.removeEventListener('visibilitychange', persistBeforeVisibilityHidden)
-    }
-  }, [persistLocalDraftNow, readOnlyPlan, storageReady])
+  const selectDayView = useCallback((nextDayView: DayView) => {
+    setDayView(nextDayView)
+    window.requestAnimationFrame(() => {
+      planListRef.current?.scrollTo({ top: 0, behavior: 'auto' })
+    })
+  }, [])
 
   const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list', planItem: PlannerItem | null = null) => {
     const currentMode = modeRef.current
@@ -4318,6 +4284,29 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setMobilePanelOpen(true)
   }
 
+  const revealResolvedCustomPlace = useCallback((position: { lat: number; lng: number } | null) => {
+    if (!isMobilePlannerViewport()) return
+    setMode('add')
+    setMobilePanelState('half')
+
+    window.setTimeout(() => {
+      customConfirmRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' })
+    }, 180)
+
+    if (!position) return
+    window.setTimeout(() => {
+      const map = mapRef.current
+      if (!map || !window.google?.maps) return
+      google.maps.event.trigger(map, 'resize')
+      map.setCenter(position)
+      map.setZoom(16)
+      window.setTimeout(() => {
+        map.setCenter(position)
+        map.panBy(0, Math.round(window.innerHeight * 0.2))
+      }, 140)
+    }, 220)
+  }, [])
+
   const geocodeResolvedMapQuery = (
     query: string,
     resolvedUrl: string,
@@ -4353,6 +4342,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         lng,
         picking: true,
       }))
+      revealResolvedCustomPlace({ lat, lng })
       setCustomUrlResolving(false)
     })
     return true
@@ -4372,6 +4362,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ...(!draft.name.trim() && parsedName ? { name: parsedName } : {}),
       ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng, picking: true } : {}),
     }))
+    if (coordinates) revealResolvedCustomPlace(coordinates)
     const shouldResolveUrl =
       shouldResolveGoogleMapsUrl(trimmedGoogleUrl) && (isShortGoogleMapsUrl(trimmedGoogleUrl) || !coordinates || !parsedName)
     if (!shouldResolveUrl) return
@@ -4399,6 +4390,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           lng: resolvedCoordinates.lng,
           picking: true,
         }))
+        revealResolvedCustomPlace(resolvedCoordinates)
         return
       }
     }
@@ -4438,6 +4430,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             : {}),
           ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: true } : {}),
         }))
+        if (resolvedCoordinates) revealResolvedCustomPlace(resolvedCoordinates)
       })
       .catch(() => null)
       .finally(() => {
@@ -5413,7 +5406,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         ) : null}
                       </div>
                       {customDraft.googleUrl.trim() || customDraft.lat != null || customUrlResolving ? (
-                        <div className={styles.customPlaceConfirm}>
+                        <div ref={customConfirmRef} className={styles.customPlaceConfirm}>
                           <div className={styles.customPlaceStepTitle}>
                             <span>2</span>
                             {'\u78ba\u8a8d\u8cc7\u6599'}
@@ -5671,7 +5664,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                 type="button"
                                 className={dayView === 'all' ? styles.dayMenuItemActive : styles.dayMenuItem}
                                 onClick={() => {
-                                  setDayView('all')
+                                  selectDayView('all')
                                   setOpenPlannerMenu(null)
                                 }}
                               >
@@ -5683,7 +5676,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   type="button"
                                   className={dayView === index + 1 ? styles.dayMenuItemActive : styles.dayMenuItem}
                                   onClick={() => {
-                                    setDayView(index + 1)
+                                    selectDayView(index + 1)
                                     setOpenPlannerMenu(null)
                                   }}
                                 >
@@ -5735,6 +5728,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     <DndContext sensors={sensors} collisionDetection={plannerCollisionDetection} onDragEnd={handleDragEnd}>
                       <SortableContext items={visiblePlanItems} strategy={verticalListSortingStrategy}>
                         <div
+                          ref={planListRef}
                           className={styles.planList}
                           data-planner-scroll-list="true"
                           onTouchMove={scheduleExpandedPlanItemCollapseIfNearlyOutside}
