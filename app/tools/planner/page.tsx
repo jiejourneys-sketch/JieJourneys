@@ -334,6 +334,7 @@ export default function ToolsPlannerPage() {
       setInAppBrowser(detectInAppBrowser())
       const regionKey = params.get('region')?.trim() ?? ''
       const source = params.get('source') === 'pass' ? 'pass' : 'map'
+      const resumeDraft = params.get('resume') === '1'
       setPreferredSource(source)
       const plannerId = params.get('p')?.trim() || ''
       const readToken = params.get('v')?.trim() || ''
@@ -473,7 +474,31 @@ export default function ToolsPlannerPage() {
 
         startCustomSharedPlanner()
         return
-      }      if (region) {
+      }
+      if (region && resumeDraft) {
+        setUnavailablePlanner(null)
+        setCheckingSharedPlanner(false)
+        setStarted({
+          region,
+          loadKnownPlaces: true,
+          countryName: region.shortLabel,
+          source,
+        })
+        return
+      }
+      if (resumeDraft && regionKey) {
+        const countryName = plannerDisplayName(regionKey, regionKey)
+        setUnavailablePlanner(null)
+        setCheckingSharedPlanner(false)
+        setStarted({
+          region: customRegionFromUrl(regionKey, countryName),
+          loadKnownPlaces: false,
+          countryName,
+          source,
+        })
+        return
+      }
+      if (region) {
         setCountryInput(region.shortLabel)
       } else if (regionKey) {
         setCountryInput(regionKey)

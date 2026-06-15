@@ -7,6 +7,7 @@ import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
+import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -624,10 +625,17 @@ const cards: CityCard[] = addTicketActionEvents(addOneDayTags([
   },
 ]))
 
-export default function OsakaTicketPage() {
+type OsakaTicketPageProps = {
+  searchParams?: PageSearchParams
+}
+
+export default async function OsakaTicketPage({ searchParams }: OsakaTicketPageProps) {
+  const params = (await searchParams) ?? {}
+  const backHref = safePlannerReturnHref(params.return, '/osaka')
+
   return (
     <>
-      <CitySubpageHeader backHref="/osaka" eventPrefix="osakaticket" />
+      <CitySubpageHeader backHref={backHref} eventPrefix="osakaticket" />
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
           badge="大阪自由行票券"

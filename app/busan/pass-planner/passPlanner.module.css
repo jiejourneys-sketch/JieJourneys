@@ -687,6 +687,13 @@
   line-height: 1.45;
 }
 
+.customPlaceStep > .customPlaceStatus {
+  grid-column: 2;
+  min-width: 0;
+  white-space: normal;
+  writing-mode: horizontal-tb;
+}
+
 .customPlaceMatches {
   display: grid;
   gap: 6px;
@@ -3049,7 +3056,7 @@
 
   .addList,
   .planList {
-    padding-bottom: calc(34vh + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
   .orderTools button {

@@ -868,8 +868,12 @@ function plannerReturnAwareHref(href: string) {
   try {
     const url = new URL(href, window.location.origin)
     if (url.origin !== window.location.origin) return href
+    const returnUrl = new URL(window.location.href)
+    if (returnUrl.pathname === '/tools/planner' && returnUrl.searchParams.get('region')) {
+      returnUrl.searchParams.set('resume', '1')
+    }
     url.searchParams.set('from', 'planner')
-    url.searchParams.set('return', `${window.location.pathname}${window.location.search}${window.location.hash}`)
+    url.searchParams.set('return', `${returnUrl.pathname}${returnUrl.search}${returnUrl.hash}`)
     return `${url.pathname}${url.search}${url.hash}`
   } catch {
     return href
@@ -882,6 +886,39 @@ function preparePlannerActionLinkClick(
 ) {
   if (action.platform?.trim().toLowerCase() !== 'ticket') return
   event.currentTarget.href = plannerReturnAwareHref(action.href)
+}
+
+function usePlannerBodyScrollLock(locked: boolean) {
+  useEffect(() => {
+    if (!locked || typeof window === 'undefined') return
+    const body = document.body
+    const scrollY = window.scrollY
+    const previous = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    }
+
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.left = '0'
+    body.style.right = '0'
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+
+    return () => {
+      body.style.position = previous.position
+      body.style.top = previous.top
+      body.style.left = previous.left
+      body.style.right = previous.right
+      body.style.width = previous.width
+      body.style.overflow = previous.overflow
+      window.scrollTo(0, scrollY)
+    }
+  }, [locked])
 }
 
 function plannerActionLinks(place: MapPlace) {
@@ -1683,6 +1720,7 @@ function PlannerMapLinksPanel({
   onClose: () => void
 }) {
   const links = plannerMapLinks(place, userLinks)
+  usePlannerBodyScrollLock(true)
 
   return (
     <div
@@ -1848,6 +1886,7 @@ function SortablePlanItem({
   const [linkHref, setLinkHref] = useState('')
   const [draftNote, setDraftNote] = useState(note)
   const [noteDeleteConfirm, setNoteDeleteConfirm] = useState(false)
+  const [pendingUserLinkDelete, setPendingUserLinkDelete] = useState<{ index: number; label: string } | null>(null)
   const cardElementRef = useRef<HTMLElement | null>(null)
   const detailElementRef = useRef<HTMLDivElement | null>(null)
   const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -1900,6 +1939,8 @@ function SortablePlanItem({
     onFocus()
     onToggleExpanded()
   }
+
+  usePlannerBodyScrollLock(Boolean(openPanel || noteDeleteConfirm || pendingUserLinkDelete))
 
   useEffect(() => {
     if (!openPanel) return
@@ -2093,6 +2134,7 @@ function SortablePlanItem({
             setLinkHref('')
           }}
           onRemoveUserLink={onRemoveUserLink}
+          onRequestRemoveUserLink={(index, link) => setPendingUserLinkDelete({ index, label: link.label })}
           onClose={() => setOpenPanel(null)}
           readOnly={readOnly}
         />
@@ -2126,7 +2168,37 @@ function SortablePlanItem({
             </div>
           </section>
         </div>
-      ) : null}    </div>
+      ) : null}
+      {pendingUserLinkDelete ? (
+        <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingUserLinkDelete(null)}>
+          <section
+            className={styles.confirmDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`delete-user-link-${itemId}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id={`delete-user-link-${itemId}`}>刪除連結？</h2>
+            <p>「{pendingUserLinkDelete.label}」會從這張卡片移除。</p>
+            <div className={styles.confirmActions}>
+              <button type="button" className={styles.confirmSecondary} onClick={() => setPendingUserLinkDelete(null)}>
+                取消
+              </button>
+              <button
+                type="button"
+                className={styles.confirmDanger}
+                onClick={() => {
+                  onRemoveUserLink(pendingUserLinkDelete.index)
+                  setPendingUserLinkDelete(null)
+                }}
+              >
+                確認刪除
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -2140,6 +2212,7 @@ function PlannerActionPanel({
   onLinkHrefChange,
   onAddUserLink,
   onRemoveUserLink,
+  onRequestRemoveUserLink,
   onClose,
   readOnly,
 }: {
@@ -2152,6 +2225,7 @@ function PlannerActionPanel({
   onLinkHrefChange: (value: string) => void
   onAddUserLink: () => void
   onRemoveUserLink: (index: number) => void
+  onRequestRemoveUserLink?: (index: number, link: PlannerUserLink) => void
   onClose: () => void
   readOnly: boolean
 }) {
@@ -2160,6 +2234,7 @@ function PlannerActionPanel({
   const visibleUserLinks = userLinks
     .map((link, index) => ({ link, index }))
     .filter(({ link }) => !isPlannerUserMapLink(link.href) && !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
+  usePlannerBodyScrollLock(true)
 
   return (
     <div
@@ -2218,7 +2293,11 @@ function PlannerActionPanel({
                 <span>開啟</span>
               </a>
               {!readOnly ? (
-                <button type="button" onClick={() => onRemoveUserLink(index)} aria-label={`刪除 ${link.label}`}>
+                <button
+                  type="button"
+                  onClick={() => (onRequestRemoveUserLink ? onRequestRemoveUserLink(index, link) : onRemoveUserLink(index))}
+                  aria-label={`刪除 ${link.label}`}
+                >
                   ×
                 </button>
               ) : null}
@@ -5412,7 +5491,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                           <button
                                             type="button"
                                             aria-label={`刪除 ${link.label}`}
-                                            onClick={() => customDraft.id && removePlaceUserLink(customDraft.id, index)}
+                                            onClick={() => {
+                                              if (!customDraft.id) return
+                                              if (window.confirm(`刪除「${link.label}」這個連結？`)) {
+                                                removePlaceUserLink(customDraft.id, index)
+                                              }
+                                            }}
                                           >
                                             ×
                                           </button>

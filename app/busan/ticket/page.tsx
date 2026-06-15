@@ -6,10 +6,19 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
-export default function BusanTicketPage() {
+import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
+
+type BusanTicketPageProps = {
+  searchParams?: PageSearchParams
+}
+
+export default async function BusanTicketPage({ searchParams }: BusanTicketPageProps) {
+  const params = (await searchParams) ?? {}
+  const backHref = safePlannerReturnHref(params.return, '/busan')
+
   return (
     <>
-      <CitySubpageHeader backHref="/busan" eventPrefix="busanticket" />
+      <CitySubpageHeader backHref={backHref} eventPrefix="busanticket" />
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
           badge="釜山自由行票券"

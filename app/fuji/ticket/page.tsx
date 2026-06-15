@@ -6,6 +6,7 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
+import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -488,10 +489,17 @@ const cards: CityCard[] = [
   },
 ]
 
-export default function FujiTicketPage() {
+type FujiTicketPageProps = {
+  searchParams?: PageSearchParams
+}
+
+export default async function FujiTicketPage({ searchParams }: FujiTicketPageProps) {
+  const params = (await searchParams) ?? {}
+  const backHref = safePlannerReturnHref(params.return, '/fuji')
+
   return (
     <>
-      <CitySubpageHeader backHref="/fuji" eventPrefix="fujticket" />
+      <CitySubpageHeader backHref={backHref} eventPrefix="fujticket" />
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
           badge="富士河口湖自由行票券"

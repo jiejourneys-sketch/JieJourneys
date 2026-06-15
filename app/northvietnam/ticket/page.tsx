@@ -6,11 +6,19 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
 
-export default function NorthVietnamTicketPage() {
+type NorthVietnamTicketPageProps = {
+  searchParams?: PageSearchParams
+}
+
+export default async function NorthVietnamTicketPage({ searchParams }: NorthVietnamTicketPageProps) {
+  const params = (await searchParams) ?? {}
+  const backHref = safePlannerReturnHref(params.return, '/northvietnam')
+
   return (
     <>
-      <CitySubpageHeader backHref="/northvietnam" eventPrefix="northvietnamticket" />
+      <CitySubpageHeader backHref={backHref} eventPrefix="northvietnamticket" />
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
           badge="北越票券與行程整理"
