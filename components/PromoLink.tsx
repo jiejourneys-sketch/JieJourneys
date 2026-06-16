@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 type Props = {
   href: string
@@ -36,24 +36,37 @@ async function copyToClipboard(text: string): Promise<void> {
 
 export default function PromoLink({ href, promoCode, className, children, universalLink, ...rest }: Props) {
   const [copied, setCopied] = useState(false)
+  const universalCopyPrimed = useRef(false)
+
+  const showCopied = () => {
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  const handleUniversalPointerDown = () => {
+    universalCopyPrimed.current = true
+    copyToClipboard(promoCode)
+    showCopied()
+  }
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (universalLink) {
-      copyToClipboard(promoCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      if (!universalCopyPrimed.current) {
+        copyToClipboard(promoCode)
+        showCopied()
+      }
+      universalCopyPrimed.current = false
     } else {
       e.preventDefault()
       if (copied) return
       copyToClipboard(promoCode)
-      setCopied(true)
+      showCopied()
       setTimeout(() => {
         if (isInAppBrowser()) {
           window.location.href = href
         } else {
           window.open(href, '_blank', 'noopener,noreferrer')
         }
-        setCopied(false)
       }, 1500)
     }
   }
@@ -64,6 +77,7 @@ export default function PromoLink({ href, promoCode, className, children, univer
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onPointerDown={universalLink ? handleUniversalPointerDown : undefined}
       onClick={handleClick}
       aria-live="polite"
       {...rest}
