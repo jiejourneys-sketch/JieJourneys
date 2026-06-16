@@ -1,13 +1,13 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
 type Props = {
   href: string
   promoCode: string
   className?: string
   children: React.ReactNode
-  /** KKday/Klook：不 preventDefault，讓 Universal Links 直接跳 app，toast 在過渡期短暫顯示 */
+  /** KKday/Klook：不 preventDefault、不改點擊前 UI，讓 Universal Links 保留原生 App 跳轉 */
   universalLink?: boolean
   [key: `data-${string}`]: string | undefined
 }
@@ -36,26 +36,15 @@ async function copyToClipboard(text: string): Promise<void> {
 
 export default function PromoLink({ href, promoCode, className, children, universalLink, ...rest }: Props) {
   const [copied, setCopied] = useState(false)
-  const universalCopyPrimed = useRef(false)
 
   const showCopied = () => {
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
 
-  const handleUniversalPointerDown = () => {
-    universalCopyPrimed.current = true
-    copyToClipboard(promoCode)
-    showCopied()
-  }
-
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (universalLink) {
-      if (!universalCopyPrimed.current) {
-        copyToClipboard(promoCode)
-        showCopied()
-      }
-      universalCopyPrimed.current = false
+      copyToClipboard(promoCode)
     } else {
       e.preventDefault()
       if (copied) return
@@ -77,7 +66,6 @@ export default function PromoLink({ href, promoCode, className, children, univer
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      onPointerDown={universalLink ? handleUniversalPointerDown : undefined}
       onClick={handleClick}
       aria-live="polite"
       {...rest}
