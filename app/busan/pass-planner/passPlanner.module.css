@@ -2144,6 +2144,16 @@
   line-height: 1.55;
 }
 
+.confirmNotice {
+  margin-top: 10px !important;
+  border: 1px solid rgba(31, 122, 140, 0.18);
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: #f5fbfc;
+  color: #2f6670 !important;
+  font-weight: 800;
+}
+
 .confirmActions {
   display: flex;
   justify-content: flex-end;

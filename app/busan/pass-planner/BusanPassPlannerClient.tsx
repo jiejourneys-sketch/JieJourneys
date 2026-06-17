@@ -2812,6 +2812,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [inAppBrowser, setInAppBrowser] = useState<InAppBrowser>(null)
   const [inAppPromptOpen, setInAppPromptOpen] = useState(false)
   const [inAppPromptCopied, setInAppPromptCopied] = useState(false)
+  const [locationPromptOpen, setLocationPromptOpen] = useState(false)
+  const [locationPromptMessage, setLocationPromptMessage] = useState('')
+  const [locationRequesting, setLocationRequesting] = useState(false)
   const [dayView, setDayView] = useState<DayView>('all')
   const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions'>(null)
   const plannerPdfModuleRef = useRef<Promise<typeof import('./plannerPdf')> | null>(null)
@@ -3960,17 +3963,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const locateUser = useCallback(() => {
     const map = mapRef.current
     if (!map || !window.google?.maps) {
-      window.alert('地圖尚未載入完成')
+      setLocationPromptMessage('地圖尚未載入完成，請稍後再試一次。')
       return
     }
     if (!navigator.geolocation) {
-      window.alert('此瀏覽器不支援定位')
+      setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
       return
     }
 
+    setLocationRequesting(true)
+    setLocationPromptMessage('')
     locateButtonRef.current?.setAttribute('disabled', 'true')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setLocationRequesting(false)
+        setLocationPromptOpen(false)
         locateButtonRef.current?.removeAttribute('disabled')
         const position = {
           lat: pos.coords.latitude,
@@ -4000,15 +4007,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setMobilePanelOpen(false)
       },
       (error) => {
+        setLocationRequesting(false)
         locateButtonRef.current?.removeAttribute('disabled')
         if (error.code === error.PERMISSION_DENIED) {
-          window.alert('定位被封鎖。請在網址列左側允許位置權限後，再按一次定位。')
+          setLocationPromptMessage('沒有取得定位權限。請在瀏覽器跳出的提示選擇「允許」。如果沒有跳出提示，代表這個網站先前被封鎖，需要到網址列左側把「位置」改成允許。')
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          window.alert('暫時無法取得位置')
+          setLocationPromptMessage('暫時無法取得位置，請確認手機或瀏覽器定位功能已開啟。')
         } else if (error.code === error.TIMEOUT) {
-          window.alert('定位逾時，請再試一次')
+          setLocationPromptMessage('定位逾時，請再試一次。')
         } else {
-          window.alert('定位失敗，請再試一次')
+          setLocationPromptMessage('定位失敗，請再試一次。')
         }
       },
       {
@@ -4031,16 +4039,20 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const iconDot = document.createElement('span')
     iconDot.setAttribute('aria-hidden', 'true')
     button.append(iconDot)
-    button.addEventListener('click', locateUser)
+    const openPrompt = () => {
+      setLocationPromptMessage('')
+      setLocationPromptOpen(true)
+    }
+    button.addEventListener('click', openPrompt)
     mapShellRef.current.append(button)
     locateButtonRef.current = button
 
     return () => {
-      button.removeEventListener('click', locateUser)
+      button.removeEventListener('click', openPrompt)
       button.remove()
       if (locateButtonRef.current === button) locateButtonRef.current = null
     }
-  }, [locateUser, mapError, mapReady])
+  }, [mapError, mapReady])
 
   const dismissInAppPrompt = useCallback(() => {
     try {
@@ -6155,6 +6167,46 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 </button>
                 <button type="button" className={styles.confirmPrimary} onClick={confirmUpdateSharedPlan} disabled={shareSaving}>
                   {shareSaving ? '儲存中...' : '儲存更新'}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {locationPromptOpen ? (
+          <div
+            className={styles.confirmBackdrop}
+            role="presentation"
+            onClick={() => {
+              if (!locationRequesting) setLocationPromptOpen(false)
+            }}
+          >
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="planner-location-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="planner-location-title">允許使用目前位置？</h2>
+              <p>JieJourneys 會把地圖移到你的目前位置，方便你安排附近景點。你的定位不會儲存在行程裡。</p>
+              {locationPromptMessage ? <p className={styles.confirmNotice}>{locationPromptMessage}</p> : null}
+              <div className={styles.confirmActions}>
+                <button
+                  type="button"
+                  className={styles.confirmSecondary}
+                  onClick={() => setLocationPromptOpen(false)}
+                  disabled={locationRequesting}
+                >
+                  先不要
+                </button>
+                <button
+                  type="button"
+                  className={styles.confirmPrimary}
+                  onClick={locateUser}
+                  disabled={locationRequesting}
+                >
+                  {locationRequesting ? '定位中...' : '允許定位'}
                 </button>
               </div>
             </section>
