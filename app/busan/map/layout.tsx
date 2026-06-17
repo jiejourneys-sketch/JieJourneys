@@ -3,7 +3,8 @@ import type { Metadata } from 'next'
 const title = '釜山景點地圖｜免費互動地圖・GoogleMap/NaverMap一鍵導航'
 const description =
   '去釜山前先收藏！這張免費互動地圖整合景點、美食、住宿、交通與票券資訊，支援分類篩選、導航與購票連結，一張地圖搞定整趟自由行。'
-const image = 'https://www.jiejourneys.com/assets/busan-map-og.png'
+const shareImage = 'https://www.jiejourneys.com/assets/og-share.png'
+const searchImage = 'https://www.jiejourneys.com/assets/busan-map-search.png'
 
 export const metadata: Metadata = {
   title,
@@ -28,17 +29,40 @@ export const metadata: Metadata = {
     title,
     description,
     url: 'https://www.jiejourneys.com/busan/map',
-    images: [{ url: image, width: 1200, height: 630 }],
+    images: [{ url: shareImage, width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title,
     description,
-    images: [image],
+    images: [shareImage],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/busan/map' },
+  robots: {
+    googleBot: {
+      'max-image-preview': 'large',
+    },
+  },
 }
 
 export default function BusanMapLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: title,
+            description,
+            url: 'https://www.jiejourneys.com/busan/map',
+            primaryImageOfPage: searchImage,
+            thumbnailUrl: searchImage,
+          }),
+        }}
+      />
+      {children}
+    </>
+  )
 }

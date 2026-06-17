@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <!-- 主站 -->
   <url><loc>https://www.jiejourneys.com/</loc></url>
   <url><loc>https://www.jiejourneys.com/contact</loc></url>
@@ -11,7 +12,18 @@
   <url><loc>https://www.jiejourneys.com/busan/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/busan/transport</loc></url>
   <url><loc>https://www.jiejourneys.com/busan/video</loc></url>
-  <url><loc>https://www.jiejourneys.com/busan/map</loc></url>
+  <url>
+    <loc>https://www.jiejourneys.com/busan/map</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/busan-map-search.png</image:loc>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.jiejourneys.com/busan/pass-map</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/busan-passmap-search.png</image:loc>
+    </image:image>
+  </url>
   <url><loc>https://www.jiejourneys.com/busan/journeys</loc></url>
 
   <!-- 北越區 -->
@@ -19,7 +31,12 @@
   <url><loc>https://www.jiejourneys.com/northvietnam/hotel</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/transport</loc></url>
-  <url><loc>https://www.jiejourneys.com/northvietnam/map</loc></url>
+  <url>
+    <loc>https://www.jiejourneys.com/northvietnam/map</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/northvietnam-map-search.png</image:loc>
+    </image:image>
+  </url>
   <url><loc>https://www.jiejourneys.com/northvietnam/video</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/journeys</loc></url>
 
@@ -29,7 +46,12 @@
   <url><loc>https://www.jiejourneys.com/tokyo/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/tokyo/transport</loc></url>
   <url><loc>https://www.jiejourneys.com/tokyo/video</loc></url>
-  <url><loc>https://www.jiejourneys.com/tokyo/map</loc></url>
+  <url>
+    <loc>https://www.jiejourneys.com/tokyo/map</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/tokyo-map-search.png</image:loc>
+    </image:image>
+  </url>
   <url><loc>https://www.jiejourneys.com/tokyo/journeys</loc></url>
 
   <!-- 大阪區 -->
@@ -38,6 +60,36 @@
   <url><loc>https://www.jiejourneys.com/osaka/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/osaka/transport</loc></url>
   <url><loc>https://www.jiejourneys.com/osaka/video</loc></url>
-  <url><loc>https://www.jiejourneys.com/osaka/map</loc></url>
+  <url>
+    <loc>https://www.jiejourneys.com/osaka/map</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/osaka-map-search.png</image:loc>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.jiejourneys.com/osaka/pass-map</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/osaka-passmap-search.png</image:loc>
+    </image:image>
+  </url>
   <url><loc>https://www.jiejourneys.com/osaka/journeys</loc></url>
+
+  <!-- 富士山 -->
+  <url><loc>https://www.jiejourneys.com/fuji</loc></url>
+  <url><loc>https://www.jiejourneys.com/fuji/hotel</loc></url>
+  <url><loc>https://www.jiejourneys.com/fuji/ticket</loc></url>
+  <url><loc>https://www.jiejourneys.com/fuji/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/fuji/video</loc></url>
+  <url>
+    <loc>https://www.jiejourneys.com/fuji/map</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/fuji-map-search.png</image:loc>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://www.jiejourneys.com/fuji/pass-map</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/fuji-passmap-search.png</image:loc>
+    </image:image>
+  </url>
 </urlset>

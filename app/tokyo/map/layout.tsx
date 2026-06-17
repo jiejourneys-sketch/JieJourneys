@@ -3,7 +3,8 @@ import type { Metadata } from 'next'
 const title = '東京景點地圖｜免費互動地圖・住宿票券美食・GoogleMap一鍵導航'
 const description =
   '東京景點地圖整理新宿、澀谷、原宿、淺草、上野、東京車站、銀座、台場等熱門區域，並把票券景點、免費景點、商店美食與住宿推薦放在同一張免費互動地圖。可切換票券、景點、商店、住宿分類，查看 KKDAY、KLOOK、Trip 購票連結，一鍵開啟 Google Map 導航。'
-const image = 'https://www.jiejourneys.com/assets/tokyo-map-og.png'
+const shareImage = 'https://www.jiejourneys.com/assets/og-share.png'
+const searchImage = 'https://www.jiejourneys.com/assets/tokyo-map-search.png'
 
 export const metadata: Metadata = {
   title,
@@ -29,17 +30,40 @@ export const metadata: Metadata = {
     title,
     description,
     url: 'https://www.jiejourneys.com/tokyo/map',
-    images: [{ url: image, width: 1200, height: 630 }],
+    images: [{ url: shareImage, width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title,
     description,
-    images: [image],
+    images: [shareImage],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/tokyo/map' },
+  robots: {
+    googleBot: {
+      'max-image-preview': 'large',
+    },
+  },
 }
 
 export default function TokyoMapLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: title,
+            description,
+            url: 'https://www.jiejourneys.com/tokyo/map',
+            primaryImageOfPage: searchImage,
+            thumbnailUrl: searchImage,
+          }),
+        }}
+      />
+      {children}
+    </>
+  )
 }
