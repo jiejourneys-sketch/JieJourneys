@@ -313,6 +313,11 @@
   transform: translate(-50%, -50%);
 }
 
+.mapLocateButton:disabled {
+  cursor: default;
+  opacity: 0.62;
+}
+
 .mapLegend {
   position: absolute;
   left: 14px;

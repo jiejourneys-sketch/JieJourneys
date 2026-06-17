@@ -3968,8 +3968,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
 
+    locateButtonRef.current?.setAttribute('disabled', 'true')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        locateButtonRef.current?.removeAttribute('disabled')
         const position = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
@@ -3998,8 +4000,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setMobilePanelOpen(false)
       },
       (error) => {
+        locateButtonRef.current?.removeAttribute('disabled')
         if (error.code === error.PERMISSION_DENIED) {
-          window.alert('定位權限未開啟')
+          window.alert('定位被封鎖。請在網址列左側允許位置權限後，再按一次定位。')
         } else if (error.code === error.POSITION_UNAVAILABLE) {
           window.alert('暫時無法取得位置')
         } else if (error.code === error.TIMEOUT) {
