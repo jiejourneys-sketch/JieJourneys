@@ -849,6 +849,7 @@ export default function ToolsPlannerPage() {
             value={countryInput}
             onChange={(event) => setCountryInput(event.target.value)}
             placeholder="例如：釜山、大阪、東京、北越"
+            suppressHydrationWarning
           />
         </label>
 

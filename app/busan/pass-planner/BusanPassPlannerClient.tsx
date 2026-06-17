@@ -1034,6 +1034,21 @@ function inAppBrowserName(browser: InAppBrowser) {
   return '內建'
 }
 
+function locationPermissionGuide() {
+  if (typeof navigator === 'undefined') return '點網址列左側圖示 → 位置 → 允許，再按一次定位。'
+  const ua = navigator.userAgent
+  const isIOS = /iPhone|iPad|iPod/i.test(ua)
+  const isAndroid = /Android/i.test(ua)
+  const isChrome = /Chrome|CriOS/i.test(ua) && !/Edg|EdgiOS|OPR|SamsungBrowser/i.test(ua)
+  const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|Edg|EdgiOS|OPR/i.test(ua)
+
+  if (isIOS && isSafari) return 'iPhone Safari：設定 → 隱私權與安全性 → 定位服務 → Safari 網站 → 允許，再按一次定位。'
+  if (isIOS && isChrome) return 'iPhone Chrome：設定 → 隱私權與安全性 → 定位服務 → Chrome → 允許，再按一次定位。'
+  if (isAndroid && isChrome) return 'Android Chrome：設定 → 應用程式 → Chrome → 權限 → 位置 → 允許，再按一次定位。'
+  if (isChrome) return 'Chrome：點網址列左側圖示 → 位置 → 允許，再按一次定位。'
+  return '點網址列左側圖示 → 位置 → 允許，再按一次定位。'
+}
+
 function publicCurrentPlannerUrl() {
   if (typeof window === 'undefined') return PUBLIC_SITE_ORIGIN
   const url = new URL(window.location.pathname, PUBLIC_SITE_ORIGIN)
@@ -4010,7 +4025,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setLocationRequesting(false)
         locateButtonRef.current?.removeAttribute('disabled')
         if (error.code === error.PERMISSION_DENIED) {
-          setLocationPromptMessage('沒有取得定位權限。請在瀏覽器跳出的提示選擇「允許」。如果沒有跳出提示，代表這個網站先前被封鎖，需要到網址列左側把「位置」改成允許。')
+          setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
         } else if (error.code === error.POSITION_UNAVAILABLE) {
           setLocationPromptMessage('暫時無法取得位置，請確認手機或瀏覽器定位功能已開啟。')
         } else if (error.code === error.TIMEOUT) {
@@ -6189,7 +6204,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               onClick={(e) => e.stopPropagation()}
             >
               <h2 id="planner-location-title">允許使用目前位置？</h2>
-              <p>JieJourneys 會把地圖移到你的目前位置，方便你安排附近景點。你的定位不會儲存在行程裡。</p>
+              <p>JieJourneys 會把地圖移到你的目前位置，定位不會儲存在行程裡。</p>
               {locationPromptMessage ? <p className={styles.confirmNotice}>{locationPromptMessage}</p> : null}
               <div className={styles.confirmActions}>
                 <button
