@@ -2715,6 +2715,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const tierLabels = config.tierLabels
   const tierItems = config.tierItems
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
+  const mapShellRef = useRef<HTMLDivElement>(null)
   const mapElRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const initialMapFitDoneRef = useRef(false)
@@ -2724,6 +2725,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const selectedMarkerArrowRef = useRef<google.maps.Marker | null>(null)
   const lineRefs = useRef<google.maps.Polyline[]>([])
   const customDraftMarkerRef = useRef<google.maps.Marker | null>(null)
+  const userMarkerRef = useRef<google.maps.Marker | null>(null)
+  const locateButtonRef = useRef<HTMLButtonElement | null>(null)
   const customUrlResolveSeqRef = useRef(0)
   const addCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const planCardRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -3817,12 +3820,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         mapRef.current = new google.maps.Map(mapElRef.current, {
           center: mapCenter,
           zoom: config.mapZoom,
+          disableDefaultUI: true,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
           gestureHandling: 'greedy',
           scrollwheel: true,
-          zoomControl: true,
+          zoomControl: false,
         })
         mapRef.current.addListener('click', (e: google.maps.MapMouseEvent) => {
           if (customDraftRef.current.picking && e.latLng) {
@@ -3952,6 +3956,88 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       window.removeEventListener('resize', resize)
     }
   }, [fitMapToPlaces, mapReady])
+
+  const locateUser = useCallback(() => {
+    const map = mapRef.current
+    if (!map || !window.google?.maps) {
+      window.alert('地圖尚未載入完成')
+      return
+    }
+    if (!navigator.geolocation) {
+      window.alert('此瀏覽器不支援定位')
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const position = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }
+        if (!userMarkerRef.current) {
+          userMarkerRef.current = new google.maps.Marker({
+            map,
+            position,
+            title: '我的位置',
+            zIndex: 5000,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 9,
+              fillColor: '#2563eb',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 3,
+            },
+          })
+        } else {
+          userMarkerRef.current.setPosition(position)
+          userMarkerRef.current.setMap(map)
+        }
+        userAdjustedMapRef.current = true
+        focusMapOnPosition(map, position, 0.25)
+        setMobilePanelOpen(false)
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          window.alert('定位權限未開啟')
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          window.alert('暫時無法取得位置')
+        } else if (error.code === error.TIMEOUT) {
+          window.alert('定位逾時，請再試一次')
+        } else {
+          window.alert('定位失敗，請再試一次')
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 30000,
+      },
+    )
+  }, [setMobilePanelOpen])
+
+  useEffect(() => {
+    if (!mapReady || mapError || !mapShellRef.current || locateButtonRef.current) return
+
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = styles.mapLocateButton
+    button.setAttribute('aria-label', '定位我的目前位置')
+    button.title = '定位我的目前位置'
+
+    const iconDot = document.createElement('span')
+    iconDot.setAttribute('aria-hidden', 'true')
+    button.append(iconDot)
+    button.addEventListener('click', locateUser)
+    mapShellRef.current.append(button)
+    locateButtonRef.current = button
+
+    return () => {
+      button.removeEventListener('click', locateUser)
+      button.remove()
+      if (locateButtonRef.current === button) locateButtonRef.current = null
+    }
+  }, [locateUser, mapError, mapReady])
 
   const dismissInAppPrompt = useCallback(() => {
     try {
@@ -5288,7 +5374,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         ) : (
         <section className={styles.workspace} aria-label={config.workspaceAriaLabel}>
           <div className={styles.mapColumn}>
-            <div className={styles.mapShell}>
+            <div ref={mapShellRef} className={styles.mapShell}>
               {mapError ? <div className={styles.mapFallback}>{mapError}</div> : <div ref={mapElRef} className={styles.mapCanvas} />}
               {mapMarkerLegendItems.length > 0 ? (
                 <div className={styles.mapLegend} aria-label="地圖分類說明">

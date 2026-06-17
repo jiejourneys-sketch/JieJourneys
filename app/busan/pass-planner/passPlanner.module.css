@@ -259,6 +259,60 @@
   text-align: center;
 }
 
+.mapLocateButton {
+  position: absolute;
+  right: 14px;
+  bottom: 64px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(60, 64, 67, 0.18);
+  border-radius: 3px;
+  padding: 0;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(60, 64, 67, 0.3);
+  cursor: pointer;
+}
+
+.mapLocateButton::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #3c4043;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+}
+
+.mapLocateButton::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  background:
+    linear-gradient(#3c4043, #3c4043) 50% 0 / 2px 7px no-repeat,
+    linear-gradient(#3c4043, #3c4043) 50% 100% / 2px 7px no-repeat,
+    linear-gradient(#3c4043, #3c4043) 0 50% / 7px 2px no-repeat,
+    linear-gradient(#3c4043, #3c4043) 100% 50% / 7px 2px no-repeat;
+  transform: translate(-50%, -50%);
+}
+
+.mapLocateButton span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #3c4043;
+  transform: translate(-50%, -50%);
+}
+
 .mapLegend {
   position: absolute;
   left: 14px;
@@ -2870,6 +2924,11 @@
   .mapFallback {
     min-height: 0;
     height: 100%;
+  }
+
+  .mapLocateButton {
+    right: 12px;
+    bottom: 88px;
   }
 
   .panel {
