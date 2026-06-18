@@ -21,6 +21,10 @@ export default function OsakaPage() {
             <Image className="link-icon" src="/assets/hotel.png" alt="住宿" width={48} height={48} />
             <div className="link-text">住宿</div>
           </Link>
+          <Link className="link-item" href="/osaka/video" data-event="osaka_video" data-item="video" data-section="quick">
+            <Image className="link-icon" src="/assets/video.png" alt="影片" width={48} height={48} />
+            <div className="link-text">短影音合輯</div>
+          </Link>
           <Link className="link-item" href="/osaka/ticket" data-event="osaka_ticket" data-item="ticket" data-section="quick">
             <Image className="link-icon" src="/assets/piao.png" alt="票券" width={48} height={48} />
             <div className="link-text">票券</div>

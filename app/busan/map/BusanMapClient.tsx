@@ -499,16 +499,18 @@ export default function BusanMapClient() {
       try {
         await loadGoogleMapsScript(apiKey)
         if (cancelled || !mapElRef.current) return
-        const map = new google.maps.Map(mapElRef.current, {
+        const mapOptions: google.maps.MapOptions & { cameraControl?: boolean } = {
           center: BUSAN_MAP_CENTER,
           zoom: 11,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          cameraControl: false,
           gestureHandling: 'greedy',
           scrollwheel: true,
-          zoomControl: true,
-        })
+          zoomControl: false,
+        }
+        const map = new google.maps.Map(mapElRef.current, mapOptions)
         mapRef.current = map
         mapLayoutIdleRef.current = false
         google.maps.event.addListenerOnce(map, 'idle', () => {

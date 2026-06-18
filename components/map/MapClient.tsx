@@ -118,6 +118,21 @@ function cityMapSectionLabel(category: CityMapPlaceCategory, label: string) {
   return ''
 }
 
+function locationPermissionGuide() {
+  if (typeof navigator === 'undefined') return '點網址列左側圖示 → 位置 → 允許，再按一次定位。'
+  const ua = navigator.userAgent
+  const isIOS = /iPhone|iPad|iPod/i.test(ua)
+  const isAndroid = /Android/i.test(ua)
+  const isChrome = /Chrome|CriOS/i.test(ua) && !/Edg|EdgiOS|OPR|SamsungBrowser/i.test(ua)
+  const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|Edg|EdgiOS|OPR/i.test(ua)
+
+  if (isIOS && isSafari) return 'iPhone Safari：設定 → 隱私權與安全性 → 定位服務 → Safari 網站 → 允許，再按一次定位。'
+  if (isIOS && isChrome) return 'iPhone Chrome：設定 → 隱私權與安全性 → 定位服務 → Chrome → 允許，再按一次定位。'
+  if (isAndroid && isChrome) return 'Android Chrome：設定 → 應用程式 → Chrome → 權限 → 位置 → 允許，再按一次定位。'
+  if (isChrome) return 'Chrome：點網址列左側圖示 → 位置 → 允許，再按一次定位。'
+  return '點網址列左側圖示 → 位置 → 允許，再按一次定位。'
+}
+
 /** 與各城市地圖共用，避免重複插入 script */
 const SCRIPT_ID = 'gmaps-js'
 
@@ -688,6 +703,9 @@ export default function MapClient({
   const [mapError, setMapError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [topActionsOpen, setTopActionsOpen] = useState(false)
+  const [locationPromptOpen, setLocationPromptOpen] = useState(false)
+  const [locationPromptMessage, setLocationPromptMessage] = useState('')
+  const [locationRequesting, setLocationRequesting] = useState(false)
   const [routeLayerOn, setRouteLayerOn] = useState<Record<string, boolean>>(() =>
     Object.fromEntries((routeLayers ?? []).map((layer) => [layer.id, layer.defaultVisible ?? true])),
   )
@@ -908,16 +926,18 @@ export default function MapClient({
       try {
         await loadGoogleMapsScript(apiKey)
         if (cancelled || !mapElRef.current) return
-        const map = new google.maps.Map(mapElRef.current, {
+        const mapOptions: google.maps.MapOptions & { cameraControl?: boolean } = {
           center: mapCenter,
           zoom: mapZoom,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          cameraControl: false,
           gestureHandling: 'greedy',
           scrollwheel: true,
-          zoomControl: true,
-        })
+          zoomControl: false,
+        }
+        const map = new google.maps.Map(mapElRef.current, mapOptions)
         mapRef.current = map
         mapLayoutIdleRef.current = false
         google.maps.event.addListenerOnce(map, 'idle', () => {
@@ -1328,42 +1348,64 @@ export default function MapClient({
     return () => window.removeEventListener('scroll', onScroll)
   }, [belowContent, isMobileMapLayout])
 
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) return
+  const locateUser = useCallback(() => {
+    const map = mapRef.current
+    if (!map || !window.google?.maps) {
+      setLocationPromptMessage('地圖尚未載入完成，請稍後再試一次。')
+      return
+    }
+    if (!navigator.geolocation) {
+      setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
+      return
+    }
+
+    setLocationRequesting(true)
+    setLocationPromptMessage('')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const lat = pos.coords.latitude
-        const lng = pos.coords.longitude
-        const map = mapRef.current
-        if (!map || !window.google?.maps) return
+        setLocationRequesting(false)
+        setLocationPromptOpen(false)
+        const position = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }
         if (!userMarkerRef.current) {
           userMarkerRef.current = new google.maps.Marker({
             map,
-            position: { lat, lng },
+            position,
             title: '我的位置',
-            zIndex: 10,
+            zIndex: 10002,
             icon: {
               path: google.maps.SymbolPath.CIRCLE,
-              scale: 11,
-              fillColor: '#0ea5e9',
+              scale: 9,
+              fillColor: '#2563eb',
               fillOpacity: 1,
               strokeColor: '#ffffff',
               strokeWeight: 3,
             },
           })
         } else {
-          userMarkerRef.current.setPosition({ lat, lng })
+          userMarkerRef.current.setPosition(position)
           userMarkerRef.current.setMap(map)
         }
+        map.setCenter(position)
+        map.setZoom(Math.max(map.getZoom() ?? 0, 16))
       },
-      () => {},
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 60_000 },
+      (error) => {
+        setLocationRequesting(false)
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          setLocationPromptMessage('暫時無法取得位置，請確認手機或瀏覽器定位功能已開啟。')
+        } else if (error.code === error.TIMEOUT) {
+          setLocationPromptMessage('定位逾時，請再試一次。')
+        } else {
+          setLocationPromptMessage('定位失敗，請再試一次。')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     )
   }, [])
-
-  useEffect(() => {
-    requestLocation()
-  }, [requestLocation])
 
   return (
     <>
@@ -1601,6 +1643,24 @@ export default function MapClient({
                   ) : (
                     <div ref={mapElRef} className={styles.mapCanvas} />
                   )}
+                  {!mapError ? (
+                    <button
+                      type="button"
+                      className={styles.mapLocateButton}
+                      aria-label="定位我的目前位置"
+                      title="定位我的目前位置"
+                      disabled={locationRequesting}
+                      data-event={`${gtagPrefix}_locate`}
+                      data-platform="geolocation"
+                      data-section="map"
+                      onClick={() => {
+                        setLocationPromptMessage('')
+                        setLocationPromptOpen(true)
+                      }}
+                    >
+                      <span aria-hidden="true" />
+                    </button>
+                  ) : null}
                   {mapLegendItems.length > 0 ? (
                     <div className={styles.mapLegend} data-map-prefix={gtagPrefix} aria-label="地圖標記說明">
                       {mapLegendItems.map((item, index) => (
@@ -1801,6 +1861,46 @@ export default function MapClient({
             )}
           </div>
         </div>
+
+        {locationPromptOpen ? (
+          <div
+            className={styles.confirmBackdrop}
+            role="presentation"
+            onClick={() => {
+              if (!locationRequesting) setLocationPromptOpen(false)
+            }}
+          >
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={`${gtagPrefix}-location-title`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id={`${gtagPrefix}-location-title`}>允許使用目前位置？</h2>
+              <p>JieJourneys 會把地圖移到你的目前位置，定位不會儲存在地圖裡。</p>
+              {locationPromptMessage ? <p className={styles.confirmNotice}>{locationPromptMessage}</p> : null}
+              <div className={styles.confirmActions}>
+                <button
+                  type="button"
+                  className={styles.confirmSecondary}
+                  onClick={() => setLocationPromptOpen(false)}
+                  disabled={locationRequesting}
+                >
+                  先不要
+                </button>
+                <button
+                  type="button"
+                  className={styles.confirmPrimary}
+                  onClick={locateUser}
+                  disabled={locationRequesting}
+                >
+                  {locationRequesting ? '定位中...' : '允許定位'}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
 
         <div className={styles.mobileMainSpacer} aria-hidden />
         {belowContent ? (

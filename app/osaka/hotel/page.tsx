@@ -257,6 +257,12 @@ export default function OsakaHotelPage() {
               platform: 'ticket',
             },
             {
+              label: '大阪短影片攻略',
+              href: 'https://www.jiejourneys.com/osaka/video',
+              dataEvent: 'osakahotel_allvideos',
+              platform: 'video',
+            },
+            {
               label: '通訊&交通攻略',
               href: 'https://www.jiejourneys.com/osaka/transport',
               dataEvent: 'osakahotel_alltransport',
