@@ -14,51 +14,29 @@ const tabs = [
 ]
 const cards: CityCard[] = [
   {
-    title: '大阪自由行｜先看景點地圖',
+    title: '大阪5個區域｜攻略',
     meta: '大阪攻略',
     area: '大阪攻略',
     datasetKey: 'video',
-    datasetValue: 'osaka-map-guide',
+    datasetValue: 'osaka-5-areas-guide',
     actions: [
-      { label: '地圖', href: '/osaka/map', className: 'btn primary', event: 'osakavideo_map', platform: 'map', section: 'video' },
-      { label: '周遊券地圖', href: '/osaka/pass-map', className: 'btn', event: 'osakavideo_passmap', platform: 'pass-map', section: 'video' },
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DZPs30vhboN/', className: 'btn primary', event: 'osakavideo_5areasIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/0DAV327wmN4', className: 'btn', event: 'osakavideo_5areasYT', platform: 'YouTube', section: 'video' },
+      { label: '小紅書', href: 'https://xhslink.com/o/5r8AWxmXhfv', className: 'btn', event: 'osakavideo_5areasXHS', platform: '小紅書', section: 'video' },
     ],
   },
   {
-    title: '大阪票券｜周遊券・USJ・海遊館',
-    meta: '大阪攻略',
-    area: '大阪攻略',
-    datasetKey: 'video',
-    datasetValue: 'osaka-ticket-guide',
-    actions: [
-      { label: '票券整理', href: '/osaka/ticket', className: 'btn primary', event: 'osakavideo_ticket', platform: 'ticket', section: 'video' },
-      { label: '大阪周遊券', href: '/osaka/pass-map', className: 'btn', event: 'osakavideo_pass', platform: 'pass-map', section: 'video' },
-    ],
-  },
-  {
-    title: '大阪住宿｜難波・心齋橋・梅田',
-    meta: '大阪攻略',
-    area: '大阪攻略',
-    datasetKey: 'video',
-    datasetValue: 'osaka-hotel-guide',
-    actions: [
-      { label: '住宿推薦', href: '/osaka/hotel', className: 'btn primary', event: 'osakavideo_hotel', platform: 'hotel', section: 'video' },
-      { label: '住宿地圖', href: '/osaka/map', className: 'btn', event: 'osakavideo_hotelmap', platform: 'map', section: 'video' },
-    ],
-  },
-  {
-    title: '大阪交通｜關西機場到市區',
+    title: '大阪關西機場到市區｜3種方式',
     meta: '交通',
     area: '交通',
     datasetKey: 'video',
-    datasetValue: 'osaka-kix-transport',
+    datasetValue: 'osaka-kix-to-city-3-ways',
     actions: [
-      { label: '交通攻略', href: '/osaka/transport', className: 'btn primary', event: 'osakavideo_transport', platform: 'transport', section: 'video' },
-      { label: '地圖', href: 'https://www.google.com/maps/d/edit?mid=11LrZQhbY4ULNh46Oxe4NWci5Zas6UCA&usp=sharing', className: 'btn', event: 'osakavideo_kixmap', platform: 'GoogleMap', section: 'video' },
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DZhualih3oF/', className: 'btn primary', event: 'osakavideo_kix3waysIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/0DAV327wmN4', className: 'btn', event: 'osakavideo_kix3waysYT', platform: 'YouTube', section: 'video' },
+      { label: '小紅書', href: 'https://xhslink.com/o/4AsThJolQtS', className: 'btn', event: 'osakavideo_kix3waysXHS', platform: '小紅書', section: 'video' },
     ],
   },
-  { title: '地鐵 vs JR｜攻略', meta: '交通', area: '交通', datasetKey: 'video', datasetValue: 'metro-vs-jr', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTVMB2FkTt5/', className: 'btn primary', event: 'osakavideo_MetroVSJRIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/xNN5iQLFGcU', className: 'btn', event: 'osakavideo_MetroVSJRYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3MITM21zfli', className: 'btn', event: 'osakavideo_MetroVSJRXHS', platform: '小紅書', section: 'video' }] },
-  { title: 'JR vs 新幹線｜攻略', meta: '交通', area: '交通', datasetKey: 'video', datasetValue: 'jr-vs-shinkansen', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DVBVYRckTUG/', className: 'btn primary', event: 'osakavideo_JRVSXGXIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/j_Ws48TTzbE', className: 'btn', event: 'osakavideo_JRVSXGXYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/2h8p1nd33PE', className: 'btn', event: 'osakavideo_JRVSXGXXHS', platform: '小紅書', section: 'video' }] },
   { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'visit-japan-web', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'osakavideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'osakavideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3g4dVW46U4I', className: 'btn', event: 'osakavideo_visitjapanwebXHS', platform: '小紅書', section: 'video' }] },
   { title: '日幣換匯攻略', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'jpy-exchange', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTDKcCoEZBS/', className: 'btn primary', event: 'osakavideo_JPYExchangeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/FfMj7w2R7BA', className: 'btn', event: 'osakavideo_JPYExchangeYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/83JoRvRQFSc', className: 'btn', event: 'osakavideo_JPYExchangeXHS', platform: '小紅書', section: 'video' }] },
 ]
@@ -70,8 +48,8 @@ export default function OsakaVideoPage() {
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
           badge="短影片合輯"
-          h1="大阪短影片攻略｜快速找到適合你的玩法"
-          intro="把大阪自由行常用的景點、票券、住宿、交通與日本行前準備集中在這一頁，出發前先用最短時間抓重點。"
+          h1="大阪短影片攻略｜5個區域與關西機場交通快速看懂"
+          intro="先用短影片抓大阪五大區域和關西機場進市區方式，再搭配行前準備影片，把第一次大阪自由行的重點一次整理好。"
           eventPrefix="osakavideo"
           showVisual={false}
           ctaLinks={[
@@ -107,17 +85,26 @@ export default function OsakaVideoPage() {
         <section className="seo-content" aria-label="大阪短影音攻略">
           <h2 className="seo-h2">大阪短影音怎麼看？</h2>
           <div className="seo-prose">
-            <h3 className="seo-h3">先看地圖，再決定住宿與票券</h3>
+            <h3 className="seo-h3">第一次大阪自由行，先用 5 個區域建立方向</h3>
             <p>
-              第一次安排大阪自由行，最容易卡在景點距離與住宿位置。建議先用大阪地圖抓出難波、心齋橋、梅田、天王寺、環球影城與大阪城的位置，再回來看住宿和票券，會比一開始就買周遊券更準。
+              大阪看起來景點很多，但第一次規劃其實先抓 5 個區域就會清楚很多：難波/道頓堀、心齋橋、梅田/大阪站、天王寺、環球影城。先看「大阪5個區域｜攻略」，會比較容易判斷自己要住哪裡、晚上要逛哪裡、哪些景點可以排在同一天。
             </p>
-            <h3 className="seo-h3">交通先分成機場進市區與市區移動</h3>
             <p>
-              關西機場到大阪市區常見是 Rapi:t、HARUKA、利木津巴士與包車；市區內則以大阪 Metro 和 JR 為主。行李多、親子同行或飯店離車站較遠時，先看交通頁會省很多現場判斷時間。
+              如果你想吃美食、逛藥妝、晚上不用趕車，難波和心齋橋會很直覺；如果會安排京都、神戶、奈良一日遊，梅田/大阪站通常更省轉車時間；如果想兼顧機場交通和預算，天王寺也很值得看。先用影片抓區域差異，再回到大阪地圖和住宿頁比位置，會比直接挑飯店更準。
+            </p>
+            <h3 className="seo-h3">關西機場到大阪市區，先看住宿位置再選交通</h3>
+            <p>
+              「大阪關西機場到市區｜3種方式」適合出發前先看。關西機場進大阪最常見會比較南海電鐵 Rapi:t、JR HARUKA 和利木津巴士/接送。不是哪一種最有名就一定最好，而是要看你住在哪一區、行李多不多、抵達時間會不會太晚。
+            </p>
+            <p>
+              住難波、新今宮一帶，Rapi:t 通常最直覺；住天王寺、新大阪或要接京都方向，HARUKA 會比較好理解；如果飯店附近剛好有巴士站，或同行有長輩、小孩、大行李，利木津巴士或接送會更省力。先把機場交通弄清楚，第一天和最後一天會順很多。
             </p>
             <h3 className="seo-h3">行前準備影片適合出發前最後檢查</h3>
             <p>
-              Visit Japan Web、日幣換匯、JR 與新幹線差異都是日本自由行共通重點。出發前把這幾支短片看完，再搭配大阪票券與交通頁確認細節，旅程會順很多。
+              Visit Japan Web 和日幣換匯是日本自由行出發前最容易被拖到最後的兩件事。建議在出發前一週先看完，確認入境資料、匯率、現金和信用卡準備，再回來補大阪票券、周遊券與交通細節。
+            </p>
+            <p>
+              這頁會先放最核心的短影片，讓你不用一次被太多資訊塞滿。看完大阪區域和機場交通後，如果要細排景點，可以接著看大阪熱門景點地圖；如果想判斷大阪周遊券划不划算，再看大阪周遊券地圖會更順。
             </p>
           </div>
         </section>
@@ -125,9 +112,9 @@ export default function OsakaVideoPage() {
         <SeoFaqSection
           title="大阪短影片常見問題"
           items={[
-            { q: '第一次去大阪要先看哪個主題？', a: '建議先看大阪地圖和票券整理，先知道景點距離與大阪周遊券適不適合，再回頭決定住宿區域和交通工具。' },
-            { q: '大阪交通要先研究 Rapi:t 還是 HARUKA？', a: '住難波、新今宮通常優先看 Rapi:t；住天王寺、新大阪、京都方向再優先看 HARUKA。住宿位置比票券名稱更重要。' },
-            { q: '大阪周遊券一定要買嗎？', a: '不一定。一天會密集跑周遊券涵蓋景點才比較容易划算；如果主要逛道頓堀、心齋橋、黑門市場和梅田商場，可以先不用硬買。' },
+            { q: '第一次去大阪要先看哪支影片？', a: '建議先看「大阪5個區域｜攻略」，先知道難波、心齋橋、梅田、天王寺和環球影城的相對位置，再決定住宿和每天動線。' },
+            { q: '關西機場到大阪市區要選哪種交通？', a: '住難波、新今宮通常先看 Rapi:t；住天王寺、新大阪或京都方向先看 HARUKA；行李多、親子或飯店附近有站牌，可以比較利木津巴士或接送。' },
+            { q: '看完短影片後下一步要做什麼？', a: '先打開大阪地圖確認景點和住宿區域，再看票券頁或大阪周遊券地圖判斷要不要買周遊券。不要先買票券再硬排行程。' },
           ]}
         />
       </main>

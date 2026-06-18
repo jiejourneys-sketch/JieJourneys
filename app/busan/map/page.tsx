@@ -44,6 +44,12 @@ export default function BusanMapPage() {
           platform: 'transport',
         },
         {
+          label: '影片',
+          href: 'https://www.jiejourneys.com/busan/video',
+          event: 'busanmap_top_video',
+          platform: 'video',
+        },
+        {
           label: '排序',
           href: '/tools/planner?region=busan',
           event: 'busanmap_top_planner',

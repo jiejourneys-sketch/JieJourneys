@@ -45,6 +45,12 @@ export default function NorthVietnamMapPage() {
           platform: 'transport',
         },
         {
+          label: '影片',
+          href: 'https://www.jiejourneys.com/northvietnam/video',
+          event: 'northvietnammap_top_video',
+          platform: 'video',
+        },
+        {
           label: '排序',
           href: '/tools/planner?region=northvietnam',
           event: 'northvietnammap_top_planner',

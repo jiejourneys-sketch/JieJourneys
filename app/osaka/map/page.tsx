@@ -45,6 +45,12 @@ export default function OsakaMapPage() {
           platform: 'transport',
         },
         {
+          label: '影片',
+          href: 'https://www.jiejourneys.com/osaka/video',
+          event: 'osakamap_top_video',
+          platform: 'video',
+        },
+        {
           label: '排序',
           href: '/tools/planner?region=osaka',
           event: 'osakamap_top_planner',

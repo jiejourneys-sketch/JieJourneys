@@ -43,6 +43,12 @@ export default function FujiMapPage() {
           platform: 'transport',
         },
         {
+          label: '影片',
+          href: 'https://www.jiejourneys.com/fuji/video',
+          event: 'fujimap_top_video',
+          platform: 'video',
+        },
+        {
           label: '排序',
           href: '/tools/planner?region=fuji',
           event: 'fujimap_top_planner',

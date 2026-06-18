@@ -44,6 +44,12 @@ export default function TokyoMapPage() {
           platform: 'transport',
         },
         {
+          label: '影片',
+          href: 'https://www.jiejourneys.com/tokyo/video',
+          event: 'tokyomap_top_video',
+          platform: 'video',
+        },
+        {
           label: '排序',
           href: '/tools/planner?region=tokyo',
           event: 'tokyomap_top_planner',
