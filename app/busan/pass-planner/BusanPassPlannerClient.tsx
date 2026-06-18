@@ -2493,14 +2493,14 @@ function SortableTransportItem({
 
   const commitDraft = () => {
     if (readOnly) return
-    onChange({
+    const nextInfo = {
       ...draft,
       customLabel: draft.customLabel.slice(0, 40),
       duration: draft.duration.slice(0, 40),
       note: draft.note.slice(0, 300),
       href: draft.href.slice(0, 500),
-    })
-    if (expanded) onToggleExpanded()
+    }
+    onChange(nextInfo)
   }
   const updateDraft = (patch: Partial<TransportInfo>) => setDraft((current) => ({ ...current, ...patch }))
   const collapseEditor = () => {
@@ -4243,6 +4243,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan) return
     const nextItem = serializeTransportItem(info)
     setPlanItems((items) => items.map((item) => (item === itemId ? nextItem : item)))
+    setExpandedPlanItem(null)
+    scheduleFocusTargetCenter({ mode: 'transport', itemId: nextItem }, 'smooth', 90)
   }
 
   const requestRemoveTransport = (itemId: string) => {

@@ -4021,7 +4021,8 @@
   .transportCard .transportFields input,
   .transportCard .transportFields select,
   .transportCard .transportFields textarea {
-    font-size: 13px;
+    font-size: 16px;
+    line-height: 1.25;
   }
 }
 
