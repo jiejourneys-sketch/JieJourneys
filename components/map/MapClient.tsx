@@ -1027,6 +1027,7 @@ export default function MapClient({
     const map = mapRef.current
     if (!mapReady || !map || !window.google?.maps) return
     clearRouteOverlays()
+    const routeStopLabels: Array<{ marker: google.maps.Marker; label: google.maps.MarkerLabel }> = []
     ;(routeLayers ?? []).forEach((routeLayer) => {
       if (!routeLayerOn[routeLayer.id]) return
       const line = new google.maps.Polyline({
@@ -1039,6 +1040,13 @@ export default function MapClient({
       })
       routeLineRefs.current.push(line)
       routeLayer.stops.forEach((stop) => {
+        const label = {
+          text: `${stop.order} ${stop.name}`,
+          className: styles.routeStopLabel,
+          color: '#0f172a',
+          fontSize: '12px',
+          fontWeight: '700',
+        }
         const marker = new google.maps.Marker({
           map,
           position: { lat: stop.lat, lng: stop.lng },
@@ -1050,18 +1058,27 @@ export default function MapClient({
             anchor: new google.maps.Point(12, 12),
             labelOrigin: new google.maps.Point(12, -8),
           },
-          label: {
-            text: `${stop.order} ${stop.name}`,
-            className: styles.routeStopLabel,
-            color: '#0f172a',
-            fontSize: '12px',
-            fontWeight: '700',
-          },
         })
+        routeStopLabels.push({ marker, label })
         routeStopMarkerRefs.current.push(marker)
       })
     })
-    return clearRouteOverlays
+
+    const syncRouteStopLabels = () => {
+      const showLabels = (map.getZoom() ?? 0) >= 15
+      routeStopLabels.forEach(({ marker, label }) => {
+        marker.setLabel(showLabels ? label : null)
+      })
+    }
+
+    syncRouteStopLabels()
+    const idleL = google.maps.event.addListener(map, 'idle', syncRouteStopLabels)
+    const zoomL = google.maps.event.addListener(map, 'zoom_changed', syncRouteStopLabels)
+    return () => {
+      google.maps.event.removeListener(idleL)
+      google.maps.event.removeListener(zoomL)
+      clearRouteOverlays()
+    }
   }, [clearRouteOverlays, mapReady, routeLayerOn, routeLayers])
 
   useEffect(() => {
