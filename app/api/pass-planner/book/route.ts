@@ -10,6 +10,7 @@ const MAX_CUSTOM_PLACES = 80
 const MAX_LINKS_PER_CUSTOM_PLACE = 8
 const MAX_USER_LINK_PLACES = 120
 const MAX_USER_LINKS_PER_PLACE = 8
+const PLANNER_RETENTION_DAYS = 365
 const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel'])
 
 type PlannerBookPayload = {
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
   const payload = cleanPayload(await req.json().catch(() => null))
   if (!payload) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
-  const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString()
+  const expiresAt = new Date(Date.now() + PLANNER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
   const row = {
     city: payload.city,
     items: payload.items,

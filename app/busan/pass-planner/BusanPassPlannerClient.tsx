@@ -1035,18 +1035,18 @@ function inAppBrowserName(browser: InAppBrowser) {
 }
 
 function locationPermissionGuide() {
-  if (typeof navigator === 'undefined') return '點網址列左側圖示 → 位置 → 允許，再按一次定位。'
+  if (typeof navigator === 'undefined') return '點網址列左側圖示 → 位置 → 允許，再回到頁面開啟定位。'
   const ua = navigator.userAgent
   const isIOS = /iPhone|iPad|iPod/i.test(ua)
   const isAndroid = /Android/i.test(ua)
   const isChrome = /Chrome|CriOS/i.test(ua) && !/Edg|EdgiOS|OPR|SamsungBrowser/i.test(ua)
   const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|Edg|EdgiOS|OPR/i.test(ua)
 
-  if (isIOS && isSafari) return 'iPhone Safari：設定 → 隱私權與安全性 → 定位服務 → Safari 網站 → 允許，再按一次定位。'
-  if (isIOS && isChrome) return 'iPhone Chrome：設定 → 隱私權與安全性 → 定位服務 → Chrome → 允許，再按一次定位。'
-  if (isAndroid && isChrome) return 'Android Chrome：設定 → 應用程式 → Chrome → 權限 → 位置 → 允許，再按一次定位。'
-  if (isChrome) return 'Chrome：點網址列左側圖示 → 位置 → 允許，再按一次定位。'
-  return '點網址列左側圖示 → 位置 → 允許，再按一次定位。'
+  if (isIOS && isSafari) return 'iPhone Safari：設定 → 隱私權與安全性 → 定位服務 → Safari 網站 → 允許，再回到頁面開啟定位。'
+  if (isIOS && isChrome) return 'iPhone Chrome：設定 → 隱私權與安全性 → 定位服務 → Chrome → 允許，再回到頁面開啟定位。'
+  if (isAndroid && isChrome) return 'Android Chrome：設定 → 應用程式 → Chrome → 權限 → 位置 → 允許，再回到頁面開啟定位。'
+  if (isChrome) return 'Chrome：點網址列左側圖示 → 位置 → 允許，再回到頁面開啟定位。'
+  return '點網址列左側圖示 → 位置 → 允許，再回到頁面開啟定位。'
 }
 
 function publicCurrentPlannerUrl() {
@@ -2741,6 +2741,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const lineRefs = useRef<google.maps.Polyline[]>([])
   const customDraftMarkerRef = useRef<google.maps.Marker | null>(null)
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
+  const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
+  const locationWatchIdRef = useRef<number | null>(null)
+  const locationWatchCenteredRef = useRef(false)
   const locateButtonRef = useRef<HTMLButtonElement | null>(null)
   const customUrlResolveSeqRef = useRef(0)
   const addCardRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -3986,10 +3989,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
 
+    if (locationWatchIdRef.current !== null) {
+      setLocationPromptOpen(false)
+      const position = userPositionRef.current
+      if (position) {
+        userAdjustedMapRef.current = true
+        focusMapOnPosition(map, position, 0.25)
+        setMobilePanelOpen(false)
+      }
+      return
+    }
+
     setLocationRequesting(true)
     setLocationPromptMessage('')
     locateButtonRef.current?.setAttribute('disabled', 'true')
-    navigator.geolocation.getCurrentPosition(
+    locationWatchCenteredRef.current = false
+    locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setLocationRequesting(false)
         setLocationPromptOpen(false)
@@ -3998,6 +4013,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         }
+        userPositionRef.current = position
         if (!userMarkerRef.current) {
           userMarkerRef.current = new google.maps.Marker({
             map,
@@ -4017,21 +4033,29 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           userMarkerRef.current.setPosition(position)
           userMarkerRef.current.setMap(map)
         }
-        userAdjustedMapRef.current = true
-        focusMapOnPosition(map, position, 0.25)
-        setMobilePanelOpen(false)
+        if (!locationWatchCenteredRef.current) {
+          userAdjustedMapRef.current = true
+          focusMapOnPosition(map, position, 0.25)
+          setMobilePanelOpen(false)
+          locationWatchCenteredRef.current = true
+        }
       },
       (error) => {
         setLocationRequesting(false)
         locateButtonRef.current?.removeAttribute('disabled')
+        if (error.code === error.PERMISSION_DENIED && locationWatchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(locationWatchIdRef.current)
+          locationWatchIdRef.current = null
+          locationWatchCenteredRef.current = false
+        }
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
         } else if (error.code === error.POSITION_UNAVAILABLE) {
           setLocationPromptMessage('暫時無法取得位置，請確認手機或瀏覽器定位功能已開啟。')
         } else if (error.code === error.TIMEOUT) {
-          setLocationPromptMessage('定位逾時，請再試一次。')
+          setLocationPromptMessage('定位逾時，系統會持續嘗試更新目前位置。')
         } else {
-          setLocationPromptMessage('定位失敗，請再試一次。')
+          setLocationPromptMessage('定位暫時失敗，系統會持續嘗試更新目前位置。')
         }
       },
       {
@@ -4041,6 +4065,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       },
     )
   }, [setMobilePanelOpen])
+
+  useEffect(() => {
+    return () => {
+      if (locationWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(locationWatchIdRef.current)
+        locationWatchIdRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!mapReady || mapError || !mapShellRef.current || locateButtonRef.current) return
@@ -6206,7 +6239,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               onClick={(e) => e.stopPropagation()}
             >
               <h2 id="planner-location-title">允許使用目前位置？</h2>
-              <p>JieJourneys 會把地圖移到你的目前位置，定位不會儲存在行程裡。</p>
+              <p>JieJourneys 會在地圖上顯示你的目前位置，走動時藍點會跟著更新，定位不會儲存在行程裡。</p>
               {locationPromptMessage ? <p className={styles.confirmNotice}>{locationPromptMessage}</p> : null}
               <div className={styles.confirmActions}>
                 <button
@@ -6223,7 +6256,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   onClick={locateUser}
                   disabled={locationRequesting}
                 >
-                  {locationRequesting ? '定位中...' : '允許定位'}
+                  {locationRequesting ? '定位中...' : '開始定位'}
                 </button>
               </div>
             </section>

@@ -6,6 +6,7 @@ const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVW
 const MAX_ITEMS = 240
 const MAX_NOTES = 80
 const MAX_NOTE_LENGTH = 500
+const PLANNER_RETENTION_DAYS = 365
 
 type PlannerSharePayload = {
   city: string
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
   const payload = cleanPayload(await req.json().catch(() => null))
   if (!payload) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
   const hash = await contentHash(payload)
-  const expiresAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString()
+  const expiresAt = new Date(Date.now() + PLANNER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
 
   const { data: existing, error: findError } = await supabase
     .from(TABLE)
