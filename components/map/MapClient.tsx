@@ -24,6 +24,7 @@ import {
 import { cityMapMarkerIcon, cityMapMarkerZIndex, selectedMarkerArrowIcon } from '@/lib/cityMapMarkers'
 import { getGtag } from '@/lib/gtag'
 import { fireMapMarkerGtag, mapBarCardDataEvent } from '@/lib/mapGtag'
+import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import styles from '@/app/tokyo/map/map.module.css'
 import type { MapPlace } from '@/lib/mapPlace'
 import type { MapRouteOverlay } from '@/lib/mapRoute'
@@ -649,6 +650,7 @@ export default function MapClient({
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.Marker[]>([])
   const markerByIdRef = useRef<Record<string, google.maps.Marker>>({})
+  const labelOverlaysRef = useRef<Map<string, SmartMapLabelOverlay>>(new Map())
   const selectedMarkerArrowRef = useRef<google.maps.Marker | null>(null)
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
   const routeLineRefs = useRef<google.maps.Polyline[]>([])
@@ -914,6 +916,50 @@ export default function MapClient({
     selectedMarkerArrowRef.current.setMap(map)
     selectedMarkerArrowRef.current.setPosition(position)
   }, [filteredPlaces, selectedId, selectedPlace])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!mapReady || !map || !window.google?.maps) return
+
+    const labelItems = filteredPlaces.map((place, index) => {
+      const selected = place.id === selectedId
+      return {
+        id: place.id,
+        position: { lat: place.lat, lng: place.lng },
+        text: place.name,
+        selected,
+        priority:
+          (selected ? 10000 : 0) +
+          (place.category === 'ticket' || place.category === 'spot' ? 80 : 0) +
+          (place.category === 'hotel' ? 40 : 0) -
+          index,
+      }
+    })
+
+    const updateLabels = () => {
+      syncSmartMapLabels(map, labelOverlaysRef.current, labelItems, {
+        className: styles.smartMapLabel,
+        selectedClassName: styles.smartMapLabelSelected,
+        minZoom: 15,
+        fullZoom: 17,
+        maxMobileLabels: 10,
+        maxDesktopLabels: 30,
+      })
+    }
+
+    updateLabels()
+    const idleL = google.maps.event.addListener(map, 'idle', updateLabels)
+    const zoomL = google.maps.event.addListener(map, 'zoom_changed', updateLabels)
+    return () => {
+      google.maps.event.removeListener(idleL)
+      google.maps.event.removeListener(zoomL)
+    }
+  }, [filteredPlaces, mapReady, selectedId])
+
+  useEffect(() => {
+    const overlays = labelOverlaysRef.current
+    return () => clearSmartMapLabels(overlays)
+  }, [])
 
   useEffect(() => {
     if (!apiKey) {

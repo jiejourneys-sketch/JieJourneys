@@ -44,6 +44,7 @@ import {
 } from '@/lib/cityMapPlaceCategory'
 import { cityMapMarkerZIndex, selectedMarkerArrowIcon } from '@/lib/cityMapMarkers'
 import { getGtag } from '@/lib/gtag'
+import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import type { MapPlace } from '@/lib/mapPlace'
 import styles from './passPlanner.module.css'
 
@@ -2737,6 +2738,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const autoFittingMapRef = useRef(false)
   const userAdjustedMapRef = useRef(false)
   const markersRef = useRef<Map<string, google.maps.Marker>>(new Map())
+  const labelOverlaysRef = useRef<Map<string, SmartMapLabelOverlay>>(new Map())
   const selectedMarkerArrowRef = useRef<google.maps.Marker | null>(null)
   const lineRefs = useRef<google.maps.Polyline[]>([])
   const customDraftMarkerRef = useRef<google.maps.Marker | null>(null)
@@ -3828,6 +3830,73 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     visiblePlanItems,
     visiblePlannedDays,
   ])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!mapReady || !map || !window.google?.maps) return
+
+    const orderMarkerItems = visiblePlanItems
+      .map((item) => {
+        const place = planItemPlace(item, placeById)
+        return place ? { item, place } : null
+      })
+      .filter(Boolean) as { item: PlannerItem; place: MapPlace }[]
+    const markerEntries =
+      mode === 'order'
+        ? orderMarkerItems.map((entry, index) => ({ ...entry, key: entry.item, orderIndex: index }))
+        : filteredPlaces.map((place, index) => ({ item: place.id, place, key: place.id, orderIndex: index }))
+    const markerPlaceTotals = new Map<string, number>()
+    markerEntries.forEach(({ place }) => {
+      markerPlaceTotals.set(place.id, (markerPlaceTotals.get(place.id) ?? 0) + 1)
+    })
+    const markerPlaceSeen = new Map<string, number>()
+
+    const labelItems = markerEntries.map(({ item, place, key, orderIndex }) => {
+      const orderLabel = planOrderLabels.get(item) ?? null
+      const totalAtPlace = markerPlaceTotals.get(place.id) ?? 1
+      const seenAtPlace = markerPlaceSeen.get(place.id) ?? 0
+      markerPlaceSeen.set(place.id, seenAtPlace + 1)
+      const offsetAngle = seenAtPlace * 1.7
+      const offsetDistance = mode === 'order' && totalAtPlace > 1 ? 0.00008 : 0
+      const markerPosition = {
+        lat: place.lat + Math.sin(offsetAngle) * offsetDistance,
+        lng: place.lng + Math.cos(offsetAngle) * offsetDistance * 1.25,
+      }
+      const selected =
+        mode === 'order' ? (selectedPlanItem ? key === selectedPlanItem : place.id === selectedId) : place.id === selectedId
+      return {
+        id: key,
+        position: markerPosition,
+        text: mode === 'order' && orderLabel ? `${orderLabel}. ${plannerPlaceName(place)}` : plannerPlaceName(place),
+        selected,
+        priority: (selected ? 10000 : 0) + (mode === 'order' ? 500 : 0) - orderIndex,
+      }
+    })
+
+    const updateLabels = () => {
+      syncSmartMapLabels(map, labelOverlaysRef.current, labelItems, {
+        className: styles.smartMapLabel,
+        selectedClassName: styles.smartMapLabelSelected,
+        minZoom: 15,
+        fullZoom: 17,
+        maxMobileLabels: 10,
+        maxDesktopLabels: 30,
+      })
+    }
+
+    updateLabels()
+    const idleL = google.maps.event.addListener(map, 'idle', updateLabels)
+    const zoomL = google.maps.event.addListener(map, 'zoom_changed', updateLabels)
+    return () => {
+      google.maps.event.removeListener(idleL)
+      google.maps.event.removeListener(zoomL)
+    }
+  }, [filteredPlaces, mapReady, mode, placeById, planOrderLabels, selectedId, selectedPlanItem, visiblePlanItems])
+
+  useEffect(() => {
+    const overlays = labelOverlaysRef.current
+    return () => clearSmartMapLabels(overlays)
+  }, [])
 
   useEffect(() => {
     if (!apiKey) return
