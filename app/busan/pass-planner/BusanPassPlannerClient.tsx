@@ -3877,7 +3877,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       syncSmartMapLabels(map, labelOverlaysRef.current, labelItems, {
         className: styles.smartMapLabel,
         selectedClassName: styles.smartMapLabelSelected,
-        minZoom: mode === 'order' ? (readOnlyPlan ? 11 : 13) : 15,
+        minZoom: mode === 'order' ? 13 : 15,
         fullZoom: 17,
         maxMobileLabels: readOnlyPlan ? 14 : 10,
         maxDesktopLabels: readOnlyPlan ? 42 : 30,
