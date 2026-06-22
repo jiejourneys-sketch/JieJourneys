@@ -3877,10 +3877,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       syncSmartMapLabels(map, labelOverlaysRef.current, labelItems, {
         className: styles.smartMapLabel,
         selectedClassName: styles.smartMapLabelSelected,
-        minZoom: 15,
+        minZoom: mode === 'order' ? (readOnlyPlan ? 11 : 13) : 15,
         fullZoom: 17,
-        maxMobileLabels: 10,
-        maxDesktopLabels: 30,
+        maxMobileLabels: readOnlyPlan ? 14 : 10,
+        maxDesktopLabels: readOnlyPlan ? 42 : 30,
       })
     }
 
@@ -3891,7 +3891,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       google.maps.event.removeListener(idleL)
       google.maps.event.removeListener(zoomL)
     }
-  }, [filteredPlaces, mapReady, mode, placeById, planOrderLabels, selectedId, selectedPlanItem, visiblePlanItems])
+  }, [filteredPlaces, mapReady, mode, placeById, planOrderLabels, readOnlyPlan, selectedId, selectedPlanItem, visiblePlanItems])
 
   useEffect(() => {
     const overlays = labelOverlaysRef.current
