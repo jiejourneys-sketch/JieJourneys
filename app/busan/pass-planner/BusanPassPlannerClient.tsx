@@ -109,6 +109,8 @@ type Props = {
   config?: Partial<PlannerConfig>
 }
 
+const LOCATION_RECENTER_MIN_DISTANCE_METERS = 20
+
 export type PlannerConfig = {
   storageKey: string
   headerBackHref: string
@@ -2747,6 +2749,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const locationWatchIdRef = useRef<number | null>(null)
   const locationWatchCenteredRef = useRef(false)
   const locationFollowingRef = useRef(false)
+  const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const locateButtonRef = useRef<HTMLButtonElement | null>(null)
@@ -4084,6 +4087,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         userAdjustedMapRef.current = true
         focusMapOnPosition(map, position, 0.25)
         setMobilePanelOpen(false)
+        locationLastCenteredRef.current = position
       }
       return
     }
@@ -4122,11 +4126,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           userMarkerRef.current.setPosition(position)
           userMarkerRef.current.setMap(map)
         }
-        if (locationFollowingRef.current) {
+        const lastCentered = locationLastCenteredRef.current
+        const shouldRecenter =
+          locationFollowingRef.current &&
+          (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
+        if (shouldRecenter) {
           markLocationAutoCentering()
           userAdjustedMapRef.current = true
           focusMapOnPosition(map, position, 0.25)
           setMobilePanelOpen(false)
+          locationLastCenteredRef.current = position
           locationWatchCenteredRef.current = true
         } else if (!locationWatchCenteredRef.current) {
           locationWatchCenteredRef.current = true
@@ -4171,6 +4180,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       autoCenteringLocationRef.current = false
       locationFollowingRef.current = false
+      locationLastCenteredRef.current = null
     }
   }, [])
 

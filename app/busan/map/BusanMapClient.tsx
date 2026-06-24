@@ -95,10 +95,22 @@ function useSiteHeaderHeightPx() {
 
 /** 與東京地圖共用，避免重複插入 script */
 const SCRIPT_ID = 'gmaps-js'
+const LOCATION_RECENTER_MIN_DISTANCE_METERS = 20
 
 /** 以目前景點 lat/lng 開啟 Google 地圖釘點（非導航路線） */
 function googleMapsPinUrl(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${lat},${lng}`
+}
+
+function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const lat1 = (a.lat * Math.PI) / 180
+  const lat2 = (b.lat * Math.PI) / 180
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
+  return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
 }
 
 const MAP_URL_PLACEHOLDER_TOKEN = 'PASTE_YOUR_MAPS_LINK'
@@ -350,6 +362,7 @@ export default function BusanMapClient() {
   const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationWatchIdRef = useRef<number | null>(null)
   const locationFollowingRef = useRef(false)
+  const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
 
@@ -817,6 +830,7 @@ export default function BusanMapClient() {
         markLocationAutoCentering()
         map.setCenter(position)
         map.setZoom(Math.max(map.getZoom() ?? 0, 15))
+        locationLastCenteredRef.current = position
       }
       return
     }
@@ -848,10 +862,15 @@ export default function BusanMapClient() {
           userMarkerRef.current.setPosition(position)
           userMarkerRef.current.setMap(map)
         }
-        if (locationFollowingRef.current) {
+        const lastCentered = locationLastCenteredRef.current
+        const shouldRecenter =
+          locationFollowingRef.current &&
+          (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
+        if (shouldRecenter) {
           markLocationAutoCentering()
           map.setCenter(position)
           map.setZoom(Math.max(map.getZoom() ?? 0, 15))
+          locationLastCenteredRef.current = position
         }
       },
       () => {
@@ -877,6 +896,7 @@ export default function BusanMapClient() {
       }
       autoCenteringLocationRef.current = false
       locationFollowingRef.current = false
+      locationLastCenteredRef.current = null
     }
   }, [])
 
