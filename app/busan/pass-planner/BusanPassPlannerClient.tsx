@@ -2746,6 +2746,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationWatchIdRef = useRef<number | null>(null)
   const locationWatchCenteredRef = useRef(false)
+  const locationFollowingRef = useRef(false)
+  const autoCenteringLocationRef = useRef(false)
+  const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const locateButtonRef = useRef<HTMLButtonElement | null>(null)
   const customUrlResolveSeqRef = useRef(0)
   const addCardRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -3928,10 +3931,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           setMobilePanelOpen(false)
         })
         mapRef.current.addListener('zoom_changed', () => {
-          if (!autoFittingMapRef.current) userAdjustedMapRef.current = true
+          if (autoFittingMapRef.current || autoCenteringLocationRef.current) return
+          userAdjustedMapRef.current = true
+          locationFollowingRef.current = false
         })
         mapRef.current.addListener('dragstart', () => {
           userAdjustedMapRef.current = true
+          locationFollowingRef.current = false
           setMobilePanelOpen(false)
         })
         setMapReady(true)
@@ -4047,6 +4053,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [fitMapToPlaces, mapReady])
 
+  const markLocationAutoCentering = useCallback(() => {
+    autoCenteringLocationRef.current = true
+    if (autoCenteringLocationTimerRef.current !== null) {
+      window.clearTimeout(autoCenteringLocationTimerRef.current)
+    }
+    autoCenteringLocationTimerRef.current = window.setTimeout(() => {
+      autoCenteringLocationRef.current = false
+      autoCenteringLocationTimerRef.current = null
+    }, 360)
+  }, [])
+
   const locateUser = useCallback(() => {
     const map = mapRef.current
     if (!map || !window.google?.maps) {
@@ -4062,6 +4079,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setLocationPromptOpen(false)
       const position = userPositionRef.current
       if (position) {
+        locationFollowingRef.current = true
+        markLocationAutoCentering()
         userAdjustedMapRef.current = true
         focusMapOnPosition(map, position, 0.25)
         setMobilePanelOpen(false)
@@ -4073,6 +4092,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setLocationPromptMessage('')
     locateButtonRef.current?.setAttribute('disabled', 'true')
     locationWatchCenteredRef.current = false
+    locationFollowingRef.current = true
     locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setLocationRequesting(false)
@@ -4102,10 +4122,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           userMarkerRef.current.setPosition(position)
           userMarkerRef.current.setMap(map)
         }
-        if (!locationWatchCenteredRef.current) {
+        if (locationFollowingRef.current) {
+          markLocationAutoCentering()
           userAdjustedMapRef.current = true
           focusMapOnPosition(map, position, 0.25)
           setMobilePanelOpen(false)
+          locationWatchCenteredRef.current = true
+        } else if (!locationWatchCenteredRef.current) {
           locationWatchCenteredRef.current = true
         }
       },
@@ -4116,6 +4139,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           navigator.geolocation.clearWatch(locationWatchIdRef.current)
           locationWatchIdRef.current = null
           locationWatchCenteredRef.current = false
+          locationFollowingRef.current = false
         }
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
@@ -4133,7 +4157,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         maximumAge: 30000,
       },
     )
-  }, [setMobilePanelOpen])
+  }, [markLocationAutoCentering, setMobilePanelOpen])
 
   useEffect(() => {
     return () => {
@@ -4141,6 +4165,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         navigator.geolocation.clearWatch(locationWatchIdRef.current)
         locationWatchIdRef.current = null
       }
+      if (autoCenteringLocationTimerRef.current !== null) {
+        window.clearTimeout(autoCenteringLocationTimerRef.current)
+        autoCenteringLocationTimerRef.current = null
+      }
+      autoCenteringLocationRef.current = false
+      locationFollowingRef.current = false
     }
   }, [])
 

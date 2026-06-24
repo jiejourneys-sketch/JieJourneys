@@ -334,6 +334,11 @@ export default function NorthVietnamMapClient() {
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.Marker[]>([])
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
+  const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
+  const locationWatchIdRef = useRef<number | null>(null)
+  const locationFollowingRef = useRef(false)
+  const autoCenteringLocationRef = useRef(false)
+  const autoCenteringLocationTimerRef = useRef<number | null>(null)
 
   const desktopListScrollRef = useRef<HTMLDivElement>(null)
   const mobileSheetBodyRef = useRef<HTMLDivElement>(null)
@@ -547,6 +552,13 @@ export default function NorthVietnamMapClient() {
         mapLayoutIdleRef.current = false
         google.maps.event.addListenerOnce(map, 'idle', () => {
           mapLayoutIdleRef.current = true
+        })
+        map.addListener('dragstart', () => {
+          locationFollowingRef.current = false
+        })
+        map.addListener('zoom_changed', () => {
+          if (autoCenteringLocationRef.current || mapMoveFromFocusRef.current) return
+          locationFollowingRef.current = false
         })
         setMapReady(true)
         setMapError(null)
@@ -814,18 +826,45 @@ export default function NorthVietnamMapClient() {
     [mobileSheetBrowseDual, selectedPlace],
   )
 
+  const markLocationAutoCentering = useCallback(() => {
+    autoCenteringLocationRef.current = true
+    mapMoveFromFocusRef.current = true
+    if (autoCenteringLocationTimerRef.current !== null) {
+      window.clearTimeout(autoCenteringLocationTimerRef.current)
+    }
+    autoCenteringLocationTimerRef.current = window.setTimeout(() => {
+      autoCenteringLocationRef.current = false
+      mapMoveFromFocusRef.current = false
+      autoCenteringLocationTimerRef.current = null
+    }, 360)
+  }, [])
+
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) return
-    navigator.geolocation.getCurrentPosition(
+    if (locationWatchIdRef.current !== null) {
+      const position = userPositionRef.current
+      const map = mapRef.current
+      if (position && map) {
+        locationFollowingRef.current = true
+        markLocationAutoCentering()
+        map.setCenter(position)
+        map.setZoom(Math.max(map.getZoom() ?? 0, 15))
+      }
+      return
+    }
+    locationFollowingRef.current = true
+    locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const lat = pos.coords.latitude
         const lng = pos.coords.longitude
+        const position = { lat, lng }
+        userPositionRef.current = position
         const map = mapRef.current
         if (!map || !window.google?.maps) return
         if (!userMarkerRef.current) {
           userMarkerRef.current = new google.maps.Marker({
             map,
-            position: { lat, lng },
+            position,
             title: '我的位置',
             zIndex: 10,
             icon: {
@@ -838,18 +877,40 @@ export default function NorthVietnamMapClient() {
             },
           })
         } else {
-          userMarkerRef.current.setPosition({ lat, lng })
+          userMarkerRef.current.setPosition(position)
           userMarkerRef.current.setMap(map)
         }
+        if (locationFollowingRef.current) {
+          markLocationAutoCentering()
+          map.setCenter(position)
+          map.setZoom(Math.max(map.getZoom() ?? 0, 15))
+        }
       },
-      () => {},
+      () => {
+        locationFollowingRef.current = false
+      },
       { enableHighAccuracy: false, timeout: 12000, maximumAge: 60_000 },
     )
-  }, [])
+  }, [markLocationAutoCentering])
 
   useEffect(() => {
     requestLocation()
   }, [requestLocation])
+
+  useEffect(() => {
+    return () => {
+      if (locationWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(locationWatchIdRef.current)
+        locationWatchIdRef.current = null
+      }
+      if (autoCenteringLocationTimerRef.current !== null) {
+        window.clearTimeout(autoCenteringLocationTimerRef.current)
+        autoCenteringLocationTimerRef.current = null
+      }
+      autoCenteringLocationRef.current = false
+      locationFollowingRef.current = false
+    }
+  }, [])
 
   return (
     <>

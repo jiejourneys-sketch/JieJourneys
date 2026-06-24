@@ -653,6 +653,11 @@ export default function MapClient({
   const labelOverlaysRef = useRef<Map<string, SmartMapLabelOverlay>>(new Map())
   const selectedMarkerArrowRef = useRef<google.maps.Marker | null>(null)
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
+  const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
+  const locationWatchIdRef = useRef<number | null>(null)
+  const locationFollowingRef = useRef(false)
+  const autoCenteringLocationRef = useRef(false)
+  const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const routeLineRefs = useRef<google.maps.Polyline[]>([])
   const routeStopMarkerRefs = useRef<google.maps.Marker[]>([])
 
@@ -989,6 +994,13 @@ export default function MapClient({
         google.maps.event.addListenerOnce(map, 'idle', () => {
           mapLayoutIdleRef.current = true
         })
+        map.addListener('dragstart', () => {
+          locationFollowingRef.current = false
+        })
+        map.addListener('zoom_changed', () => {
+          if (autoCenteringLocationRef.current || mapMoveFromFocusRef.current) return
+          locationFollowingRef.current = false
+        })
         setMapReady(true)
         setMapError(null)
         syncMarkers(filteredPlaces)
@@ -1132,6 +1144,19 @@ export default function MapClient({
     }, 300)
     return () => window.clearTimeout(t)
   }, [mobileSheetExpanded, mapReady, isMobileMapLayout])
+
+  const markLocationAutoCentering = useCallback(() => {
+    autoCenteringLocationRef.current = true
+    mapMoveFromFocusRef.current = true
+    if (autoCenteringLocationTimerRef.current !== null) {
+      window.clearTimeout(autoCenteringLocationTimerRef.current)
+    }
+    autoCenteringLocationTimerRef.current = window.setTimeout(() => {
+      autoCenteringLocationRef.current = false
+      mapMoveFromFocusRef.current = false
+      autoCenteringLocationTimerRef.current = null
+    }, 360)
+  }, [])
 
   useEffect(() => {
     const map = mapRef.current
@@ -1422,9 +1447,22 @@ export default function MapClient({
       return
     }
 
+    if (locationWatchIdRef.current !== null) {
+      setLocationPromptOpen(false)
+      const position = userPositionRef.current
+      if (position) {
+        locationFollowingRef.current = true
+        markLocationAutoCentering()
+        map.setCenter(position)
+        map.setZoom(Math.max(map.getZoom() ?? 0, 16))
+      }
+      return
+    }
+
     setLocationRequesting(true)
     setLocationPromptMessage('')
-    navigator.geolocation.getCurrentPosition(
+    locationFollowingRef.current = true
+    locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setLocationRequesting(false)
         setLocationPromptOpen(false)
@@ -1432,6 +1470,7 @@ export default function MapClient({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         }
+        userPositionRef.current = position
         if (!userMarkerRef.current) {
           userMarkerRef.current = new google.maps.Marker({
             map,
@@ -1451,11 +1490,19 @@ export default function MapClient({
           userMarkerRef.current.setPosition(position)
           userMarkerRef.current.setMap(map)
         }
-        map.setCenter(position)
-        map.setZoom(Math.max(map.getZoom() ?? 0, 16))
+        if (locationFollowingRef.current) {
+          markLocationAutoCentering()
+          map.setCenter(position)
+          map.setZoom(Math.max(map.getZoom() ?? 0, 16))
+        }
       },
       (error) => {
         setLocationRequesting(false)
+        if (error.code === error.PERMISSION_DENIED && locationWatchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(locationWatchIdRef.current)
+          locationWatchIdRef.current = null
+          locationFollowingRef.current = false
+        }
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
         } else if (error.code === error.POSITION_UNAVAILABLE) {
@@ -1468,6 +1515,21 @@ export default function MapClient({
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     )
+  }, [markLocationAutoCentering])
+
+  useEffect(() => {
+    return () => {
+      if (locationWatchIdRef.current !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(locationWatchIdRef.current)
+        locationWatchIdRef.current = null
+      }
+      if (autoCenteringLocationTimerRef.current !== null) {
+        window.clearTimeout(autoCenteringLocationTimerRef.current)
+        autoCenteringLocationTimerRef.current = null
+      }
+      autoCenteringLocationRef.current = false
+      locationFollowingRef.current = false
+    }
   }, [])
 
   return (
