@@ -81,7 +81,7 @@ function useSiteHeaderHeightPx() {
 }
 
 const SCRIPT_ID = 'gmaps-js'
-const LOCATION_RECENTER_MIN_DISTANCE_METERS = 20
+const LOCATION_RECENTER_MIN_DISTANCE_METERS = 8
 
 /** 以目前景點 lat/lng 開啟 Google 地圖釘點（非導航路線） */
 function googleMapsPinUrl(lat: number, lng: number) {
@@ -863,8 +863,8 @@ export default function TokyoMapClient() {
       if (position && map) {
         locationFollowingRef.current = true
         markLocationAutoCentering()
-        map.setCenter(position)
-        map.setZoom(Math.max(map.getZoom() ?? 0, 15))
+        map.panTo(position)
+        if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
         locationLastCenteredRef.current = position
       }
       return
@@ -903,8 +903,8 @@ export default function TokyoMapClient() {
           (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
         if (shouldRecenter) {
           markLocationAutoCentering()
-          map.setCenter(position)
-          map.setZoom(Math.max(map.getZoom() ?? 0, 15))
+          map.panTo(position)
+          if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
           locationLastCenteredRef.current = position
         }
       },

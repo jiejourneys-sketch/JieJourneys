@@ -109,7 +109,7 @@ type Props = {
   config?: Partial<PlannerConfig>
 }
 
-const LOCATION_RECENTER_MIN_DISTANCE_METERS = 20
+const LOCATION_RECENTER_MIN_DISTANCE_METERS = 8
 
 export type PlannerConfig = {
   storageKey: string
@@ -1146,6 +1146,11 @@ function focusMapOnPosition(map: google.maps.Map, center: { lat: number; lng: nu
     map.setCenter(center)
     if (isMobilePlannerViewport()) map.panBy(0, Math.round(window.innerHeight * mobileOffsetRatio))
   }, 140)
+}
+
+function panMapToUserPosition(map: google.maps.Map, center: { lat: number; lng: number }) {
+  map.panTo(center)
+  if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
 }
 
 function focusMapOnPlace(map: google.maps.Map, place: MapPlace) {
@@ -4085,7 +4090,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         locationFollowingRef.current = true
         markLocationAutoCentering()
         userAdjustedMapRef.current = true
-        focusMapOnPosition(map, position, 0.25)
+        panMapToUserPosition(map, position)
         setMobilePanelOpen(false)
         locationLastCenteredRef.current = position
       }
@@ -4133,7 +4138,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         if (shouldRecenter) {
           markLocationAutoCentering()
           userAdjustedMapRef.current = true
-          focusMapOnPosition(map, position, 0.25)
+          panMapToUserPosition(map, position)
           setMobilePanelOpen(false)
           locationLastCenteredRef.current = position
           locationWatchCenteredRef.current = true

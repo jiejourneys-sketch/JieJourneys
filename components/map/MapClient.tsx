@@ -63,7 +63,7 @@ const CATEGORY_LABEL = CITY_MAP_CATEGORY_LABEL
 
 const DESKTOP_MQ = '(min-width: 960px)'
 const MOBILE_MAP_MQ = '(max-width: 959px)'
-const LOCATION_RECENTER_MIN_DISTANCE_METERS = 20
+const LOCATION_RECENTER_MIN_DISTANCE_METERS = 8
 
 function useMobileMapLayout() {
   const [yes, setYes] = useState(false)
@@ -1466,8 +1466,8 @@ export default function MapClient({
       if (position) {
         locationFollowingRef.current = true
         markLocationAutoCentering()
-        map.setCenter(position)
-        map.setZoom(Math.max(map.getZoom() ?? 0, 16))
+        map.panTo(position)
+        if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
         locationLastCenteredRef.current = position
       }
       return
@@ -1510,8 +1510,8 @@ export default function MapClient({
           (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
         if (shouldRecenter) {
           markLocationAutoCentering()
-          map.setCenter(position)
-          map.setZoom(Math.max(map.getZoom() ?? 0, 16))
+          map.panTo(position)
+          if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
           locationLastCenteredRef.current = position
         }
       },
