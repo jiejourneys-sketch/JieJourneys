@@ -88,12 +88,12 @@ export default function HomePage() {
               {'\u65c5\u6770\u898f\u5283'}
             </a>
             <PromoLink
-              href="https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys"
-              promoCode="jiejourneys"
-              data-event="home_tools_esimconnect"
+              href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
+              promoCode="SH66U"
+              data-event="home_tools_wamazingbuy"
               data-item="tool"
             >
-              eSIM{'\u512a\u60e0'}
+              {'\u5b8c\u7f8e\u884c\u8cfc\u7269(\u5408\u4f5c)'}
             </PromoLink>
             <a href="/tools/resources" className="tool-bill-link" data-event="home_tools_resources" data-item="tool">
               {'\u5176\u4ed6\u8cc7\u6e90'}

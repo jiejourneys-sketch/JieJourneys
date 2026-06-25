@@ -30,6 +30,17 @@ export default function TopBanner() {
             </PromoLink>
           </div>
           <div>
+            <strong>完美行購物 優惠碼：</strong>
+            <PromoLink
+              href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
+              promoCode="SH66U"
+              data-event="promo_wamazingbuy"
+              className="code-link"
+            >
+              <span className="code">SH66U ↗</span>
+            </PromoLink>
+          </div>
+          <div>
             <strong>eSIM 優惠碼：</strong>
             <PromoLink
               href="https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys"

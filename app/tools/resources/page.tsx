@@ -6,11 +6,11 @@ import PromoLink from '@/components/PromoLink'
 
 const resources = [
   {
-    title: '\u65e5\u672c\u7dda\u4e0a\u8cfc\u7269(\u5408\u4f5c)',
-    tags: '\u65e5\u672c \u7dda\u4e0a\u8cfc\u7269 \u5408\u4f5c wamazing shopping japan',
-    href: 'https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339',
-    event: 'wamazingbuy',
-    promoCode: 'SH66U',
+    title: 'eSIM\u512a\u60e0',
+    tags: 'eSIM \u512a\u60e0 \u65c5\u904a\u4e0a\u7db2 esimconnect',
+    href: 'https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys',
+    event: 'esimconnect',
+    promoCode: 'jiejourneys',
   },
   {
     title: '\u65e5\u672c\u79df\u8eca(\u5408\u4f5c)',
