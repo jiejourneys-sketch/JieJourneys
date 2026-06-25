@@ -154,6 +154,18 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
   return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
 }
 
+function nextLocationFollowCenter(
+  current: google.maps.LatLngLiteral,
+  target: google.maps.LatLngLiteral,
+): google.maps.LatLngLiteral {
+  const remaining = distanceMeters(current, target)
+  const followRatio = remaining > 35 ? 0.22 : 0.16
+  return {
+    lat: current.lat + (target.lat - current.lat) * followRatio,
+    lng: current.lng + (target.lng - current.lng) * followRatio,
+  }
+}
+
 function routeStopIconUrl(color: string): string {
   const raw = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
     <circle cx="15" cy="15" r="12" fill="${color}" stroke="#ffffff" stroke-width="3"/>
@@ -669,6 +681,8 @@ export default function MapClient({
   const locationWatchIdRef = useRef<number | null>(null)
   const locationFollowingRef = useRef(false)
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
+  const locationFollowTargetRef = useRef<google.maps.LatLngLiteral | null>(null)
+  const locationFollowFrameRef = useRef<number | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const routeLineRefs = useRef<google.maps.Polyline[]>([])
@@ -1009,10 +1023,20 @@ export default function MapClient({
         })
         map.addListener('dragstart', () => {
           locationFollowingRef.current = false
+          locationFollowTargetRef.current = null
+          if (locationFollowFrameRef.current !== null) {
+            window.cancelAnimationFrame(locationFollowFrameRef.current)
+            locationFollowFrameRef.current = null
+          }
         })
         map.addListener('zoom_changed', () => {
           if (autoCenteringLocationRef.current || mapMoveFromFocusRef.current) return
           locationFollowingRef.current = false
+          locationFollowTargetRef.current = null
+          if (locationFollowFrameRef.current !== null) {
+            window.cancelAnimationFrame(locationFollowFrameRef.current)
+            locationFollowFrameRef.current = null
+          }
         })
         setMapReady(true)
         setMapError(null)
@@ -1170,6 +1194,58 @@ export default function MapClient({
       autoCenteringLocationTimerRef.current = null
     }, 360)
   }, [])
+
+  const stopLocationFollowAnimation = useCallback(() => {
+    locationFollowTargetRef.current = null
+    if (locationFollowFrameRef.current !== null) {
+      window.cancelAnimationFrame(locationFollowFrameRef.current)
+      locationFollowFrameRef.current = null
+    }
+  }, [])
+
+  const animateLocationFollow = useCallback(
+    (map: google.maps.Map) => {
+      if (locationFollowFrameRef.current !== null) return
+      const step = () => {
+        if (!locationFollowingRef.current) {
+          stopLocationFollowAnimation()
+          return
+        }
+        const target = locationFollowTargetRef.current
+        const center = map.getCenter()
+        if (!target || !center) {
+          locationFollowFrameRef.current = null
+          return
+        }
+        const current = { lat: center.lat(), lng: center.lng() }
+        if (distanceMeters(current, target) < 0.75) {
+          map.setCenter(target)
+          locationFollowFrameRef.current = null
+          return
+        }
+        map.setCenter(nextLocationFollowCenter(current, target))
+        locationFollowFrameRef.current = window.requestAnimationFrame(step)
+      }
+      locationFollowFrameRef.current = window.requestAnimationFrame(step)
+    },
+    [stopLocationFollowAnimation],
+  )
+
+  const followUserPositionOnMap = useCallback(
+    (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
+      markLocationAutoCentering()
+      if (immediate) {
+        stopLocationFollowAnimation()
+        map.panTo(position)
+        if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+        return
+      }
+      locationFollowTargetRef.current = position
+      if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+      animateLocationFollow(map)
+    },
+    [animateLocationFollow, markLocationAutoCentering, stopLocationFollowAnimation],
+  )
 
   useEffect(() => {
     const map = mapRef.current
@@ -1465,9 +1541,7 @@ export default function MapClient({
       const position = userPositionRef.current
       if (position) {
         locationFollowingRef.current = true
-        markLocationAutoCentering()
-        map.panTo(position)
-        if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+        followUserPositionOnMap(map, position, true)
         locationLastCenteredRef.current = position
       }
       return
@@ -1509,9 +1583,7 @@ export default function MapClient({
           locationFollowingRef.current &&
           (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
         if (shouldRecenter) {
-          markLocationAutoCentering()
-          map.panTo(position)
-          if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+          followUserPositionOnMap(map, position, !lastCentered)
           locationLastCenteredRef.current = position
         }
       },
@@ -1521,6 +1593,7 @@ export default function MapClient({
           navigator.geolocation.clearWatch(locationWatchIdRef.current)
           locationWatchIdRef.current = null
           locationFollowingRef.current = false
+          stopLocationFollowAnimation()
         }
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
@@ -1534,7 +1607,7 @@ export default function MapClient({
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     )
-  }, [markLocationAutoCentering])
+  }, [followUserPositionOnMap, stopLocationFollowAnimation])
 
   useEffect(() => {
     return () => {
@@ -1546,11 +1619,12 @@ export default function MapClient({
         window.clearTimeout(autoCenteringLocationTimerRef.current)
         autoCenteringLocationTimerRef.current = null
       }
+      stopLocationFollowAnimation()
       autoCenteringLocationRef.current = false
       locationFollowingRef.current = false
       locationLastCenteredRef.current = null
     }
-  }, [])
+  }, [stopLocationFollowAnimation])
 
   return (
     <>
