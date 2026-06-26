@@ -113,15 +113,30 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
   return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h))
 }
 
-function nextLocationFollowCenter(
-  current: google.maps.LatLngLiteral,
-  target: google.maps.LatLngLiteral,
-): google.maps.LatLngLiteral {
-  const remaining = distanceMeters(current, target)
-  const followRatio = remaining > 35 ? 0.22 : 0.16
+function userLocationIcon(
+  maps: typeof google.maps,
+  heading: number | null,
+  fillColor = '#0ea5e9',
+  circleScale = 11,
+): google.maps.Symbol {
+  if (typeof heading === 'number' && Number.isFinite(heading)) {
+    return {
+      path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
+      scale: 7,
+      rotation: heading,
+      fillColor,
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 3,
+    }
+  }
   return {
-    lat: current.lat + (target.lat - current.lat) * followRatio,
-    lng: current.lng + (target.lng - current.lng) * followRatio,
+    path: maps.SymbolPath.CIRCLE,
+    scale: circleScale,
+    fillColor,
+    fillOpacity: 1,
+    strokeColor: '#ffffff',
+    strokeWeight: 3,
   }
 }
 
@@ -375,8 +390,6 @@ export default function BusanMapClient() {
   const locationWatchIdRef = useRef<number | null>(null)
   const locationFollowingRef = useRef(false)
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
-  const locationFollowTargetRef = useRef<google.maps.LatLngLiteral | null>(null)
-  const locationFollowFrameRef = useRef<number | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
 
@@ -550,20 +563,10 @@ export default function BusanMapClient() {
         })
         map.addListener('dragstart', () => {
           locationFollowingRef.current = false
-          locationFollowTargetRef.current = null
-          if (locationFollowFrameRef.current !== null) {
-            window.cancelAnimationFrame(locationFollowFrameRef.current)
-            locationFollowFrameRef.current = null
-          }
         })
         map.addListener('zoom_changed', () => {
           if (autoCenteringLocationRef.current || mapMoveFromFocusRef.current) return
           locationFollowingRef.current = false
-          locationFollowTargetRef.current = null
-          if (locationFollowFrameRef.current !== null) {
-            window.cancelAnimationFrame(locationFollowFrameRef.current)
-            locationFollowFrameRef.current = null
-          }
         })
         setMapReady(true)
         setMapError(null)
@@ -844,56 +847,13 @@ export default function BusanMapClient() {
     }, 360)
   }, [])
 
-  const stopLocationFollowAnimation = useCallback(() => {
-    locationFollowTargetRef.current = null
-    if (locationFollowFrameRef.current !== null) {
-      window.cancelAnimationFrame(locationFollowFrameRef.current)
-      locationFollowFrameRef.current = null
-    }
-  }, [])
-
-  const animateLocationFollow = useCallback(
-    (map: google.maps.Map) => {
-      if (locationFollowFrameRef.current !== null) return
-      const step = () => {
-        if (!locationFollowingRef.current) {
-          stopLocationFollowAnimation()
-          return
-        }
-        const target = locationFollowTargetRef.current
-        const center = map.getCenter()
-        if (!target || !center) {
-          locationFollowFrameRef.current = null
-          return
-        }
-        const current = { lat: center.lat(), lng: center.lng() }
-        if (distanceMeters(current, target) < 0.75) {
-          map.setCenter(target)
-          locationFollowFrameRef.current = null
-          return
-        }
-        map.setCenter(nextLocationFollowCenter(current, target))
-        locationFollowFrameRef.current = window.requestAnimationFrame(step)
-      }
-      locationFollowFrameRef.current = window.requestAnimationFrame(step)
-    },
-    [stopLocationFollowAnimation],
-  )
-
   const followUserPositionOnMap = useCallback(
-    (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
+    (map: google.maps.Map, position: google.maps.LatLngLiteral) => {
       markLocationAutoCentering()
-      if (immediate) {
-        stopLocationFollowAnimation()
-        map.panTo(position)
-        if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
-        return
-      }
-      locationFollowTargetRef.current = position
+      map.panTo(position)
       if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
-      animateLocationFollow(map)
     },
-    [animateLocationFollow, markLocationAutoCentering, stopLocationFollowAnimation],
+    [markLocationAutoCentering],
   )
 
   const requestLocation = useCallback(() => {
@@ -903,7 +863,7 @@ export default function BusanMapClient() {
       const map = mapRef.current
       if (position && map) {
         locationFollowingRef.current = true
-        followUserPositionOnMap(map, position, true)
+        followUserPositionOnMap(map, position)
         locationLastCenteredRef.current = position
       }
       return
@@ -914,6 +874,9 @@ export default function BusanMapClient() {
         const lat = pos.coords.latitude
         const lng = pos.coords.longitude
         const position = { lat, lng }
+        const heading =
+          typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading) ? pos.coords.heading : null
+        const icon = userLocationIcon(google.maps, heading)
         userPositionRef.current = position
         const map = mapRef.current
         if (!map || !window.google?.maps) return
@@ -923,17 +886,11 @@ export default function BusanMapClient() {
             position,
             title: '我的位置',
             zIndex: 10,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 11,
-              fillColor: '#0ea5e9',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 3,
-            },
+            icon,
           })
         } else {
           userMarkerRef.current.setPosition(position)
+          userMarkerRef.current.setIcon(icon)
           userMarkerRef.current.setMap(map)
         }
         const lastCentered = locationLastCenteredRef.current
@@ -941,17 +898,16 @@ export default function BusanMapClient() {
           locationFollowingRef.current &&
           (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
         if (shouldRecenter) {
-          followUserPositionOnMap(map, position, !lastCentered)
+          followUserPositionOnMap(map, position)
           locationLastCenteredRef.current = position
         }
       },
       () => {
         locationFollowingRef.current = false
-        stopLocationFollowAnimation()
       },
       { enableHighAccuracy: false, timeout: 12000, maximumAge: 60_000 },
     )
-  }, [followUserPositionOnMap, stopLocationFollowAnimation])
+  }, [followUserPositionOnMap])
 
   useEffect(() => {
     requestLocation()
@@ -967,12 +923,11 @@ export default function BusanMapClient() {
         window.clearTimeout(autoCenteringLocationTimerRef.current)
         autoCenteringLocationTimerRef.current = null
       }
-      stopLocationFollowAnimation()
       autoCenteringLocationRef.current = false
       locationFollowingRef.current = false
       locationLastCenteredRef.current = null
     }
-  }, [stopLocationFollowAnimation])
+  }, [])
 
   return (
     <>

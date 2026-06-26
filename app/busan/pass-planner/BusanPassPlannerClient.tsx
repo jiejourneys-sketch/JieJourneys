@@ -1153,15 +1153,30 @@ function panMapToUserPosition(map: google.maps.Map, center: { lat: number; lng: 
   if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
 }
 
-function nextLocationFollowCenter(
-  current: google.maps.LatLngLiteral,
-  target: google.maps.LatLngLiteral,
-): google.maps.LatLngLiteral {
-  const remaining = distanceMeters(current, target)
-  const followRatio = remaining > 35 ? 0.22 : 0.16
+function userLocationIcon(
+  maps: typeof google.maps,
+  heading: number | null,
+  fillColor = '#2563eb',
+  circleScale = 9,
+): google.maps.Symbol {
+  if (typeof heading === 'number' && Number.isFinite(heading)) {
+    return {
+      path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
+      scale: 6,
+      rotation: heading,
+      fillColor,
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 3,
+    }
+  }
   return {
-    lat: current.lat + (target.lat - current.lat) * followRatio,
-    lng: current.lng + (target.lng - current.lng) * followRatio,
+    path: maps.SymbolPath.CIRCLE,
+    scale: circleScale,
+    fillColor,
+    fillOpacity: 1,
+    strokeColor: '#ffffff',
+    strokeWeight: 3,
   }
 }
 
@@ -2767,8 +2782,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const locationWatchCenteredRef = useRef(false)
   const locationFollowingRef = useRef(false)
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
-  const locationFollowTargetRef = useRef<google.maps.LatLngLiteral | null>(null)
-  const locationFollowFrameRef = useRef<number | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const locateButtonRef = useRef<HTMLButtonElement | null>(null)
@@ -3956,20 +3969,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           if (autoFittingMapRef.current || autoCenteringLocationRef.current) return
           userAdjustedMapRef.current = true
           locationFollowingRef.current = false
-          locationFollowTargetRef.current = null
-          if (locationFollowFrameRef.current !== null) {
-            window.cancelAnimationFrame(locationFollowFrameRef.current)
-            locationFollowFrameRef.current = null
-          }
         })
         mapRef.current.addListener('dragstart', () => {
           userAdjustedMapRef.current = true
           locationFollowingRef.current = false
-          locationFollowTargetRef.current = null
-          if (locationFollowFrameRef.current !== null) {
-            window.cancelAnimationFrame(locationFollowFrameRef.current)
-            locationFollowFrameRef.current = null
-          }
           setMobilePanelOpen(false)
         })
         setMapReady(true)
@@ -4096,56 +4099,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }, 360)
   }, [])
 
-  const stopLocationFollowAnimation = useCallback(() => {
-    locationFollowTargetRef.current = null
-    if (locationFollowFrameRef.current !== null) {
-      window.cancelAnimationFrame(locationFollowFrameRef.current)
-      locationFollowFrameRef.current = null
-    }
-  }, [])
-
-  const animateLocationFollow = useCallback(
-    (map: google.maps.Map) => {
-      if (locationFollowFrameRef.current !== null) return
-      const step = () => {
-        if (!locationFollowingRef.current) {
-          stopLocationFollowAnimation()
-          return
-        }
-        const target = locationFollowTargetRef.current
-        const center = map.getCenter()
-        if (!target || !center) {
-          locationFollowFrameRef.current = null
-          return
-        }
-        const current = { lat: center.lat(), lng: center.lng() }
-        if (distanceMeters(current, target) < 0.75) {
-          map.setCenter(target)
-          locationFollowFrameRef.current = null
-          return
-        }
-        map.setCenter(nextLocationFollowCenter(current, target))
-        locationFollowFrameRef.current = window.requestAnimationFrame(step)
-      }
-      locationFollowFrameRef.current = window.requestAnimationFrame(step)
-    },
-    [stopLocationFollowAnimation],
-  )
-
   const followUserPositionOnMap = useCallback(
-    (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
+    (map: google.maps.Map, position: google.maps.LatLngLiteral) => {
       markLocationAutoCentering()
       userAdjustedMapRef.current = true
-      if (immediate) {
-        stopLocationFollowAnimation()
-        panMapToUserPosition(map, position)
-        return
-      }
-      locationFollowTargetRef.current = position
-      if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
-      animateLocationFollow(map)
+      panMapToUserPosition(map, position)
     },
-    [animateLocationFollow, markLocationAutoCentering, stopLocationFollowAnimation],
+    [markLocationAutoCentering],
   )
 
   const locateUser = useCallback(() => {
@@ -4164,7 +4124,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const position = userPositionRef.current
       if (position) {
         locationFollowingRef.current = true
-        followUserPositionOnMap(map, position, true)
+        followUserPositionOnMap(map, position)
         setMobilePanelOpen(false)
         locationLastCenteredRef.current = position
       }
@@ -4185,6 +4145,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         }
+        const heading =
+          typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading) ? pos.coords.heading : null
+        const icon = userLocationIcon(google.maps, heading)
         userPositionRef.current = position
         if (!userMarkerRef.current) {
           userMarkerRef.current = new google.maps.Marker({
@@ -4192,17 +4155,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             position,
             title: '我的位置',
             zIndex: 5000,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 9,
-              fillColor: '#2563eb',
-              fillOpacity: 1,
-              strokeColor: '#ffffff',
-              strokeWeight: 3,
-            },
+            icon,
           })
         } else {
           userMarkerRef.current.setPosition(position)
+          userMarkerRef.current.setIcon(icon)
           userMarkerRef.current.setMap(map)
         }
         const lastCentered = locationLastCenteredRef.current
@@ -4210,7 +4167,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           locationFollowingRef.current &&
           (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
         if (shouldRecenter) {
-          followUserPositionOnMap(map, position, !lastCentered || !locationWatchCenteredRef.current)
+          followUserPositionOnMap(map, position)
           setMobilePanelOpen(false)
           locationLastCenteredRef.current = position
           locationWatchCenteredRef.current = true
@@ -4226,7 +4183,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           locationWatchIdRef.current = null
           locationWatchCenteredRef.current = false
           locationFollowingRef.current = false
-          stopLocationFollowAnimation()
         }
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
@@ -4244,7 +4200,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         maximumAge: 30000,
       },
     )
-  }, [followUserPositionOnMap, setMobilePanelOpen, stopLocationFollowAnimation])
+  }, [followUserPositionOnMap, setMobilePanelOpen])
 
   useEffect(() => {
     return () => {
@@ -4256,12 +4212,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         window.clearTimeout(autoCenteringLocationTimerRef.current)
         autoCenteringLocationTimerRef.current = null
       }
-      stopLocationFollowAnimation()
       autoCenteringLocationRef.current = false
       locationFollowingRef.current = false
       locationLastCenteredRef.current = null
     }
-  }, [stopLocationFollowAnimation])
+  }, [])
 
   useEffect(() => {
     if (!mapReady || mapError || !mapShellRef.current || locateButtonRef.current) return
