@@ -1154,53 +1154,32 @@ function panMapToUserPosition(map: google.maps.Map, center: { lat: number; lng: 
 }
 
 function userLocationIcon(
-  maps: typeof google.maps,
   heading: number | null,
   fillColor = '#2563eb',
-  circleScale = 9,
-): google.maps.Symbol {
-  if (typeof heading === 'number' && Number.isFinite(heading)) {
-    return {
-      path: maps.SymbolPath.FORWARD_CLOSED_ARROW,
-      scale: 6,
-      rotation: heading,
-      fillColor,
-      fillOpacity: 1,
-      strokeColor: '#ffffff',
-      strokeWeight: 3,
-    }
-  }
+): google.maps.Icon {
+  const cone =
+    typeof heading === 'number' && Number.isFinite(heading)
+      ? `<path d="M48 48 L96 16 A58 58 0 0 1 96 80 Z" fill="#4f7df3" fill-opacity="0.36" transform="rotate(${heading - 90} 48 48)"/>`
+      : ''
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+    <defs>
+      <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.28"/>
+      </filter>
+    </defs>
+    ${cone}
+    <circle cx="48" cy="48" r="20" fill="#ffffff" filter="url(#shadow)"/>
+    <circle cx="48" cy="48" r="13" fill="${fillColor}"/>
+  </svg>`
   return {
-    path: maps.SymbolPath.CIRCLE,
-    scale: circleScale,
-    fillColor,
-    fillOpacity: 1,
-    strokeColor: '#ffffff',
-    strokeWeight: 3,
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`,
+    scaledSize: new google.maps.Size(64, 64),
+    anchor: new google.maps.Point(32, 32),
   }
 }
 
 function locationHeadingFromPosition(pos: GeolocationPosition) {
   return typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading) ? pos.coords.heading : null
-}
-
-function locationHeadingFromOrientation(event: DeviceOrientationEvent) {
-  const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading
-  if (typeof webkitHeading === 'number' && Number.isFinite(webkitHeading)) return webkitHeading
-  return typeof event.alpha === 'number' && Number.isFinite(event.alpha) ? (360 - event.alpha + 360) % 360 : null
-}
-
-async function requestDeviceOrientationAccess() {
-  if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) return
-  const orientationEvent = window.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
-    requestPermission?: () => Promise<PermissionState>
-  }
-  if (typeof orientationEvent.requestPermission !== 'function') return
-  try {
-    await orientationEvent.requestPermission()
-  } catch {
-    // Some in-app browsers expose the API but reject outside their own permission flow.
-  }
 }
 
 function easeOutCubic(t: number) {
@@ -2833,7 +2812,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationAnimationFrameRef = useRef<number | null>(null)
   const locationHeadingRef = useRef<number | null>(null)
-  const deviceHeadingRef = useRef<number | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const locateButtonRef = useRef<HTMLButtonElement | null>(null)
@@ -4152,33 +4130,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [])
 
   const currentLocationHeading = useCallback(
-    () => locationHeadingRef.current ?? deviceHeadingRef.current,
+    () => locationHeadingRef.current,
     [],
   )
-
-  const updateUserMarkerIcon = useCallback(
-    (heading = currentLocationHeading()) => {
-      if (!userMarkerRef.current || !window.google?.maps) return
-      userMarkerRef.current.setIcon(userLocationIcon(google.maps, heading))
-    },
-    [currentLocationHeading],
-  )
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) return
-    const handleOrientation = (event: DeviceOrientationEvent) => {
-      const heading = locationHeadingFromOrientation(event)
-      if (heading === null) return
-      deviceHeadingRef.current = heading
-      if (locationHeadingRef.current === null) updateUserMarkerIcon(heading)
-    }
-    window.addEventListener('deviceorientationabsolute', handleOrientation)
-    window.addEventListener('deviceorientation', handleOrientation)
-    return () => {
-      window.removeEventListener('deviceorientationabsolute', handleOrientation)
-      window.removeEventListener('deviceorientation', handleOrientation)
-    }
-  }, [updateUserMarkerIcon])
 
   const stopLocationAnimation = useCallback(() => {
     if (locationAnimationFrameRef.current !== null) {
@@ -4232,7 +4186,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
       return
     }
-    void requestDeviceOrientationAccess()
 
     if (locationWatchIdRef.current !== null) {
       setLocationPromptOpen(false)
@@ -4271,7 +4224,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         } else if (travelHeading !== null) {
           locationHeadingRef.current = travelHeading
         }
-        const icon = userLocationIcon(google.maps, currentLocationHeading())
+        const icon = userLocationIcon(currentLocationHeading())
         userPositionRef.current = position
         if (!userMarkerRef.current) {
           locationRenderedPositionRef.current = position
