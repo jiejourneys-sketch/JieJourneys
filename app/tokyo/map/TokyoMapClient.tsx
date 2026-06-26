@@ -448,6 +448,7 @@ export default function TokyoMapClient() {
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
   const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationWatchIdRef = useRef<number | null>(null)
+  const locationFollowModeRef = useRef<'idle' | 'follow' | 'heading'>('idle')
   const locationFollowingRef = useRef(false)
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
@@ -655,6 +656,7 @@ export default function TokyoMapClient() {
     }
 
     let cancelled = false
+    const cleanupFns: Array<() => void> = []
     ;(async () => {
       try {
         await loadGoogleMapsScript(apiKey)
@@ -675,15 +677,21 @@ export default function TokyoMapClient() {
         google.maps.event.addListenerOnce(map, 'idle', () => {
           mapLayoutIdleRef.current = true
         })
-        map.addListener('dragstart', () => {
+        const stopFollowingFromMapGesture = () => {
           if (locationAnimationFrameRef.current !== null) {
             window.cancelAnimationFrame(locationAnimationFrameRef.current)
             locationAnimationFrameRef.current = null
           }
+          locationFollowModeRef.current = 'idle'
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
           map.setHeading(0)
-        })
+        }
+        const mapElement = mapElRef.current
+        mapElement.addEventListener('pointerdown', stopFollowingFromMapGesture, { passive: true })
+        cleanupFns.push(() => mapElement.removeEventListener('pointerdown', stopFollowingFromMapGesture))
+        const dragListener = map.addListener('dragstart', stopFollowingFromMapGesture)
+        cleanupFns.push(() => dragListener.remove())
         setMapReady(true)
         setMapError(null)
         syncMarkers(filteredPlaces)
@@ -694,6 +702,7 @@ export default function TokyoMapClient() {
 
     return () => {
       cancelled = true
+      cleanupFns.forEach((cleanup) => cleanup())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once when key exists
   }, [apiKey])
@@ -1062,8 +1071,10 @@ export default function TokyoMapClient() {
       const position = userPositionRef.current
       const map = mapRef.current
       if (position && map) {
-        const nextHeadingUp = locationFollowingRef.current && !locationHeadingUpRef.current
+        const nextMode = locationFollowModeRef.current === 'follow' ? 'heading' : 'follow'
+        locationFollowModeRef.current = nextMode
         locationFollowingRef.current = true
+        const nextHeadingUp = nextMode === 'heading'
         locationHeadingUpRef.current = nextHeadingUp
         applyLocationMapHeading(map)
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
@@ -1072,6 +1083,7 @@ export default function TokyoMapClient() {
       }
       return
     }
+    locationFollowModeRef.current = 'follow'
     locationFollowingRef.current = true
     locationHeadingUpRef.current = false
     const initialMap = mapRef.current
@@ -1118,6 +1130,7 @@ export default function TokyoMapClient() {
         }
       },
       () => {
+        locationFollowModeRef.current = 'idle'
         locationFollowingRef.current = false
         stopLocationAnimation()
       },
@@ -1135,6 +1148,7 @@ export default function TokyoMapClient() {
         navigator.geolocation.clearWatch(locationWatchIdRef.current)
         locationWatchIdRef.current = null
       }
+      locationFollowModeRef.current = 'idle'
       if (autoCenteringLocationTimerRef.current !== null) {
         window.clearTimeout(autoCenteringLocationTimerRef.current)
         autoCenteringLocationTimerRef.current = null

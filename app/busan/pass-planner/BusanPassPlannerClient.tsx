@@ -2850,6 +2850,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationWatchIdRef = useRef<number | null>(null)
   const locationWatchCenteredRef = useRef(false)
+  const locationFollowModeRef = useRef<'idle' | 'follow' | 'heading'>('idle')
   const locationFollowingRef = useRef(false)
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
@@ -4018,11 +4019,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (mapRef.current) return
 
     let cancelled = false
+    const cleanupFns: Array<() => void> = []
     ;(async () => {
       try {
         await loadGoogleMapsScript(apiKey)
         if (cancelled || !mapElRef.current) return
-        mapRef.current = new google.maps.Map(mapElRef.current, {
+        const mapElement = mapElRef.current
+        mapRef.current = new google.maps.Map(mapElement, {
           center: mapCenter,
           zoom: config.mapZoom,
           disableDefaultUI: true,
@@ -4047,18 +4050,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           if (autoFittingMapRef.current || autoCenteringLocationRef.current) return
           userAdjustedMapRef.current = true
         })
-        mapRef.current.addListener('dragstart', () => {
+        const stopFollowingFromMapGesture = () => {
           if (locationAnimationFrameRef.current !== null) {
             window.cancelAnimationFrame(locationAnimationFrameRef.current)
             locationAnimationFrameRef.current = null
           }
           userAdjustedMapRef.current = true
+          locationFollowModeRef.current = 'idle'
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
           setLocationHeadingUpActive(false)
           mapRef.current?.setHeading(0)
           setMobilePanelOpen(false)
-        })
+        }
+        mapElement.addEventListener('pointerdown', stopFollowingFromMapGesture, { passive: true })
+        cleanupFns.push(() => mapElement.removeEventListener('pointerdown', stopFollowingFromMapGesture))
+        const dragListener = mapRef.current.addListener('dragstart', stopFollowingFromMapGesture)
+        cleanupFns.push(() => dragListener.remove())
         setMapReady(true)
         setMapError(null)
       } catch {
@@ -4068,6 +4076,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     return () => {
       cancelled = true
+      cleanupFns.forEach((cleanup) => cleanup())
     }
   }, [apiKey, mapCenter, config.mapZoom, setMobilePanelOpen])
 
@@ -4294,8 +4303,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setLocationPromptOpen(false)
       const position = userPositionRef.current
       if (position) {
-        const nextHeadingUp = locationFollowingRef.current && !locationHeadingUpRef.current
+        const nextMode = locationFollowModeRef.current === 'follow' ? 'heading' : 'follow'
+        locationFollowModeRef.current = nextMode
         locationFollowingRef.current = true
+        const nextHeadingUp = nextMode === 'heading'
         locationHeadingUpRef.current = nextHeadingUp
         setLocationHeadingUpActive(nextHeadingUp)
         applyLocationMapHeading(map)
@@ -4311,6 +4322,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setLocationPromptMessage('')
     locateButtonRef.current?.setAttribute('disabled', 'true')
     locationWatchCenteredRef.current = false
+    locationFollowModeRef.current = 'follow'
     locationFollowingRef.current = true
     locationHeadingUpRef.current = false
     setLocationHeadingUpActive(false)
@@ -4369,6 +4381,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           navigator.geolocation.clearWatch(locationWatchIdRef.current)
           locationWatchIdRef.current = null
           locationWatchCenteredRef.current = false
+          locationFollowModeRef.current = 'idle'
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
           setLocationHeadingUpActive(false)
@@ -4398,6 +4411,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         navigator.geolocation.clearWatch(locationWatchIdRef.current)
         locationWatchIdRef.current = null
       }
+      locationFollowModeRef.current = 'idle'
       if (autoCenteringLocationTimerRef.current !== null) {
         window.clearTimeout(autoCenteringLocationTimerRef.current)
         autoCenteringLocationTimerRef.current = null

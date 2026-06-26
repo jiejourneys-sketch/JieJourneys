@@ -764,6 +764,7 @@ export default function MapClient({
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
   const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationWatchIdRef = useRef<number | null>(null)
+  const locationFollowModeRef = useRef<'idle' | 'follow' | 'heading'>('idle')
   const locationFollowingRef = useRef(false)
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
@@ -1090,6 +1091,7 @@ export default function MapClient({
     }
 
     let cancelled = false
+    const cleanupFns: Array<() => void> = []
     ;(async () => {
       try {
         await loadGoogleMapsScript(apiKey)
@@ -1112,16 +1114,22 @@ export default function MapClient({
         google.maps.event.addListenerOnce(map, 'idle', () => {
           mapLayoutIdleRef.current = true
         })
-        map.addListener('dragstart', () => {
+        const stopFollowingFromMapGesture = () => {
           if (locationAnimationFrameRef.current !== null) {
             window.cancelAnimationFrame(locationAnimationFrameRef.current)
             locationAnimationFrameRef.current = null
           }
+          locationFollowModeRef.current = 'idle'
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
           setLocationHeadingUpActive(false)
           map.setHeading(0)
-        })
+        }
+        const mapElement = mapElRef.current
+        mapElement.addEventListener('pointerdown', stopFollowingFromMapGesture, { passive: true })
+        cleanupFns.push(() => mapElement.removeEventListener('pointerdown', stopFollowingFromMapGesture))
+        const dragListener = map.addListener('dragstart', stopFollowingFromMapGesture)
+        cleanupFns.push(() => dragListener.remove())
         setMapReady(true)
         setMapError(null)
         syncMarkers(filteredPlaces)
@@ -1132,6 +1140,7 @@ export default function MapClient({
 
     return () => {
       cancelled = true
+      cleanupFns.forEach((cleanup) => cleanup())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init once when key exists
   }, [apiKey])
@@ -1666,8 +1675,10 @@ export default function MapClient({
       setLocationPromptOpen(false)
       const position = userPositionRef.current
       if (position) {
-        const nextHeadingUp = locationFollowingRef.current && !locationHeadingUpRef.current
+        const nextMode = locationFollowModeRef.current === 'follow' ? 'heading' : 'follow'
+        locationFollowModeRef.current = nextMode
         locationFollowingRef.current = true
+        const nextHeadingUp = nextMode === 'heading'
         locationHeadingUpRef.current = nextHeadingUp
         setLocationHeadingUpActive(nextHeadingUp)
         applyLocationMapHeading(map)
@@ -1680,6 +1691,7 @@ export default function MapClient({
 
     setLocationRequesting(true)
     setLocationPromptMessage('')
+    locationFollowModeRef.current = 'follow'
     locationFollowingRef.current = true
     locationHeadingUpRef.current = false
     setLocationHeadingUpActive(false)
@@ -1731,6 +1743,7 @@ export default function MapClient({
         if (error.code === error.PERMISSION_DENIED && locationWatchIdRef.current !== null) {
           navigator.geolocation.clearWatch(locationWatchIdRef.current)
           locationWatchIdRef.current = null
+          locationFollowModeRef.current = 'idle'
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
           setLocationHeadingUpActive(false)
@@ -1756,6 +1769,7 @@ export default function MapClient({
         navigator.geolocation.clearWatch(locationWatchIdRef.current)
         locationWatchIdRef.current = null
       }
+      locationFollowModeRef.current = 'idle'
       if (autoCenteringLocationTimerRef.current !== null) {
         window.clearTimeout(autoCenteringLocationTimerRef.current)
         autoCenteringLocationTimerRef.current = null
