@@ -4033,10 +4033,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           streetViewControl: false,
           fullscreenControl: false,
           gestureHandling: 'greedy',
+          draggable: true,
           scrollwheel: true,
           zoomControl: false,
           renderingType: google.maps.RenderingType.VECTOR,
         })
+        mapRef.current.setOptions({ gestureHandling: 'greedy', draggable: true })
         mapRef.current.addListener('click', (e: google.maps.MapMouseEvent) => {
           if (customDraftRef.current.picking && e.latLng) {
             const lat = e.latLng.lat()
@@ -4063,6 +4065,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           mapRef.current?.setHeading(0)
           setMobilePanelOpen(false)
         }
+        const keepTouchOnMap = (event: TouchEvent) => {
+          if (event.cancelable) event.preventDefault()
+        }
+        mapElement.addEventListener('touchstart', keepTouchOnMap, { passive: false })
+        mapElement.addEventListener('touchmove', keepTouchOnMap, { passive: false })
+        cleanupFns.push(() => {
+          mapElement.removeEventListener('touchstart', keepTouchOnMap)
+          mapElement.removeEventListener('touchmove', keepTouchOnMap)
+        })
         mapElement.addEventListener('pointerdown', stopFollowingFromMapGesture, { passive: true })
         cleanupFns.push(() => mapElement.removeEventListener('pointerdown', stopFollowingFromMapGesture))
         const dragListener = mapRef.current.addListener('dragstart', stopFollowingFromMapGesture)

@@ -1104,11 +1104,13 @@ export default function MapClient({
           fullscreenControl: false,
           cameraControl: false,
           gestureHandling: 'greedy',
+          draggable: true,
           scrollwheel: true,
           zoomControl: false,
           renderingType: google.maps.RenderingType.VECTOR,
         }
         const map = new google.maps.Map(mapElRef.current, mapOptions)
+        map.setOptions({ gestureHandling: 'greedy', draggable: true })
         mapRef.current = map
         mapLayoutIdleRef.current = false
         google.maps.event.addListenerOnce(map, 'idle', () => {
@@ -1126,6 +1128,15 @@ export default function MapClient({
           map.setHeading(0)
         }
         const mapElement = mapElRef.current
+        const keepTouchOnMap = (event: TouchEvent) => {
+          if (event.cancelable) event.preventDefault()
+        }
+        mapElement.addEventListener('touchstart', keepTouchOnMap, { passive: false })
+        mapElement.addEventListener('touchmove', keepTouchOnMap, { passive: false })
+        cleanupFns.push(() => {
+          mapElement.removeEventListener('touchstart', keepTouchOnMap)
+          mapElement.removeEventListener('touchmove', keepTouchOnMap)
+        })
         mapElement.addEventListener('pointerdown', stopFollowingFromMapGesture, { passive: true })
         cleanupFns.push(() => mapElement.removeEventListener('pointerdown', stopFollowingFromMapGesture))
         const dragListener = map.addListener('dragstart', stopFollowingFromMapGesture)
