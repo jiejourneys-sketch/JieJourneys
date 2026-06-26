@@ -4442,12 +4442,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     iconDot.setAttribute('aria-hidden', 'true')
     button.append(iconDot)
     const openPrompt = () => {
-      if (userPositionRef.current || locationWatchIdRef.current !== null) {
-        locateUser()
-        return
-      }
       setLocationPromptMessage('')
-      setLocationPromptOpen(true)
+      locateUser()
     }
     button.addEventListener('click', openPrompt)
     mapShellRef.current.append(button)

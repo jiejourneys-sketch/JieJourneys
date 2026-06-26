@@ -2034,12 +2034,8 @@ export default function MapClient({
                       data-platform="geolocation"
                       data-section="map"
                       onClick={() => {
-                        if (userPositionRef.current || locationWatchIdRef.current !== null) {
-                          locateUser()
-                          return
-                        }
                         setLocationPromptMessage('')
-                        setLocationPromptOpen(true)
+                        locateUser()
                       }}
                     >
                       <span aria-hidden="true" />

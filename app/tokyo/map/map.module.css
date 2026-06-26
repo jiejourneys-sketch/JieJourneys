@@ -895,6 +895,12 @@
   .mapCanvas {
     min-height: 0;
     height: 100%;
+    overscroll-behavior: contain;
+    touch-action: none;
+  }
+
+  .mapCanvas :global(*) {
+    touch-action: none !important;
   }
 
   .mapLocateButton {

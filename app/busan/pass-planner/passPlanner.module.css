@@ -2986,6 +2986,15 @@
     height: 100%;
   }
 
+  .mapCanvas {
+    overscroll-behavior: contain;
+    touch-action: none;
+  }
+
+  .mapCanvas :global(*) {
+    touch-action: none !important;
+  }
+
   .mapLocateButton {
     right: 12px;
     bottom: 88px;
