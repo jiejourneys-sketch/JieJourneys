@@ -4045,6 +4045,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         })
         mapRef.current.addListener('zoom_changed', () => {
           if (autoFittingMapRef.current || autoCenteringLocationRef.current) return
+          if (locationAnimationFrameRef.current !== null) {
+            window.cancelAnimationFrame(locationAnimationFrameRef.current)
+            locationAnimationFrameRef.current = null
+          }
           userAdjustedMapRef.current = true
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
@@ -4052,6 +4056,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           mapRef.current?.setHeading(0)
         })
         mapRef.current.addListener('dragstart', () => {
+          if (locationAnimationFrameRef.current !== null) {
+            window.cancelAnimationFrame(locationAnimationFrameRef.current)
+            locationAnimationFrameRef.current = null
+          }
           userAdjustedMapRef.current = true
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
@@ -4223,12 +4231,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [])
 
+  const applyLocationZoom = useCallback((map: google.maps.Map, force = false) => {
+    const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
+    const currentZoom = map.getZoom() ?? 0
+    if (force || currentZoom < targetZoom) map.setZoom(targetZoom)
+  }, [])
+
   const followUserPositionOnMap = useCallback(
     (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
       markLocationAutoCentering()
       userAdjustedMapRef.current = true
-      const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
-      if ((map.getZoom() ?? 0) < targetZoom) map.setZoom(targetZoom)
+      applyLocationZoom(map, immediate)
       const marker = userMarkerRef.current
       const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
       stopLocationAnimation()
@@ -4256,7 +4269,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       locationAnimationFrameRef.current = window.requestAnimationFrame(step)
     },
-    [markLocationAutoCentering, stopLocationAnimation],
+    [applyLocationZoom, markLocationAutoCentering, stopLocationAnimation],
   )
 
   useEffect(() => {
@@ -4289,10 +4302,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setLocationPromptOpen(false)
       const position = userPositionRef.current
       if (position) {
-        const enableHeadingUp = locationFollowingRef.current
+        const nextHeadingUp = locationFollowingRef.current && !locationHeadingUpRef.current
         locationFollowingRef.current = true
-        locationHeadingUpRef.current = enableHeadingUp
-        setLocationHeadingUpActive(enableHeadingUp)
+        locationHeadingUpRef.current = nextHeadingUp
+        setLocationHeadingUpActive(nextHeadingUp)
         applyLocationMapHeading(map)
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)

@@ -1113,6 +1113,10 @@ export default function MapClient({
           mapLayoutIdleRef.current = true
         })
         map.addListener('dragstart', () => {
+          if (locationAnimationFrameRef.current !== null) {
+            window.cancelAnimationFrame(locationAnimationFrameRef.current)
+            locationAnimationFrameRef.current = null
+          }
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
           setLocationHeadingUpActive(false)
@@ -1120,6 +1124,10 @@ export default function MapClient({
         })
         map.addListener('zoom_changed', () => {
           if (autoCenteringLocationRef.current || mapMoveFromFocusRef.current) return
+          if (locationAnimationFrameRef.current !== null) {
+            window.cancelAnimationFrame(locationAnimationFrameRef.current)
+            locationAnimationFrameRef.current = null
+          }
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
           setLocationHeadingUpActive(false)
@@ -1322,11 +1330,16 @@ export default function MapClient({
     }
   }, [])
 
+  const applyLocationZoom = useCallback((map: google.maps.Map, force = false) => {
+    const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
+    const currentZoom = map.getZoom() ?? 0
+    if (force || currentZoom < targetZoom) map.setZoom(targetZoom)
+  }, [])
+
   const followUserPositionOnMap = useCallback(
     (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
       markLocationAutoCentering()
-      const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
-      if ((map.getZoom() ?? 0) < targetZoom) map.setZoom(targetZoom)
+      applyLocationZoom(map, immediate)
       const marker = userMarkerRef.current
       const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
       stopLocationAnimation()
@@ -1354,7 +1367,7 @@ export default function MapClient({
       }
       locationAnimationFrameRef.current = window.requestAnimationFrame(step)
     },
-    [markLocationAutoCentering, stopLocationAnimation],
+    [applyLocationZoom, markLocationAutoCentering, stopLocationAnimation],
   )
 
   useEffect(() => {
@@ -1664,10 +1677,10 @@ export default function MapClient({
       setLocationPromptOpen(false)
       const position = userPositionRef.current
       if (position) {
-        const enableHeadingUp = locationFollowingRef.current
+        const nextHeadingUp = locationFollowingRef.current && !locationHeadingUpRef.current
         locationFollowingRef.current = true
-        locationHeadingUpRef.current = enableHeadingUp
-        setLocationHeadingUpActive(enableHeadingUp)
+        locationHeadingUpRef.current = nextHeadingUp
+        setLocationHeadingUpActive(nextHeadingUp)
         applyLocationMapHeading(map)
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
