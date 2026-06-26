@@ -684,16 +684,6 @@ export default function TokyoMapClient() {
           locationHeadingUpRef.current = false
           map.setHeading(0)
         })
-        map.addListener('zoom_changed', () => {
-          if (autoCenteringLocationRef.current || mapMoveFromFocusRef.current) return
-          if (locationAnimationFrameRef.current !== null) {
-            window.cancelAnimationFrame(locationAnimationFrameRef.current)
-            locationAnimationFrameRef.current = null
-          }
-          locationFollowingRef.current = false
-          locationHeadingUpRef.current = false
-          map.setHeading(0)
-        })
         setMapReady(true)
         setMapError(null)
         syncMarkers(filteredPlaces)
@@ -1020,7 +1010,7 @@ export default function TokyoMapClient() {
   const followUserPositionOnMap = useCallback(
     (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
       markLocationAutoCentering()
-      applyLocationZoom(map, immediate)
+      if (immediate) applyLocationZoom(map, true)
       const marker = userMarkerRef.current
       const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
       stopLocationAnimation()
