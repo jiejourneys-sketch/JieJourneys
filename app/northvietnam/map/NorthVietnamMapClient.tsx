@@ -106,7 +106,7 @@ function userLocationIcon(
 ): google.maps.Icon {
   const cone =
     typeof heading === 'number' && Number.isFinite(heading)
-      ? `<path d="M48 48 L96 16 A58 58 0 0 1 96 80 Z" fill="#4f7df3" fill-opacity="0.36" transform="rotate(${heading - 90} 48 48)"/>`
+      ? `<path d="M48 48 L17 0 A58 58 0 0 1 79 0 Z" fill="#4f7df3" fill-opacity="0.42" transform="rotate(${heading} 48 48)"/>`
       : ''
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
     <defs>
@@ -115,13 +115,13 @@ function userLocationIcon(
       </filter>
     </defs>
     ${cone}
-    <circle cx="48" cy="48" r="20" fill="#ffffff" filter="url(#shadow)"/>
-    <circle cx="48" cy="48" r="13" fill="${fillColor}"/>
+    <circle cx="48" cy="48" r="18" fill="#ffffff" filter="url(#shadow)"/>
+    <circle cx="48" cy="48" r="11" fill="${fillColor}"/>
   </svg>`
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`,
-    scaledSize: new google.maps.Size(64, 64),
-    anchor: new google.maps.Point(32, 32),
+    scaledSize: new google.maps.Size(68, 68),
+    anchor: new google.maps.Point(34, 34),
   }
 }
 
@@ -152,6 +152,21 @@ function movementHeading(from: google.maps.LatLngLiteral, to: google.maps.LatLng
   const y = Math.sin(dLng) * Math.cos(lat2)
   const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
+}
+
+function reliableMovementHeading(
+  pos: GeolocationPosition,
+  from: google.maps.LatLngLiteral | null,
+  to: google.maps.LatLngLiteral,
+) {
+  if (!from) return null
+  const distance = distanceMeters(from, to)
+  const speed = typeof pos.coords.speed === 'number' && Number.isFinite(pos.coords.speed) ? pos.coords.speed : null
+  const accuracy =
+    typeof pos.coords.accuracy === 'number' && Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null
+  if (speed !== null && speed < 0.7 && distance < 12) return null
+  const minDistance = speed !== null && speed >= 0.7 ? 2.5 : Math.max(6, Math.min(18, (accuracy ?? 20) * 0.35))
+  return distance >= minDistance ? movementHeading(from, to) : null
 }
 
 const MAP_URL_PLACEHOLDER_TOKEN = 'PASTE_YOUR_MAPS_LINK'
@@ -975,11 +990,9 @@ export default function NorthVietnamMapClient() {
         const position = { lat, lng }
         const gpsHeading = locationHeadingFromPosition(pos)
         const renderedPosition = locationRenderedPositionRef.current
-        const travelHeading =
-          renderedPosition && distanceMeters(renderedPosition, position) >= 0.5
-            ? movementHeading(renderedPosition, position)
-            : null
-        if (gpsHeading !== null) {
+        const travelHeading = reliableMovementHeading(pos, renderedPosition, position)
+        const speed = typeof pos.coords.speed === 'number' && Number.isFinite(pos.coords.speed) ? pos.coords.speed : null
+        if (gpsHeading !== null && (speed === null || speed >= 0.7)) {
           locationHeadingRef.current = gpsHeading
         } else if (travelHeading !== null) {
           locationHeadingRef.current = travelHeading
