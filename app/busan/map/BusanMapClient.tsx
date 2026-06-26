@@ -119,7 +119,7 @@ function userLocationIcon(
 ): google.maps.Icon {
   const cone =
     typeof heading === 'number' && Number.isFinite(heading)
-      ? `<path d="M48 48 L17 0 A58 58 0 0 1 79 0 Z" fill="#4f7df3" fill-opacity="0.42" transform="rotate(${heading} 48 48)"/>`
+      ? `<path d="M48 48 L22 10 A48 48 0 0 1 74 10 Z" fill="#4f7df3" fill-opacity="0.42" transform="rotate(${heading} 48 48)"/>`
       : ''
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
     <defs>
@@ -435,6 +435,7 @@ export default function BusanMapClient() {
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationAnimationFrameRef = useRef<number | null>(null)
   const locationHeadingRef = useRef<number | null>(null)
+  const locationHeadingUpRef = useRef(false)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
 
@@ -599,6 +600,7 @@ export default function BusanMapClient() {
           gestureHandling: 'greedy',
           scrollwheel: true,
           zoomControl: false,
+          renderingType: google.maps.RenderingType.VECTOR,
         }
         const map = new google.maps.Map(mapElRef.current, mapOptions)
         mapRef.current = map
@@ -608,10 +610,14 @@ export default function BusanMapClient() {
         })
         map.addListener('dragstart', () => {
           locationFollowingRef.current = false
+          locationHeadingUpRef.current = false
+          map.setHeading(0)
         })
         map.addListener('zoom_changed', () => {
           if (autoCenteringLocationRef.current || mapMoveFromFocusRef.current) return
           locationFollowingRef.current = false
+          locationHeadingUpRef.current = false
+          map.setHeading(0)
         })
         setMapReady(true)
         setMapError(null)
@@ -892,10 +898,20 @@ export default function BusanMapClient() {
     }, 360)
   }, [])
 
-  const currentLocationHeading = useCallback(
-    () => locationHeadingRef.current,
-    [],
-  )
+  const currentLocationIconHeading = useCallback(() => {
+    const heading = locationHeadingRef.current
+    if (heading === null) return null
+    return locationHeadingUpRef.current ? 0 : heading
+  }, [])
+
+  const applyLocationMapHeading = useCallback((map: google.maps.Map) => {
+    if (!locationHeadingUpRef.current) {
+      map.setHeading(0)
+      return
+    }
+    const heading = locationHeadingRef.current
+    if (heading !== null) map.setHeading(heading)
+  }, [])
 
   const stopLocationAnimation = useCallback(() => {
     if (locationAnimationFrameRef.current !== null) {
@@ -944,13 +960,20 @@ export default function BusanMapClient() {
       const position = userPositionRef.current
       const map = mapRef.current
       if (position && map) {
+        const enableHeadingUp = locationFollowingRef.current
         locationFollowingRef.current = true
+        locationHeadingUpRef.current = enableHeadingUp
+        applyLocationMapHeading(map)
+        userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
         locationLastCenteredRef.current = position
       }
       return
     }
     locationFollowingRef.current = true
+    locationHeadingUpRef.current = false
+    const initialMap = mapRef.current
+    if (initialMap) applyLocationMapHeading(initialMap)
     locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const lat = pos.coords.latitude
@@ -965,10 +988,11 @@ export default function BusanMapClient() {
         } else if (travelHeading !== null) {
           locationHeadingRef.current = travelHeading
         }
-        const icon = userLocationIcon(currentLocationHeading())
         userPositionRef.current = position
         const map = mapRef.current
         if (!map || !window.google?.maps) return
+        applyLocationMapHeading(map)
+        const icon = userLocationIcon(currentLocationIconHeading())
         if (!userMarkerRef.current) {
           locationRenderedPositionRef.current = position
           userMarkerRef.current = new google.maps.Marker({
@@ -997,7 +1021,7 @@ export default function BusanMapClient() {
       },
       { enableHighAccuracy: false, timeout: 12000, maximumAge: 60_000 },
     )
-  }, [currentLocationHeading, followUserPositionOnMap, stopLocationAnimation])
+  }, [applyLocationMapHeading, currentLocationIconHeading, followUserPositionOnMap, stopLocationAnimation])
 
   useEffect(() => {
     requestLocation()
@@ -1019,6 +1043,7 @@ export default function BusanMapClient() {
       locationLastCenteredRef.current = null
       locationRenderedPositionRef.current = null
       locationHeadingRef.current = null
+      locationHeadingUpRef.current = false
     }
   }, [stopLocationAnimation])
 

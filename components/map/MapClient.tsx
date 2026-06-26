@@ -160,7 +160,7 @@ function userLocationIcon(
 ): google.maps.Icon {
   const cone =
     typeof heading === 'number' && Number.isFinite(heading)
-      ? `<path d="M48 48 L17 0 A58 58 0 0 1 79 0 Z" fill="#4f7df3" fill-opacity="0.42" transform="rotate(${heading} 48 48)"/>`
+      ? `<path d="M48 48 L22 10 A48 48 0 0 1 74 10 Z" fill="#4f7df3" fill-opacity="0.42" transform="rotate(${heading} 48 48)"/>`
       : ''
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
     <defs>
@@ -741,6 +741,7 @@ export default function MapClient({
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationAnimationFrameRef = useRef<number | null>(null)
   const locationHeadingRef = useRef<number | null>(null)
+  const locationHeadingUpRef = useRef(false)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const routeLineRefs = useRef<google.maps.Polyline[]>([])
@@ -1072,6 +1073,7 @@ export default function MapClient({
           gestureHandling: 'greedy',
           scrollwheel: true,
           zoomControl: false,
+          renderingType: google.maps.RenderingType.VECTOR,
         }
         const map = new google.maps.Map(mapElRef.current, mapOptions)
         mapRef.current = map
@@ -1081,10 +1083,14 @@ export default function MapClient({
         })
         map.addListener('dragstart', () => {
           locationFollowingRef.current = false
+          locationHeadingUpRef.current = false
+          map.setHeading(0)
         })
         map.addListener('zoom_changed', () => {
           if (autoCenteringLocationRef.current || mapMoveFromFocusRef.current) return
           locationFollowingRef.current = false
+          locationHeadingUpRef.current = false
+          map.setHeading(0)
         })
         setMapReady(true)
         setMapError(null)
@@ -1243,10 +1249,20 @@ export default function MapClient({
     }, 360)
   }, [])
 
-  const currentLocationHeading = useCallback(
-    () => locationHeadingRef.current,
-    [],
-  )
+  const currentLocationIconHeading = useCallback(() => {
+    const heading = locationHeadingRef.current
+    if (heading === null) return null
+    return locationHeadingUpRef.current ? 0 : heading
+  }, [])
+
+  const applyLocationMapHeading = useCallback((map: google.maps.Map) => {
+    if (!locationHeadingUpRef.current) {
+      map.setHeading(0)
+      return
+    }
+    const heading = locationHeadingRef.current
+    if (heading !== null) map.setHeading(heading)
+  }, [])
 
   const stopLocationAnimation = useCallback(() => {
     if (locationAnimationFrameRef.current !== null) {
@@ -1581,7 +1597,11 @@ export default function MapClient({
       setLocationPromptOpen(false)
       const position = userPositionRef.current
       if (position) {
+        const enableHeadingUp = locationFollowingRef.current
         locationFollowingRef.current = true
+        locationHeadingUpRef.current = enableHeadingUp
+        applyLocationMapHeading(map)
+        userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
         locationLastCenteredRef.current = position
       }
@@ -1591,6 +1611,8 @@ export default function MapClient({
     setLocationRequesting(true)
     setLocationPromptMessage('')
     locationFollowingRef.current = true
+    locationHeadingUpRef.current = false
+    applyLocationMapHeading(map)
     locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setLocationRequesting(false)
@@ -1608,7 +1630,8 @@ export default function MapClient({
         } else if (travelHeading !== null) {
           locationHeadingRef.current = travelHeading
         }
-        const icon = userLocationIcon(currentLocationHeading())
+        applyLocationMapHeading(map)
+        const icon = userLocationIcon(currentLocationIconHeading())
         userPositionRef.current = position
         if (!userMarkerRef.current) {
           locationRenderedPositionRef.current = position
@@ -1652,7 +1675,7 @@ export default function MapClient({
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     )
-  }, [currentLocationHeading, followUserPositionOnMap, stopLocationAnimation])
+  }, [applyLocationMapHeading, currentLocationIconHeading, followUserPositionOnMap, stopLocationAnimation])
 
   useEffect(() => {
     return () => {
@@ -1670,6 +1693,7 @@ export default function MapClient({
       locationLastCenteredRef.current = null
       locationRenderedPositionRef.current = null
       locationHeadingRef.current = null
+      locationHeadingUpRef.current = false
     }
   }, [stopLocationAnimation])
 
