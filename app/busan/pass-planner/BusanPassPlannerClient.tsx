@@ -4065,15 +4065,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           mapRef.current?.setHeading(0)
           setMobilePanelOpen(false)
         }
-        const keepTouchOnMap = (event: TouchEvent) => {
-          if (event.cancelable) event.preventDefault()
-        }
-        mapElement.addEventListener('touchstart', keepTouchOnMap, { passive: false })
-        mapElement.addEventListener('touchmove', keepTouchOnMap, { passive: false })
-        cleanupFns.push(() => {
-          mapElement.removeEventListener('touchstart', keepTouchOnMap)
-          mapElement.removeEventListener('touchmove', keepTouchOnMap)
-        })
+        mapElement.addEventListener('touchstart', stopFollowingFromMapGesture, { passive: true })
+        cleanupFns.push(() => mapElement.removeEventListener('touchstart', stopFollowingFromMapGesture))
         mapElement.addEventListener('pointerdown', stopFollowingFromMapGesture, { passive: true })
         cleanupFns.push(() => mapElement.removeEventListener('pointerdown', stopFollowingFromMapGesture))
         const dragListener = mapRef.current.addListener('dragstart', stopFollowingFromMapGesture)
@@ -4243,17 +4236,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [])
 
-  const applyLocationZoom = useCallback((map: google.maps.Map, force = false) => {
+  const applyLocationZoom = useCallback((map: google.maps.Map) => {
     const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
     const currentZoom = map.getZoom() ?? 0
-    if (force || currentZoom < targetZoom) map.setZoom(targetZoom)
+    if (currentZoom < targetZoom) map.setZoom(targetZoom)
   }, [])
 
   const followUserPositionOnMap = useCallback(
     (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
       markLocationAutoCentering()
       userAdjustedMapRef.current = true
-      if (immediate) applyLocationZoom(map, true)
+      if (immediate) applyLocationZoom(map)
       const marker = userMarkerRef.current
       const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
       stopLocationAnimation()
