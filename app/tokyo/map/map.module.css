@@ -899,10 +899,6 @@
     touch-action: none;
   }
 
-  .mapCanvas :global(*) {
-    touch-action: none !important;
-  }
-
   .mapLocateButton {
     bottom: calc(10vh + 24px + env(safe-area-inset-bottom, 0px));
   }

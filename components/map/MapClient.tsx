@@ -195,6 +195,9 @@ function locationHeadingFromOrientation(event: DeviceOrientationEvent) {
   if (event.absolute && typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
     return (360 - event.alpha + 360) % 360
   }
+  if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
+    return (360 - event.alpha + 360) % 360
+  }
   return null
 }
 
@@ -1127,11 +1130,6 @@ export default function MapClient({
           setLocationHeadingUpActive(false)
           map.setHeading(0)
         }
-        const mapElement = mapElRef.current
-        mapElement.addEventListener('touchstart', stopFollowingFromMapGesture, { passive: true })
-        cleanupFns.push(() => mapElement.removeEventListener('touchstart', stopFollowingFromMapGesture))
-        mapElement.addEventListener('pointerdown', stopFollowingFromMapGesture, { passive: true })
-        cleanupFns.push(() => mapElement.removeEventListener('pointerdown', stopFollowingFromMapGesture))
         const dragListener = map.addListener('dragstart', stopFollowingFromMapGesture)
         cleanupFns.push(() => dragListener.remove())
         setMapReady(true)
