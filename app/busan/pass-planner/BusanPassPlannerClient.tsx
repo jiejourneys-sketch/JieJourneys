@@ -110,6 +110,8 @@ type Props = {
 }
 
 const LOCATION_RECENTER_MIN_DISTANCE_METERS = 2
+const LOCATION_FOLLOW_ZOOM = 16
+const LOCATION_HEADING_UP_ZOOM = 18
 
 export type PlannerConfig = {
   storageKey: string
@@ -2853,6 +2855,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationAnimationFrameRef = useRef<number | null>(null)
   const locationHeadingRef = useRef<number | null>(null)
+  const locationCompassHeadingRef = useRef<number | null>(null)
+  const locationCompassHeadingAtRef = useRef(0)
   const locationHeadingUpRef = useRef(false)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
@@ -2945,6 +2949,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [locationPromptOpen, setLocationPromptOpen] = useState(false)
   const [locationPromptMessage, setLocationPromptMessage] = useState('')
   const [locationRequesting, setLocationRequesting] = useState(false)
+  const [locationHeadingUpActive, setLocationHeadingUpActive] = useState(false)
   const [dayView, setDayView] = useState<DayView>('all')
   const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions'>(null)
   const plannerPdfModuleRef = useRef<Promise<typeof import('./plannerPdf')> | null>(null)
@@ -4043,12 +4048,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           userAdjustedMapRef.current = true
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
+          setLocationHeadingUpActive(false)
           mapRef.current?.setHeading(0)
         })
         mapRef.current.addListener('dragstart', () => {
           userAdjustedMapRef.current = true
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
+          setLocationHeadingUpActive(false)
           mapRef.current?.setHeading(0)
           setMobilePanelOpen(false)
         })
@@ -4176,24 +4183,31 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }, 360)
   }, [])
 
+  const currentLocationHeading = useCallback(() => {
+    const compassHeading = locationCompassHeadingRef.current
+    if (compassHeading !== null && Date.now() - locationCompassHeadingAtRef.current < 3000) return compassHeading
+    return locationHeadingRef.current
+  }, [])
+
   const currentLocationIconHeading = useCallback(() => {
-    const heading = locationHeadingRef.current
+    const heading = currentLocationHeading()
     if (heading === null) return null
     return locationHeadingUpRef.current ? 0 : heading
-  }, [])
+  }, [currentLocationHeading])
 
   const applyLocationMapHeading = useCallback((map: google.maps.Map) => {
     if (!locationHeadingUpRef.current) {
       map.setHeading(0)
       return
     }
-    const heading = locationHeadingRef.current
+    const heading = currentLocationHeading()
     if (heading !== null) map.setHeading(heading)
-  }, [])
+  }, [currentLocationHeading])
 
   const applyLocationOrientationHeading = useCallback(
     (heading: number) => {
-      locationHeadingRef.current = heading
+      locationCompassHeadingRef.current = heading
+      locationCompassHeadingAtRef.current = Date.now()
       const map = mapRef.current
       if (!map || !userMarkerRef.current) return
       applyLocationMapHeading(map)
@@ -4213,7 +4227,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
       markLocationAutoCentering()
       userAdjustedMapRef.current = true
-      if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+      const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
+      if ((map.getZoom() ?? 0) < targetZoom) map.setZoom(targetZoom)
       const marker = userMarkerRef.current
       const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
       stopLocationAnimation()
@@ -4277,6 +4292,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const enableHeadingUp = locationFollowingRef.current
         locationFollowingRef.current = true
         locationHeadingUpRef.current = enableHeadingUp
+        setLocationHeadingUpActive(enableHeadingUp)
         applyLocationMapHeading(map)
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
@@ -4292,6 +4308,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     locationWatchCenteredRef.current = false
     locationFollowingRef.current = true
     locationHeadingUpRef.current = false
+    setLocationHeadingUpActive(false)
     applyLocationMapHeading(map)
     locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -4348,6 +4365,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           locationWatchIdRef.current = null
           locationWatchCenteredRef.current = false
           locationFollowingRef.current = false
+          locationHeadingUpRef.current = false
+          setLocationHeadingUpActive(false)
           stopLocationAnimation()
         }
         if (error.code === error.PERMISSION_DENIED) {
@@ -4384,7 +4403,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       locationLastCenteredRef.current = null
       locationRenderedPositionRef.current = null
       locationHeadingRef.current = null
+      locationCompassHeadingRef.current = null
+      locationCompassHeadingAtRef.current = 0
       locationHeadingUpRef.current = false
+      setLocationHeadingUpActive(false)
     }
   }, [stopLocationAnimation])
 
@@ -4418,6 +4440,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (locateButtonRef.current === button) locateButtonRef.current = null
     }
   }, [locateUser, mapError, mapReady])
+
+  useEffect(() => {
+    locateButtonRef.current?.classList.toggle(styles.mapLocateButtonActive, locationHeadingUpActive)
+  }, [locationHeadingUpActive])
 
   const dismissInAppPrompt = useCallback(() => {
     try {

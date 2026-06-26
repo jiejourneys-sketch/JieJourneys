@@ -301,6 +301,27 @@
   transform: translate(-50%, -50%);
 }
 
+.mapLocateButtonActive {
+  border-color: rgba(26, 115, 232, 0.42);
+  background: #e8f0fe;
+}
+
+.mapLocateButtonActive::before {
+  border-color: #1a73e8;
+}
+
+.mapLocateButtonActive::after {
+  background:
+    linear-gradient(#1a73e8, #1a73e8) 50% 0 / 2px 7px no-repeat,
+    linear-gradient(#1a73e8, #1a73e8) 50% 100% / 2px 7px no-repeat,
+    linear-gradient(#1a73e8, #1a73e8) 0 50% / 7px 2px no-repeat,
+    linear-gradient(#1a73e8, #1a73e8) 100% 50% / 7px 2px no-repeat;
+}
+
+.mapLocateButtonActive span {
+  background: #1a73e8;
+}
+
 .mapLocateButton:disabled {
   cursor: default;
   opacity: 0.62;

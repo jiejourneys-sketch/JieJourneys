@@ -83,6 +83,8 @@ function useSiteHeaderHeightPx() {
 /** 與東京地圖共用，避免重複插入 script */
 const SCRIPT_ID = 'gmaps-js'
 const LOCATION_RECENTER_MIN_DISTANCE_METERS = 2
+const LOCATION_FOLLOW_ZOOM = 15
+const LOCATION_HEADING_UP_ZOOM = 18
 
 /** 以目前景點 lat/lng 開啟 Google 地圖釘點（非導航路線） */
 function googleMapsPinUrl(lat: number, lng: number) {
@@ -448,6 +450,8 @@ export default function NorthVietnamMapClient() {
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationAnimationFrameRef = useRef<number | null>(null)
   const locationHeadingRef = useRef<number | null>(null)
+  const locationCompassHeadingRef = useRef<number | null>(null)
+  const locationCompassHeadingAtRef = useRef(0)
   const locationHeadingUpRef = useRef(false)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
@@ -956,24 +960,31 @@ export default function NorthVietnamMapClient() {
     }, 360)
   }, [])
 
+  const currentLocationHeading = useCallback(() => {
+    const compassHeading = locationCompassHeadingRef.current
+    if (compassHeading !== null && Date.now() - locationCompassHeadingAtRef.current < 3000) return compassHeading
+    return locationHeadingRef.current
+  }, [])
+
   const currentLocationIconHeading = useCallback(() => {
-    const heading = locationHeadingRef.current
+    const heading = currentLocationHeading()
     if (heading === null) return null
     return locationHeadingUpRef.current ? 0 : heading
-  }, [])
+  }, [currentLocationHeading])
 
   const applyLocationMapHeading = useCallback((map: google.maps.Map) => {
     if (!locationHeadingUpRef.current) {
       map.setHeading(0)
       return
     }
-    const heading = locationHeadingRef.current
+    const heading = currentLocationHeading()
     if (heading !== null) map.setHeading(heading)
-  }, [])
+  }, [currentLocationHeading])
 
   const applyLocationOrientationHeading = useCallback(
     (heading: number) => {
-      locationHeadingRef.current = heading
+      locationCompassHeadingRef.current = heading
+      locationCompassHeadingAtRef.current = Date.now()
       const map = mapRef.current
       if (!map || !userMarkerRef.current) return
       applyLocationMapHeading(map)
@@ -992,7 +1003,8 @@ export default function NorthVietnamMapClient() {
   const followUserPositionOnMap = useCallback(
     (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
       markLocationAutoCentering()
-      if ((map.getZoom() ?? 0) < 15) map.setZoom(15)
+      const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
+      if ((map.getZoom() ?? 0) < targetZoom) map.setZoom(targetZoom)
       const marker = userMarkerRef.current
       const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
       stopLocationAnimation()
@@ -1127,6 +1139,8 @@ export default function NorthVietnamMapClient() {
       locationLastCenteredRef.current = null
       locationRenderedPositionRef.current = null
       locationHeadingRef.current = null
+      locationCompassHeadingRef.current = null
+      locationCompassHeadingAtRef.current = 0
       locationHeadingUpRef.current = false
     }
   }, [stopLocationAnimation])
