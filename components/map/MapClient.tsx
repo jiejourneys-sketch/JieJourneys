@@ -183,6 +183,32 @@ function locationHeadingFromPosition(pos: GeolocationPosition) {
   return typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading) ? pos.coords.heading : null
 }
 
+type CompassDeviceOrientationEvent = DeviceOrientationEvent & { webkitCompassHeading?: number }
+
+function locationHeadingFromOrientation(event: DeviceOrientationEvent) {
+  const compassEvent = event as CompassDeviceOrientationEvent
+  if (typeof compassEvent.webkitCompassHeading === 'number' && Number.isFinite(compassEvent.webkitCompassHeading)) {
+    return compassEvent.webkitCompassHeading
+  }
+  if (event.absolute && typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
+    return (360 - event.alpha + 360) % 360
+  }
+  return null
+}
+
+async function requestDeviceOrientationAccess() {
+  if (typeof window === 'undefined' || typeof window.DeviceOrientationEvent === 'undefined') return false
+  const orientationEvent = window.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+    requestPermission?: () => Promise<PermissionState>
+  }
+  if (typeof orientationEvent.requestPermission !== 'function') return true
+  try {
+    return (await orientationEvent.requestPermission()) === 'granted'
+  } catch {
+    return false
+  }
+}
+
 function easeOutCubic(t: number) {
   return 1 - Math.pow(1 - t, 3)
 }
@@ -1264,6 +1290,17 @@ export default function MapClient({
     if (heading !== null) map.setHeading(heading)
   }, [])
 
+  const applyLocationOrientationHeading = useCallback(
+    (heading: number) => {
+      locationHeadingRef.current = heading
+      const map = mapRef.current
+      if (!map || !userMarkerRef.current) return
+      applyLocationMapHeading(map)
+      userMarkerRef.current.setIcon(userLocationIcon(currentLocationIconHeading()))
+    },
+    [applyLocationMapHeading, currentLocationIconHeading],
+  )
+
   const stopLocationAnimation = useCallback(() => {
     if (locationAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(locationAnimationFrameRef.current)
@@ -1304,6 +1341,20 @@ export default function MapClient({
     },
     [markLocationAutoCentering, stopLocationAnimation],
   )
+
+  useEffect(() => {
+    const onOrientation = (event: DeviceOrientationEvent) => {
+      const heading = locationHeadingFromOrientation(event)
+      if (heading === null) return
+      applyLocationOrientationHeading(heading)
+    }
+    window.addEventListener('deviceorientationabsolute', onOrientation, true)
+    window.addEventListener('deviceorientation', onOrientation, true)
+    return () => {
+      window.removeEventListener('deviceorientationabsolute', onOrientation, true)
+      window.removeEventListener('deviceorientation', onOrientation, true)
+    }
+  }, [applyLocationOrientationHeading])
 
   useEffect(() => {
     const map = mapRef.current
@@ -1593,6 +1644,7 @@ export default function MapClient({
       setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
       return
     }
+    void requestDeviceOrientationAccess()
     if (locationWatchIdRef.current !== null) {
       setLocationPromptOpen(false)
       const position = userPositionRef.current
