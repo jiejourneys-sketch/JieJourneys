@@ -896,7 +896,7 @@
     min-height: 0;
     height: 100%;
     overscroll-behavior: contain;
-    touch-action: none;
+    touch-action: auto;
   }
 
   .mapLocateButton {

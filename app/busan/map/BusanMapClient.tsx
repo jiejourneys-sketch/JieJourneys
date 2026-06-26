@@ -650,9 +650,6 @@ export default function BusanMapClient() {
           locationHeadingUpRef.current = false
           map.setHeading(0)
         }
-        const mapElement = mapElRef.current
-        mapElement.addEventListener('pointerdown', stopFollowingFromMapGesture, { passive: true })
-        cleanupFns.push(() => mapElement.removeEventListener('pointerdown', stopFollowingFromMapGesture))
         const dragListener = map.addListener('dragstart', stopFollowingFromMapGesture)
         cleanupFns.push(() => dragListener.remove())
         setMapReady(true)
@@ -1031,7 +1028,6 @@ export default function BusanMapClient() {
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) return
-    void requestDeviceOrientationAccess()
     if (locationWatchIdRef.current !== null) {
       const position = userPositionRef.current
       const map = mapRef.current
@@ -1041,6 +1037,7 @@ export default function BusanMapClient() {
         locationFollowingRef.current = true
         const nextHeadingUp = nextMode === 'heading'
         locationHeadingUpRef.current = nextHeadingUp
+        if (nextHeadingUp) void requestDeviceOrientationAccess()
         applyLocationMapHeading(map)
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
@@ -1092,6 +1089,9 @@ export default function BusanMapClient() {
         if (shouldRecenter) {
           followUserPositionOnMap(map, position, !lastCentered)
           locationLastCenteredRef.current = position
+        } else {
+          userMarkerRef.current?.setPosition(position)
+          locationRenderedPositionRef.current = position
         }
       },
       () => {

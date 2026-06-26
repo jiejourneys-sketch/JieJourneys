@@ -2988,7 +2988,7 @@
 
   .mapCanvas {
     overscroll-behavior: contain;
-    touch-action: none;
+    touch-action: auto;
   }
 
   .mapLocateButton {

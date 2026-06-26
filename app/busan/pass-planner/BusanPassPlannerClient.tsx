@@ -4301,7 +4301,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
 
-    void requestDeviceOrientationAccess()
     if (locationWatchIdRef.current !== null) {
       setLocationPromptOpen(false)
       const position = userPositionRef.current
@@ -4312,6 +4311,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const nextHeadingUp = nextMode === 'heading'
         locationHeadingUpRef.current = nextHeadingUp
         setLocationHeadingUpActive(nextHeadingUp)
+        if (nextHeadingUp) void requestDeviceOrientationAccess()
         applyLocationMapHeading(map)
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
@@ -4373,8 +4373,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           setMobilePanelOpen(false)
           locationLastCenteredRef.current = position
           locationWatchCenteredRef.current = true
-        } else if (!locationWatchCenteredRef.current) {
-          locationWatchCenteredRef.current = true
+        } else {
+          userMarkerRef.current?.setPosition(position)
+          locationRenderedPositionRef.current = position
+          if (!locationWatchCenteredRef.current) {
+            locationWatchCenteredRef.current = true
+          }
         }
       },
       (error) => {

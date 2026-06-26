@@ -1672,7 +1672,6 @@ export default function MapClient({
       setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
       return
     }
-    void requestDeviceOrientationAccess()
     if (locationWatchIdRef.current !== null) {
       setLocationPromptOpen(false)
       const position = userPositionRef.current
@@ -1683,6 +1682,7 @@ export default function MapClient({
         const nextHeadingUp = nextMode === 'heading'
         locationHeadingUpRef.current = nextHeadingUp
         setLocationHeadingUpActive(nextHeadingUp)
+        if (nextHeadingUp) void requestDeviceOrientationAccess()
         applyLocationMapHeading(map)
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
@@ -1738,6 +1738,9 @@ export default function MapClient({
         if (shouldRecenter) {
           followUserPositionOnMap(map, position, !lastCentered)
           locationLastCenteredRef.current = position
+        } else {
+          userMarkerRef.current?.setPosition(position)
+          locationRenderedPositionRef.current = position
         }
       },
       (error) => {
