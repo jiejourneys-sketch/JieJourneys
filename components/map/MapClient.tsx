@@ -63,7 +63,7 @@ const CATEGORY_LABEL = CITY_MAP_CATEGORY_LABEL
 
 const DESKTOP_MQ = '(min-width: 960px)'
 const MOBILE_MAP_MQ = '(max-width: 959px)'
-const LOCATION_RECENTER_MIN_DISTANCE_METERS = 8
+const LOCATION_RECENTER_MIN_DISTANCE_METERS = 2
 
 function useMobileMapLayout() {
   const [yes, setYes] = useState(false)
@@ -179,6 +179,54 @@ function userLocationIcon(
     strokeColor: '#ffffff',
     strokeWeight: 3,
   }
+}
+
+function locationHeadingFromPosition(pos: GeolocationPosition) {
+  return typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading) ? pos.coords.heading : null
+}
+
+function locationHeadingFromOrientation(event: DeviceOrientationEvent) {
+  const webkitHeading = (event as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading
+  if (typeof webkitHeading === 'number' && Number.isFinite(webkitHeading)) return webkitHeading
+  return typeof event.alpha === 'number' && Number.isFinite(event.alpha) ? (360 - event.alpha + 360) % 360 : null
+}
+
+async function requestDeviceOrientationAccess() {
+  if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) return
+  const orientationEvent = window.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
+    requestPermission?: () => Promise<PermissionState>
+  }
+  if (typeof orientationEvent.requestPermission !== 'function') return
+  try {
+    await orientationEvent.requestPermission()
+  } catch {
+    // Some in-app browsers expose the API but reject outside their own permission flow.
+  }
+}
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3)
+}
+
+function interpolatePosition(
+  from: google.maps.LatLngLiteral,
+  to: google.maps.LatLngLiteral,
+  progress: number,
+): google.maps.LatLngLiteral {
+  const eased = easeOutCubic(progress)
+  return {
+    lat: from.lat + (to.lat - from.lat) * eased,
+    lng: from.lng + (to.lng - from.lng) * eased,
+  }
+}
+
+function movementHeading(from: google.maps.LatLngLiteral, to: google.maps.LatLngLiteral) {
+  const lat1 = (from.lat * Math.PI) / 180
+  const lat2 = (to.lat * Math.PI) / 180
+  const dLng = ((to.lng - from.lng) * Math.PI) / 180
+  const y = Math.sin(dLng) * Math.cos(lat2)
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng)
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
 }
 
 function routeStopIconUrl(color: string): string {
@@ -696,6 +744,10 @@ export default function MapClient({
   const locationWatchIdRef = useRef<number | null>(null)
   const locationFollowingRef = useRef(false)
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
+  const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
+  const locationAnimationFrameRef = useRef<number | null>(null)
+  const locationHeadingRef = useRef<number | null>(null)
+  const deviceHeadingRef = useRef<number | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const routeLineRefs = useRef<google.maps.Polyline[]>([])
@@ -1198,13 +1250,74 @@ export default function MapClient({
     }, 360)
   }, [])
 
-  const followUserPositionOnMap = useCallback(
-    (map: google.maps.Map, position: google.maps.LatLngLiteral) => {
-      markLocationAutoCentering()
-      map.panTo(position)
-      if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+  const currentLocationHeading = useCallback(
+    () => locationHeadingRef.current ?? deviceHeadingRef.current,
+    [],
+  )
+
+  const updateUserMarkerIcon = useCallback(
+    (heading = currentLocationHeading()) => {
+      if (!userMarkerRef.current || !window.google?.maps) return
+      userMarkerRef.current.setIcon(userLocationIcon(google.maps, heading))
     },
-    [markLocationAutoCentering],
+    [currentLocationHeading],
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) return
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      const heading = locationHeadingFromOrientation(event)
+      if (heading === null) return
+      deviceHeadingRef.current = heading
+      if (locationHeadingRef.current === null) updateUserMarkerIcon(heading)
+    }
+    window.addEventListener('deviceorientationabsolute', handleOrientation)
+    window.addEventListener('deviceorientation', handleOrientation)
+    return () => {
+      window.removeEventListener('deviceorientationabsolute', handleOrientation)
+      window.removeEventListener('deviceorientation', handleOrientation)
+    }
+  }, [updateUserMarkerIcon])
+
+  const stopLocationAnimation = useCallback(() => {
+    if (locationAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(locationAnimationFrameRef.current)
+      locationAnimationFrameRef.current = null
+    }
+  }, [])
+
+  const followUserPositionOnMap = useCallback(
+    (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
+      markLocationAutoCentering()
+      if ((map.getZoom() ?? 0) < 16) map.setZoom(16)
+      const marker = userMarkerRef.current
+      const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
+      stopLocationAnimation()
+      if (immediate || distanceMeters(from, position) < 0.5) {
+        marker?.setPosition(position)
+        map.panTo(position)
+        locationRenderedPositionRef.current = position
+        return
+      }
+      const distance = distanceMeters(from, position)
+      const duration = Math.min(1400, Math.max(700, distance * 60))
+      const startedAt = performance.now()
+      const step = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / duration)
+        const nextPosition = interpolatePosition(from, position, progress)
+        marker?.setPosition(nextPosition)
+        if (locationFollowingRef.current) map.setCenter(nextPosition)
+        locationRenderedPositionRef.current = nextPosition
+        if (progress < 1) {
+          locationAnimationFrameRef.current = window.requestAnimationFrame(step)
+          return
+        }
+        locationAnimationFrameRef.current = null
+        locationRenderedPositionRef.current = position
+      }
+      locationAnimationFrameRef.current = window.requestAnimationFrame(step)
+    },
+    [markLocationAutoCentering, stopLocationAnimation],
   )
 
   useEffect(() => {
@@ -1495,13 +1608,14 @@ export default function MapClient({
       setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
       return
     }
+    void requestDeviceOrientationAccess()
 
     if (locationWatchIdRef.current !== null) {
       setLocationPromptOpen(false)
       const position = userPositionRef.current
       if (position) {
         locationFollowingRef.current = true
-        followUserPositionOnMap(map, position)
+        followUserPositionOnMap(map, position, true)
         locationLastCenteredRef.current = position
       }
       return
@@ -1518,11 +1632,21 @@ export default function MapClient({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         }
-        const heading =
-          typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading) ? pos.coords.heading : null
-        const icon = userLocationIcon(google.maps, heading)
+        const gpsHeading = locationHeadingFromPosition(pos)
+        const renderedPosition = locationRenderedPositionRef.current
+        const travelHeading =
+          renderedPosition && distanceMeters(renderedPosition, position) >= 0.5
+            ? movementHeading(renderedPosition, position)
+            : null
+        if (gpsHeading !== null) {
+          locationHeadingRef.current = gpsHeading
+        } else if (travelHeading !== null) {
+          locationHeadingRef.current = travelHeading
+        }
+        const icon = userLocationIcon(google.maps, currentLocationHeading())
         userPositionRef.current = position
         if (!userMarkerRef.current) {
+          locationRenderedPositionRef.current = position
           userMarkerRef.current = new google.maps.Marker({
             map,
             position,
@@ -1531,7 +1655,6 @@ export default function MapClient({
             icon,
           })
         } else {
-          userMarkerRef.current.setPosition(position)
           userMarkerRef.current.setIcon(icon)
           userMarkerRef.current.setMap(map)
         }
@@ -1540,7 +1663,7 @@ export default function MapClient({
           locationFollowingRef.current &&
           (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
         if (shouldRecenter) {
-          followUserPositionOnMap(map, position)
+          followUserPositionOnMap(map, position, !lastCentered)
           locationLastCenteredRef.current = position
         }
       },
@@ -1550,6 +1673,7 @@ export default function MapClient({
           navigator.geolocation.clearWatch(locationWatchIdRef.current)
           locationWatchIdRef.current = null
           locationFollowingRef.current = false
+          stopLocationAnimation()
         }
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
@@ -1563,7 +1687,7 @@ export default function MapClient({
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     )
-  }, [followUserPositionOnMap])
+  }, [currentLocationHeading, followUserPositionOnMap, stopLocationAnimation])
 
   useEffect(() => {
     return () => {
@@ -1575,11 +1699,14 @@ export default function MapClient({
         window.clearTimeout(autoCenteringLocationTimerRef.current)
         autoCenteringLocationTimerRef.current = null
       }
+      stopLocationAnimation()
       autoCenteringLocationRef.current = false
       locationFollowingRef.current = false
       locationLastCenteredRef.current = null
+      locationRenderedPositionRef.current = null
+      locationHeadingRef.current = null
     }
-  }, [])
+  }, [stopLocationAnimation])
 
   return (
     <>
