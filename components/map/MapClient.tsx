@@ -1557,10 +1557,8 @@ export default function MapClient({
         marker?.setPosition(position)
         if (headingFollow) {
           applyLocationMapHeading(map, true, position)
-        } else if ((map.getZoom() ?? 0) < LOCATION_FOLLOW_ZOOM) {
-          moveLocationCamera(map, { center: position, zoom: LOCATION_FOLLOW_ZOOM }, 700)
         } else {
-          map.panTo(position)
+          resetLocationHeadingCamera(map, position)
         }
         locationRenderedPositionRef.current = position
         return
@@ -1592,7 +1590,7 @@ export default function MapClient({
       }
       locationAnimationFrameRef.current = window.requestAnimationFrame(step)
     },
-    [applyLocationMapHeading, markLocationAutoCentering, moveLocationCamera, stopLocationAnimation],
+    [applyLocationMapHeading, markLocationAutoCentering, moveLocationCamera, resetLocationHeadingCamera, stopLocationAnimation],
   )
 
   useEffect(() => {

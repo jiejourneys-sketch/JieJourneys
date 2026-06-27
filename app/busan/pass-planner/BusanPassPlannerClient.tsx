@@ -3277,12 +3277,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         if (headingFollow) {
           applyLocationHeadingToMap(map, true, position)
         } else {
-          const currentZoom = map.getZoom() ?? 0
-          if (currentZoom < LOCATION_FOLLOW_ZOOM) {
-            moveLocationCamera(map, { center: position, zoom: LOCATION_FOLLOW_ZOOM }, 700)
-          } else {
-            map.panTo(position)
-          }
+          resetLocationHeadingCamera(map, position)
         }
         locationRenderedPositionRef.current = position
         return
@@ -3315,7 +3310,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       locationAnimationFrameRef.current = window.requestAnimationFrame(step)
     },
-    [applyLocationHeadingToMap, markLocationAutoCentering, moveLocationCamera, stopLocationAnimation],
+    [applyLocationHeadingToMap, markLocationAutoCentering, moveLocationCamera, resetLocationHeadingCamera, stopLocationAnimation],
   )
 
   const locateUser = useCallback(() => {
