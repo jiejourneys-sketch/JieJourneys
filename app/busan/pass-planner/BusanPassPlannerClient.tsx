@@ -112,6 +112,15 @@ type Props = {
 const LOCATION_RECENTER_MIN_DISTANCE_METERS = 2
 const LOCATION_FOLLOW_ZOOM = 16
 const LOCATION_HEADING_UP_ZOOM = 18
+const DEVICE_HEADING_STALE_MS = 5000
+
+type LocateButtonMode = 'idle' | 'located' | 'requesting' | 'following' | 'heading'
+type DeviceOrientationEventWithCompass = DeviceOrientationEvent & {
+  webkitCompassHeading?: number
+}
+type DeviceOrientationEventConstructorWithPermission = typeof DeviceOrientationEvent & {
+  requestPermission?: () => Promise<'granted' | 'denied'>
+}
 
 export type PlannerConfig = {
   storageKey: string
@@ -1161,7 +1170,7 @@ function userLocationIcon(
 ): google.maps.Icon {
   const cone =
     typeof heading === 'number' && Number.isFinite(heading)
-      ? `<path d="M48 48 L22 10 A48 48 0 0 1 74 10 Z" fill="#4f7df3" fill-opacity="0.42" transform="rotate(${heading} 48 48)"/>`
+      ? `<path d="M48 3 L22 47 Q48 35 74 47 Z" fill="#2563eb" fill-opacity="0.72" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" transform="rotate(${heading} 48 48)"/>`
       : ''
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
     <defs>
@@ -1184,33 +1193,23 @@ function locationHeadingFromPosition(pos: GeolocationPosition) {
   return typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading) ? pos.coords.heading : null
 }
 
-type CompassDeviceOrientationEvent = DeviceOrientationEvent & { webkitCompassHeading?: number }
-
-function locationHeadingFromOrientation(event: DeviceOrientationEvent) {
-  const compassEvent = event as CompassDeviceOrientationEvent
-  if (typeof compassEvent.webkitCompassHeading === 'number' && Number.isFinite(compassEvent.webkitCompassHeading)) {
-    return compassEvent.webkitCompassHeading
-  }
-  if (event.absolute && typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
-    return (360 - event.alpha + 360) % 360
-  }
-  if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
-    return (360 - event.alpha + 360) % 360
-  }
-  return null
+function normalizeMapHeading(heading: number) {
+  return ((heading % 360) + 360) % 360
 }
 
-async function requestDeviceOrientationAccess() {
-  if (typeof window === 'undefined' || typeof window.DeviceOrientationEvent === 'undefined') return false
-  const orientationEvent = window.DeviceOrientationEvent as typeof DeviceOrientationEvent & {
-    requestPermission?: () => Promise<PermissionState>
+function headingDifference(a: number, b: number) {
+  const diff = Math.abs(normalizeMapHeading(a) - normalizeMapHeading(b))
+  return Math.min(diff, 360 - diff)
+}
+
+function locationHeadingFromDeviceOrientation(event: DeviceOrientationEventWithCompass) {
+  if (typeof event.webkitCompassHeading === 'number' && Number.isFinite(event.webkitCompassHeading)) {
+    return normalizeMapHeading(event.webkitCompassHeading)
   }
-  if (typeof orientationEvent.requestPermission !== 'function') return true
-  try {
-    return (await orientationEvent.requestPermission()) === 'granted'
-  } catch {
-    return false
+  if (typeof event.alpha === 'number' && Number.isFinite(event.alpha)) {
+    return normalizeMapHeading(360 - event.alpha)
   }
+  return null
 }
 
 function easeOutCubic(t: number) {
@@ -2859,9 +2858,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationAnimationFrameRef = useRef<number | null>(null)
   const locationHeadingRef = useRef<number | null>(null)
-  const locationCompassHeadingRef = useRef<number | null>(null)
-  const locationCompassHeadingAtRef = useRef(0)
-  const locationHeadingUpRef = useRef(false)
+  const locationRequestingRef = useRef(false)
+  const deviceHeadingRef = useRef<number | null>(null)
+  const deviceHeadingUpdatedAtRef = useRef(0)
+  const deviceHeadingListeningRef = useRef(false)
+  const deviceHeadingPermissionRequestedRef = useRef(false)
+  const deviceHeadingPermissionGrantedRef = useRef(false)
+  const deviceOrientationHandlerRef = useRef<((event: DeviceOrientationEvent) => void) | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
   const locateButtonRef = useRef<HTMLButtonElement | null>(null)
@@ -2953,7 +2956,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [locationPromptOpen, setLocationPromptOpen] = useState(false)
   const [locationPromptMessage, setLocationPromptMessage] = useState('')
   const [locationRequesting, setLocationRequesting] = useState(false)
-  const [locationHeadingUpActive, setLocationHeadingUpActive] = useState(false)
   const [dayView, setDayView] = useState<DayView>('all')
   const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions'>(null)
   const plannerPdfModuleRef = useRef<Promise<typeof import('./plannerPdf')> | null>(null)
@@ -2966,6 +2968,358 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return resolved ? 'half' : 'collapsed'
     })
   }, [])
+
+  const syncLocateButtonState = useCallback(() => {
+    const button = locateButtonRef.current
+    if (!button) return
+    const mode: LocateButtonMode = locationRequestingRef.current
+      ? 'requesting'
+      : locationFollowModeRef.current === 'heading'
+        ? 'heading'
+        : locationFollowModeRef.current === 'follow' || locationFollowingRef.current
+          ? 'following'
+          : userPositionRef.current
+            ? 'located'
+            : 'idle'
+    const labelByMode: Record<LocateButtonMode, string> = {
+      idle: '定位我的目前位置',
+      located: '回到我的位置',
+      requesting: '定位中...',
+      following: '開啟方向跟隨',
+      heading: '切回一般定位',
+    }
+    button.dataset.locationMode = mode
+    button.className = [
+      styles.mapLocateButton,
+      mode === 'following' ? styles.mapLocateButtonFollowing : '',
+      mode === 'heading' ? styles.mapLocateButtonHeading : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    button.title = labelByMode[mode]
+    button.setAttribute('aria-label', labelByMode[mode])
+    button.toggleAttribute('disabled', mode === 'requesting')
+  }, [])
+
+  const setLocationRequestingState = useCallback(
+    (next: boolean) => {
+      locationRequestingRef.current = next
+      setLocationRequesting(next)
+      syncLocateButtonState()
+    },
+    [syncLocateButtonState],
+  )
+
+  const markLocationAutoCentering = useCallback((duration = 700) => {
+    autoCenteringLocationRef.current = true
+    if (autoCenteringLocationTimerRef.current !== null) {
+      window.clearTimeout(autoCenteringLocationTimerRef.current)
+    }
+    autoCenteringLocationTimerRef.current = window.setTimeout(() => {
+      autoCenteringLocationRef.current = false
+      autoCenteringLocationTimerRef.current = null
+    }, duration)
+  }, [])
+
+  const currentLocationHeading = useCallback(() => {
+    const deviceHeading = deviceHeadingRef.current
+    if (deviceHeading !== null && Date.now() - deviceHeadingUpdatedAtRef.current <= DEVICE_HEADING_STALE_MS) {
+      return deviceHeading
+    }
+    return locationHeadingRef.current
+  }, [])
+
+  const stopLocationAnimation = useCallback(() => {
+    if (locationAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(locationAnimationFrameRef.current)
+      locationAnimationFrameRef.current = null
+    }
+  }, [])
+
+  const applyLocationHeadingToMap = useCallback(
+    (map: google.maps.Map) => {
+      const heading = currentLocationHeading()
+      try {
+        if ((map.getZoom() ?? 0) < LOCATION_HEADING_UP_ZOOM) map.setZoom(LOCATION_HEADING_UP_ZOOM)
+      } catch {
+        // Some embedded map renderers reject camera updates while initializing.
+      }
+      try {
+        const tilt = map.getTilt()
+        if (typeof tilt !== 'number' || tilt < 40) map.setTilt(45)
+      } catch {
+        // Tilt is only available on vector-capable maps.
+      }
+      if (heading === null) return
+      try {
+        const nextHeading = normalizeMapHeading(heading)
+        const currentHeading = map.getHeading()
+        if (
+          typeof currentHeading !== 'number' ||
+          !Number.isFinite(currentHeading) ||
+          headingDifference(currentHeading, nextHeading) >= 2
+        ) {
+          map.setHeading(nextHeading)
+        }
+      } catch {
+        // Heading is best-effort; the blue dot still shows direction if map rotation is unavailable.
+      }
+    },
+    [currentLocationHeading],
+  )
+
+  const resetLocationHeadingCamera = useCallback(
+    (map: google.maps.Map) => {
+      markLocationAutoCentering(900)
+      try {
+        map.setHeading(0)
+      } catch {
+        // Heading reset is only available on vector-capable maps.
+      }
+      try {
+        map.setTilt(0)
+      } catch {
+        // Tilt reset is only available on vector-capable maps.
+      }
+    },
+    [markLocationAutoCentering],
+  )
+
+  const handleDeviceOrientation = useCallback(
+    (event: DeviceOrientationEvent) => {
+      const heading = locationHeadingFromDeviceOrientation(event as DeviceOrientationEventWithCompass)
+      if (heading === null) return
+      const previousHeading = currentLocationHeading()
+      deviceHeadingRef.current = heading
+      deviceHeadingUpdatedAtRef.current = Date.now()
+      if (previousHeading !== null && headingDifference(previousHeading, heading) < 2) return
+      locationHeadingRef.current = heading
+      userMarkerRef.current?.setIcon(userLocationIcon(heading))
+      if (locationFollowModeRef.current !== 'heading') return
+      const map = mapRef.current
+      const position = locationRenderedPositionRef.current ?? userPositionRef.current
+      if (!map || !position) return
+      markLocationAutoCentering(900)
+      map.setCenter(position)
+      applyLocationHeadingToMap(map)
+    },
+    [applyLocationHeadingToMap, currentLocationHeading, markLocationAutoCentering],
+  )
+
+  const startDeviceHeadingWatch = useCallback(async () => {
+    if (typeof window === 'undefined' || !window.DeviceOrientationEvent || deviceHeadingListeningRef.current) return
+    const OrientationEvent = window.DeviceOrientationEvent as DeviceOrientationEventConstructorWithPermission
+    if (typeof OrientationEvent.requestPermission === 'function') {
+      if (!deviceHeadingPermissionRequestedRef.current) {
+        deviceHeadingPermissionRequestedRef.current = true
+        try {
+          const permission = await OrientationEvent.requestPermission()
+          deviceHeadingPermissionGrantedRef.current = permission === 'granted'
+        } catch {
+          deviceHeadingPermissionGrantedRef.current = false
+        }
+      }
+      if (!deviceHeadingPermissionGrantedRef.current) return
+    }
+    if (locationFollowModeRef.current !== 'heading') return
+    window.addEventListener('deviceorientation', handleDeviceOrientation)
+    deviceOrientationHandlerRef.current = handleDeviceOrientation
+    deviceHeadingListeningRef.current = true
+  }, [handleDeviceOrientation])
+
+  const stopDeviceHeadingWatch = useCallback(() => {
+    if (!deviceHeadingListeningRef.current) return
+    const handler = deviceOrientationHandlerRef.current
+    if (handler) window.removeEventListener('deviceorientation', handler)
+    deviceHeadingListeningRef.current = false
+    deviceOrientationHandlerRef.current = null
+  }, [])
+
+  const exitLocationFollowMode = useCallback(() => {
+    locationFollowModeRef.current = 'idle'
+    locationFollowingRef.current = false
+    stopDeviceHeadingWatch()
+    syncLocateButtonState()
+  }, [stopDeviceHeadingWatch, syncLocateButtonState])
+
+  const followUserPositionOnMap = useCallback(
+    (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
+      const headingFollow = locationFollowModeRef.current === 'heading'
+      markLocationAutoCentering(headingFollow ? 900 : 700)
+      userAdjustedMapRef.current = true
+      const targetZoom = headingFollow ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
+      if ((map.getZoom() ?? 0) < targetZoom) map.setZoom(targetZoom)
+      if (headingFollow) applyLocationHeadingToMap(map)
+      const marker = userMarkerRef.current
+      const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
+      stopLocationAnimation()
+      if (immediate || distanceMeters(from, position) < 0.5) {
+        marker?.setPosition(position)
+        if (headingFollow) {
+          map.setCenter(position)
+          applyLocationHeadingToMap(map)
+        } else {
+          map.panTo(position)
+        }
+        locationRenderedPositionRef.current = position
+        return
+      }
+      const distance = distanceMeters(from, position)
+      const duration = Math.min(1400, Math.max(700, distance * 60))
+      const startedAt = performance.now()
+      const step = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / duration)
+        const nextPosition = interpolatePosition(from, position, progress)
+        marker?.setPosition(nextPosition)
+        if (locationFollowingRef.current) {
+          markLocationAutoCentering(locationFollowModeRef.current === 'heading' ? 900 : 700)
+          map.setCenter(nextPosition)
+          if (locationFollowModeRef.current === 'heading') applyLocationHeadingToMap(map)
+        }
+        locationRenderedPositionRef.current = nextPosition
+        if (progress < 1) {
+          locationAnimationFrameRef.current = window.requestAnimationFrame(step)
+          return
+        }
+        locationAnimationFrameRef.current = null
+        locationRenderedPositionRef.current = position
+      }
+      locationAnimationFrameRef.current = window.requestAnimationFrame(step)
+    },
+    [applyLocationHeadingToMap, markLocationAutoCentering, stopLocationAnimation],
+  )
+
+  const locateUser = useCallback(() => {
+    const map = mapRef.current
+    if (!map || !window.google?.maps) {
+      setLocationPromptMessage('地圖尚未載入完成，請稍後再試一次。')
+      return
+    }
+    if (!navigator.geolocation) {
+      setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
+      return
+    }
+
+    if (locationWatchIdRef.current !== null) {
+      setLocationPromptOpen(false)
+      const position = userPositionRef.current
+      if (position) {
+        const wasHeadingFollow = locationFollowModeRef.current === 'heading'
+        const shouldEnterHeadingFollow = locationFollowModeRef.current === 'follow'
+        locationFollowModeRef.current = shouldEnterHeadingFollow ? 'heading' : 'follow'
+        locationFollowingRef.current = true
+        if (shouldEnterHeadingFollow) {
+          void startDeviceHeadingWatch()
+        } else if (wasHeadingFollow) {
+          stopDeviceHeadingWatch()
+          resetLocationHeadingCamera(map)
+        }
+        followUserPositionOnMap(map, position, true)
+        setMobilePanelOpen(false)
+        locationLastCenteredRef.current = position
+      }
+      syncLocateButtonState()
+      return
+    }
+
+    setLocationRequestingState(true)
+    setLocationPromptMessage('')
+    locationWatchCenteredRef.current = false
+    locationFollowModeRef.current = 'follow'
+    locationFollowingRef.current = true
+    syncLocateButtonState()
+    locationWatchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        setLocationRequestingState(false)
+        setLocationPromptOpen(false)
+        const position = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }
+        const gpsHeading = locationHeadingFromPosition(pos)
+        const renderedPosition = locationRenderedPositionRef.current
+        const travelHeading = reliableMovementHeading(pos, renderedPosition, position)
+        const speed = typeof pos.coords.speed === 'number' && Number.isFinite(pos.coords.speed) ? pos.coords.speed : null
+        if (gpsHeading !== null && (speed === null || speed >= 0.7)) {
+          locationHeadingRef.current = normalizeMapHeading(gpsHeading)
+        } else if (travelHeading !== null) {
+          locationHeadingRef.current = normalizeMapHeading(travelHeading)
+        }
+        const icon = userLocationIcon(currentLocationHeading())
+        userPositionRef.current = position
+        if (!userMarkerRef.current) {
+          locationRenderedPositionRef.current = position
+          userMarkerRef.current = new google.maps.Marker({
+            map,
+            position,
+            title: '我的位置',
+            zIndex: 5000,
+            icon,
+          })
+        } else {
+          userMarkerRef.current.setIcon(icon)
+          userMarkerRef.current.setMap(map)
+        }
+        const lastCentered = locationLastCenteredRef.current
+        const shouldRecenter =
+          locationFollowingRef.current &&
+          (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
+        if (shouldRecenter) {
+          followUserPositionOnMap(map, position, !lastCentered || !locationWatchCenteredRef.current)
+          setMobilePanelOpen(false)
+          locationLastCenteredRef.current = position
+          locationWatchCenteredRef.current = true
+        } else if (locationFollowingRef.current && locationFollowModeRef.current === 'heading') {
+          markLocationAutoCentering(900)
+          map.setCenter(position)
+          applyLocationHeadingToMap(map)
+          locationWatchCenteredRef.current = true
+        } else if (!locationWatchCenteredRef.current) {
+          locationWatchCenteredRef.current = true
+        }
+        syncLocateButtonState()
+      },
+      (error) => {
+        setLocationRequestingState(false)
+        if (error.code === error.PERMISSION_DENIED && locationWatchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(locationWatchIdRef.current)
+          locationWatchIdRef.current = null
+          locationWatchCenteredRef.current = false
+          locationFollowModeRef.current = 'idle'
+          locationFollowingRef.current = false
+          stopDeviceHeadingWatch()
+          stopLocationAnimation()
+        }
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          setLocationPromptMessage('暫時無法取得位置，請確認手機或瀏覽器定位功能已開啟。')
+        } else if (error.code === error.TIMEOUT) {
+          setLocationPromptMessage('定位逾時，系統會持續嘗試更新目前位置。')
+        } else {
+          setLocationPromptMessage('定位暫時失敗，系統會持續嘗試更新目前位置。')
+        }
+        syncLocateButtonState()
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 30000,
+      },
+    )
+  }, [
+    applyLocationHeadingToMap,
+    currentLocationHeading,
+    followUserPositionOnMap,
+    markLocationAutoCentering,
+    resetLocationHeadingCamera,
+    setLocationRequestingState,
+    setMobilePanelOpen,
+    startDeviceHeadingWatch,
+    stopDeviceHeadingWatch,
+    stopLocationAnimation,
+    syncLocateButtonState,
+  ])
 
   const focusTargetCard = useCallback((target: PlannerFocusTarget) => {
     if (target.mode === 'add') return addCardRefs.current[target.placeId] ?? null
@@ -3649,13 +4003,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setSelectedId(place.id)
     const map = mapRef.current
     if (map) {
+      exitLocationFollowMode()
       focusMapOnPlace(map, place)
     }
 
     if (!shouldScrollAfterPanelShrink) {
       scheduleFocusTargetCenter(focusTarget)
     }
-  }, [scheduleFocusTargetCenter])
+  }, [exitLocationFollowMode, scheduleFocusTargetCenter])
 
   const scrollSelectedPlaceInMode = useCallback(
     (targetMode: PlannerMode) => {
@@ -3697,7 +4052,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
 
       const map = mapRef.current
-      if (map) focusMapOnPlace(map, place)
+      if (map) {
+        exitLocationFollowMode()
+        focusMapOnPlace(map, place)
+      }
 
       window.setTimeout(() => {
         requestAnimationFrame(() => {
@@ -3714,6 +4072,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [
       customPlaces,
       findPlanItemDayView,
+      exitLocationFollowMode,
       placeById,
       plannerCategoryItems,
       scheduleFocusTargetCenter,
@@ -4027,8 +4386,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       try {
         await loadGoogleMapsScript(apiKey)
         if (cancelled || !mapElRef.current) return
-        const mapElement = mapElRef.current
-        mapRef.current = new google.maps.Map(mapElement, {
+        const mapOptions: google.maps.MapOptions = {
           center: mapCenter,
           zoom: config.mapZoom,
           disableDefaultUI: true,
@@ -4040,10 +4398,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           scrollwheel: true,
           zoomControl: false,
           renderingType: google.maps.RenderingType.VECTOR,
-        })
-        mapRef.current.setOptions({ gestureHandling: 'greedy', draggable: true })
+          headingInteractionEnabled: true,
+          tiltInteractionEnabled: true,
+        }
+        mapRef.current = new google.maps.Map(mapElRef.current, mapOptions)
         mapRef.current.addListener('click', (e: google.maps.MapMouseEvent) => {
           if (customDraftRef.current.picking && e.latLng) {
+            exitLocationFollowMode()
             const lat = e.latLng.lat()
             const lng = e.latLng.lng()
             setCustomDraft((draft) => ({ ...draft, lat, lng }))
@@ -4051,24 +4412,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           }
           setMobilePanelOpen(false)
         })
-        mapRef.current.addListener('zoom_changed', () => {
+        const handleManualCameraChange = () => {
           if (autoFittingMapRef.current || autoCenteringLocationRef.current) return
           userAdjustedMapRef.current = true
-        })
-        const stopFollowingFromMapGesture = () => {
-          if (locationAnimationFrameRef.current !== null) {
-            window.cancelAnimationFrame(locationAnimationFrameRef.current)
-            locationAnimationFrameRef.current = null
-          }
-          userAdjustedMapRef.current = true
-          locationFollowModeRef.current = 'idle'
-          locationFollowingRef.current = false
-          locationHeadingUpRef.current = false
-          setLocationHeadingUpActive(false)
-          mapRef.current?.setHeading(0)
-          setMobilePanelOpen(false)
+          exitLocationFollowMode()
         }
-        const dragListener = mapRef.current.addListener('dragstart', stopFollowingFromMapGesture)
+        const zoomListener = mapRef.current.addListener('zoom_changed', handleManualCameraChange)
+        const headingListener = mapRef.current.addListener('heading_changed', handleManualCameraChange)
+        const tiltListener = mapRef.current.addListener('tilt_changed', handleManualCameraChange)
+        const dragListener = mapRef.current.addListener('dragstart', () => {
+          userAdjustedMapRef.current = true
+          exitLocationFollowMode()
+          setMobilePanelOpen(false)
+        })
+        cleanupFns.push(() => zoomListener.remove())
+        cleanupFns.push(() => headingListener.remove())
+        cleanupFns.push(() => tiltListener.remove())
         cleanupFns.push(() => dragListener.remove())
         setMapReady(true)
         setMapError(null)
@@ -4081,7 +4440,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       cancelled = true
       cleanupFns.forEach((cleanup) => cleanup())
     }
-  }, [apiKey, mapCenter, config.mapZoom, setMobilePanelOpen])
+  }, [apiKey, config.mapZoom, exitLocationFollowMode, mapCenter, setMobilePanelOpen])
 
   useEffect(() => {
     if (!mapReady || initialMapFitDoneRef.current || allPlaces.length === 0) return
@@ -4127,6 +4486,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       customDraftMarkerRef.current.addListener('dragend', (e: google.maps.MapMouseEvent) => {
         if (!e.latLng) return
+        exitLocationFollowMode()
         setCustomDraft((draft) => ({
           ...draft,
           lat: e.latLng?.lat() ?? draft.lat,
@@ -4148,7 +4508,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     customDraftMarkerRef.current.setLabel({ text: '?', color: '#ffffff', fontSize: '13px', fontWeight: '900' })
     customDraftMarkerRef.current.setZIndex(3000)
     customDraftMarkerRef.current.setMap(map)
-  }, [customDraft.lat, customDraft.lng, customDraft.name, mapReady])
+  }, [customDraft.lat, customDraft.lng, customDraft.name, exitLocationFollowMode, mapReady])
 
   useEffect(() => {
     const map = mapRef.current
@@ -4163,9 +4523,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
     window.setTimeout(() => {
+      exitLocationFollowMode()
       focusMapOnPosition(map, position, 0.25)
     }, 160)
-  }, [customDraft.lat, customDraft.lng, customDraft.picking, mapReady])
+  }, [customDraft.lat, customDraft.lng, customDraft.picking, exitLocationFollowMode, mapReady])
 
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
@@ -4184,234 +4545,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [fitMapToPlaces, mapReady])
 
-  const markLocationAutoCentering = useCallback(() => {
-    autoCenteringLocationRef.current = true
-    if (autoCenteringLocationTimerRef.current !== null) {
-      window.clearTimeout(autoCenteringLocationTimerRef.current)
-    }
-    autoCenteringLocationTimerRef.current = window.setTimeout(() => {
-      autoCenteringLocationRef.current = false
-      autoCenteringLocationTimerRef.current = null
-    }, 360)
-  }, [])
-
-  const currentLocationHeading = useCallback(() => {
-    const compassHeading = locationCompassHeadingRef.current
-    if (compassHeading !== null && Date.now() - locationCompassHeadingAtRef.current < 3000) return compassHeading
-    return locationHeadingRef.current
-  }, [])
-
-  const currentLocationIconHeading = useCallback(() => {
-    const heading = currentLocationHeading()
-    if (heading === null) return null
-    return locationHeadingUpRef.current ? 0 : heading
-  }, [currentLocationHeading])
-
-  const applyLocationMapHeading = useCallback((map: google.maps.Map) => {
-    if (!locationHeadingUpRef.current) {
-      map.setHeading(0)
-      return
-    }
-    const heading = currentLocationHeading()
-    if (heading !== null) map.setHeading(heading)
-  }, [currentLocationHeading])
-
-  const applyLocationOrientationHeading = useCallback(
-    (heading: number) => {
-      locationCompassHeadingRef.current = heading
-      locationCompassHeadingAtRef.current = Date.now()
-      const map = mapRef.current
-      if (!map || !userMarkerRef.current) return
-      applyLocationMapHeading(map)
-      userMarkerRef.current.setIcon(userLocationIcon(currentLocationIconHeading()))
-    },
-    [applyLocationMapHeading, currentLocationIconHeading],
-  )
-
-  const stopLocationAnimation = useCallback(() => {
-    if (locationAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(locationAnimationFrameRef.current)
-      locationAnimationFrameRef.current = null
-    }
-  }, [])
-
-  const applyLocationZoom = useCallback((map: google.maps.Map) => {
-    const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
-    const currentZoom = map.getZoom() ?? 0
-    if (currentZoom < targetZoom) map.setZoom(targetZoom)
-  }, [])
-
-  const followUserPositionOnMap = useCallback(
-    (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
-      markLocationAutoCentering()
-      userAdjustedMapRef.current = true
-      if (immediate) applyLocationZoom(map)
-      const marker = userMarkerRef.current
-      const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
-      stopLocationAnimation()
-      if (immediate || distanceMeters(from, position) < 0.5) {
-        marker?.setPosition(position)
-        map.panTo(position)
-        locationRenderedPositionRef.current = position
-        return
-      }
-      const distance = distanceMeters(from, position)
-      const duration = Math.min(1400, Math.max(700, distance * 60))
-      const startedAt = performance.now()
-      const step = (now: number) => {
-        const progress = Math.min(1, (now - startedAt) / duration)
-        const nextPosition = interpolatePosition(from, position, progress)
-        marker?.setPosition(nextPosition)
-        if (locationFollowingRef.current) map.setCenter(nextPosition)
-        locationRenderedPositionRef.current = nextPosition
-        if (progress < 1) {
-          locationAnimationFrameRef.current = window.requestAnimationFrame(step)
-          return
-        }
-        locationAnimationFrameRef.current = null
-        locationRenderedPositionRef.current = position
-      }
-      locationAnimationFrameRef.current = window.requestAnimationFrame(step)
-    },
-    [applyLocationZoom, markLocationAutoCentering, stopLocationAnimation],
-  )
-
-  useEffect(() => {
-    const onOrientation = (event: DeviceOrientationEvent) => {
-      const heading = locationHeadingFromOrientation(event)
-      if (heading === null) return
-      applyLocationOrientationHeading(heading)
-    }
-    window.addEventListener('deviceorientationabsolute', onOrientation, true)
-    window.addEventListener('deviceorientation', onOrientation, true)
-    return () => {
-      window.removeEventListener('deviceorientationabsolute', onOrientation, true)
-      window.removeEventListener('deviceorientation', onOrientation, true)
-    }
-  }, [applyLocationOrientationHeading])
-
-  const locateUser = useCallback(() => {
-    const map = mapRef.current
-    if (!map || !window.google?.maps) {
-      setLocationPromptMessage('地圖尚未載入完成，請稍後再試一次。')
-      return
-    }
-    if (!navigator.geolocation) {
-      setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
-      return
-    }
-
-    if (locationWatchIdRef.current !== null) {
-      setLocationPromptOpen(false)
-      const position = userPositionRef.current
-      if (position) {
-        const nextMode = locationFollowModeRef.current === 'follow' ? 'heading' : 'follow'
-        locationFollowModeRef.current = nextMode
-        locationFollowingRef.current = true
-        const nextHeadingUp = nextMode === 'heading'
-        locationHeadingUpRef.current = nextHeadingUp
-        setLocationHeadingUpActive(nextHeadingUp)
-        if (nextHeadingUp) void requestDeviceOrientationAccess()
-        applyLocationMapHeading(map)
-        userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
-        followUserPositionOnMap(map, position, true)
-        setMobilePanelOpen(false)
-        locationLastCenteredRef.current = position
-      }
-      return
-    }
-
-    setLocationRequesting(true)
-    setLocationPromptMessage('')
-    locateButtonRef.current?.setAttribute('disabled', 'true')
-    locationWatchCenteredRef.current = false
-    locationFollowModeRef.current = 'follow'
-    locationFollowingRef.current = true
-    locationHeadingUpRef.current = false
-    setLocationHeadingUpActive(false)
-    applyLocationMapHeading(map)
-    locationWatchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        setLocationRequesting(false)
-        setLocationPromptOpen(false)
-        locateButtonRef.current?.removeAttribute('disabled')
-        const position = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        }
-        const gpsHeading = locationHeadingFromPosition(pos)
-        const renderedPosition = locationRenderedPositionRef.current
-        const travelHeading = reliableMovementHeading(pos, renderedPosition, position)
-        const speed = typeof pos.coords.speed === 'number' && Number.isFinite(pos.coords.speed) ? pos.coords.speed : null
-        if (gpsHeading !== null && (speed === null || speed >= 0.7)) {
-          locationHeadingRef.current = gpsHeading
-        } else if (travelHeading !== null) {
-          locationHeadingRef.current = travelHeading
-        }
-        applyLocationMapHeading(map)
-        const icon = userLocationIcon(currentLocationIconHeading())
-        userPositionRef.current = position
-        if (!userMarkerRef.current) {
-          locationRenderedPositionRef.current = position
-          userMarkerRef.current = new google.maps.Marker({
-            map,
-            position,
-            title: '我的位置',
-            zIndex: 5000,
-            icon,
-          })
-        } else {
-          userMarkerRef.current.setIcon(icon)
-          userMarkerRef.current.setMap(map)
-        }
-        const lastCentered = locationLastCenteredRef.current
-        const shouldRecenter =
-          locationFollowingRef.current &&
-          (!lastCentered || distanceMeters(lastCentered, position) >= LOCATION_RECENTER_MIN_DISTANCE_METERS)
-        if (shouldRecenter) {
-          followUserPositionOnMap(map, position, !lastCentered || !locationWatchCenteredRef.current)
-          setMobilePanelOpen(false)
-          locationLastCenteredRef.current = position
-          locationWatchCenteredRef.current = true
-        } else {
-          userMarkerRef.current?.setPosition(position)
-          locationRenderedPositionRef.current = position
-          if (!locationWatchCenteredRef.current) {
-            locationWatchCenteredRef.current = true
-          }
-        }
-      },
-      (error) => {
-        setLocationRequesting(false)
-        locateButtonRef.current?.removeAttribute('disabled')
-        if (error.code === error.PERMISSION_DENIED && locationWatchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(locationWatchIdRef.current)
-          locationWatchIdRef.current = null
-          locationWatchCenteredRef.current = false
-          locationFollowModeRef.current = 'idle'
-          locationFollowingRef.current = false
-          locationHeadingUpRef.current = false
-          setLocationHeadingUpActive(false)
-          stopLocationAnimation()
-        }
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          setLocationPromptMessage('暫時無法取得位置，請確認手機或瀏覽器定位功能已開啟。')
-        } else if (error.code === error.TIMEOUT) {
-          setLocationPromptMessage('定位逾時，系統會持續嘗試更新目前位置。')
-        } else {
-          setLocationPromptMessage('定位暫時失敗，系統會持續嘗試更新目前位置。')
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 30000,
-      },
-    )
-  }, [applyLocationMapHeading, currentLocationIconHeading, followUserPositionOnMap, setMobilePanelOpen, stopLocationAnimation])
-
   useEffect(() => {
     return () => {
       if (locationWatchIdRef.current !== null && navigator.geolocation) {
@@ -4424,17 +4557,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         autoCenteringLocationTimerRef.current = null
       }
       stopLocationAnimation()
+      stopDeviceHeadingWatch()
       autoCenteringLocationRef.current = false
       locationFollowingRef.current = false
       locationLastCenteredRef.current = null
       locationRenderedPositionRef.current = null
       locationHeadingRef.current = null
-      locationCompassHeadingRef.current = null
-      locationCompassHeadingAtRef.current = 0
-      locationHeadingUpRef.current = false
-      setLocationHeadingUpActive(false)
+      deviceHeadingRef.current = null
+      deviceHeadingUpdatedAtRef.current = 0
+      locationRequestingRef.current = false
     }
-  }, [stopLocationAnimation])
+  }, [stopDeviceHeadingWatch, stopLocationAnimation])
 
   useEffect(() => {
     if (!mapReady || mapError || !mapShellRef.current || locateButtonRef.current) return
@@ -4455,17 +4588,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     button.addEventListener('click', openPrompt)
     mapShellRef.current.append(button)
     locateButtonRef.current = button
+    syncLocateButtonState()
 
     return () => {
       button.removeEventListener('click', openPrompt)
       button.remove()
       if (locateButtonRef.current === button) locateButtonRef.current = null
     }
-  }, [locateUser, mapError, mapReady])
-
-  useEffect(() => {
-    locateButtonRef.current?.classList.toggle(styles.mapLocateButtonActive, locationHeadingUpActive)
-  }, [locationHeadingUpActive])
+  }, [locateUser, mapError, mapReady, syncLocateButtonState])
 
   const dismissInAppPrompt = useCallback(() => {
     try {
@@ -4838,9 +4968,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const focusCustomMapPosition = useCallback((position: { lat: number; lng: number }) => {
     const map = mapRef.current
     if (!map || !window.google?.maps) return
+    exitLocationFollowMode()
     google.maps.event.trigger(map, 'resize')
     focusMapOnPosition(map, position, 0.25)
-  }, [])
+  }, [exitLocationFollowMode])
 
   const refocusPendingCustomMapPosition = useCallback(() => {
     const position = pendingCustomMapFocusRef.current
@@ -4882,11 +5013,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     window.setTimeout(() => {
       const map = mapRef.current
       if (!map || !window.google?.maps) return
+      exitLocationFollowMode()
       google.maps.event.trigger(map, 'resize')
       map.setCenter(mapCenter)
       map.setZoom(config.mapZoom)
     }, 220)
-  }, [config.mapZoom, mapCenter, revealResolvedCustomPlace])
+  }, [config.mapZoom, exitLocationFollowMode, mapCenter, revealResolvedCustomPlace])
 
   const geocodeResolvedMapQuery = (
     query: string,

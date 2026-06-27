@@ -363,6 +363,36 @@
   opacity: 0.62;
 }
 
+.mapLocateButtonFollowing::before,
+.mapLocateButtonHeading::before {
+  border-color: #2563eb;
+}
+
+.mapLocateButtonFollowing::after,
+.mapLocateButtonHeading::after {
+  background:
+    linear-gradient(#2563eb, #2563eb) 50% 0 / 2px 7px no-repeat,
+    linear-gradient(#2563eb, #2563eb) 50% 100% / 2px 7px no-repeat,
+    linear-gradient(#2563eb, #2563eb) 0 50% / 7px 2px no-repeat,
+    linear-gradient(#2563eb, #2563eb) 100% 50% / 7px 2px no-repeat;
+}
+
+.mapLocateButtonFollowing span,
+.mapLocateButtonHeading span {
+  background: #2563eb;
+}
+
+.mapLocateButtonHeading span {
+  width: 0;
+  height: 0;
+  border-right: 5px solid transparent;
+  border-bottom: 13px solid #2563eb;
+  border-left: 5px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  transform: translate(-50%, -58%);
+}
+
 .mapLegend {
   position: absolute;
   left: 14px;
