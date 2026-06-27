@@ -3231,7 +3231,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       if (!deviceHeadingPermissionGrantedRef.current) return
     }
-    if (locationFollowModeRef.current !== 'heading') return
+    if (!locationFollowingRef.current && locationFollowModeRef.current === 'idle' && locationWatchIdRef.current === null) return
     window.addEventListener('deviceorientationabsolute', handleDeviceOrientation, true)
     window.addEventListener('deviceorientation', handleDeviceOrientation, true)
     deviceOrientationHandlerRef.current = handleDeviceOrientation
@@ -3260,7 +3260,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     locationFollowModeRef.current = 'idle'
     locationFollowingRef.current = false
     stopLocationCameraAnimation()
-    stopDeviceHeadingWatch()
+    if (locationWatchIdRef.current === null) stopDeviceHeadingWatch()
     syncLocateButtonState()
   }, [stopDeviceHeadingWatch, stopLocationCameraAnimation, syncLocateButtonState])
 
@@ -3350,8 +3350,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         if (shouldEnterHeadingFollow) {
           void startDeviceHeadingWatch()
         } else if (wasHeadingFollow) {
-          stopDeviceHeadingWatch()
           resetLocationHeadingCamera(map, position)
+        } else {
+          void startDeviceHeadingWatch()
         }
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
@@ -3369,6 +3370,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     locationFollowModeRef.current = 'follow'
     locationFollowingRef.current = true
     syncLocateButtonState()
+    void startDeviceHeadingWatch()
     locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setLocationRequestingState(false)
