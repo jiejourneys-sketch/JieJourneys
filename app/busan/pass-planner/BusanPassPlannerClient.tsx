@@ -3431,10 +3431,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           locationLastCenteredRef.current = position
           locationWatchCenteredRef.current = true
         } else if (locationFollowingRef.current && locationFollowModeRef.current === 'heading') {
+          userMarkerRef.current?.setPosition(position)
           applyLocationHeadingToMap(map, false, position)
+          locationRenderedPositionRef.current = position
           locationWatchCenteredRef.current = true
-        } else if (!locationWatchCenteredRef.current) {
-          locationWatchCenteredRef.current = true
+        } else {
+          userMarkerRef.current?.setPosition(position)
+          locationRenderedPositionRef.current = position
+          if (!locationWatchCenteredRef.current) {
+            locationWatchCenteredRef.current = true
+          }
         }
         syncLocateButtonState()
       },
