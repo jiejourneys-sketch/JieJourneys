@@ -66,6 +66,13 @@ const MOBILE_MAP_MQ = '(max-width: 959px)'
 const LOCATION_RECENTER_MIN_DISTANCE_METERS = 2
 const LOCATION_FOLLOW_ZOOM = 16
 const LOCATION_HEADING_UP_ZOOM = 18
+const DEVICE_HEADING_STALE_MS = 5000
+const LOCATION_CAMERA_ANIMATION_MS = 220
+const LOCATION_CAMERA_GUARD_MS = 1000
+const LOCATION_HEADING_CAMERA_GUARD_MS = 1200
+
+type LocationFollowMode = 'idle' | 'follow' | 'heading'
+type LocateButtonMode = 'idle' | 'located' | 'requesting' | 'following' | 'heading' | 'paused-follow' | 'paused-heading'
 
 function useMobileMapLayout() {
   const [yes, setYes] = useState(false)
@@ -162,27 +169,46 @@ function userLocationIcon(
 ): google.maps.Icon {
   const cone =
     typeof heading === 'number' && Number.isFinite(heading)
-      ? `<path d="M48 48 L22 10 A48 48 0 0 1 74 10 Z" fill="#4f7df3" fill-opacity="0.42" transform="rotate(${heading} 48 48)"/>`
+      ? `<path d="M80 80 L6 12 Q80 -22 154 12 Z" fill="url(#headingCone)" transform="rotate(${heading} 80 80)"/>
+        <path d="M80 80 L23 26 Q80 1 137 26 Z" fill="#4f46e5" fill-opacity="0.12" transform="rotate(${heading} 80 80)"/>`
       : ''
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
     <defs>
+      <linearGradient id="headingCone" x1="80" y1="80" x2="80" y2="0" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#4058ff" stop-opacity="0.42"/>
+        <stop offset="0.45" stop-color="#5b55d6" stop-opacity="0.24"/>
+        <stop offset="1" stop-color="#5b55d6" stop-opacity="0.02"/>
+      </linearGradient>
       <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-        <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.28"/>
+        <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.28"/>
       </filter>
     </defs>
     ${cone}
-    <circle cx="48" cy="48" r="18" fill="#ffffff" filter="url(#shadow)"/>
-    <circle cx="48" cy="48" r="11" fill="${fillColor}"/>
+    <circle cx="80" cy="80" r="27" fill="#ffffff" filter="url(#shadow)"/>
+    <circle cx="80" cy="80" r="21" fill="${fillColor}" fill-opacity="0.2"/>
+    <circle cx="80" cy="80" r="16" fill="${fillColor}"/>
   </svg>`
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`,
-    scaledSize: new google.maps.Size(68, 68),
-    anchor: new google.maps.Point(34, 34),
+    scaledSize: new google.maps.Size(96, 96),
+    anchor: new google.maps.Point(48, 48),
   }
 }
 
 function locationHeadingFromPosition(pos: GeolocationPosition) {
   return typeof pos.coords.heading === 'number' && Number.isFinite(pos.coords.heading) ? pos.coords.heading : null
+}
+
+function normalizeMapHeading(heading: number) {
+  return ((heading % 360) + 360) % 360
+}
+
+function locationHeadingZoomForSpeed(speed: number | null) {
+  if (speed === null || speed < 0) return LOCATION_HEADING_UP_ZOOM
+  if (speed >= 12) return 15
+  if (speed >= 5.5) return 16
+  if (speed >= 1.8) return 17
+  return LOCATION_HEADING_UP_ZOOM
 }
 
 type CompassDeviceOrientationEvent = DeviceOrientationEvent & { webkitCompassHeading?: number }
@@ -767,17 +793,25 @@ export default function MapClient({
   const userMarkerRef = useRef<google.maps.Marker | null>(null)
   const userPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationWatchIdRef = useRef<number | null>(null)
-  const locationFollowModeRef = useRef<'idle' | 'follow' | 'heading'>('idle')
+  const locationFollowModeRef = useRef<LocationFollowMode>('idle')
+  const locationPausedFollowModeRef = useRef<Exclude<LocationFollowMode, 'idle'> | null>(null)
   const locationFollowingRef = useRef(false)
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationAnimationFrameRef = useRef<number | null>(null)
+  const locationCameraAnimationFrameRef = useRef<number | null>(null)
+  const locationCameraHeadingTargetRef = useRef<number | null>(null)
   const locationHeadingRef = useRef<number | null>(null)
+  const locationLastHeadingRef = useRef<number | null>(null)
+  const locationSpeedRef = useRef<number | null>(null)
+  const locationPositionUpdatedAtRef = useRef(0)
   const locationCompassHeadingRef = useRef<number | null>(null)
   const locationCompassHeadingAtRef = useRef(0)
   const locationHeadingUpRef = useRef(false)
+  const locationRequestingRef = useRef(false)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
+  const mapUserGestureUntilRef = useRef(0)
   const routeLineRefs = useRef<google.maps.Polyline[]>([])
   const routeStopMarkerRefs = useRef<google.maps.Marker[]>([])
 
@@ -834,8 +868,37 @@ export default function MapClient({
   const [locationPromptMessage, setLocationPromptMessage] = useState('')
   const [locationRequesting, setLocationRequesting] = useState(false)
   const [locationHeadingUpActive, setLocationHeadingUpActive] = useState(false)
+  const [locateButtonMode, setLocateButtonMode] = useState<LocateButtonMode>('idle')
   const [routeLayerOn, setRouteLayerOn] = useState<Record<string, boolean>>(() =>
     Object.fromEntries((routeLayers ?? []).map((layer) => [layer.id, layer.defaultVisible ?? true])),
+  )
+
+  const syncLocateButtonState = useCallback(() => {
+    const pausedMode = locationPausedFollowModeRef.current
+    const mode: LocateButtonMode = locationRequestingRef.current
+      ? 'requesting'
+      : locationFollowModeRef.current === 'heading'
+        ? 'heading'
+        : locationFollowModeRef.current === 'follow' || locationFollowingRef.current
+          ? 'following'
+          : pausedMode === 'heading'
+            ? 'paused-heading'
+            : pausedMode === 'follow'
+              ? 'paused-follow'
+              : userPositionRef.current
+                ? 'located'
+                : 'idle'
+    setLocateButtonMode(mode)
+    setLocationHeadingUpActive(mode === 'heading')
+  }, [])
+
+  const setLocationRequestingState = useCallback(
+    (next: boolean) => {
+      locationRequestingRef.current = next
+      setLocationRequesting(next)
+      syncLocateButtonState()
+    },
+    [syncLocateButtonState],
   )
 
   const allCategoriesOn = cityMapCategoriesAllOn(categoryOn)
@@ -1087,6 +1150,32 @@ export default function MapClient({
     return () => clearSmartMapLabels(overlays)
   }, [])
 
+  const exitLocationFollowMode = useCallback(
+    (resumeOnNextLocate = false) => {
+      const previousMode = locationFollowModeRef.current
+      if (resumeOnNextLocate) {
+        locationPausedFollowModeRef.current =
+          previousMode !== 'idle' ? previousMode : locationPausedFollowModeRef.current
+      } else {
+        locationPausedFollowModeRef.current = null
+      }
+      locationFollowModeRef.current = 'idle'
+      locationFollowingRef.current = false
+      locationHeadingUpRef.current = false
+      locationCameraHeadingTargetRef.current = null
+      if (locationCameraAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(locationCameraAnimationFrameRef.current)
+        locationCameraAnimationFrameRef.current = null
+      }
+      if (locationAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(locationAnimationFrameRef.current)
+        locationAnimationFrameRef.current = null
+      }
+      syncLocateButtonState()
+    },
+    [syncLocateButtonState],
+  )
+
   useEffect(() => {
     if (!apiKey) {
       setMapError('請在 .env.local 設定 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY')
@@ -1111,27 +1200,47 @@ export default function MapClient({
           scrollwheel: true,
           zoomControl: false,
           renderingType: google.maps.RenderingType.VECTOR,
+          headingInteractionEnabled: true,
+          tiltInteractionEnabled: true,
         }
         const map = new google.maps.Map(mapElRef.current, mapOptions)
         map.setOptions({ gestureHandling: 'greedy', draggable: true })
         mapRef.current = map
+        const mapElement = mapElRef.current
+        const markGesture = () => {
+          mapUserGestureUntilRef.current = Date.now() + 1800
+        }
+        const markTouchGesture = (event: TouchEvent) => {
+          if (event.touches.length >= 2) markGesture()
+        }
+        mapElement.addEventListener('pointerdown', markGesture, { passive: true })
+        mapElement.addEventListener('wheel', markGesture, { passive: true })
+        mapElement.addEventListener('touchstart', markTouchGesture, { passive: true })
+        mapElement.addEventListener('touchmove', markTouchGesture, { passive: true })
         mapLayoutIdleRef.current = false
         google.maps.event.addListenerOnce(map, 'idle', () => {
           mapLayoutIdleRef.current = true
         })
-        const stopFollowingFromMapGesture = () => {
-          if (locationAnimationFrameRef.current !== null) {
-            window.cancelAnimationFrame(locationAnimationFrameRef.current)
-            locationAnimationFrameRef.current = null
-          }
-          locationFollowModeRef.current = 'idle'
-          locationFollowingRef.current = false
-          locationHeadingUpRef.current = false
-          setLocationHeadingUpActive(false)
-          map.setHeading(0)
+        const handleManualCameraChange = () => {
+          const userGestureActive = Date.now() <= mapUserGestureUntilRef.current
+          if (autoCenteringLocationRef.current && !userGestureActive) return
+          exitLocationFollowMode(true)
         }
-        const dragListener = map.addListener('dragstart', stopFollowingFromMapGesture)
+        const zoomListener = map.addListener('zoom_changed', handleManualCameraChange)
+        const headingListener = map.addListener('heading_changed', handleManualCameraChange)
+        const tiltListener = map.addListener('tilt_changed', handleManualCameraChange)
+        const dragListener = map.addListener('dragstart', () => {
+          markGesture()
+          exitLocationFollowMode(true)
+        })
+        cleanupFns.push(() => zoomListener.remove())
+        cleanupFns.push(() => headingListener.remove())
+        cleanupFns.push(() => tiltListener.remove())
         cleanupFns.push(() => dragListener.remove())
+        cleanupFns.push(() => mapElement.removeEventListener('pointerdown', markGesture))
+        cleanupFns.push(() => mapElement.removeEventListener('wheel', markGesture))
+        cleanupFns.push(() => mapElement.removeEventListener('touchstart', markTouchGesture))
+        cleanupFns.push(() => mapElement.removeEventListener('touchmove', markTouchGesture))
         setMapReady(true)
         setMapError(null)
         syncMarkers(filteredPlaces)
@@ -1277,7 +1386,7 @@ export default function MapClient({
     return () => window.clearTimeout(t)
   }, [mobileSheetExpanded, mapReady, isMobileMapLayout])
 
-  const markLocationAutoCentering = useCallback(() => {
+  const markLocationAutoCentering = useCallback((duration = 700) => {
     autoCenteringLocationRef.current = true
     mapMoveFromFocusRef.current = true
     if (autoCenteringLocationTimerRef.current !== null) {
@@ -1287,38 +1396,145 @@ export default function MapClient({
       autoCenteringLocationRef.current = false
       mapMoveFromFocusRef.current = false
       autoCenteringLocationTimerRef.current = null
-    }, 360)
+    }, duration)
   }, [])
 
   const currentLocationHeading = useCallback(() => {
     const compassHeading = locationCompassHeadingRef.current
-    if (compassHeading !== null && Date.now() - locationCompassHeadingAtRef.current < 3000) return compassHeading
-    return locationHeadingRef.current
+    if (compassHeading !== null && Date.now() - locationCompassHeadingAtRef.current < DEVICE_HEADING_STALE_MS) return compassHeading
+    return locationHeadingRef.current ?? locationLastHeadingRef.current
   }, [])
 
   const currentLocationIconHeading = useCallback(() => {
+    if (locationFollowModeRef.current === 'heading') return 0
     const heading = currentLocationHeading()
     if (heading === null) return null
-    return locationHeadingUpRef.current ? 0 : heading
+    return heading
   }, [currentLocationHeading])
 
-  const applyLocationMapHeading = useCallback((map: google.maps.Map) => {
-    if (!locationHeadingUpRef.current) {
-      map.setHeading(0)
-      return
+  const moveLocationCamera = useCallback((map: google.maps.Map, cameraOptions: google.maps.CameraOptions, guardDuration = LOCATION_CAMERA_GUARD_MS) => {
+    markLocationAutoCentering(guardDuration)
+    map.moveCamera(cameraOptions)
+  }, [markLocationAutoCentering])
+
+  const stopLocationCameraAnimation = useCallback(() => {
+    locationCameraHeadingTargetRef.current = null
+    if (locationCameraAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(locationCameraAnimationFrameRef.current)
+      locationCameraAnimationFrameRef.current = null
     }
-    const heading = currentLocationHeading()
-    if (heading !== null) map.setHeading(heading)
-  }, [currentLocationHeading])
+  }, [])
+
+  const animateLocationMapHeading = useCallback(
+    (map: google.maps.Map, heading: number, immediate = false) => {
+      const nextHeading = normalizeMapHeading(heading)
+      if (immediate) {
+        stopLocationCameraAnimation()
+        locationCameraHeadingTargetRef.current = nextHeading
+        moveLocationCamera(map, { heading: nextHeading }, LOCATION_HEADING_CAMERA_GUARD_MS)
+        return
+      }
+      locationCameraHeadingTargetRef.current = nextHeading
+      if (locationCameraAnimationFrameRef.current !== null) return
+      const startedAt = performance.now()
+      const step = (now: number) => {
+        const targetHeading = locationCameraHeadingTargetRef.current
+        const liveHeading = map.getHeading()
+        if (targetHeading === null) {
+          locationCameraAnimationFrameRef.current = null
+          return
+        }
+        if (typeof liveHeading !== 'number' || !Number.isFinite(liveHeading)) {
+          moveLocationCamera(map, { heading: targetHeading }, LOCATION_HEADING_CAMERA_GUARD_MS)
+          locationCameraAnimationFrameRef.current = null
+          return
+        }
+        const diff = ((targetHeading - normalizeMapHeading(liveHeading) + 540) % 360) - 180
+        if (Math.abs(diff) < 0.55 || now - startedAt > LOCATION_CAMERA_ANIMATION_MS) {
+          moveLocationCamera(map, { heading: targetHeading }, LOCATION_HEADING_CAMERA_GUARD_MS)
+          locationCameraAnimationFrameRef.current = null
+          return
+        }
+        const nextFrameHeading = normalizeMapHeading(liveHeading + diff * 0.72)
+        moveLocationCamera(map, { heading: nextFrameHeading }, LOCATION_HEADING_CAMERA_GUARD_MS)
+        locationCameraAnimationFrameRef.current = window.requestAnimationFrame(step)
+      }
+      locationCameraAnimationFrameRef.current = window.requestAnimationFrame(step)
+    },
+    [moveLocationCamera, stopLocationCameraAnimation],
+  )
+
+  const applyLocationMapHeading = useCallback(
+    (map: google.maps.Map, immediate = false, center?: google.maps.LatLngLiteral) => {
+      if (locationFollowModeRef.current !== 'heading') return
+      const heading = currentLocationHeading()
+      const targetZoom = locationHeadingZoomForSpeed(locationSpeedRef.current)
+      const currentMapHeading = map.getHeading()
+      const cameraHeading =
+        heading ??
+        locationCameraHeadingTargetRef.current ??
+        (typeof currentMapHeading === 'number' && Number.isFinite(currentMapHeading)
+          ? normalizeMapHeading(currentMapHeading)
+          : 0)
+      let headingMovedWithCamera = false
+      try {
+        const currentZoom = map.getZoom()
+        const currentTilt = map.getTilt()
+        const cameraOptions: google.maps.CameraOptions = {}
+        if (center) cameraOptions.center = center
+        if (typeof currentZoom !== 'number' || Math.abs(currentZoom - targetZoom) > 0.25) cameraOptions.zoom = targetZoom
+        if (typeof currentTilt !== 'number' || currentTilt < 40) cameraOptions.tilt = 45
+        if (immediate) {
+          cameraOptions.heading = normalizeMapHeading(cameraHeading)
+          headingMovedWithCamera = true
+        }
+        if (Object.keys(cameraOptions).length > 0) {
+          moveLocationCamera(map, cameraOptions, immediate ? LOCATION_HEADING_CAMERA_GUARD_MS : LOCATION_CAMERA_GUARD_MS)
+        }
+      } catch {
+        // Some embedded map renderers reject camera updates while initializing.
+      }
+      if (headingMovedWithCamera) return
+      try {
+        animateLocationMapHeading(map, cameraHeading, immediate)
+      } catch {
+        // Heading is best-effort; the blue dot still shows direction if map rotation is unavailable.
+      }
+    },
+    [animateLocationMapHeading, currentLocationHeading, moveLocationCamera],
+  )
+
+  const resetLocationHeadingCamera = useCallback(
+    (map: google.maps.Map, center?: google.maps.LatLngLiteral) => {
+      stopLocationCameraAnimation()
+      try {
+        moveLocationCamera(map, {
+          ...(center ? { center } : {}),
+          heading: 0,
+          tilt: 0,
+          zoom: LOCATION_FOLLOW_ZOOM,
+        }, LOCATION_CAMERA_GUARD_MS)
+      } catch {
+        // Ignore camera reset failures on partially initialized maps.
+      }
+    },
+    [moveLocationCamera, stopLocationCameraAnimation],
+  )
 
   const applyLocationOrientationHeading = useCallback(
     (heading: number) => {
-      locationCompassHeadingRef.current = heading
+      const normalizedHeading = normalizeMapHeading(heading)
+      locationCompassHeadingRef.current = normalizedHeading
       locationCompassHeadingAtRef.current = Date.now()
+      locationHeadingRef.current = normalizedHeading
+      locationLastHeadingRef.current = normalizedHeading
       const map = mapRef.current
       if (!map || !userMarkerRef.current) return
-      applyLocationMapHeading(map)
       userMarkerRef.current.setIcon(userLocationIcon(currentLocationIconHeading()))
+      if (locationFollowingRef.current && locationFollowModeRef.current === 'heading') {
+        const position = locationRenderedPositionRef.current ?? userPositionRef.current ?? undefined
+        applyLocationMapHeading(map, false, position)
+      }
     },
     [applyLocationMapHeading, currentLocationIconHeading],
   )
@@ -1330,33 +1546,42 @@ export default function MapClient({
     }
   }, [])
 
-  const applyLocationZoom = useCallback((map: google.maps.Map) => {
-    const targetZoom = locationHeadingUpRef.current ? LOCATION_HEADING_UP_ZOOM : LOCATION_FOLLOW_ZOOM
-    const currentZoom = map.getZoom() ?? 0
-    if (currentZoom < targetZoom) map.setZoom(targetZoom)
-  }, [])
-
   const followUserPositionOnMap = useCallback(
     (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
-      markLocationAutoCentering()
-      if (immediate) applyLocationZoom(map)
+      const headingFollow = locationFollowModeRef.current === 'heading'
+      markLocationAutoCentering(headingFollow ? 900 : 700)
       const marker = userMarkerRef.current
       const from = locationRenderedPositionRef.current ?? userPositionRef.current ?? position
       stopLocationAnimation()
       if (immediate || distanceMeters(from, position) < 0.5) {
         marker?.setPosition(position)
-        map.panTo(position)
+        if (headingFollow) {
+          applyLocationMapHeading(map, true, position)
+        } else if ((map.getZoom() ?? 0) < LOCATION_FOLLOW_ZOOM) {
+          moveLocationCamera(map, { center: position, zoom: LOCATION_FOLLOW_ZOOM }, 700)
+        } else {
+          map.panTo(position)
+        }
         locationRenderedPositionRef.current = position
         return
       }
       const distance = distanceMeters(from, position)
-      const duration = Math.min(1400, Math.max(700, distance * 60))
+      if (!headingFollow && (map.getZoom() ?? 0) < LOCATION_FOLLOW_ZOOM) {
+        moveLocationCamera(map, { zoom: LOCATION_FOLLOW_ZOOM }, 700)
+      }
+      const duration = Math.min(1200, Math.max(420, distance * 45))
       const startedAt = performance.now()
       const step = (now: number) => {
-        const progress = Math.min(1, (now - startedAt) / duration)
+        const progress = easeOutCubic(Math.min(1, (now - startedAt) / duration))
         const nextPosition = interpolatePosition(from, position, progress)
         marker?.setPosition(nextPosition)
-        if (locationFollowingRef.current) map.setCenter(nextPosition)
+        if (locationFollowingRef.current) {
+          if (locationFollowModeRef.current === 'heading') {
+            applyLocationMapHeading(map, false, nextPosition)
+          } else {
+            map.setCenter(nextPosition)
+          }
+        }
         locationRenderedPositionRef.current = nextPosition
         if (progress < 1) {
           locationAnimationFrameRef.current = window.requestAnimationFrame(step)
@@ -1367,7 +1592,7 @@ export default function MapClient({
       }
       locationAnimationFrameRef.current = window.requestAnimationFrame(step)
     },
-    [applyLocationZoom, markLocationAutoCentering, stopLocationAnimation],
+    [applyLocationMapHeading, markLocationAutoCentering, moveLocationCamera, stopLocationAnimation],
   )
 
   useEffect(() => {
@@ -1672,35 +1897,45 @@ export default function MapClient({
       setLocationPromptMessage('這個瀏覽器不支援定位，請改用 Safari 或 Chrome 開啟。')
       return
     }
+    mapUserGestureUntilRef.current = 0
+    void requestDeviceOrientationAccess()
     if (locationWatchIdRef.current !== null) {
       setLocationPromptOpen(false)
       const position = userPositionRef.current
       if (position) {
-        const nextMode = locationFollowModeRef.current === 'follow' ? 'heading' : 'follow'
+        const currentMode = locationFollowModeRef.current
+        const pausedMode = locationPausedFollowModeRef.current
+        const nextMode: Exclude<LocationFollowMode, 'idle'> =
+          currentMode === 'heading'
+            ? 'follow'
+            : currentMode === 'follow'
+              ? 'heading'
+              : pausedMode ?? 'follow'
+        const wasHeadingFollow = currentMode === 'heading'
+        const shouldEnterHeadingFollow = nextMode === 'heading'
+        locationPausedFollowModeRef.current = null
         locationFollowModeRef.current = nextMode
         locationFollowingRef.current = true
-        const nextHeadingUp = nextMode === 'heading'
-        locationHeadingUpRef.current = nextHeadingUp
-        setLocationHeadingUpActive(nextHeadingUp)
-        if (nextHeadingUp) void requestDeviceOrientationAccess()
-        applyLocationMapHeading(map)
+        locationHeadingUpRef.current = shouldEnterHeadingFollow
+        if (wasHeadingFollow && !shouldEnterHeadingFollow) resetLocationHeadingCamera(map, position)
         userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
         locationLastCenteredRef.current = position
       }
+      syncLocateButtonState()
       return
     }
 
-    setLocationRequesting(true)
+    setLocationRequestingState(true)
     setLocationPromptMessage('')
+    locationPausedFollowModeRef.current = null
     locationFollowModeRef.current = 'follow'
     locationFollowingRef.current = true
     locationHeadingUpRef.current = false
-    setLocationHeadingUpActive(false)
-    applyLocationMapHeading(map)
+    syncLocateButtonState()
     locationWatchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        setLocationRequesting(false)
+        setLocationRequestingState(false)
         setLocationPromptOpen(false)
         const position = {
           lat: pos.coords.latitude,
@@ -1709,11 +1944,34 @@ export default function MapClient({
         const gpsHeading = locationHeadingFromPosition(pos)
         const renderedPosition = locationRenderedPositionRef.current
         const travelHeading = reliableMovementHeading(pos, renderedPosition, position)
-        const speed = typeof pos.coords.speed === 'number' && Number.isFinite(pos.coords.speed) ? pos.coords.speed : null
+        const gpsSpeed = typeof pos.coords.speed === 'number' && Number.isFinite(pos.coords.speed) ? pos.coords.speed : null
+        const previousPosition = userPositionRef.current
+        const previousPositionAt = locationPositionUpdatedAtRef.current
+        const measuredAt = typeof pos.timestamp === 'number' && Number.isFinite(pos.timestamp) ? pos.timestamp : Date.now()
+        const movedMeters = previousPosition ? distanceMeters(previousPosition, position) : 0
+        const inferredSpeed =
+          gpsSpeed === null && previousPosition && previousPositionAt > 0
+            ? (() => {
+                const seconds = (measuredAt - previousPositionAt) / 1000
+                if (seconds < 0.5 || seconds > 30) return null
+                const accuracy = typeof pos.coords.accuracy === 'number' && Number.isFinite(pos.coords.accuracy)
+                  ? pos.coords.accuracy
+                  : 0
+                if (movedMeters < Math.max(8, accuracy * 0.45)) return null
+                return movedMeters / seconds
+              })()
+            : null
+        const speed = gpsSpeed ?? inferredSpeed
+        locationSpeedRef.current = speed
+        locationPositionUpdatedAtRef.current = measuredAt
         if (gpsHeading !== null && (speed === null || speed >= 0.7)) {
-          locationHeadingRef.current = gpsHeading
+          const normalizedHeading = normalizeMapHeading(gpsHeading)
+          locationHeadingRef.current = normalizedHeading
+          locationLastHeadingRef.current = normalizedHeading
         } else if (travelHeading !== null) {
-          locationHeadingRef.current = travelHeading
+          const normalizedHeading = normalizeMapHeading(travelHeading)
+          locationHeadingRef.current = normalizedHeading
+          locationLastHeadingRef.current = normalizedHeading
         }
         applyLocationMapHeading(map)
         const icon = userLocationIcon(currentLocationIconHeading())
@@ -1738,20 +1996,25 @@ export default function MapClient({
         if (shouldRecenter) {
           followUserPositionOnMap(map, position, !lastCentered)
           locationLastCenteredRef.current = position
+        } else if (locationFollowingRef.current && locationFollowModeRef.current === 'heading') {
+          userMarkerRef.current?.setPosition(position)
+          applyLocationMapHeading(map, false, position)
+          locationRenderedPositionRef.current = position
         } else {
           userMarkerRef.current?.setPosition(position)
           locationRenderedPositionRef.current = position
         }
+        syncLocateButtonState()
       },
       (error) => {
-        setLocationRequesting(false)
+        setLocationRequestingState(false)
         if (error.code === error.PERMISSION_DENIED && locationWatchIdRef.current !== null) {
           navigator.geolocation.clearWatch(locationWatchIdRef.current)
           locationWatchIdRef.current = null
+          locationPausedFollowModeRef.current = null
           locationFollowModeRef.current = 'idle'
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
-          setLocationHeadingUpActive(false)
           stopLocationAnimation()
         }
         if (error.code === error.PERMISSION_DENIED) {
@@ -1763,10 +2026,19 @@ export default function MapClient({
         } else {
           setLocationPromptMessage('定位失敗，請再試一次。')
         }
+        syncLocateButtonState()
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     )
-  }, [applyLocationMapHeading, currentLocationIconHeading, followUserPositionOnMap, stopLocationAnimation])
+  }, [
+    applyLocationMapHeading,
+    currentLocationIconHeading,
+    followUserPositionOnMap,
+    resetLocationHeadingCamera,
+    setLocationRequestingState,
+    stopLocationAnimation,
+    syncLocateButtonState,
+  ])
 
   useEffect(() => {
     return () => {
@@ -1775,6 +2047,12 @@ export default function MapClient({
         locationWatchIdRef.current = null
       }
       locationFollowModeRef.current = 'idle'
+      locationPausedFollowModeRef.current = null
+      locationCameraHeadingTargetRef.current = null
+      if (locationCameraAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(locationCameraAnimationFrameRef.current)
+        locationCameraAnimationFrameRef.current = null
+      }
       if (autoCenteringLocationTimerRef.current !== null) {
         window.clearTimeout(autoCenteringLocationTimerRef.current)
         autoCenteringLocationTimerRef.current = null
@@ -1785,9 +2063,14 @@ export default function MapClient({
       locationLastCenteredRef.current = null
       locationRenderedPositionRef.current = null
       locationHeadingRef.current = null
+      locationLastHeadingRef.current = null
+      locationSpeedRef.current = null
+      locationPositionUpdatedAtRef.current = 0
       locationCompassHeadingRef.current = null
       locationCompassHeadingAtRef.current = 0
       locationHeadingUpRef.current = false
+      locationRequestingRef.current = false
+      setLocateButtonMode('idle')
       setLocationHeadingUpActive(false)
     }
   }, [stopLocationAnimation])
@@ -2031,9 +2314,40 @@ export default function MapClient({
                   {!mapError ? (
                     <button
                       type="button"
-                      className={`${styles.mapLocateButton} ${locationHeadingUpActive ? styles.mapLocateButtonActive : ''}`}
-                      aria-label="定位我的目前位置"
-                      title="定位我的目前位置"
+                      className={[
+                        styles.mapLocateButton,
+                        locateButtonMode === 'following' ? styles.mapLocateButtonFollowing : '',
+                        locateButtonMode === 'heading' ? styles.mapLocateButtonHeading : '',
+                        locateButtonMode === 'paused-follow' || locateButtonMode === 'paused-heading'
+                          ? styles.mapLocateButtonPaused
+                          : '',
+                        locateButtonMode === 'paused-heading' ? styles.mapLocateButtonPausedHeading : '',
+                        locationHeadingUpActive ? styles.mapLocateButtonActive : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      aria-label={
+                        locateButtonMode === 'heading'
+                          ? '切回一般定位'
+                          : locateButtonMode === 'following'
+                            ? '開啟方向跟隨'
+                            : locateButtonMode === 'paused-heading'
+                              ? '回到方向跟隨'
+                              : locateButtonMode === 'paused-follow'
+                                ? '回到一般定位跟隨'
+                                : '定位我的目前位置'
+                      }
+                      title={
+                        locateButtonMode === 'heading'
+                          ? '切回一般定位'
+                          : locateButtonMode === 'following'
+                            ? '開啟方向跟隨'
+                            : locateButtonMode === 'paused-heading'
+                              ? '回到方向跟隨'
+                              : locateButtonMode === 'paused-follow'
+                                ? '回到一般定位跟隨'
+                                : '定位我的目前位置'
+                      }
                       disabled={locationRequesting}
                       data-event={`${gtagPrefix}_locate`}
                       data-platform="geolocation"
