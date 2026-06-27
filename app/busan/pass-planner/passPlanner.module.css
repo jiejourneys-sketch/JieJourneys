@@ -293,14 +293,23 @@
   right: 14px;
   bottom: 64px;
   z-index: 2;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border: 1px solid rgba(60, 64, 67, 0.18);
   border-radius: 3px;
   padding: 0;
   background: #ffffff;
   box-shadow: 0 1px 4px rgba(60, 64, 67, 0.3);
   cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.mapLocateButton:active {
+  transform: translateY(1px);
 }
 
 .mapLocateButton::before {
@@ -369,12 +378,14 @@
 }
 
 .mapLocateButtonFollowing::before,
-.mapLocateButtonHeading::before {
+.mapLocateButtonHeading::before,
+.mapLocateButtonPaused::before {
   border-color: #2563eb;
 }
 
 .mapLocateButtonFollowing::after,
-.mapLocateButtonHeading::after {
+.mapLocateButtonHeading::after,
+.mapLocateButtonPaused::after {
   background:
     linear-gradient(#2563eb, #2563eb) 50% 0 / 2px 7px no-repeat,
     linear-gradient(#2563eb, #2563eb) 50% 100% / 2px 7px no-repeat,
@@ -383,19 +394,78 @@
 }
 
 .mapLocateButtonFollowing span,
-.mapLocateButtonHeading span {
+.mapLocateButtonHeading span,
+.mapLocateButtonPaused span {
   background: #2563eb;
 }
 
-.mapLocateButtonHeading span {
+.mapLocateButtonFollowing {
+  border-color: rgba(37, 99, 235, 0.48);
+  background: #e8f0fe;
+  box-shadow:
+    0 1px 5px rgba(37, 99, 235, 0.24),
+    0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.mapLocateButtonHeading {
+  border-color: #2563eb;
+  background: #2563eb;
+  box-shadow:
+    0 2px 7px rgba(37, 99, 235, 0.34),
+    0 0 0 4px rgba(37, 99, 235, 0.18);
+}
+
+.mapLocateButtonHeading::before {
+  border-color: #ffffff;
+}
+
+.mapLocateButtonHeading::after {
+  background:
+    linear-gradient(#ffffff, #ffffff) 50% 0 / 2px 7px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 50% 100% / 2px 7px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 0 50% / 7px 2px no-repeat,
+    linear-gradient(#ffffff, #ffffff) 100% 50% / 7px 2px no-repeat;
+}
+
+.mapLocateButtonHeading span,
+.mapLocateButtonPausedHeading span {
   width: 0;
   height: 0;
   border-right: 5px solid transparent;
-  border-bottom: 13px solid #2563eb;
+  border-bottom: 13px solid currentColor;
   border-left: 5px solid transparent;
   border-radius: 0;
   background: transparent;
   transform: translate(-50%, -58%);
+}
+
+.mapLocateButtonHeading span {
+  color: #ffffff;
+}
+
+.mapLocateButtonPaused {
+  border-color: rgba(37, 99, 235, 0.58);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.12) 0 34%, transparent 36%),
+    #ffffff;
+  box-shadow:
+    0 1px 5px rgba(37, 99, 235, 0.22),
+    inset 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.mapLocateButtonPaused::before,
+.mapLocateButtonPaused::after {
+  opacity: 0.62;
+}
+
+.mapLocateButtonPausedHeading {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.16) 0 34%, transparent 36%),
+    #eef4ff;
+}
+
+.mapLocateButtonPausedHeading span {
+  color: #2563eb;
 }
 
 .mapLegend {

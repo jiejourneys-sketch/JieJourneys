@@ -118,7 +118,7 @@ const LOCATION_CAMERA_GUARD_MS = 1000
 const LOCATION_HEADING_CAMERA_GUARD_MS = 1200
 
 type LocationFollowMode = 'idle' | 'follow' | 'heading'
-type LocateButtonMode = 'idle' | 'located' | 'requesting' | 'following' | 'heading'
+type LocateButtonMode = 'idle' | 'located' | 'requesting' | 'following' | 'heading' | 'paused-follow' | 'paused-heading'
 type DeviceOrientationEventWithCompass = DeviceOrientationEvent & {
   webkitCompassHeading?: number
 }
@@ -2998,27 +2998,36 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const syncLocateButtonState = useCallback(() => {
     const button = locateButtonRef.current
     if (!button) return
+    const pausedMode = locationPausedFollowModeRef.current
     const mode: LocateButtonMode = locationRequestingRef.current
       ? 'requesting'
       : locationFollowModeRef.current === 'heading'
         ? 'heading'
         : locationFollowModeRef.current === 'follow' || locationFollowingRef.current
           ? 'following'
-          : userPositionRef.current
-            ? 'located'
-            : 'idle'
+          : pausedMode === 'heading'
+            ? 'paused-heading'
+            : pausedMode === 'follow'
+              ? 'paused-follow'
+              : userPositionRef.current
+                ? 'located'
+                : 'idle'
     const labelByMode: Record<LocateButtonMode, string> = {
       idle: '定位我的目前位置',
       located: '回到我的位置',
       requesting: '定位中...',
       following: '開啟方向跟隨',
       heading: '切回一般定位',
+      'paused-follow': '回到一般定位跟隨',
+      'paused-heading': '回到方向跟隨',
     }
     button.dataset.locationMode = mode
     button.className = [
       styles.mapLocateButton,
       mode === 'following' ? styles.mapLocateButtonFollowing : '',
       mode === 'heading' ? styles.mapLocateButtonHeading : '',
+      mode === 'paused-follow' || mode === 'paused-heading' ? styles.mapLocateButtonPaused : '',
+      mode === 'paused-heading' ? styles.mapLocateButtonPausedHeading : '',
     ]
       .filter(Boolean)
       .join(' ')
@@ -3320,6 +3329,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
 
+    mapUserGestureUntilRef.current = 0
     if (locationWatchIdRef.current !== null) {
       setLocationPromptOpen(false)
       const position = userPositionRef.current
