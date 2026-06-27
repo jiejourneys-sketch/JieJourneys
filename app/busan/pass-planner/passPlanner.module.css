@@ -250,6 +250,11 @@
   min-height: 420px;
 }
 
+.mapCanvas {
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
 .smartMapLabel {
   max-width: 176px;
   border: 1px solid rgba(60, 64, 67, 0.16);
@@ -3018,7 +3023,7 @@
 
   .mapCanvas {
     overscroll-behavior: contain;
-    touch-action: auto;
+    touch-action: none;
   }
 
   .mapLocateButton {

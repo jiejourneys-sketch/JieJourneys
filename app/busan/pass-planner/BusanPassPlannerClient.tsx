@@ -1189,9 +1189,9 @@ function userLocationIcon(
       </filter>
     </defs>
     ${cone}
-    <circle cx="80" cy="80" r="31" fill="#ffffff" filter="url(#shadow)"/>
-    <circle cx="80" cy="80" r="25" fill="${fillColor}" fill-opacity="0.2"/>
-    <circle cx="80" cy="80" r="20" fill="${fillColor}"/>
+    <circle cx="80" cy="80" r="27" fill="#ffffff" filter="url(#shadow)"/>
+    <circle cx="80" cy="80" r="21" fill="${fillColor}" fill-opacity="0.2"/>
+    <circle cx="80" cy="80" r="16" fill="${fillColor}"/>
   </svg>`
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg.replace(/\s+/g, ' ').trim())}`,
@@ -2892,6 +2892,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const deviceOrientationHandlerRef = useRef<((event: DeviceOrientationEvent) => void) | null>(null)
   const autoCenteringLocationRef = useRef(false)
   const autoCenteringLocationTimerRef = useRef<number | null>(null)
+  const mapUserGestureUntilRef = useRef(0)
   const locateButtonRef = useRef<HTMLButtonElement | null>(null)
   const customUrlResolveSeqRef = useRef(0)
   const addCardRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -3044,6 +3045,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       autoCenteringLocationRef.current = false
       autoCenteringLocationTimerRef.current = null
     }, duration)
+  }, [])
+
+  const markMapUserGesture = useCallback(() => {
+    mapUserGestureUntilRef.current = Date.now() + 1800
   }, [])
 
   const currentLocationHeading = useCallback(() => {
@@ -4549,6 +4554,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           tiltInteractionEnabled: true,
         }
         mapRef.current = new google.maps.Map(mapElRef.current, mapOptions)
+        const mapElement = mapElRef.current
+        const markGesture = () => markMapUserGesture()
+        const markTouchGesture = (event: TouchEvent) => {
+          if (event.touches.length >= 2) markMapUserGesture()
+        }
+        mapElement.addEventListener('pointerdown', markGesture, { passive: true })
+        mapElement.addEventListener('wheel', markGesture, { passive: true })
+        mapElement.addEventListener('touchstart', markTouchGesture, { passive: true })
+        mapElement.addEventListener('touchmove', markTouchGesture, { passive: true })
         mapRef.current.addListener('click', (e: google.maps.MapMouseEvent) => {
           if (customDraftRef.current.picking && e.latLng) {
             exitLocationFollowMode()
@@ -4560,7 +4574,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           setMobilePanelOpen(false)
         })
         const handleManualCameraChange = () => {
-          if (autoFittingMapRef.current || autoCenteringLocationRef.current) return
+          const userGestureActive = Date.now() <= mapUserGestureUntilRef.current
+          if (autoFittingMapRef.current || (autoCenteringLocationRef.current && !userGestureActive)) return
           userAdjustedMapRef.current = true
           exitLocationFollowMode(true)
         }
@@ -4576,6 +4591,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         cleanupFns.push(() => headingListener.remove())
         cleanupFns.push(() => tiltListener.remove())
         cleanupFns.push(() => dragListener.remove())
+        cleanupFns.push(() => mapElement.removeEventListener('pointerdown', markGesture))
+        cleanupFns.push(() => mapElement.removeEventListener('wheel', markGesture))
+        cleanupFns.push(() => mapElement.removeEventListener('touchstart', markTouchGesture))
+        cleanupFns.push(() => mapElement.removeEventListener('touchmove', markTouchGesture))
         setMapReady(true)
         setMapError(null)
       } catch {
@@ -4587,7 +4606,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       cancelled = true
       cleanupFns.forEach((cleanup) => cleanup())
     }
-  }, [apiKey, config.mapZoom, exitLocationFollowMode, mapCenter, setMobilePanelOpen])
+  }, [apiKey, config.mapZoom, exitLocationFollowMode, mapCenter, markMapUserGesture, setMobilePanelOpen])
 
   useEffect(() => {
     if (!mapReady || initialMapFitDoneRef.current || allPlaces.length === 0) return
