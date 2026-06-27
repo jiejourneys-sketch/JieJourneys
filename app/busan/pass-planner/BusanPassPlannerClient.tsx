@@ -113,6 +113,7 @@ const LOCATION_RECENTER_MIN_DISTANCE_METERS = 2
 const LOCATION_FOLLOW_ZOOM = 16
 const LOCATION_HEADING_UP_ZOOM = 18
 const DEVICE_HEADING_STALE_MS = 5000
+const LOCATION_CAMERA_ANIMATION_MS = 380
 
 type LocateButtonMode = 'idle' | 'located' | 'requesting' | 'following' | 'heading'
 type DeviceOrientationEventWithCompass = DeviceOrientationEvent & {
@@ -1170,7 +1171,7 @@ function userLocationIcon(
 ): google.maps.Icon {
   const cone =
     typeof heading === 'number' && Number.isFinite(heading)
-      ? `<path d="M48 3 L22 47 Q48 35 74 47 Z" fill="#2563eb" fill-opacity="0.72" stroke="#ffffff" stroke-width="3" stroke-linejoin="round" transform="rotate(${heading} 48 48)"/>`
+      ? `<path d="M48 8 C33 23 25 41 22 59 C35 52 61 52 74 59 C71 41 63 23 48 8 Z" fill="#4285f4" fill-opacity="0.24" transform="rotate(${heading} 48 48)"/>`
       : ''
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
     <defs>
@@ -1179,7 +1180,8 @@ function userLocationIcon(
       </filter>
     </defs>
     ${cone}
-    <circle cx="48" cy="48" r="18" fill="#ffffff" filter="url(#shadow)"/>
+    <circle cx="48" cy="48" r="20" fill="#ffffff" filter="url(#shadow)"/>
+    <circle cx="48" cy="48" r="15" fill="${fillColor}" fill-opacity="0.18"/>
     <circle cx="48" cy="48" r="11" fill="${fillColor}"/>
   </svg>`
   return {
@@ -2857,6 +2859,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const locationLastCenteredRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationRenderedPositionRef = useRef<google.maps.LatLngLiteral | null>(null)
   const locationAnimationFrameRef = useRef<number | null>(null)
+  const locationCameraAnimationFrameRef = useRef<number | null>(null)
+  const locationCameraHeadingTargetRef = useRef<number | null>(null)
   const locationHeadingRef = useRef<number | null>(null)
   const locationRequestingRef = useRef(false)
   const deviceHeadingRef = useRef<number | null>(null)
@@ -3036,8 +3040,60 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [])
 
+  const stopLocationCameraAnimation = useCallback(() => {
+    locationCameraHeadingTargetRef.current = null
+    if (locationCameraAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(locationCameraAnimationFrameRef.current)
+      locationCameraAnimationFrameRef.current = null
+    }
+  }, [])
+
+  const animateLocationMapHeading = useCallback(
+    (map: google.maps.Map, heading: number, immediate = false) => {
+      const nextHeading = normalizeMapHeading(heading)
+      locationCameraHeadingTargetRef.current = nextHeading
+      const currentHeading = map.getHeading()
+      if (typeof currentHeading !== 'number' || !Number.isFinite(currentHeading) || immediate) {
+        stopLocationCameraAnimation()
+        map.setHeading(nextHeading)
+        return
+      }
+      if (headingDifference(currentHeading, nextHeading) < 1.2) return
+      if (locationCameraAnimationFrameRef.current !== null) return
+      markLocationAutoCentering(LOCATION_CAMERA_ANIMATION_MS + 180)
+      const step = () => {
+        const targetHeading = locationCameraHeadingTargetRef.current
+        const liveHeading = map.getHeading()
+        if (
+          targetHeading === null ||
+          typeof liveHeading !== 'number' ||
+          !Number.isFinite(liveHeading)
+        ) {
+          locationCameraAnimationFrameRef.current = null
+          return
+        }
+        const diff = ((targetHeading - normalizeMapHeading(liveHeading) + 540) % 360) - 180
+        if (Math.abs(diff) > 0.6) {
+          map.setHeading(normalizeMapHeading(liveHeading + diff * 0.22))
+          locationCameraAnimationFrameRef.current = window.requestAnimationFrame(step)
+          return
+        }
+        map.setHeading(targetHeading)
+        locationCameraAnimationFrameRef.current = null
+      }
+      locationCameraAnimationFrameRef.current = window.requestAnimationFrame(step)
+    },
+    [markLocationAutoCentering, stopLocationCameraAnimation],
+  )
+
+  const currentLocationIconHeading = useCallback(() => {
+    const heading = currentLocationHeading()
+    if (heading === null) return null
+    return locationFollowModeRef.current === 'heading' ? 0 : heading
+  }, [currentLocationHeading])
+
   const applyLocationHeadingToMap = useCallback(
-    (map: google.maps.Map) => {
+    (map: google.maps.Map, immediate = false) => {
       const heading = currentLocationHeading()
       try {
         if ((map.getZoom() ?? 0) < LOCATION_HEADING_UP_ZOOM) map.setZoom(LOCATION_HEADING_UP_ZOOM)
@@ -3052,25 +3108,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       if (heading === null) return
       try {
-        const nextHeading = normalizeMapHeading(heading)
-        const currentHeading = map.getHeading()
-        if (
-          typeof currentHeading !== 'number' ||
-          !Number.isFinite(currentHeading) ||
-          headingDifference(currentHeading, nextHeading) >= 2
-        ) {
-          map.setHeading(nextHeading)
-        }
+        animateLocationMapHeading(map, heading, immediate)
       } catch {
         // Heading is best-effort; the blue dot still shows direction if map rotation is unavailable.
       }
     },
-    [currentLocationHeading],
+    [animateLocationMapHeading, currentLocationHeading],
   )
 
   const resetLocationHeadingCamera = useCallback(
     (map: google.maps.Map) => {
-      markLocationAutoCentering(900)
+      markLocationAutoCentering(LOCATION_CAMERA_ANIMATION_MS + 240)
+      stopLocationCameraAnimation()
       try {
         map.setHeading(0)
       } catch {
@@ -3081,8 +3130,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       } catch {
         // Tilt reset is only available on vector-capable maps.
       }
+      try {
+        map.setZoom(LOCATION_FOLLOW_ZOOM)
+      } catch {
+        // Ignore camera reset failures on partially initialized maps.
+      }
     },
-    [markLocationAutoCentering],
+    [markLocationAutoCentering, stopLocationCameraAnimation],
   )
 
   const handleDeviceOrientation = useCallback(
@@ -3094,7 +3148,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       deviceHeadingUpdatedAtRef.current = Date.now()
       if (previousHeading !== null && headingDifference(previousHeading, heading) < 2) return
       locationHeadingRef.current = heading
-      userMarkerRef.current?.setIcon(userLocationIcon(heading))
+      userMarkerRef.current?.setIcon(userLocationIcon(locationFollowModeRef.current === 'heading' ? 0 : heading))
       if (locationFollowModeRef.current !== 'heading') return
       const map = mapRef.current
       const position = locationRenderedPositionRef.current ?? userPositionRef.current
@@ -3122,7 +3176,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (!deviceHeadingPermissionGrantedRef.current) return
     }
     if (locationFollowModeRef.current !== 'heading') return
-    window.addEventListener('deviceorientation', handleDeviceOrientation)
+    window.addEventListener('deviceorientationabsolute', handleDeviceOrientation, true)
+    window.addEventListener('deviceorientation', handleDeviceOrientation, true)
     deviceOrientationHandlerRef.current = handleDeviceOrientation
     deviceHeadingListeningRef.current = true
   }, [handleDeviceOrientation])
@@ -3130,7 +3185,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const stopDeviceHeadingWatch = useCallback(() => {
     if (!deviceHeadingListeningRef.current) return
     const handler = deviceOrientationHandlerRef.current
-    if (handler) window.removeEventListener('deviceorientation', handler)
+    if (handler) {
+      window.removeEventListener('deviceorientationabsolute', handler, true)
+      window.removeEventListener('deviceorientation', handler, true)
+    }
     deviceHeadingListeningRef.current = false
     deviceOrientationHandlerRef.current = null
   }, [])
@@ -3138,9 +3196,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const exitLocationFollowMode = useCallback(() => {
     locationFollowModeRef.current = 'idle'
     locationFollowingRef.current = false
+    stopLocationCameraAnimation()
     stopDeviceHeadingWatch()
     syncLocateButtonState()
-  }, [stopDeviceHeadingWatch, syncLocateButtonState])
+  }, [stopDeviceHeadingWatch, stopLocationCameraAnimation, syncLocateButtonState])
 
   const followUserPositionOnMap = useCallback(
     (map: google.maps.Map, position: google.maps.LatLngLiteral, immediate = false) => {
@@ -3214,6 +3273,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           stopDeviceHeadingWatch()
           resetLocationHeadingCamera(map)
         }
+        userMarkerRef.current?.setIcon(userLocationIcon(currentLocationIconHeading()))
         followUserPositionOnMap(map, position, true)
         setMobilePanelOpen(false)
         locationLastCenteredRef.current = position
@@ -3245,7 +3305,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         } else if (travelHeading !== null) {
           locationHeadingRef.current = normalizeMapHeading(travelHeading)
         }
-        const icon = userLocationIcon(currentLocationHeading())
+        const icon = userLocationIcon(currentLocationIconHeading())
         userPositionRef.current = position
         if (!userMarkerRef.current) {
           locationRenderedPositionRef.current = position
@@ -3309,7 +3369,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     )
   }, [
     applyLocationHeadingToMap,
-    currentLocationHeading,
+    currentLocationIconHeading,
     followUserPositionOnMap,
     markLocationAutoCentering,
     resetLocationHeadingCamera,
@@ -4557,6 +4617,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         autoCenteringLocationTimerRef.current = null
       }
       stopLocationAnimation()
+      stopLocationCameraAnimation()
       stopDeviceHeadingWatch()
       autoCenteringLocationRef.current = false
       locationFollowingRef.current = false
@@ -4567,7 +4628,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       deviceHeadingUpdatedAtRef.current = 0
       locationRequestingRef.current = false
     }
-  }, [stopDeviceHeadingWatch, stopLocationAnimation])
+  }, [stopDeviceHeadingWatch, stopLocationAnimation, stopLocationCameraAnimation])
 
   useEffect(() => {
     if (!mapReady || mapError || !mapShellRef.current || locateButtonRef.current) return
