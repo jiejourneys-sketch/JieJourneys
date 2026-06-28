@@ -901,6 +901,13 @@ export default function MapClient({
     [syncLocateButtonState],
   )
 
+  const clearLocationWatch = useCallback(() => {
+    if (locationWatchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.clearWatch(locationWatchIdRef.current)
+      locationWatchIdRef.current = null
+    }
+  }, [])
+
   const allCategoriesOn = cityMapCategoriesAllOn(categoryOn)
 
   const filteredPlaces = useMemo(
@@ -1921,7 +1928,14 @@ export default function MapClient({
         locationLastCenteredRef.current = position
       }
       syncLocateButtonState()
-      return
+      if (position || locationRequestingRef.current) return
+      clearLocationWatch()
+      locationPausedFollowModeRef.current = null
+      locationFollowModeRef.current = 'idle'
+      locationFollowingRef.current = false
+      locationHeadingUpRef.current = false
+      stopLocationAnimation()
+      stopLocationCameraAnimation()
     }
 
     setLocationRequestingState(true)
@@ -2005,15 +2019,16 @@ export default function MapClient({
         syncLocateButtonState()
       },
       (error) => {
+        const hadPosition = userPositionRef.current !== null
         setLocationRequestingState(false)
-        if (error.code === error.PERMISSION_DENIED && locationWatchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(locationWatchIdRef.current)
-          locationWatchIdRef.current = null
+        if (error.code === error.PERMISSION_DENIED || !hadPosition) {
+          clearLocationWatch()
           locationPausedFollowModeRef.current = null
           locationFollowModeRef.current = 'idle'
           locationFollowingRef.current = false
           locationHeadingUpRef.current = false
           stopLocationAnimation()
+          stopLocationCameraAnimation()
         }
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
@@ -2030,20 +2045,19 @@ export default function MapClient({
     )
   }, [
     applyLocationMapHeading,
+    clearLocationWatch,
     currentLocationIconHeading,
     followUserPositionOnMap,
     resetLocationHeadingCamera,
     setLocationRequestingState,
     stopLocationAnimation,
+    stopLocationCameraAnimation,
     syncLocateButtonState,
   ])
 
   useEffect(() => {
     return () => {
-      if (locationWatchIdRef.current !== null && navigator.geolocation) {
-        navigator.geolocation.clearWatch(locationWatchIdRef.current)
-        locationWatchIdRef.current = null
-      }
+      clearLocationWatch()
       locationFollowModeRef.current = 'idle'
       locationPausedFollowModeRef.current = null
       locationCameraHeadingTargetRef.current = null
@@ -2071,7 +2085,7 @@ export default function MapClient({
       setLocateButtonMode('idle')
       setLocationHeadingUpActive(false)
     }
-  }, [stopLocationAnimation])
+  }, [clearLocationWatch, stopLocationAnimation])
 
   return (
     <>

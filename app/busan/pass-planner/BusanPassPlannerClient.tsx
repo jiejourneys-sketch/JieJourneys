@@ -3045,6 +3045,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [syncLocateButtonState],
   )
 
+  const clearLocationWatch = useCallback(() => {
+    if (locationWatchIdRef.current !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.clearWatch(locationWatchIdRef.current)
+      locationWatchIdRef.current = null
+    }
+  }, [])
+
   const markLocationAutoCentering = useCallback((duration = 700) => {
     autoCenteringLocationRef.current = true
     if (autoCenteringLocationTimerRef.current !== null) {
@@ -3355,7 +3362,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         locationLastCenteredRef.current = position
       }
       syncLocateButtonState()
-      return
+      if (position || locationRequestingRef.current) return
+      clearLocationWatch()
+      locationWatchCenteredRef.current = false
+      locationPausedFollowModeRef.current = null
+      locationFollowModeRef.current = 'idle'
+      locationFollowingRef.current = false
+      stopDeviceHeadingWatch()
+      stopLocationAnimation()
     }
 
     setLocationRequestingState(true)
@@ -3445,25 +3459,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         syncLocateButtonState()
       },
       (error) => {
+        const hadPosition = userPositionRef.current !== null
         setLocationRequestingState(false)
-        if (error.code === error.PERMISSION_DENIED && locationWatchIdRef.current !== null) {
-          navigator.geolocation.clearWatch(locationWatchIdRef.current)
-          locationWatchIdRef.current = null
+        if (error.code === error.PERMISSION_DENIED || !hadPosition) {
+          clearLocationWatch()
           locationWatchCenteredRef.current = false
           locationPausedFollowModeRef.current = null
           locationFollowModeRef.current = 'idle'
           locationFollowingRef.current = false
           stopDeviceHeadingWatch()
           stopLocationAnimation()
+          stopLocationCameraAnimation()
         }
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPromptMessage(`定位權限尚未開啟。${locationPermissionGuide()}`)
         } else if (error.code === error.POSITION_UNAVAILABLE) {
           setLocationPromptMessage('暫時無法取得位置，請確認手機或瀏覽器定位功能已開啟。')
         } else if (error.code === error.TIMEOUT) {
-          setLocationPromptMessage('定位逾時，系統會持續嘗試更新目前位置。')
+          setLocationPromptMessage(hadPosition ? '定位逾時，系統會持續嘗試更新目前位置。' : '定位逾時，請再按一次定位。')
         } else {
-          setLocationPromptMessage('定位暫時失敗，系統會持續嘗試更新目前位置。')
+          setLocationPromptMessage(hadPosition ? '定位暫時失敗，系統會持續嘗試更新目前位置。' : '定位暫時失敗，請再按一次定位。')
         }
         syncLocateButtonState()
       },
@@ -3475,6 +3490,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     )
   }, [
     applyLocationHeadingToMap,
+    clearLocationWatch,
     currentLocationIconHeading,
     followUserPositionOnMap,
     resetLocationHeadingCamera,
@@ -3483,6 +3499,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     startDeviceHeadingWatch,
     stopDeviceHeadingWatch,
     stopLocationAnimation,
+    stopLocationCameraAnimation,
     syncLocateButtonState,
   ])
 
@@ -4726,10 +4743,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   useEffect(() => {
     return () => {
-      if (locationWatchIdRef.current !== null && navigator.geolocation) {
-        navigator.geolocation.clearWatch(locationWatchIdRef.current)
-        locationWatchIdRef.current = null
-      }
+      clearLocationWatch()
       locationFollowModeRef.current = 'idle'
       locationPausedFollowModeRef.current = null
       if (autoCenteringLocationTimerRef.current !== null) {
@@ -4751,7 +4765,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       deviceHeadingUpdatedAtRef.current = 0
       locationRequestingRef.current = false
     }
-  }, [stopDeviceHeadingWatch, stopLocationAnimation, stopLocationCameraAnimation])
+  }, [clearLocationWatch, stopDeviceHeadingWatch, stopLocationAnimation, stopLocationCameraAnimation])
 
   useEffect(() => {
     if (!mapReady || mapError || !mapShellRef.current || locateButtonRef.current) return
