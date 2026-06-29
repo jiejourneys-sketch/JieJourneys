@@ -16,6 +16,15 @@ function isAllowedGoogleMapsUrl(value: string) {
   }
 }
 
+function isAllowedNaverMapsUrl(value: string) {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && (url.hostname === 'naver.me' || url.hostname === 'map.naver.com')
+  } catch {
+    return false
+  }
+}
+
 function decodeHtml(value: string) {
   return value
     .replace(/&amp;/g, '&')
@@ -43,6 +52,34 @@ function decodeGoogleMapsQuery(value: string) {
     return query.replace(/\s+/g, ' ').trim()
   } catch {
     return null
+  }
+}
+
+function extractGoogleMapsPlaceId(value: string) {
+  try {
+    const url = new URL(value)
+    for (const key of ['query_place_id', 'place_id', 'origin_place_id', 'destination_place_id']) {
+      const id = url.searchParams.get(key)?.trim()
+      if (id) return id
+    }
+  } catch {
+    // Fall through to loose text matching.
+  }
+
+  const paramMatch = value.match(/[?&](?:query_place_id|place_id|origin_place_id|destination_place_id)=([^&#]+)/i)
+  if (paramMatch?.[1]) return decodeURIComponent(paramMatch[1]).trim()
+  const dataMatch = value.match(/!1s(ChI[A-Za-z0-9_-]{12,})/)
+  return dataMatch?.[1] ?? null
+}
+
+function extractNaverPlaceId(value: string) {
+  try {
+    const url = new URL(value)
+    const match = url.pathname.match(/\/(?:p\/)?(?:entry\/)?place\/(\d+)/)
+    return match?.[1] ?? null
+  } catch {
+    const match = value.match(/\/(?:p\/)?(?:entry\/)?place\/(\d+)/)
+    return match?.[1] ?? null
   }
 }
 
@@ -192,7 +229,9 @@ function extractGoogleMapsCoordinates(value: string) {
 
 export async function GET(request: NextRequest) {
   const rawUrl = request.nextUrl.searchParams.get('url')?.trim()
-  if (!rawUrl || rawUrl.length > 900 || !isAllowedGoogleMapsUrl(rawUrl)) {
+  const isGoogleUrl = rawUrl ? isAllowedGoogleMapsUrl(rawUrl) : false
+  const isNaverUrl = rawUrl ? isAllowedNaverMapsUrl(rawUrl) : false
+  if (!rawUrl || rawUrl.length > 900 || (!isGoogleUrl && !isNaverUrl)) {
     return NextResponse.json({ error: 'invalid_url' }, { status: 400 })
   }
 
@@ -209,15 +248,25 @@ export async function GET(request: NextRequest) {
     const html = await response.text()
 
     const resolvedUrl = response.url || rawUrl
+    if (isNaverUrl) {
+      const naverPlaceId = extractNaverPlaceId(resolvedUrl) ?? extractNaverPlaceId(html)
+      return NextResponse.json({
+        url: resolvedUrl,
+        ...(naverPlaceId ? { naverPlaceId } : {}),
+      })
+    }
+
     const coordinates = extractGoogleMapsCoordinates(resolvedUrl) ?? extractGoogleMapsCoordinates(html)
     const query = decodeGoogleMapsQuery(resolvedUrl)
     const title = cleanGoogleMapsQueryTitle(query) ?? extractGoogleMapsTitle(html)
+    const googlePlaceId = extractGoogleMapsPlaceId(resolvedUrl) ?? extractGoogleMapsPlaceId(html)
 
     return NextResponse.json({
       url: resolvedUrl,
       title,
       ...(query ? { query } : {}),
       ...(coordinates ? coordinates : {}),
+      ...(googlePlaceId ? { googlePlaceId } : {}),
     })
   } catch {
     return NextResponse.json({ error: 'resolve_failed' }, { status: 502 })

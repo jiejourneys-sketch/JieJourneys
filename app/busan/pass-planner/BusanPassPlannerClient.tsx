@@ -61,6 +61,13 @@ type PlannerFocusTarget =
 type TransportMode = 'walk' | 'subway' | 'bus' | 'train' | 'taxi' | 'car' | 'custom'
 type TransportInfo = { id: string; mode: TransportMode; customLabel: string; duration: string; note: string; href: string }
 type TransportNavigationPlaces = { from: MapPlace; to: MapPlace }
+type TransportNavigationPlaceIds = {
+  fromGooglePlaceId?: string
+  toGooglePlaceId?: string
+  fromNaverPlaceId?: string
+  toNaverPlaceId?: string
+}
+type ResolvedTransportNavigationIds = TransportNavigationPlaceIds & { key: string }
 type DayView = 'all' | number
 type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
@@ -537,11 +544,51 @@ function googleMapsTravelMode(mode: TransportMode) {
   return null
 }
 
-function googleMapsDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode) {
-  const origin = encodeURIComponent(`${from.lat},${from.lng}`)
-  const destination = encodeURIComponent(`${to.lat},${to.lng}`)
+function googleMapsPlaceIdFromUrl(value: string | undefined) {
+  const raw = value?.trim()
+  if (!raw) return ''
+
+  try {
+    const url = new URL(raw)
+    for (const key of ['query_place_id', 'place_id', 'origin_place_id', 'destination_place_id']) {
+      const id = url.searchParams.get(key)?.trim()
+      if (id) return id
+    }
+  } catch {
+    // Fall through to loose text matching.
+  }
+
+  const paramMatch = raw.match(/[?&](?:query_place_id|place_id|origin_place_id|destination_place_id)=([^&#]+)/i)
+  if (paramMatch?.[1]) return decodeURIComponent(paramMatch[1]).trim()
+  const dataMatch = raw.match(/!1s(ChI[A-Za-z0-9_-]{12,})/)
+  return dataMatch?.[1] ?? ''
+}
+
+function googleMapsPlaceId(place: MapPlace) {
+  return googleMapsPlaceIdFromUrl(place.spotGoogleMapsUrl)
+}
+
+function googleMapsDirectionsPoint(place: MapPlace, googlePlaceId = '') {
+  const name = shortName(place.name).replace(/[,]+/g, ' ').replace(/\s+/g, ' ').trim()
+  if (googlePlaceId && name) return name
+  const coordinates = `${place.lat},${place.lng}`
+  return name ? `${name} ${coordinates}` : coordinates
+}
+
+function googleMapsDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode, placeIds: TransportNavigationPlaceIds = {}) {
   const travelMode = googleMapsTravelMode(mode)
-  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${travelMode ? `&travelmode=${travelMode}` : ''}`
+  const fromGooglePlaceId = placeIds.fromGooglePlaceId || googleMapsPlaceId(from)
+  const toGooglePlaceId = placeIds.toGooglePlaceId || googleMapsPlaceId(to)
+  const params = new URLSearchParams({
+    api: '1',
+    origin: googleMapsDirectionsPoint(from, fromGooglePlaceId),
+    destination: googleMapsDirectionsPoint(to, toGooglePlaceId),
+  })
+
+  if (fromGooglePlaceId) params.set('origin_place_id', fromGooglePlaceId)
+  if (toGooglePlaceId) params.set('destination_place_id', toGooglePlaceId)
+  if (travelMode) params.set('travelmode', travelMode)
+  return `https://www.google.com/maps/dir/?${params.toString()}`
 }
 
 function naverMapDirectionsMode(mode: TransportMode) {
@@ -562,34 +609,38 @@ function naverMapEncodedCoordinate(value: number) {
   return encoded
 }
 
-function naverMapPlaceId(place: MapPlace) {
-  const url = naverMapUrl(place)?.trim()
+function naverMapPlaceIdFromUrl(value: string | undefined) {
+  const url = value?.trim()
   if (!url) return ''
-
   try {
     const parsed = new URL(url)
-    const match = parsed.pathname.match(/\/(?:entry\/)?place\/(\d+)/)
+    const match = parsed.pathname.match(/\/(?:p\/)?(?:entry\/)?place\/(\d+)/)
     return match?.[1] ?? ''
   } catch {
-    const match = url.match(/\/(?:entry\/)?place\/(\d+)/)
+    const match = url.match(/\/(?:p\/)?(?:entry\/)?place\/(\d+)/)
     return match?.[1] ?? ''
   }
 }
 
-function naverMapDirectionsPoint(place: MapPlace) {
-  const encodedName = encodeURIComponent(shortName(place.name).replace(/,/g, '©'))
+function naverMapPlaceId(place: MapPlace) {
+  return naverMapPlaceIdFromUrl(naverMapUrl(place))
+}
+
+function naverMapDirectionsPoint(place: MapPlace, resolvedPlaceId = '') {
+  const placeId = resolvedPlaceId || naverMapPlaceId(place)
+  const encodedName = placeId ? '' : encodeURIComponent(shortName(place.name).replace(/,/g, '©'))
   return [
     naverMapEncodedCoordinate(place.lng),
     naverMapEncodedCoordinate(place.lat),
     encodedName,
-    naverMapPlaceId(place),
+    placeId,
     'PLACE_POI',
   ].join(',')
 }
 
-function naverMapDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode) {
-  const start = naverMapDirectionsPoint(from)
-  const goal = naverMapDirectionsPoint(to)
+function naverMapDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode, placeIds: TransportNavigationPlaceIds = {}) {
+  const start = naverMapDirectionsPoint(from, placeIds.fromNaverPlaceId)
+  const goal = naverMapDirectionsPoint(to, placeIds.toNaverPlaceId)
   return `https://map.naver.com/p/directions/${start}/${goal}/-/${naverMapDirectionsMode(mode)}`
 }
 
@@ -597,10 +648,10 @@ function isSouthKoreaCoordinate(place: MapPlace) {
   return place.lat >= 33 && place.lat <= 38.8 && place.lng >= 124 && place.lng <= 132
 }
 
-function transportNavigationUrl(from: MapPlace, to: MapPlace, mode: TransportMode) {
+function transportNavigationUrl(from: MapPlace, to: MapPlace, mode: TransportMode, placeIds: TransportNavigationPlaceIds = {}) {
   return isSouthKoreaCoordinate(from) && isSouthKoreaCoordinate(to)
-    ? naverMapDirectionsUrl(from, to, mode)
-    : googleMapsDirectionsUrl(from, to, mode)
+    ? naverMapDirectionsUrl(from, to, mode, placeIds)
+    : googleMapsDirectionsUrl(from, to, mode, placeIds)
 }
 
 function naverMapUrl(place: MapPlace) {
@@ -1192,6 +1243,8 @@ type ResolvedMapUrlData = {
   query?: string
   lat?: number
   lng?: number
+  googlePlaceId?: string
+  naverPlaceId?: string
 }
 
 function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
@@ -1210,6 +1263,8 @@ function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
               ...(typeof data.query === 'string' && data.query.trim() ? { query: data.query.trim() } : {}),
               ...(typeof data.lat === 'number' && Number.isFinite(data.lat) ? { lat: data.lat } : {}),
               ...(typeof data.lng === 'number' && Number.isFinite(data.lng) ? { lng: data.lng } : {}),
+              ...(typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim() ? { googlePlaceId: data.googlePlaceId.trim() } : {}),
+              ...(typeof data.naverPlaceId === 'string' && data.naverPlaceId.trim() ? { naverPlaceId: data.naverPlaceId.trim() } : {}),
             }
           : null
       }
@@ -1229,6 +1284,37 @@ function setResolvedMapUrlCache(url: string, data: ResolvedMapUrlData) {
   } catch {
     // Ignore storage limits or private-browser restrictions.
   }
+}
+
+async function resolveNaverPlaceId(place: MapPlace, signal: AbortSignal) {
+  const directPlaceId = naverMapPlaceId(place)
+  if (directPlaceId) return directPlaceId
+
+  const url = naverMapUrl(place)?.trim()
+  if (!url) return ''
+
+  const cached = getResolvedMapUrlCache(url)
+  const cachedPlaceId = cached?.naverPlaceId || naverMapPlaceIdFromUrl(cached?.url)
+  if (cachedPlaceId) return cachedPlaceId
+
+  const res = await fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(url)}`, {
+    cache: 'no-store',
+    signal,
+  })
+  if (!res.ok) return ''
+
+  const data = (await res.json()) as { url?: unknown; naverPlaceId?: unknown }
+  const resolvedUrl = typeof data.url === 'string' ? data.url : url
+  const resolvedPlaceId =
+    (typeof data.naverPlaceId === 'string' && data.naverPlaceId.trim()) ||
+    naverMapPlaceIdFromUrl(resolvedUrl)
+
+  setResolvedMapUrlCache(url, {
+    url: resolvedUrl,
+    ...(resolvedPlaceId ? { naverPlaceId: resolvedPlaceId } : {}),
+  })
+
+  return resolvedPlaceId || ''
 }
 
 function focusMapOnPosition(map: google.maps.Map, center: { lat: number; lng: number }, mobileOffsetRatio = 0.2) {
@@ -2720,8 +2806,36 @@ function SortableTransportItem({
   const canSave = dirty && !readOnly
   const summaryParts = [transportLabel(info), info.duration.trim(), info.note.trim()].filter(Boolean)
   const activeNavigationMode = editing ? draft.mode : info.mode
+  const navigationFrom = navigationPlaces?.from ?? null
+  const navigationTo = navigationPlaces?.to ?? null
+  const navigationResolveKey =
+    navigationFrom && navigationTo
+      ? [
+          navigationFrom.id,
+          navigationFrom.lat,
+          navigationFrom.lng,
+          naverMapUrl(navigationFrom) ?? '',
+          navigationFrom.spotGoogleMapsUrl ?? '',
+          navigationTo.id,
+          navigationTo.lat,
+          navigationTo.lng,
+          naverMapUrl(navigationTo) ?? '',
+          navigationTo.spotGoogleMapsUrl ?? '',
+        ].join('|')
+      : ''
+  const [resolvedNavigationIds, setResolvedNavigationIds] = useState<ResolvedTransportNavigationIds>({ key: '' })
+  const activeResolvedNavigationIds =
+    resolvedNavigationIds.key === navigationResolveKey
+      ? resolvedNavigationIds
+      : null
+  const navigationPlaceIds: TransportNavigationPlaceIds = {
+    ...(navigationFrom ? { fromGooglePlaceId: googleMapsPlaceId(navigationFrom) } : {}),
+    ...(navigationTo ? { toGooglePlaceId: googleMapsPlaceId(navigationTo) } : {}),
+    ...(activeResolvedNavigationIds?.fromNaverPlaceId ? { fromNaverPlaceId: activeResolvedNavigationIds.fromNaverPlaceId } : {}),
+    ...(activeResolvedNavigationIds?.toNaverPlaceId ? { toNaverPlaceId: activeResolvedNavigationIds.toNaverPlaceId } : {}),
+  }
   const navigationHref = navigationPlaces
-    ? transportNavigationUrl(navigationPlaces.from, navigationPlaces.to, activeNavigationMode)
+    ? transportNavigationUrl(navigationPlaces.from, navigationPlaces.to, activeNavigationMode, navigationPlaceIds)
     : ''
   const navigationKey = navigationHref
     ? `auto:${navigationPlaces?.from.id}:${navigationPlaces?.to.id}:${activeNavigationMode}:${navigationHref}`
@@ -2769,6 +2883,36 @@ function SortableTransportItem({
       {navigationLabel}
     </a>
   ) : null
+
+  useEffect(() => {
+    if (!navigationFrom || !navigationTo || !navigationResolveKey) return
+    if (!isSouthKoreaCoordinate(navigationFrom) || !isSouthKoreaCoordinate(navigationTo)) return
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 8000)
+
+    Promise.all([
+      resolveNaverPlaceId(navigationFrom, controller.signal),
+      resolveNaverPlaceId(navigationTo, controller.signal),
+    ])
+      .then(([fromNaverPlaceId, toNaverPlaceId]) => {
+        if (controller.signal.aborted) return
+        setResolvedNavigationIds({
+          key: navigationResolveKey,
+          ...(fromNaverPlaceId ? { fromNaverPlaceId } : {}),
+          ...(toNaverPlaceId ? { toNaverPlaceId } : {}),
+        })
+      })
+      .catch(() => {
+        // Keep the coordinate-based Naver URL if place-id resolution is blocked or slow.
+      })
+      .finally(() => window.clearTimeout(timeout))
+
+    return () => {
+      controller.abort()
+      window.clearTimeout(timeout)
+    }
+  }, [navigationFrom, navigationResolveKey, navigationTo])
 
   useEffect(() => {
     const previousNavigationKey = navigationKeyRef.current
@@ -5448,7 +5592,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       signal: resolveController.signal,
     })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { url?: unknown; title?: unknown; query?: unknown; lat?: unknown; lng?: unknown } | null) => {
+      .then((data: { url?: unknown; title?: unknown; query?: unknown; lat?: unknown; lng?: unknown; googlePlaceId?: unknown } | null) => {
         if (customUrlResolveSeqRef.current !== nextSeq) return
         if (typeof data?.url !== 'string') {
           continueCustomPlaceManually(parsedName)
@@ -5460,12 +5604,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           typeof data.query === 'string' && data.query.trim() ? data.query.trim() : parseGoogleMapsQuery(resolvedUrl)
         const resolvedLat = typeof data.lat === 'number' && Number.isFinite(data.lat) ? data.lat : null
         const resolvedLng = typeof data.lng === 'number' && Number.isFinite(data.lng) ? data.lng : null
+        const resolvedGooglePlaceId = typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim() ? data.googlePlaceId.trim() : ''
         setResolvedMapUrlCache(trimmedGoogleUrl, {
           url: resolvedUrl,
           ...(resolvedTitle ? { name: resolvedTitle } : {}),
           ...(resolvedQuery ? { query: resolvedQuery } : {}),
           ...(resolvedLat != null ? { lat: resolvedLat } : {}),
           ...(resolvedLng != null ? { lng: resolvedLng } : {}),
+          ...(resolvedGooglePlaceId ? { googlePlaceId: resolvedGooglePlaceId } : {}),
         })
         const resolvedCoordinates =
           resolvedLat != null && resolvedLng != null ? { lat: resolvedLat, lng: resolvedLng } : parseGoogleMapsUrl(resolvedUrl)
