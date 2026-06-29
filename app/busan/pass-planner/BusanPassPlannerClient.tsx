@@ -571,8 +571,7 @@ function googleMapsPlaceId(place: MapPlace) {
 function googleMapsDirectionsPoint(place: MapPlace, googlePlaceId = '') {
   const name = shortName(place.name).replace(/[,]+/g, ' ').replace(/\s+/g, ' ').trim()
   if (googlePlaceId && name) return name
-  const coordinates = `${place.lat},${place.lng}`
-  return name ? `${name} ${coordinates}` : coordinates
+  return `${place.lat},${place.lng}`
 }
 
 function googleMapsDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode, placeIds: TransportNavigationPlaceIds = {}) {
@@ -628,7 +627,7 @@ function naverMapPlaceId(place: MapPlace) {
 
 function naverMapDirectionsPoint(place: MapPlace, resolvedPlaceId = '') {
   const placeId = resolvedPlaceId || naverMapPlaceId(place)
-  const encodedName = placeId ? '' : encodeURIComponent(shortName(place.name).replace(/,/g, '©'))
+  const encodedName = encodeURIComponent(shortName(place.name).replace(/,/g, '©'))
   return [
     naverMapEncodedCoordinate(place.lng),
     naverMapEncodedCoordinate(place.lat),
@@ -1312,6 +1311,48 @@ async function resolveNaverPlaceId(place: MapPlace, signal: AbortSignal) {
   setResolvedMapUrlCache(url, {
     url: resolvedUrl,
     ...(resolvedPlaceId ? { naverPlaceId: resolvedPlaceId } : {}),
+  })
+
+  return resolvedPlaceId || ''
+}
+
+async function resolveGooglePlaceId(place: MapPlace, signal: AbortSignal) {
+  const directPlaceId = googleMapsPlaceId(place)
+  if (directPlaceId) return directPlaceId
+
+  const url = place.spotGoogleMapsUrl?.trim()
+  if (!url || url.includes('PASTE_YOUR_MAPS_LINK')) return ''
+
+  const cached = getResolvedMapUrlCache(url)
+  const cachedPlaceId = cached?.googlePlaceId || googleMapsPlaceIdFromUrl(cached?.url)
+  if (cachedPlaceId) return cachedPlaceId
+
+  const res = await fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(url)}`, {
+    cache: 'no-store',
+    signal,
+  })
+  if (!res.ok) return ''
+
+  const data = (await res.json()) as {
+    url?: unknown
+    title?: unknown
+    query?: unknown
+    lat?: unknown
+    lng?: unknown
+    googlePlaceId?: unknown
+  }
+  const resolvedUrl = typeof data.url === 'string' ? data.url : url
+  const resolvedPlaceId =
+    (typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim()) ||
+    googleMapsPlaceIdFromUrl(resolvedUrl)
+
+  setResolvedMapUrlCache(url, {
+    url: resolvedUrl,
+    ...(typeof data.title === 'string' && data.title.trim() ? { name: data.title.trim() } : {}),
+    ...(typeof data.query === 'string' && data.query.trim() ? { query: data.query.trim() } : {}),
+    ...(typeof data.lat === 'number' && Number.isFinite(data.lat) ? { lat: data.lat } : {}),
+    ...(typeof data.lng === 'number' && Number.isFinite(data.lng) ? { lng: data.lng } : {}),
+    ...(resolvedPlaceId ? { googlePlaceId: resolvedPlaceId } : {}),
   })
 
   return resolvedPlaceId || ''
@@ -2886,25 +2927,31 @@ function SortableTransportItem({
 
   useEffect(() => {
     if (!navigationFrom || !navigationTo || !navigationResolveKey) return
-    if (!isSouthKoreaCoordinate(navigationFrom) || !isSouthKoreaCoordinate(navigationTo)) return
+    const shouldUseNaver = isSouthKoreaCoordinate(navigationFrom) && isSouthKoreaCoordinate(navigationTo)
 
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 8000)
 
-    Promise.all([
-      resolveNaverPlaceId(navigationFrom, controller.signal),
-      resolveNaverPlaceId(navigationTo, controller.signal),
-    ])
-      .then(([fromNaverPlaceId, toNaverPlaceId]) => {
+    const fromPlaceIdPromise = shouldUseNaver
+      ? resolveNaverPlaceId(navigationFrom, controller.signal)
+      : resolveGooglePlaceId(navigationFrom, controller.signal)
+    const toPlaceIdPromise = shouldUseNaver
+      ? resolveNaverPlaceId(navigationTo, controller.signal)
+      : resolveGooglePlaceId(navigationTo, controller.signal)
+
+    Promise.all([fromPlaceIdPromise, toPlaceIdPromise])
+      .then(([fromPlaceId, toPlaceId]) => {
         if (controller.signal.aborted) return
         setResolvedNavigationIds({
           key: navigationResolveKey,
-          ...(fromNaverPlaceId ? { fromNaverPlaceId } : {}),
-          ...(toNaverPlaceId ? { toNaverPlaceId } : {}),
+          ...(fromPlaceId && shouldUseNaver ? { fromNaverPlaceId: fromPlaceId } : {}),
+          ...(toPlaceId && shouldUseNaver ? { toNaverPlaceId: toPlaceId } : {}),
+          ...(fromPlaceId && !shouldUseNaver ? { fromGooglePlaceId: fromPlaceId } : {}),
+          ...(toPlaceId && !shouldUseNaver ? { toGooglePlaceId: toPlaceId } : {}),
         })
       })
       .catch(() => {
-        // Keep the coordinate-based Naver URL if place-id resolution is blocked or slow.
+        // Keep the coordinate-based URL if place-id resolution is blocked or slow.
       })
       .finally(() => window.clearTimeout(timeout))
 
