@@ -2836,15 +2836,15 @@ function SortableTransportItem({
     transform: CSS.Transform.toString(transform),
     transition,
   }
-  const saved = hasSavedTransportDetails(info)
   const [draft, setDraft] = useState(info)
-  const editing = !saved || expanded
+  const hasDetails = hasSavedTransportDetails(info)
+  const editing = expanded
   const dirty =
     draft.mode !== info.mode ||
     draft.customLabel !== info.customLabel ||
     draft.duration !== info.duration ||
     draft.note !== info.note
-  const canSave = dirty && !readOnly
+  const canSave = editing && !readOnly
   const summaryParts = [transportLabel(info), info.duration.trim(), info.note.trim()].filter(Boolean)
   const activeNavigationMode = editing ? draft.mode : info.mode
   const navigationFrom = navigationPlaces?.from ?? null
@@ -3034,7 +3034,7 @@ function SortableTransportItem({
               </div>
               {!readOnly ? (
                 <div className={styles.transportActions}>
-                  <span>{dirty ? '尚未儲存' : saved ? '已儲存' : '填寫後請儲存'}</span>
+                  <span>{dirty ? '尚未儲存' : hasDetails ? '已儲存' : '可直接儲存'}</span>
                   <button type="button" onClick={commitDraft} disabled={!canSave}>
                     儲存交通
                   </button>
@@ -3048,7 +3048,7 @@ function SortableTransportItem({
             ×
           </button>
         ) : null}
-        {!readOnly && editing && saved ? (
+        {!readOnly && editing ? (
           <button className={styles.transportRemoveButton} type="button" onClick={collapseEditor} aria-label="取消編輯交通">
             ×
           </button>
@@ -3869,6 +3869,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [clearFocusScrollTimers, scrollFocusTargetToCenter],
   )
 
+  const syncExpandedPlanItemSelection = useCallback((nextItem: PlannerItem | null) => {
+    if (!nextItem) {
+      setSelectedPlanItem(null)
+      return
+    }
+
+    const placeId = planItemPlaceId(nextItem)
+    if (!placeId) {
+      setSelectedPlanItem(null)
+      setSelectedId(null)
+      return
+    }
+
+    setSelectedPlanItem(nextItem)
+    setSelectedId(placeId)
+  }, [])
+
   const flushPendingHalfPanelFocus = useCallback(
     (behavior: ScrollBehavior = 'auto') => {
       const pendingFocus = pendingHalfPanelFocusRef.current
@@ -3878,7 +3895,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         pendingHalfPanelFocusRef.current = null
         const pendingExpandItem = pendingHalfPanelExpandItemRef.current
         pendingHalfPanelExpandItemRef.current = null
-        if (pendingExpandItem && planItemPlaceId(pendingExpandItem)) {
+        if (pendingExpandItem) {
+          syncExpandedPlanItemSelection(pendingExpandItem)
           setExpandedPlanItem(pendingExpandItem)
           window.setTimeout(() => scrollFocusTargetToCenter(pendingFocus, 'auto'), 80)
         }
@@ -3898,7 +3916,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         flushPendingHalfPanelFocus(behavior)
       }, 80)
     },
-    [clearFocusScrollTimers, scrollFocusTargetToCenter],
+    [clearFocusScrollTimers, scrollFocusTargetToCenter, syncExpandedPlanItemSelection],
   )
 
   useEffect(() => {
@@ -4608,18 +4626,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const setExpandedPlanItemWithScrollCompensation = useCallback((nextItem: PlannerItem | null, preferredAnchor?: HTMLElement | null) => {
     const previousItem = expandedPlanItem
+    const applyExpandedPlanItem = (item: PlannerItem | null) => {
+      syncExpandedPlanItemSelection(item)
+      setExpandedPlanItem(item)
+    }
     if (expandedPlanScrollCollapseTimerRef.current != null) {
       window.clearTimeout(expandedPlanScrollCollapseTimerRef.current)
       expandedPlanScrollCollapseTimerRef.current = null
     }
     if (previousItem === nextItem) {
-      setExpandedPlanItem(nextItem)
+      applyExpandedPlanItem(nextItem)
       return
     }
 
     if (nextItem && isMobilePlannerViewport()) {
       expandedPlanScrollAnchorRef.current = null
-      setExpandedPlanItem(nextItem)
+      applyExpandedPlanItem(nextItem)
       if (mobilePanelStateRef.current === 'full') return
       const placeId = planItemPlaceId(nextItem)
       scheduleFocusTargetCenter(
@@ -4638,7 +4660,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const container = anchorCard?.closest('[data-planner-scroll-list="true"]') as HTMLElement | null
     if (!anchorCard || !container) {
       expandedPlanScrollAnchorRef.current = null
-      setExpandedPlanItem(nextItem)
+      applyExpandedPlanItem(nextItem)
       return
     }
 
@@ -4647,8 +4669,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       top: anchorCard.getBoundingClientRect().top,
       container,
     }
-    setExpandedPlanItem(nextItem)
-  }, [expandedPlanItem, scheduleFocusTargetCenter])
+    applyExpandedPlanItem(nextItem)
+  }, [expandedPlanItem, scheduleFocusTargetCenter, syncExpandedPlanItemSelection])
 
   const scheduleExpandedPlanItemCollapseIfNearlyOutside = useCallback((event: ReactUIEvent<HTMLDivElement>) => {
     if (!expandedPlanItem) return
@@ -7025,6 +7047,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   onToggleExpanded={() => {
                                     if (mobilePanelStateRef.current === 'full' && isMobilePlannerViewport()) {
                                       pendingHalfPanelFocusRef.current = { mode: 'transport', itemId: item }
+                                      pendingHalfPanelExpandItemRef.current = expandedPlanItem === item ? null : item
                                       pendingHalfPanelFocusRetryRef.current = 0
                                       setMobilePanelState('half')
                                       return
