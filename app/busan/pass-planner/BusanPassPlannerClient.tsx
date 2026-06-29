@@ -2985,7 +2985,7 @@ function SortableTransportItem({
         className={`${styles.transportCard} ${!editing ? styles.transportCardCompact : ''}`}
         onClick={(event) => {
           const target = event.target as HTMLElement
-          if (editing || target.closest('a, button, input, select, textarea')) return
+          if (target.closest('a, button, input, select, textarea, label, [data-transport-edit-block="true"]')) return
           onToggleExpanded()
         }}
       >
@@ -3006,7 +3006,7 @@ function SortableTransportItem({
                 <span>{transportLabel(draft)}</span>
                 {navigationLink}
               </div>
-              <div className={styles.transportFields}>
+              <div className={styles.transportFields} data-transport-edit-block="true">
                 <label>
                   <span>方式</span>
                   <select value={draft.mode} onChange={(event) => updateDraft({ mode: event.target.value as TransportMode })} disabled={readOnly}>
@@ -3033,7 +3033,7 @@ function SortableTransportItem({
                 </label>
               </div>
               {!readOnly ? (
-                <div className={styles.transportActions}>
+                <div className={styles.transportActions} data-transport-edit-block="true">
                   <span>{dirty ? '尚未儲存' : hasDetails ? '已儲存' : '可直接儲存'}</span>
                   <button type="button" onClick={commitDraft} disabled={!canSave}>
                     儲存交通
