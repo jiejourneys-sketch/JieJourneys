@@ -3838,10 +3838,12 @@
   flex-shrink: 0;
 }
 
-.transportSummaryActions a {
+.transportSummaryActions a,
+.transportNavigationLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 44px;
   min-height: 28px;
   border: 1px solid rgba(31, 122, 140, 0.18);
   border-radius: 8px;
@@ -3854,6 +3856,13 @@
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
+}
+
+.transportNavigationLinkPending {
+  color: #64748b;
+  cursor: progress;
+  opacity: 0.78;
+  pointer-events: none;
 }
 
 .transportEditButton {
@@ -3876,6 +3885,7 @@
 }
 
 .transportSummaryActions a:hover,
+.transportNavigationLink:hover,
 .transportEditButton:hover {
   background: #eef8fb;
 }
@@ -4251,6 +4261,11 @@
   background: rgba(255, 255, 255, 0.72);
   color: #3b7b88;
   font-size: 10px;
+}
+
+.transportCardCompact .transportNavigationLink {
+  min-width: 42px;
+  padding: 0 6px;
 }
 
 .transportCardCompact .transportEditButton {

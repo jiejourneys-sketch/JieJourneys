@@ -60,6 +60,7 @@ type PlannerFocusTarget =
   | { mode: 'transport'; itemId: PlannerItem }
 type TransportMode = 'walk' | 'subway' | 'bus' | 'train' | 'taxi' | 'car' | 'custom'
 type TransportInfo = { id: string; mode: TransportMode; customLabel: string; duration: string; note: string; href: string }
+type TransportNavigationPlaces = { from: MapPlace; to: MapPlace }
 type DayView = 'all' | number
 type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
@@ -169,6 +170,9 @@ const DAY_ITEM_PREFIX = 'day:'
 const VISIT_ITEM_PREFIX = 'visit:'
 const CUSTOM_PLACE_PREFIX = 'custom:'
 const TRANSPORT_ITEM_PREFIX = 'transport:'
+const NAVER_COORD_PRECISION = 10_000_000
+const NAVER_COORD_OFFSET = 200 * NAVER_COORD_PRECISION
+const NAVER_COORD_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const TRANSPORT_MODE_LABELS: Record<TransportMode, string> = {
   walk: '步行',
   subway: '地鐵',
@@ -524,6 +528,79 @@ function googleMapsPinUrl(place: MapPlace) {
   const url = place.spotGoogleMapsUrl?.trim()
   if (url && !url.includes('PASTE_YOUR_MAPS_LINK')) return url
   return `https://www.google.com/maps?q=${place.lat},${place.lng}`
+}
+
+function googleMapsTravelMode(mode: TransportMode) {
+  if (mode === 'walk') return 'walking'
+  if (mode === 'car' || mode === 'taxi') return 'driving'
+  if (mode === 'bus' || mode === 'subway' || mode === 'train') return 'transit'
+  return null
+}
+
+function googleMapsDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode) {
+  const origin = encodeURIComponent(`${from.lat},${from.lng}`)
+  const destination = encodeURIComponent(`${to.lat},${to.lng}`)
+  const travelMode = googleMapsTravelMode(mode)
+  return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${travelMode ? `&travelmode=${travelMode}` : ''}`
+}
+
+function naverMapDirectionsMode(mode: TransportMode) {
+  if (mode === 'walk') return 'walk'
+  if (mode === 'car' || mode === 'taxi') return 'car'
+  return 'transit'
+}
+
+function naverMapEncodedCoordinate(value: number) {
+  let numberValue = Math.round(value * NAVER_COORD_PRECISION) + NAVER_COORD_OFFSET
+  if (numberValue <= 0) return NAVER_COORD_CHARS[0]
+
+  let encoded = ''
+  while (numberValue > 0) {
+    encoded = NAVER_COORD_CHARS[numberValue % NAVER_COORD_CHARS.length] + encoded
+    numberValue = Math.floor(numberValue / NAVER_COORD_CHARS.length)
+  }
+  return encoded
+}
+
+function naverMapPlaceId(place: MapPlace) {
+  const url = naverMapUrl(place)?.trim()
+  if (!url) return ''
+
+  try {
+    const parsed = new URL(url)
+    const match = parsed.pathname.match(/\/(?:entry\/)?place\/(\d+)/)
+    return match?.[1] ?? ''
+  } catch {
+    const match = url.match(/\/(?:entry\/)?place\/(\d+)/)
+    return match?.[1] ?? ''
+  }
+}
+
+function naverMapDirectionsPoint(place: MapPlace) {
+  const encodedName = encodeURIComponent(shortName(place.name).replace(/,/g, '©'))
+  return [
+    naverMapEncodedCoordinate(place.lng),
+    naverMapEncodedCoordinate(place.lat),
+    encodedName,
+    naverMapPlaceId(place),
+    'PLACE_POI',
+  ].join(',')
+}
+
+function naverMapDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode) {
+  const start = naverMapDirectionsPoint(from)
+  const goal = naverMapDirectionsPoint(to)
+  return `https://map.naver.com/p/directions/${start}/${goal}/-/${naverMapDirectionsMode(mode)}`
+}
+
+function isSouthKoreaCoordinate(place: MapPlace) {
+  return place.lat >= 33 && place.lat <= 38.8 && place.lng >= 124 && place.lng <= 132
+}
+
+function transportNavigationUrl(from: MapPlace, to: MapPlace, mode: TransportMode) {
+  return isSouthKoreaCoordinate(from) && isSouthKoreaCoordinate(to)
+    ? naverMapDirectionsUrl(from, to, mode)
+    : googleMapsDirectionsUrl(from, to, mode)
 }
 
 function naverMapUrl(place: MapPlace) {
@@ -1358,7 +1435,7 @@ function transportLabel(info: TransportInfo) {
 }
 
 function hasSavedTransportDetails(info: TransportInfo) {
-  return Boolean(info.customLabel.trim() || info.duration.trim() || info.note.trim() || info.href.trim() || info.mode !== 'walk')
+  return Boolean(info.customLabel.trim() || info.duration.trim() || info.note.trim() || info.mode !== 'walk')
 }
 
 function planItemPlaceId(item: PlannerItem) {
@@ -1380,6 +1457,33 @@ function canRepeatPlanPlace(_place: MapPlace) {
 function planItemPlace(item: PlannerItem, placeById: Map<string, MapPlace>) {
   const placeId = planItemPlaceId(item)
   return placeId ? placeById.get(placeId) ?? null : null
+}
+
+function transportNavigationPlaces(items: PlannerItem[], itemId: PlannerItem, placeById: Map<string, MapPlace>): TransportNavigationPlaces | null {
+  const index = items.indexOf(itemId)
+  if (index < 0) return null
+
+  let from: MapPlace | null = null
+  for (let i = index - 1; i >= 0; i -= 1) {
+    if (isDayItem(items[i])) break
+    const place = planItemPlace(items[i], placeById)
+    if (place) {
+      from = place
+      break
+    }
+  }
+
+  let to: MapPlace | null = null
+  for (let i = index + 1; i < items.length; i += 1) {
+    if (isDayItem(items[i])) break
+    const place = planItemPlace(items[i], placeById)
+    if (place) {
+      to = place
+      break
+    }
+  }
+
+  return from && to ? { from, to } : null
 }
 
 function normalizePlanItems(items: PlannerItem[], placeById: Map<string, MapPlace>) {
@@ -2580,6 +2684,7 @@ function SortableTransportItem({
   itemId,
   info,
   expanded,
+  navigationPlaces,
   onToggleExpanded,
   onChange,
   onRemove,
@@ -2589,6 +2694,7 @@ function SortableTransportItem({
   itemId: PlannerItem
   info: TransportInfo
   expanded: boolean
+  navigationPlaces?: TransportNavigationPlaces | null
   onToggleExpanded: () => void
   onChange: (info: TransportInfo) => void
   onRemove: () => void
@@ -2606,16 +2712,22 @@ function SortableTransportItem({
   const saved = hasSavedTransportDetails(info)
   const [draft, setDraft] = useState(info)
   const editing = !saved || expanded
-  const href = draft.href.trim()
-  const savedHref = info.href.trim()
   const dirty =
     draft.mode !== info.mode ||
     draft.customLabel !== info.customLabel ||
     draft.duration !== info.duration ||
-    draft.note !== info.note ||
-    draft.href !== info.href
+    draft.note !== info.note
   const canSave = dirty && !readOnly
   const summaryParts = [transportLabel(info), info.duration.trim(), info.note.trim()].filter(Boolean)
+  const activeNavigationMode = editing ? draft.mode : info.mode
+  const navigationHref = navigationPlaces
+    ? transportNavigationUrl(navigationPlaces.from, navigationPlaces.to, activeNavigationMode)
+    : ''
+  const navigationKey = navigationHref
+    ? `auto:${navigationPlaces?.from.id}:${navigationPlaces?.to.id}:${activeNavigationMode}:${navigationHref}`
+    : ''
+  const [navigationUpdating, setNavigationUpdating] = useState(false)
+  const navigationKeyRef = useRef<string | null>(null)
 
   const commitDraft = () => {
     if (readOnly) return
@@ -2624,7 +2736,7 @@ function SortableTransportItem({
       customLabel: draft.customLabel.slice(0, 40),
       duration: draft.duration.slice(0, 40),
       note: draft.note.slice(0, 300),
-      href: draft.href.slice(0, 500),
+      href: '',
     }
     onChange(nextInfo)
   }
@@ -2638,6 +2750,38 @@ function SortableTransportItem({
     setNodeRef(el)
     cardRef?.(el)
   }
+  const navigationLabel = navigationUpdating ? '生成中' : '導航'
+  const navigationAriaLabel = navigationPlaces
+    ? `導航：${shortName(navigationPlaces.from.name)}到${shortName(navigationPlaces.to.name)}`
+    : '導航'
+  const navigationLink = navigationHref ? (
+    <a
+      className={`${styles.transportNavigationLink} ${navigationUpdating ? styles.transportNavigationLinkPending : ''}`}
+      href={navigationHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-disabled={navigationUpdating}
+      aria-label={navigationAriaLabel}
+      onClick={(event) => {
+        if (navigationUpdating) event.preventDefault()
+      }}
+    >
+      {navigationLabel}
+    </a>
+  ) : null
+
+  useEffect(() => {
+    const previousNavigationKey = navigationKeyRef.current
+    navigationKeyRef.current = navigationKey
+    const shouldShowUpdating = Boolean(navigationKey && previousNavigationKey !== null && previousNavigationKey !== navigationKey)
+
+    const startTimer = window.setTimeout(() => setNavigationUpdating(shouldShowUpdating), 0)
+    const endTimer = shouldShowUpdating ? window.setTimeout(() => setNavigationUpdating(false), 260) : 0
+    return () => {
+      window.clearTimeout(startTimer)
+      if (endTimer) window.clearTimeout(endTimer)
+    }
+  }, [navigationKey])
 
   return (
     <div
@@ -2662,22 +2806,14 @@ function SortableTransportItem({
             <div className={styles.transportSummary}>
               <span className={styles.transportSummaryText}>{summaryParts.length > 0 ? summaryParts.join(' · ') : '交通'}</span>
               <span className={styles.transportSummaryActions}>
-                {savedHref ? (
-                  <a href={savedHref} target="_blank" rel="noopener noreferrer">
-                    導航
-                  </a>
-                ) : null}
+                {navigationLink}
               </span>
             </div>
           ) : (
             <>
               <div className={styles.transportHeader}>
                 <span>{transportLabel(draft)}</span>
-                {href ? (
-                  <a href={href} target="_blank" rel="noopener noreferrer">
-                    導航
-                  </a>
-                ) : null}
+                {navigationLink}
               </div>
               <div className={styles.transportFields}>
                 <label>
@@ -2700,10 +2836,6 @@ function SortableTransportItem({
                     <input value={draft.customLabel} maxLength={40} placeholder="例如 Grab、渡輪、包車" onChange={(event) => updateDraft({ customLabel: event.target.value })} readOnly={readOnly} />
                   </label>
                 ) : null}
-                <label className={styles.transportWideField}>
-                  <span>連結</span>
-                  <input value={draft.href} maxLength={500} placeholder="Google Maps 導航連結" onChange={(event) => updateDraft({ href: event.target.value })} readOnly={readOnly} />
-                </label>
                 <label className={styles.transportWideField}>
                   <span>備註</span>
                   <textarea value={draft.note} maxLength={300} placeholder="例如 從 2 號出口走過去" onChange={(event) => updateDraft({ note: event.target.value })} readOnly={readOnly} />
@@ -5737,7 +5869,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           const transport = parseTransportItem(item)
           if (transport) {
             if (stops.length === 0) return
-            const href = printLinkHref(transport.href)
+            const navigationPlaces = transportNavigationPlaces(day.items, item, placeById)
+            const href = navigationPlaces
+              ? printLinkHref(transportNavigationUrl(navigationPlaces.from, navigationPlaces.to, transport.mode))
+              : ''
             const transportAfter = stops[stops.length - 1].transportAfter ?? []
             stops[stops.length - 1].transportAfter = [
               ...transportAfter,
@@ -6686,12 +6821,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
                             const transport = parseTransportItem(item)
                             if (transport) {
+                              const navigationPlaces = transportNavigationPlaces(validPlanItems, item, placeById)
                               return (
                                 <SortableTransportItem
                                   key={item}
                                   itemId={item}
                                   info={transport}
                                   expanded={expandedPlanItem === item}
+                                  navigationPlaces={navigationPlaces}
                                   onToggleExpanded={() => {
                                     if (mobilePanelStateRef.current === 'full' && isMobilePlannerViewport()) {
                                       pendingHalfPanelFocusRef.current = { mode: 'transport', itemId: item }
