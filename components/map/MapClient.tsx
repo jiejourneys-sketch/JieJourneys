@@ -70,6 +70,7 @@ const DEVICE_HEADING_STALE_MS = 5000
 const LOCATION_CAMERA_ANIMATION_MS = 220
 const LOCATION_CAMERA_GUARD_MS = 1000
 const LOCATION_HEADING_CAMERA_GUARD_MS = 1200
+const NAVER_MAP_APP_NAME = 'www.jiejourneys.com'
 
 type LocationFollowMode = 'idle' | 'follow' | 'heading'
 type LocateButtonMode = 'idle' | 'located' | 'requesting' | 'following' | 'heading' | 'paused-follow' | 'paused-heading'
@@ -418,7 +419,53 @@ function hasPrimarySpotAction(place: MapPlace): boolean {
 }
 
 function isNaverMapAction(action: { label: string; href: string }) {
-  return action.label.toLowerCase() === 'navermap' || action.href.includes('naver.me')
+  const href = action.href.toLowerCase()
+  return action.label.toLowerCase() === 'navermap' || href.includes('naver.me') || href.includes('map.naver.com')
+}
+
+function isMobileAppLaunchDevice() {
+  if (typeof navigator === 'undefined') return false
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
+function naverMapPlaceIdFromUrl(value: string | undefined) {
+  const url = value?.trim()
+  if (!url) return ''
+  try {
+    const parsed = new URL(url)
+    const match = parsed.pathname.match(/\/(?:p\/)?(?:entry\/)?place\/(\d+)/)
+    return match?.[1] ?? ''
+  } catch {
+    const match = url.match(/\/(?:p\/)?(?:entry\/)?place\/(\d+)/)
+    return match?.[1] ?? ''
+  }
+}
+
+function naverMapAppPlaceUrl(place: MapPlace, href: string) {
+  const placeId = naverMapPlaceIdFromUrl(href)
+  if (placeId) {
+    const params = new URLSearchParams({
+      id: placeId,
+      appname: NAVER_MAP_APP_NAME,
+    })
+    return `nmap://place?${params.toString()}`
+  }
+
+  const params = new URLSearchParams({
+    lat: String(place.lat),
+    lng: String(place.lng),
+    name: place.name,
+    appname: NAVER_MAP_APP_NAME,
+  })
+  return `nmap://place?${params.toString()}`
+}
+
+function openNaverMapApp(event: ReactMouseEvent<HTMLAnchorElement>, place: MapPlace, action: CityCardAction) {
+  if (!isNaverMapAction(action) || !isMobileAppLaunchDevice()) return false
+  event.preventDefault()
+  event.stopPropagation()
+  window.location.href = naverMapAppPlaceUrl(place, action.href)
+  return true
 }
 
 function isDesktopViewport() {
@@ -489,18 +536,21 @@ function stopCardPick(e: ReactMouseEvent<HTMLAnchorElement> | ReactPointerEvent<
   e.stopPropagation()
 }
 
-function MapActionLink({ action, placeId }: { action: CityCardAction; placeId: string }) {
+function MapActionLink({ action, place }: { action: CityCardAction; place: MapPlace }) {
   return (
     <a
       href={action.href}
       target="_blank"
       rel="noopener noreferrer"
       data-event={action.mapEvent ?? action.event}
-      data-item={placeId}
+      data-item={place.id}
       data-platform={action.platform}
       data-section={action.mapSection ?? 'map_bar'}
       className={action.className ?? 'btn'}
-      onClick={stopCardPick}
+      onClick={(event) => {
+        if (openNaverMapApp(event, place, action)) return
+        stopCardPick(event)
+      }}
       onPointerDown={stopCardPick}
     >
       {action.label}
@@ -604,7 +654,7 @@ function MapPlaceCard({
             {place.spotActionRows.map((row, ri) => (
               <div key={`row-${ri}`} className={styles.mapActionRow}>
                 {row.filter((a) => !isNaverMapAction(a)).map((a) => (
-                  <MapActionLink key={`${a.label}-${a.href}`} action={a} placeId={place.id} />
+                  <MapActionLink key={`${a.label}-${a.href}`} action={a} place={place} />
                 ))}
                 {ri === 0 ? (
                   <>
@@ -623,7 +673,7 @@ function MapPlaceCard({
                       </a>
                     ) : null}
                     {row.filter(isNaverMapAction).map((a) => (
-                      <MapActionLink key={`${a.label}-${a.href}`} action={a} placeId={place.id} />
+                      <MapActionLink key={`${a.label}-${a.href}`} action={a} place={place} />
                     ))}
                     <a
                       className="btn"
@@ -647,7 +697,7 @@ function MapPlaceCard({
         ) : place.spotActions && place.spotActions.length > 0 ? (
           <div className="actions">
             {place.spotActions.filter((a) => !isNaverMapAction(a)).map((a) => (
-              <MapActionLink key={`${a.label}-${a.href}`} action={a} placeId={place.id} />
+              <MapActionLink key={`${a.label}-${a.href}`} action={a} place={place} />
             ))}
             {place.relatedTicketHref ? (
               <a
@@ -664,7 +714,7 @@ function MapPlaceCard({
               </a>
             ) : null}
             {place.spotActions.filter(isNaverMapAction).map((a) => (
-              <MapActionLink key={`${a.label}-${a.href}`} action={a} placeId={place.id} />
+              <MapActionLink key={`${a.label}-${a.href}`} action={a} place={place} />
             ))}
             <a
               className="btn"
