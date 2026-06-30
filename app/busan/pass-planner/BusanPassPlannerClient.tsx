@@ -192,6 +192,7 @@ const TRANSPORT_ITEM_PREFIX = 'transport:'
 const NAVER_COORD_PRECISION = 10_000_000
 const NAVER_COORD_OFFSET = 200 * NAVER_COORD_PRECISION
 const NAVER_COORD_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const NAVER_MAP_APP_NAME = 'www.jiejourneys.com'
 const TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS = 250
 const TRANSPORT_MODE_LABELS: Record<TransportMode, string> = {
   walk: '步行',
@@ -640,6 +641,12 @@ function naverMapDirectionsMode(mode: TransportMode) {
   return 'transit'
 }
 
+function naverMapAppDirectionsMode(mode: TransportMode) {
+  if (mode === 'walk') return 'walk'
+  if (mode === 'car' || mode === 'taxi') return 'car'
+  return 'public'
+}
+
 function naverMapEncodedCoordinate(value: number) {
   let numberValue = Math.round(value * NAVER_COORD_PRECISION) + NAVER_COORD_OFFSET
   if (numberValue <= 0) return NAVER_COORD_CHARS[0]
@@ -687,6 +694,19 @@ function naverMapDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode
   return `https://map.naver.com/p/directions/${start}/${goal}/-/${naverMapDirectionsMode(mode)}`
 }
 
+function naverMapAppDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportMode) {
+  const params = new URLSearchParams({
+    slat: String(from.lat),
+    slng: String(from.lng),
+    sname: shortName(from.naverPlaceName || from.name),
+    dlat: String(to.lat),
+    dlng: String(to.lng),
+    dname: shortName(to.naverPlaceName || to.name),
+    appname: NAVER_MAP_APP_NAME,
+  })
+  return `nmap://route/${naverMapAppDirectionsMode(mode)}?${params.toString()}`
+}
+
 function isSouthKoreaCoordinate(place: MapPlace) {
   return place.lat >= 33 && place.lat <= 38.8 && place.lng >= 124 && place.lng <= 132
 }
@@ -700,6 +720,41 @@ function transportNavigationUrl(from: MapPlace, to: MapPlace, mode: TransportMod
 function naverMapUrl(place: MapPlace) {
   const actions = place.spotActionRows?.flat() ?? place.spotActions ?? []
   return actions.find((action) => action.platform === 'NaverMap' || action.label.toLowerCase() === 'navermap')?.href
+}
+
+function naverMapAppPlaceUrl(place: MapPlace, resolvedPlaceId = '') {
+  const placeId = resolvedPlaceId || naverMapPlaceId(place)
+  if (placeId) {
+    const params = new URLSearchParams({
+      id: placeId,
+      appname: NAVER_MAP_APP_NAME,
+    })
+    return `nmap://place?${params.toString()}`
+  }
+
+  const params = new URLSearchParams({
+    lat: String(place.lat),
+    lng: String(place.lng),
+    zoom: '16',
+    appname: NAVER_MAP_APP_NAME,
+  })
+  return `nmap://map?${params.toString()}`
+}
+
+function canResolveGooglePlaceId(place: MapPlace) {
+  const url = place.spotGoogleMapsUrl?.trim()
+  return !googleMapsPlaceId(place) && Boolean(url && !url.includes('PASTE_YOUR_MAPS_LINK'))
+}
+
+function canResolveNaverPlaceId(place: MapPlace) {
+  return !naverMapPlaceId(place) && Boolean(naverMapUrl(place)?.trim())
+}
+
+function needsTransportNavigationPlaceResolution(from: MapPlace, to: MapPlace) {
+  const shouldUseNaver = isSouthKoreaCoordinate(from) && isSouthKoreaCoordinate(to)
+  return shouldUseNaver
+    ? canResolveNaverPlaceId(from) || canResolveNaverPlaceId(to)
+    : canResolveGooglePlaceId(from) || canResolveGooglePlaceId(to)
 }
 
 function isCustomPlaceId(id: string) {
@@ -1228,6 +1283,26 @@ function isMobilePlannerViewport() {
   return window.matchMedia('(max-width: 959px)').matches
 }
 
+function isMobileAppLaunchDevice() {
+  if (typeof navigator === 'undefined') return false
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
+function openMobileMapAppHref(appHref: string) {
+  if (!appHref || !isMobileAppLaunchDevice()) return false
+  window.location.href = appHref
+  return true
+}
+
+function openMobileMapApp(event: ReactMouseEvent<HTMLAnchorElement>, appHref: string) {
+  event.preventDefault()
+  const opened = openMobileMapAppHref(appHref)
+  if (!opened) {
+    window.open((event.currentTarget as HTMLAnchorElement).href, '_blank', 'noopener,noreferrer')
+  }
+  return opened
+}
+
 function detectInAppBrowser(): InAppBrowser {
   if (typeof navigator === 'undefined') return null
   const ua = navigator.userAgent
@@ -1355,12 +1430,11 @@ function setResolvedMapUrlCache(url: string, data: ResolvedMapUrlData) {
   }
 }
 
-async function resolveNaverPlaceId(place: MapPlace, signal: AbortSignal) {
-  const directPlaceId = naverMapPlaceId(place)
-  if (directPlaceId) return directPlaceId
-
-  const url = naverMapUrl(place)?.trim()
+async function resolveNaverMapUrlPlaceId(urlValue: string | undefined, signal: AbortSignal) {
+  const url = urlValue?.trim()
   if (!url) return ''
+  const directPlaceId = naverMapPlaceIdFromUrl(url)
+  if (directPlaceId) return directPlaceId
 
   const cached = getResolvedMapUrlCache(url)
   const cachedPlaceId = cached?.naverPlaceId || naverMapPlaceIdFromUrl(cached?.url)
@@ -1384,6 +1458,13 @@ async function resolveNaverPlaceId(place: MapPlace, signal: AbortSignal) {
   })
 
   return resolvedPlaceId || ''
+}
+
+async function resolveNaverPlaceId(place: MapPlace, signal: AbortSignal) {
+  const directPlaceId = naverMapPlaceId(place)
+  if (directPlaceId) return directPlaceId
+
+  return resolveNaverMapUrlPlaceId(naverMapUrl(place), signal)
 }
 
 async function resolveGooglePlaceId(place: MapPlace, signal: AbortSignal) {
@@ -2181,8 +2262,40 @@ function PlannerMapLinksPanel({
   userLinks?: PlannerUserLink[]
   onClose: () => void
 }) {
-  const links = plannerMapLinks(place, userLinks)
+  const links = useMemo(() => plannerMapLinks(place, userLinks), [place, userLinks])
+  const naverLinks = useMemo(() => links.filter((link) => isNaverMapHref(link.href)), [links])
+  const [resolvedNaverPlaceIds, setResolvedNaverPlaceIds] = useState<Record<string, string>>({})
   usePlannerBodyScrollLock(true)
+
+  useEffect(() => {
+    if (naverLinks.length === 0) return
+
+    const controller = new AbortController()
+    let cancelled = false
+    Promise.all(
+      naverLinks.map(async (link) => {
+        const placeId = await resolveNaverMapUrlPlaceId(link.href, controller.signal)
+        return [link.href, placeId] as const
+      }),
+    )
+      .then((entries) => {
+        if (cancelled) return
+        setResolvedNaverPlaceIds(
+          entries.reduce<Record<string, string>>((next, [href, placeId]) => {
+            if (placeId) next[href] = placeId
+            return next
+          }, {}),
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedNaverPlaceIds({})
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [naverLinks])
 
   return (
     <div
@@ -2213,17 +2326,25 @@ function PlannerMapLinksPanel({
         </div>
         <div className={styles.linksModalBody}>
           <div className={styles.plannerLinksGrid}>
-            {links.map((link) => (
-              <a
-                key={`${link.label}-${link.href}`}
-                className={styles.plannerLinkChip}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {link.label}
-              </a>
-            ))}
+            {links.map((link) => {
+              const naverAppHref = isNaverMapHref(link.href)
+                ? naverMapAppPlaceUrl(place, resolvedNaverPlaceIds[link.href] || naverMapPlaceIdFromUrl(link.href))
+                : ''
+              return (
+                <a
+                  key={`${link.label}-${link.href}`}
+                  className={styles.plannerLinkChip}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(event) => {
+                    if (naverAppHref) openMobileMapApp(event, naverAppHref)
+                  }}
+                >
+                  {link.label}
+                </a>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -2231,9 +2352,21 @@ function PlannerMapLinksPanel({
   )
 }
 
-function isPlannerUserMapLink(href: string) {
+function isNaverMapHref(href: string) {
   const normalized = href.trim().toLowerCase()
   return normalized.includes('naver.me') || normalized.includes('map.naver.com')
+}
+
+function openPlannerMapLink(place: MapPlace, link: { href: string }) {
+  const naverAppHref = isNaverMapHref(link.href)
+    ? naverMapAppPlaceUrl(place, naverMapPlaceIdFromUrl(link.href))
+    : ''
+  if (naverAppHref && openMobileMapAppHref(naverAppHref)) return
+  window.open(link.href, '_blank', 'noopener,noreferrer')
+}
+
+function isPlannerUserMapLink(href: string) {
+  return isNaverMapHref(href)
 }
 
 function plannerMapLinks(place: MapPlace, userLinks: PlannerUserLink[] = []) {
@@ -2283,7 +2416,7 @@ function PlannerMapLinks({ place }: { place: MapPlace }) {
         onClick={() => {
           const links = plannerMapLinks(place)
           if (links.length === 1) {
-            window.open(links[0].href, '_blank', 'noopener,noreferrer')
+            openPlannerMapLink(place, links[0])
             return
           }
           setMapOpen((open) => !open)
@@ -2492,7 +2625,7 @@ function SortablePlanItem({
           onClick={() => {
             const links = plannerMapLinks(place, userLinks)
             if (links.length === 1) {
-              window.open(links[0].href, '_blank', 'noopener,noreferrer')
+              openPlannerMapLink(place, links[0])
               return
             }
             setOpenPanel((panel) => (panel === 'map' ? null : 'map'))
@@ -2860,7 +2993,7 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
         onClick={() => {
           const links = plannerMapLinks(place)
           if (links.length === 1) {
-            window.open(links[0].href, '_blank', 'noopener,noreferrer')
+            openPlannerMapLink(place, links[0])
             return
           }
           setOpenPanel((panel) => (panel === 'map' ? null : 'map'))
@@ -2968,9 +3101,16 @@ function SortableTransportItem({
     resolvedNavigationIds.key === navigationResolveKey
       ? resolvedNavigationIds
       : null
+  const fromGooglePlaceId = activeResolvedNavigationIds?.fromGooglePlaceId || (navigationFrom ? googleMapsPlaceId(navigationFrom) : '')
+  const toGooglePlaceId = activeResolvedNavigationIds?.toGooglePlaceId || (navigationTo ? googleMapsPlaceId(navigationTo) : '')
+  const navigationNeedsResolution =
+    navigationFrom && navigationTo ? needsTransportNavigationPlaceResolution(navigationFrom, navigationTo) : false
+  const navigationResolving = Boolean(
+    navigationNeedsResolution && navigationResolveKey && resolvedNavigationIds.key !== navigationResolveKey,
+  )
   const navigationPlaceIds: TransportNavigationPlaceIds = {
-    ...(navigationFrom ? { fromGooglePlaceId: googleMapsPlaceId(navigationFrom) } : {}),
-    ...(navigationTo ? { toGooglePlaceId: googleMapsPlaceId(navigationTo) } : {}),
+    ...(fromGooglePlaceId ? { fromGooglePlaceId } : {}),
+    ...(toGooglePlaceId ? { toGooglePlaceId } : {}),
     ...(activeResolvedNavigationIds?.fromNaverPlaceId ? { fromNaverPlaceId: activeResolvedNavigationIds.fromNaverPlaceId } : {}),
     ...(activeResolvedNavigationIds?.toNaverPlaceId ? { toNaverPlaceId: activeResolvedNavigationIds.toNaverPlaceId } : {}),
   }
@@ -2980,8 +3120,9 @@ function SortableTransportItem({
   const navigationKey = navigationHref
     ? `auto:${navigationPlaces?.from.id}:${navigationPlaces?.to.id}:${activeNavigationMode}:${navigationHref}`
     : ''
-  const [navigationUpdating, setNavigationUpdating] = useState(false)
+  const [navigationChangePending, setNavigationChangePending] = useState(false)
   const navigationKeyRef = useRef<string | null>(null)
+  const navigationUpdating = navigationResolving || navigationChangePending
 
   const commitDraft = () => {
     if (readOnly) return
@@ -3017,7 +3158,13 @@ function SortableTransportItem({
       aria-disabled={navigationUpdating}
       aria-label={navigationAriaLabel}
       onClick={(event) => {
-        if (navigationUpdating) event.preventDefault()
+        if (navigationUpdating) {
+          event.preventDefault()
+          return
+        }
+        if (navigationFrom && navigationTo && isSouthKoreaCoordinate(navigationFrom) && isSouthKoreaCoordinate(navigationTo)) {
+          openMobileMapApp(event, naverMapAppDirectionsUrl(navigationFrom, navigationTo, activeNavigationMode))
+        }
       }}
     >
       {navigationLabel}
@@ -3027,9 +3174,12 @@ function SortableTransportItem({
   useEffect(() => {
     if (!navigationFrom || !navigationTo || !navigationResolveKey) return
     const shouldUseNaver = isSouthKoreaCoordinate(navigationFrom) && isSouthKoreaCoordinate(navigationTo)
+    const shouldResolve = needsTransportNavigationPlaceResolution(navigationFrom, navigationTo)
+    if (!shouldResolve) return
 
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 8000)
+    let cancelled = false
 
     const fromPlaceIdPromise = shouldUseNaver
       ? resolveNaverPlaceId(navigationFrom, controller.signal)
@@ -3040,7 +3190,7 @@ function SortableTransportItem({
 
     Promise.all([fromPlaceIdPromise, toPlaceIdPromise])
       .then(([fromPlaceId, toPlaceId]) => {
-        if (controller.signal.aborted) return
+        if (cancelled) return
         setResolvedNavigationIds({
           key: navigationResolveKey,
           ...(fromPlaceId && shouldUseNaver ? { fromNaverPlaceId: fromPlaceId } : {}),
@@ -3050,11 +3200,12 @@ function SortableTransportItem({
         })
       })
       .catch(() => {
-        // Keep the coordinate-based URL if place-id resolution is blocked or slow.
+        if (!cancelled) setResolvedNavigationIds({ key: navigationResolveKey })
       })
       .finally(() => window.clearTimeout(timeout))
 
     return () => {
+      cancelled = true
       controller.abort()
       window.clearTimeout(timeout)
     }
@@ -3065,8 +3216,8 @@ function SortableTransportItem({
     navigationKeyRef.current = navigationKey
     const shouldShowUpdating = Boolean(navigationKey && previousNavigationKey !== null && previousNavigationKey !== navigationKey)
 
-    const startTimer = window.setTimeout(() => setNavigationUpdating(shouldShowUpdating), 0)
-    const endTimer = shouldShowUpdating ? window.setTimeout(() => setNavigationUpdating(false), 260) : 0
+    const startTimer = window.setTimeout(() => setNavigationChangePending(shouldShowUpdating), 0)
+    const endTimer = shouldShowUpdating ? window.setTimeout(() => setNavigationChangePending(false), 260) : 0
     return () => {
       window.clearTimeout(startTimer)
       if (endTimer) window.clearTimeout(endTimer)
