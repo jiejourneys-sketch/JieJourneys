@@ -85,7 +85,13 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
       const lng = typeof source.lng === 'number' ? source.lng : Number(source.lng)
       if (!id || !name || !Number.isFinite(lat) || !Number.isFinite(lng)) return
       const googleUrl = typeof source.googleUrl === 'string' ? source.googleUrl.trim().slice(0, 500) : ''
+      const googlePlaceId = typeof source.googlePlaceId === 'string' ? source.googlePlaceId.trim().slice(0, 120) : ''
+      const googlePlaceName = typeof source.googlePlaceName === 'string' ? source.googlePlaceName.trim().slice(0, 120) : ''
+      const googlePlaceLat = typeof source.googlePlaceLat === 'number' ? source.googlePlaceLat : Number(source.googlePlaceLat)
+      const googlePlaceLng = typeof source.googlePlaceLng === 'number' ? source.googlePlaceLng : Number(source.googlePlaceLng)
       const naverUrl = typeof source.naverUrl === 'string' ? source.naverUrl.trim().slice(0, 500) : ''
+      const naverPlaceId = typeof source.naverPlaceId === 'string' ? source.naverPlaceId.trim().slice(0, 80) : ''
+      const naverPlaceName = typeof source.naverPlaceName === 'string' ? source.naverPlaceName.trim().slice(0, 120) : ''
       const category = typeof source.category === 'string' && CUSTOM_PLACE_CATEGORIES.has(source.category) ? source.category : 'free'
       const links = Array.isArray(source.links)
         ? source.links
@@ -103,7 +109,14 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
         lat,
         lng,
         ...(googleUrl ? { googleUrl } : {}),
+        ...(googlePlaceId ? { googlePlaceId } : {}),
+        ...(googlePlaceName ? { googlePlaceName } : {}),
+        ...(googlePlaceId && Number.isFinite(googlePlaceLat) && Number.isFinite(googlePlaceLng)
+          ? { googlePlaceLat, googlePlaceLng }
+          : {}),
         ...(naverUrl ? { naverUrl } : {}),
+        ...(naverPlaceId ? { naverPlaceId } : {}),
+        ...(naverPlaceName ? { naverPlaceName } : {}),
         ...(links.length > 0 ? { links } : {}),
       }
     })

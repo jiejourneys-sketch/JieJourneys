@@ -13,6 +13,12 @@ export type MapPlace = {
   spotActions?: CityCardAction[]
   spotActionRows?: CityCardAction[][]
   spotGoogleMapsUrl?: string
+  googlePlaceId?: string
+  googlePlaceName?: string
+  googlePlaceLat?: number
+  googlePlaceLng?: number
+  naverPlaceId?: string
+  naverPlaceName?: string
   mapButtonMapEvent?: string
   mapButtonLabel?: string
   markerColor?: string

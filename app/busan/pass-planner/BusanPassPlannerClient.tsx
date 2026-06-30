@@ -93,14 +93,26 @@ type CustomPlannerPlace = {
   lat: number
   lng: number
   googleUrl?: string
+  googlePlaceId?: string
+  googlePlaceName?: string
+  googlePlaceLat?: number
+  googlePlaceLng?: number
   naverUrl?: string
+  naverPlaceId?: string
+  naverPlaceName?: string
   links?: CustomPlannerLink[]
 }
 type CustomPlaceDraft = {
   id: string | null
   name: string
   googleUrl: string
+  googlePlaceId: string
+  googlePlaceName: string
+  googlePlaceLat: number | null
+  googlePlaceLng: number | null
   naverUrl: string
+  naverPlaceId: string
+  naverPlaceName: string
   linkLabel: string
   linkUrl: string
   note: string
@@ -180,6 +192,7 @@ const TRANSPORT_ITEM_PREFIX = 'transport:'
 const NAVER_COORD_PRECISION = 10_000_000
 const NAVER_COORD_OFFSET = 200 * NAVER_COORD_PRECISION
 const NAVER_COORD_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS = 250
 const TRANSPORT_MODE_LABELS: Record<TransportMode, string> = {
   walk: '步行',
   subway: '地鐵',
@@ -204,7 +217,13 @@ const emptyCustomPlaceDraft: CustomPlaceDraft = {
   id: null,
   name: '',
   googleUrl: '',
+  googlePlaceId: '',
+  googlePlaceName: '',
+  googlePlaceLat: null,
+  googlePlaceLng: null,
   naverUrl: '',
+  naverPlaceId: '',
+  naverPlaceName: '',
   linkLabel: '',
   linkUrl: '',
   note: '',
@@ -564,12 +583,37 @@ function googleMapsPlaceIdFromUrl(value: string | undefined) {
   return dataMatch?.[1] ?? ''
 }
 
+function trustedProviderPlaceId(
+  place: MapPlace,
+  placeId: string,
+  providerLat: number | null | undefined,
+  providerLng: number | null | undefined,
+  requireProviderCoordinate = false,
+) {
+  const cleanPlaceId = placeId.trim()
+  if (!cleanPlaceId) return ''
+  if (providerLat == null || providerLng == null || !Number.isFinite(providerLat) || !Number.isFinite(providerLng)) {
+    return requireProviderCoordinate ? '' : cleanPlaceId
+  }
+  return distanceMeters(place, { lat: providerLat, lng: providerLng }) <= TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS
+    ? cleanPlaceId
+    : ''
+}
+
 function googleMapsPlaceId(place: MapPlace) {
-  return googleMapsPlaceIdFromUrl(place.spotGoogleMapsUrl)
+  const directPlaceId = trustedProviderPlaceId(
+    place,
+    place.googlePlaceId ?? '',
+    place.googlePlaceLat,
+    place.googlePlaceLng,
+    isCustomPlaceId(place.id),
+  )
+  if (isCustomPlaceId(place.id)) return directPlaceId
+  return directPlaceId || googleMapsPlaceIdFromUrl(place.spotGoogleMapsUrl)
 }
 
 function googleMapsDirectionsPoint(place: MapPlace, googlePlaceId = '') {
-  const name = shortName(place.name).replace(/[,]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const name = shortName(place.googlePlaceName || place.name).replace(/[,]+/g, ' ').replace(/\s+/g, ' ').trim()
   if (googlePlaceId && name) return name
   return `${place.lat},${place.lng}`
 }
@@ -622,12 +666,12 @@ function naverMapPlaceIdFromUrl(value: string | undefined) {
 }
 
 function naverMapPlaceId(place: MapPlace) {
-  return naverMapPlaceIdFromUrl(naverMapUrl(place))
+  return place.naverPlaceId?.trim() || naverMapPlaceIdFromUrl(naverMapUrl(place))
 }
 
 function naverMapDirectionsPoint(place: MapPlace, resolvedPlaceId = '') {
   const placeId = resolvedPlaceId || naverMapPlaceId(place)
-  const encodedName = encodeURIComponent(shortName(place.name).replace(/,/g, '©'))
+  const encodedName = encodeURIComponent(shortName(place.naverPlaceName || place.name).replace(/,/g, '©'))
   return [
     naverMapEncodedCoordinate(place.lng),
     naverMapEncodedCoordinate(place.lat),
@@ -677,6 +721,15 @@ function cleanCustomPlaceCategory(value: unknown): CityMapPlaceCategory {
   return 'spot'
 }
 
+function cleanProviderText(value: unknown, maxLength = 120) {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
+}
+
+function cleanProviderCoordinate(value: unknown) {
+  const numberValue = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
 function customPlaceToMapPlace(
   place: CustomPlannerPlace,
   sourcePlace?: MapPlace,
@@ -718,6 +771,12 @@ function customPlaceToMapPlace(
     markerStyleId: undefined,
     officialPassTier: undefined,
     spotGoogleMapsUrl: place.googleUrl || sourcePlace?.spotGoogleMapsUrl,
+    googlePlaceId: place.googlePlaceId || sourcePlace?.googlePlaceId,
+    googlePlaceName: place.googlePlaceName || sourcePlace?.googlePlaceName,
+    googlePlaceLat: place.googlePlaceLat ?? sourcePlace?.googlePlaceLat,
+    googlePlaceLng: place.googlePlaceLng ?? sourcePlace?.googlePlaceLng,
+    naverPlaceId: place.naverPlaceId || sourcePlace?.naverPlaceId,
+    naverPlaceName: place.naverPlaceName || sourcePlace?.naverPlaceName,
     spotActions: [...(sourcePlace?.spotActions ?? []), ...actions],
   }
 }
@@ -735,7 +794,13 @@ function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
     const lng = typeof source.lng === 'number' ? source.lng : Number(source.lng)
     if (!id || !isCustomPlaceId(id) || !name || !Number.isFinite(lat) || !Number.isFinite(lng)) return
     const googleUrl = typeof source.googleUrl === 'string' ? source.googleUrl.trim() : ''
+    const googlePlaceId = cleanProviderText(source.googlePlaceId)
+    const googlePlaceName = cleanProviderText(source.googlePlaceName)
+    const googlePlaceLat = cleanProviderCoordinate(source.googlePlaceLat)
+    const googlePlaceLng = cleanProviderCoordinate(source.googlePlaceLng)
     const naverUrl = typeof source.naverUrl === 'string' ? source.naverUrl.trim() : ''
+    const naverPlaceId = cleanProviderText(source.naverPlaceId, 80)
+    const naverPlaceName = cleanProviderText(source.naverPlaceName)
     const category = cleanCustomPlaceCategory(source.category)
     const links = Array.isArray(source.links)
       ? source.links
@@ -754,7 +819,12 @@ function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
       lat,
       lng,
       ...(googleUrl ? { googleUrl } : {}),
+      ...(googlePlaceId ? { googlePlaceId } : {}),
+      ...(googlePlaceName ? { googlePlaceName } : {}),
+      ...(googlePlaceLat != null && googlePlaceLng != null ? { googlePlaceLat, googlePlaceLng } : {}),
       ...(naverUrl ? { naverUrl } : {}),
+      ...(naverPlaceId ? { naverPlaceId } : {}),
+      ...(naverPlaceName ? { naverPlaceName } : {}),
       ...(links.length > 0 ? { links } : {}),
     }
   })
@@ -1324,7 +1394,15 @@ async function resolveGooglePlaceId(place: MapPlace, signal: AbortSignal) {
   if (!url || url.includes('PASTE_YOUR_MAPS_LINK')) return ''
 
   const cached = getResolvedMapUrlCache(url)
-  const cachedPlaceId = cached?.googlePlaceId || googleMapsPlaceIdFromUrl(cached?.url)
+  const cachedCoordinates =
+    cached?.lat != null && cached.lng != null ? { lat: cached.lat, lng: cached.lng } : parseGoogleMapsUrl(cached?.url ?? '')
+  const cachedPlaceId = trustedProviderPlaceId(
+    place,
+    cached?.googlePlaceId || googleMapsPlaceIdFromUrl(cached?.url),
+    cachedCoordinates?.lat,
+    cachedCoordinates?.lng,
+    isCustomPlaceId(place.id),
+  )
   if (cachedPlaceId) return cachedPlaceId
 
   const res = await fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(url)}`, {
@@ -1342,16 +1420,25 @@ async function resolveGooglePlaceId(place: MapPlace, signal: AbortSignal) {
     googlePlaceId?: unknown
   }
   const resolvedUrl = typeof data.url === 'string' ? data.url : url
+  const resolvedCoordinates =
+    typeof data.lat === 'number' && Number.isFinite(data.lat) && typeof data.lng === 'number' && Number.isFinite(data.lng)
+      ? { lat: data.lat, lng: data.lng }
+      : parseGoogleMapsUrl(resolvedUrl)
   const resolvedPlaceId =
-    (typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim()) ||
-    googleMapsPlaceIdFromUrl(resolvedUrl)
+    trustedProviderPlaceId(
+      place,
+      (typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim()) ||
+        googleMapsPlaceIdFromUrl(resolvedUrl),
+      resolvedCoordinates?.lat,
+      resolvedCoordinates?.lng,
+      isCustomPlaceId(place.id),
+    )
 
   setResolvedMapUrlCache(url, {
     url: resolvedUrl,
     ...(typeof data.title === 'string' && data.title.trim() ? { name: data.title.trim() } : {}),
     ...(typeof data.query === 'string' && data.query.trim() ? { query: data.query.trim() } : {}),
-    ...(typeof data.lat === 'number' && Number.isFinite(data.lat) ? { lat: data.lat } : {}),
-    ...(typeof data.lng === 'number' && Number.isFinite(data.lng) ? { lng: data.lng } : {}),
+    ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng } : {}),
     ...(resolvedPlaceId ? { googlePlaceId: resolvedPlaceId } : {}),
   })
 
@@ -2855,11 +2942,23 @@ function SortableTransportItem({
           navigationFrom.id,
           navigationFrom.lat,
           navigationFrom.lng,
+          navigationFrom.googlePlaceId ?? '',
+          navigationFrom.googlePlaceName ?? '',
+          navigationFrom.googlePlaceLat ?? '',
+          navigationFrom.googlePlaceLng ?? '',
+          navigationFrom.naverPlaceId ?? '',
+          navigationFrom.naverPlaceName ?? '',
           naverMapUrl(navigationFrom) ?? '',
           navigationFrom.spotGoogleMapsUrl ?? '',
           navigationTo.id,
           navigationTo.lat,
           navigationTo.lng,
+          navigationTo.googlePlaceId ?? '',
+          navigationTo.googlePlaceName ?? '',
+          navigationTo.googlePlaceLat ?? '',
+          navigationTo.googlePlaceLng ?? '',
+          navigationTo.naverPlaceId ?? '',
+          navigationTo.naverPlaceName ?? '',
           naverMapUrl(navigationTo) ?? '',
           navigationTo.spotGoogleMapsUrl ?? '',
         ].join('|')
@@ -4943,7 +5042,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             exitLocationFollowMode()
             const lat = e.latLng.lat()
             const lng = e.latLng.lng()
-            setCustomDraft((draft) => ({ ...draft, lat, lng }))
+            setCustomDraft((draft) => ({
+              ...draft,
+              lat,
+              lng,
+              googlePlaceId: '',
+              googlePlaceName: '',
+              googlePlaceLat: null,
+              googlePlaceLng: null,
+              naverPlaceId: '',
+              naverPlaceName: '',
+            }))
             return
           }
           setMobilePanelOpen(false)
@@ -5032,6 +5141,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           ...draft,
           lat: e.latLng?.lat() ?? draft.lat,
           lng: e.latLng?.lng() ?? draft.lng,
+          googlePlaceId: '',
+          googlePlaceName: '',
+          googlePlaceLat: null,
+          googlePlaceLng: null,
+          naverPlaceId: '',
+          naverPlaceName: '',
         }))
       })
     }
@@ -5491,7 +5606,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       id: place.id,
       name: place.name,
       googleUrl: place.googleUrl ?? '',
+      googlePlaceId: place.googlePlaceId ?? '',
+      googlePlaceName: place.googlePlaceName ?? '',
+      googlePlaceLat: place.googlePlaceLat ?? null,
+      googlePlaceLng: place.googlePlaceLng ?? null,
       naverUrl: place.naverUrl ?? '',
+      naverPlaceId: place.naverPlaceId ?? '',
+      naverPlaceName: place.naverPlaceName ?? '',
       linkLabel: '',
       linkUrl: '',
       note: relatedItem ? placeNotes[relatedItem] ?? '' : '',
@@ -5584,12 +5705,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const lat = location.lat()
       const lng = location.lng()
       const name = resolvedName || cleanGoogleMapsQueryPlaceName(query)
+      const googlePlaceId = results?.[0]?.place_id?.trim() ?? ''
       setResolvedMapUrlCache(cacheKey, {
         url: resolvedUrl,
         ...(name ? { name } : {}),
         query,
         lat,
         lng,
+        ...(googlePlaceId ? { googlePlaceId } : {}),
       })
       setCustomDraft((draft) => ({
         ...draft,
@@ -5597,6 +5720,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         ...((!draft.name.trim() || isGenericGoogleMapsPlaceName(draft.name)) && name ? { name } : {}),
         lat,
         lng,
+        ...(googlePlaceId
+          ? { googlePlaceId, googlePlaceName: name, googlePlaceLat: lat, googlePlaceLng: lng }
+          : {}),
         picking: true,
       }))
       revealResolvedCustomPlace({ lat, lng })
@@ -5609,6 +5735,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const extractedGoogleUrl = extractGoogleMapsUrlFromText(googleUrl)
     const trimmedGoogleUrl = extractedGoogleUrl.trim()
     const coordinates = parseGoogleMapsUrl(trimmedGoogleUrl)
+    const directGooglePlaceId = googleMapsPlaceIdFromUrl(trimmedGoogleUrl)
     const parsedName = parseGoogleMapsSharedTextName(googleUrl, trimmedGoogleUrl) || parseGoogleMapsPlaceName(trimmedGoogleUrl)
     const nextSeq = customUrlResolveSeqRef.current + 1
     customUrlResolveSeqRef.current = nextSeq
@@ -5616,6 +5743,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setCustomDraft((draft) => ({
       ...draft,
       googleUrl: trimmedGoogleUrl || googleUrl,
+      googlePlaceId: directGooglePlaceId,
+      googlePlaceName: directGooglePlaceId ? parsedName : '',
+      googlePlaceLat: directGooglePlaceId && coordinates ? coordinates.lat : null,
+      googlePlaceLng: directGooglePlaceId && coordinates ? coordinates.lng : null,
       ...(!draft.name.trim() && parsedName ? { name: parsedName } : {}),
       ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng, picking: true } : {}),
     }))
@@ -5632,6 +5763,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           : parseGoogleMapsUrl(cachedResolved.url)
       const resolvedName =
         cleanGoogleMapsQueryPlaceName(cachedResolved.name || '') || parseGoogleMapsPlaceName(cachedResolved.url)
+      const cachedGooglePlaceId = cachedResolved.googlePlaceId || googleMapsPlaceIdFromUrl(cachedResolved.url)
       if (!resolvedCoordinates && cachedResolved.query) {
         if (geocodeResolvedMapQuery(cachedResolved.query, cachedResolved.url, resolvedName, trimmedGoogleUrl, nextSeq)) return
         continueCustomPlaceManually(resolvedName)
@@ -5646,6 +5778,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             : {}),
           lat: resolvedCoordinates.lat,
           lng: resolvedCoordinates.lng,
+          ...(cachedGooglePlaceId
+            ? {
+                googlePlaceId: cachedGooglePlaceId,
+                googlePlaceName: resolvedName,
+                googlePlaceLat: resolvedCoordinates.lat,
+                googlePlaceLng: resolvedCoordinates.lng,
+              }
+            : {}),
           picking: true,
         }))
         revealResolvedCustomPlace(resolvedCoordinates)
@@ -5696,7 +5836,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           ...((!draft.name.trim() || isGenericGoogleMapsPlaceName(draft.name)) && resolvedName
             ? { name: resolvedName }
             : {}),
-          ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng, picking: true } : {}),
+          ...(resolvedCoordinates
+            ? {
+                lat: resolvedCoordinates.lat,
+                lng: resolvedCoordinates.lng,
+                ...(resolvedGooglePlaceId
+                  ? {
+                      googlePlaceId: resolvedGooglePlaceId,
+                      googlePlaceName: resolvedName,
+                      googlePlaceLat: resolvedCoordinates.lat,
+                      googlePlaceLng: resolvedCoordinates.lng,
+                    }
+                  : {}),
+                picking: true,
+              }
+            : {}),
         }))
         if (resolvedCoordinates) revealResolvedCustomPlace(resolvedCoordinates)
         else continueCustomPlaceManually(resolvedName)
@@ -5744,7 +5898,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       lat: customDraft.lat,
       lng: customDraft.lng,
       ...(customDraft.googleUrl.trim() ? { googleUrl: customDraft.googleUrl.trim() } : {}),
+      ...(customDraft.googlePlaceId.trim() ? { googlePlaceId: customDraft.googlePlaceId.trim() } : {}),
+      ...(customDraft.googlePlaceName.trim() ? { googlePlaceName: customDraft.googlePlaceName.trim() } : {}),
+      ...(customDraft.googlePlaceId.trim() && customDraft.googlePlaceLat != null && customDraft.googlePlaceLng != null
+        ? { googlePlaceLat: customDraft.googlePlaceLat, googlePlaceLng: customDraft.googlePlaceLng }
+        : {}),
       ...(customDraft.naverUrl.trim() ? { naverUrl: customDraft.naverUrl.trim() } : {}),
+      ...(customDraft.naverPlaceId.trim() ? { naverPlaceId: customDraft.naverPlaceId.trim() } : {}),
+      ...(customDraft.naverPlaceName.trim() ? { naverPlaceName: customDraft.naverPlaceName.trim() } : {}),
       ...(nextLinks.length > 0 ? { links: nextLinks } : {}),
     }
 
@@ -5791,6 +5952,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ...(match.spotGoogleMapsUrl || customDraft.googleUrl.trim()
         ? { googleUrl: match.spotGoogleMapsUrl || customDraft.googleUrl.trim() }
         : {}),
+      ...(match.googlePlaceId ? { googlePlaceId: match.googlePlaceId } : {}),
+      ...(match.googlePlaceName ? { googlePlaceName: match.googlePlaceName } : {}),
+      ...(match.googlePlaceLat != null && match.googlePlaceLng != null
+        ? { googlePlaceLat: match.googlePlaceLat, googlePlaceLng: match.googlePlaceLng }
+        : {}),
+      ...(match.naverPlaceId ? { naverPlaceId: match.naverPlaceId } : {}),
+      ...(match.naverPlaceName ? { naverPlaceName: match.naverPlaceName } : {}),
     }
     const customMapPlace = customPlaceToMapPlace(customPlace, match, customCategoryItems)
     setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
@@ -5851,12 +6019,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     geocoder.geocode({ address: confirmedName }, (results, status) => {
       if (status !== 'OK' || !results?.[0]?.geometry?.location) return
       const location = results[0].geometry.location
+      const googlePlaceId = results[0].place_id?.trim() ?? ''
       setCustomDraft((draft) => {
         if (!draft.id || !draft.nameConfirmed) return draft
+        const lat = location.lat()
+        const lng = location.lng()
         return {
           ...draft,
-          lat: location.lat(),
-          lng: location.lng(),
+          lat,
+          lng,
+          ...(googlePlaceId
+            ? {
+                googlePlaceId,
+                googlePlaceName: confirmedName,
+                googlePlaceLat: lat,
+                googlePlaceLng: lng,
+              }
+            : {}),
           picking: true,
         }
       })
