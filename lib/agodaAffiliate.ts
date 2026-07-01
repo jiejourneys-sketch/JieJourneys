@@ -3,7 +3,7 @@ import path from 'node:path'
 
 const DEFAULT_AGODA_SITE_ID = '1945734'
 const DEFAULT_AGODA_ENDPOINT = 'http://affiliateapi7643.agoda.com/affiliateservice/lt_v1'
-const DEFAULT_AGODA_INDEX_PATH = path.join('data', 'agoda', 'hotels-index.jsonl')
+const DEFAULT_AGODA_INDEX_PATH = path.join('data', 'agoda-planner-hotels-index.jsonl')
 const DEFAULT_CURRENCY = 'TWD'
 const DEFAULT_LANGUAGE = 'zh-tw'
 const DEFAULT_MAX_RESULT = 30

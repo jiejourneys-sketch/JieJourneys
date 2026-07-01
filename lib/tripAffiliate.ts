@@ -189,7 +189,7 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
           .filter((candidate): candidate is TripAffiliateHotelCandidate => Boolean(candidate)),
       )
       const currentBest = mergeTripCandidates([...siteIndexResult.candidates, ...searchCandidates])[0]
-      if (currentBest?.score && currentBest.score >= 0.82) break
+      if (currentBest?.score && currentBest.score >= 0.78) break
     }
     const sortedSearchCandidates = searchCandidates
       .sort((a, b) => b.score - a.score)
@@ -588,7 +588,7 @@ function cleanTripTitle(value: string) {
 }
 
 function getTripMatchStatus(score: number): TripAffiliateMatchStatus {
-  if (score >= 0.82) return 'matched'
+  if (score >= 0.78) return 'matched'
   if (score >= 0.68) return 'needs_review'
   return 'no_match'
 }
