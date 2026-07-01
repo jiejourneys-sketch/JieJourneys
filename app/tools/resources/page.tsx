@@ -15,9 +15,9 @@ const resources = [
   {
     title: '\u65e5\u672c\u79df\u8eca(\u5408\u4f5c)',
     tags: '\u65e5\u672c \u79df\u8eca \u81ea\u99d5 \u5408\u4f5c tocoo car rental japan',
-    href: 'https://www2.tocoo.jp/cn/?asp_id=2561&utm_source=2561&utm_medium=affiliate',
+    href: 'https://www2.tocoo.jp/cn/?asp_id=2564&utm_source=2564&utm_medium=affiliate',
     event: 'japancarrental_tocoo',
-    promoCode: 'BADN3O',
+    promoCode: 'K24ZW3',
   },
   {
     title: '\u65e5\u672c\u6ed1\u96ea\u9810\u8a02(\u5408\u4f5c)',
