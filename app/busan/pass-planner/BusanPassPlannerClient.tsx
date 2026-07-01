@@ -72,7 +72,7 @@ type DayView = 'all' | number
 type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
 type PlannerUserLink = CustomPlannerLink
-type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured'
+type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id'
 type HotelAffiliatePlannerResponse = {
   matchStatus?: string
   bestMatch?: {
@@ -185,6 +185,7 @@ export type PlannerConfig = {
   recentCountryName?: string
   recentSource?: 'map' | 'pass'
   plannerBookCityName?: string
+  agodaCityId?: number
 }
 
 const SCRIPT_ID = 'gmaps-js'
@@ -302,6 +303,21 @@ const defaultPlannerConfig: PlannerConfig = {
   tierItems: defaultTierItems,
 }
 
+const agodaCityHints = [
+  { cityId: 17172, countryCode: 'KR', patterns: [/busan|釜山/], lat: 35.1796, lng: 129.0756 },
+  { cityId: 14690, countryCode: 'KR', patterns: [/seoul|首爾|首尔/], lat: 37.5665, lng: 126.978 },
+  { cityId: 5085, countryCode: 'JP', patterns: [/tokyo|東京|东京/], lat: 35.6762, lng: 139.6503 },
+  { cityId: 9590, countryCode: 'JP', patterns: [/osaka|大阪/], lat: 34.6937, lng: 135.5023 },
+  { cityId: 247771, countryCode: 'JP', patterns: [/fuji|河口湖|fujikawaguchiko|kawaguchiko/], lat: 35.5013, lng: 138.7649 },
+  { cityId: 1784, countryCode: 'JP', patterns: [/kyoto|京都/], lat: 35.0116, lng: 135.7681 },
+  { cityId: 13313, countryCode: 'JP', patterns: [/nara|奈良/], lat: 34.6851, lng: 135.8048 },
+  { cityId: 5235, countryCode: 'JP', patterns: [/kobe|神戶|神戸/], lat: 34.6901, lng: 135.1955 },
+  { cityId: 2758, countryCode: 'VN', patterns: [/northvietnam|hanoi|河內|河内|北越/], lat: 21.0278, lng: 105.8342 },
+  { cityId: 17160, countryCode: 'VN', patterns: [/sapa|sa pa|沙壩|沙巴/], lat: 22.3364, lng: 103.8438 },
+  { cityId: 17245, countryCode: 'VN', patterns: [/ninh binh|ninh bình|寧平|宁平/], lat: 20.2506, lng: 105.9745 },
+  { cityId: 17182, countryCode: 'VN', patterns: [/ha long|hạ long|halong|下龍|下龙/], lat: 20.9712, lng: 107.0448 },
+]
+
 function plannerAffiliateCountryCode(config: PlannerConfig) {
   const text = [
     config.storageKey,
@@ -323,6 +339,39 @@ function plannerAffiliateCountryCode(config: PlannerConfig) {
   if (/busan|korea|韓國|韩国|釜山|首爾|首尔/.test(text)) return 'KR'
   if (/osaka|tokyo|fuji|japan|日本|大阪|東京|东京|富士|河口湖/.test(text)) return 'JP'
   return ''
+}
+
+function plannerAgodaCityId(config: PlannerConfig, latitude?: number, longitude?: number) {
+  const configuredCityId = config.agodaCityId
+  if (typeof configuredCityId === 'number' && Number.isInteger(configuredCityId) && configuredCityId > 0) return configuredCityId
+  const text = [
+    config.storageKey,
+    config.eventPrefix,
+    config.shareSearchParams?.region,
+    config.initialSearchParams?.region,
+    config.recentRegionKey,
+    config.recentCountryName,
+    config.plannerBookCityName,
+    config.shareTitle,
+    config.title,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  const countryCode = plannerAffiliateCountryCode(config)
+  const textMatch = agodaCityHints.find((hint) => hint.patterns.some((pattern) => pattern.test(text)))
+  if (textMatch) return textMatch.cityId
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return undefined
+
+  const nearest = agodaCityHints
+    .filter((hint) => !countryCode || hint.countryCode === countryCode)
+    .map((hint) => ({
+      ...hint,
+      distanceKm: distanceMeters({ lat: latitude as number, lng: longitude as number }, { lat: hint.lat, lng: hint.lng }) / 1000,
+    }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)[0]
+
+  return nearest && nearest.distanceKm <= 120 ? nearest.cityId : undefined
 }
 
 function mergeCustomPlannerLinks(links: CustomPlannerLink[] | undefined, link: CustomPlannerLink) {
@@ -363,6 +412,7 @@ function hotelAffiliateStatusText(provider: 'Agoda' | 'Trip', status: HotelAffil
   if (status === 'matched') return `已加入 ${provider}`
   if (status === 'none') return `${provider} 未命中`
   if (status === 'not_configured') return `${provider} 未設定`
+  if (status === 'needs_city_id') return `${provider} 資料不足`
   if (status === 'error') return `${provider} 暫時無法查詢`
   return ''
 }
@@ -5832,7 +5882,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const resolveAgodaAffiliateLinkForCustomPlace = useCallback((place: CustomPlannerPlace) => {
     if (readOnlyPlan || cleanCustomPlaceCategory(place.category) !== 'hotel') return
     const hotelName = (place.googlePlaceName || place.name).trim()
-    if (!hotelName || !Number.isFinite(place.lat) || !Number.isFinite(place.lng)) {
+    const affiliateLat = place.googlePlaceLat ?? place.lat
+    const affiliateLng = place.googlePlaceLng ?? place.lng
+    if (!hotelName || !Number.isFinite(affiliateLat) || !Number.isFinite(affiliateLng)) {
       setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
       return
     }
@@ -5848,14 +5900,27 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       body: JSON.stringify({
         hotelName,
         city: config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+        cityId: plannerAgodaCityId(config, affiliateLat, affiliateLng),
         countryCode: plannerAffiliateCountryCode(config),
-        lat: place.googlePlaceLat ?? place.lat,
-        lng: place.googlePlaceLng ?? place.lng,
+        lat: affiliateLat,
+        lng: affiliateLng,
         language: 'zh-tw',
       }),
     })
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        const data = (await res.json().catch(() => null)) as HotelAffiliatePlannerResponse | null
+        if (res.ok || data?.matchStatus === 'not_configured' || data?.matchStatus === 'needs_city_id') return data
+        return null
+      })
       .then((data: HotelAffiliatePlannerResponse | null) => {
+        if (data?.matchStatus === 'not_configured') {
+          setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'not_configured' }))
+          return
+        }
+        if (data?.matchStatus === 'needs_city_id') {
+          setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'needs_city_id' }))
+          return
+        }
         if (data?.matchStatus !== 'matched') {
           setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
           return
