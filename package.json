@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "agoda:index": "node scripts/build-agoda-hotel-index.mjs",
     "rwd:scan": "node scripts/rwd-scan.mjs",
     "links:list": "node scripts/link-monitor.mjs --list-only",
     "links:check": "node scripts/link-monitor.mjs"
