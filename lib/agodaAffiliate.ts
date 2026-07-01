@@ -363,27 +363,35 @@ function extractAgodaHotels(
   config: AgodaAffiliateConfig,
   query: AgodaAffiliateSearchResponse['query'],
 ): AgodaAffiliateHotelCandidate[] {
-  const records = getAgodaResultRecords(payload)
-  return records
-    .map((record) => {
-      const hotelId = readHotelId(record)
-      const hotelName = readString(record.hotelName ?? record.name ?? record.hotel_name)
-      if (!hotelId || !hotelName) return null
-      const bookingUrl = normalizeAgodaLandingUrl(readString(record.landingURL ?? record.landingUrl), hotelId, config, query)
-      return {
-        hotelId,
-        hotelName,
-        score: 0,
-        bookingUrl,
-        source: 'api',
-        ...(readString(record.imageURL ?? record.imageUrl) ? { imageUrl: readString(record.imageURL ?? record.imageUrl) } : {}),
-        ...(readString(record.currency) ? { currency: readString(record.currency) } : {}),
-        ...(readNumber(record.dailyRate) ? { dailyRate: readNumber(record.dailyRate) } : {}),
-        ...(readNumber(record.reviewScore) ? { reviewScore: readNumber(record.reviewScore) } : {}),
-        ...(readNumber(record.starRating) ? { starRating: readNumber(record.starRating) } : {}),
-      }
+  const hotels: AgodaAffiliateHotelCandidate[] = []
+
+  for (const record of getAgodaResultRecords(payload)) {
+    const hotelId = readHotelId(record)
+    const hotelName = readString(record.hotelName ?? record.name ?? record.hotel_name)
+    if (!hotelId || !hotelName) continue
+
+    const bookingUrl = normalizeAgodaLandingUrl(readString(record.landingURL ?? record.landingUrl), hotelId, config, query)
+    const imageUrl = readString(record.imageURL ?? record.imageUrl)
+    const currency = readString(record.currency)
+    const dailyRate = readNumber(record.dailyRate)
+    const reviewScore = readNumber(record.reviewScore)
+    const starRating = readNumber(record.starRating)
+
+    hotels.push({
+      hotelId,
+      hotelName,
+      score: 0,
+      bookingUrl,
+      source: 'api',
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(currency ? { currency } : {}),
+      ...(dailyRate ? { dailyRate } : {}),
+      ...(reviewScore ? { reviewScore } : {}),
+      ...(starRating ? { starRating } : {}),
     })
-    .filter((hotel): hotel is AgodaAffiliateHotelCandidate => Boolean(hotel))
+  }
+
+  return hotels
 }
 
 function getAgodaResultRecords(payload: unknown): Record<string, unknown>[] {

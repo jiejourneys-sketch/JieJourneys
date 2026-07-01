@@ -275,52 +275,56 @@ function searchSiteHotelIndex(
 ) {
   const records = getSiteHotelRecords()
   const searchNames = tripSearchNames(query)
-  const candidates = records
-    .map((record) => {
-      const score = Math.max(
-        ...searchNames.map((searchName) =>
-          scoreTripCandidate({
-            query: { ...query, hotelName: searchName },
-            title: record.hotelName,
-            snippet: record.city ?? '',
-            url: record.url,
-            candidateName: record.hotelName,
-            candidateCity: record.city,
-            candidateCountryCode: record.countryCode,
-            candidateLatitude: record.latitude,
-            candidateLongitude: record.longitude,
-            rankIndex: 0,
-          }),
-        ),
-      )
-      if (score < 0.55) return null
-      return {
-        hotelId: record.hotelId,
-        hotelName: record.hotelName,
-        score,
-        bookingUrl: buildTripAffiliateUrl(record.url, {
-          allianceId: config.allianceId,
-          sid: config.sid,
-          tripSub1: input.tripSub1 ?? config.sub1,
-          tripSub3: input.tripSub3 ?? config.sub3,
+  const candidates: TripAffiliateHotelCandidate[] = []
+
+  for (const record of records) {
+    const score = Math.max(
+      ...searchNames.map((searchName) =>
+        scoreTripCandidate({
+          query: { ...query, hotelName: searchName },
+          title: record.hotelName,
+          snippet: record.city ?? '',
+          url: record.url,
+          candidateName: record.hotelName,
+          candidateCity: record.city,
+          candidateCountryCode: record.countryCode,
+          candidateLatitude: record.latitude,
+          candidateLongitude: record.longitude,
+          rankIndex: 0,
         }),
-        source: 'site_index' as const,
-        originalUrl: record.url,
-        title: record.hotelName,
-        city: record.city,
-        countryCode: record.countryCode,
-        latitude: record.latitude,
-        longitude: record.longitude,
-        distanceKm: distanceKm(query.latitude, query.longitude, record.latitude, record.longitude),
-      }
+      ),
+    )
+    if (score < 0.55) continue
+
+    const distance = distanceKm(query.latitude, query.longitude, record.latitude, record.longitude)
+    candidates.push({
+      hotelId: record.hotelId,
+      hotelName: record.hotelName,
+      score,
+      bookingUrl: buildTripAffiliateUrl(record.url, {
+        allianceId: config.allianceId,
+        sid: config.sid,
+        tripSub1: input.tripSub1 ?? config.sub1,
+        tripSub3: input.tripSub3 ?? config.sub3,
+      }),
+      source: 'site_index',
+      originalUrl: record.url,
+      title: record.hotelName,
+      ...(record.city ? { city: record.city } : {}),
+      ...(record.countryCode ? { countryCode: record.countryCode } : {}),
+      ...(typeof record.latitude === 'number' ? { latitude: record.latitude } : {}),
+      ...(typeof record.longitude === 'number' ? { longitude: record.longitude } : {}),
+      ...(typeof distance === 'number' ? { distanceKm: distance } : {}),
     })
-    .filter((candidate): candidate is TripAffiliateHotelCandidate => Boolean(candidate))
+  }
+
+  const sortedCandidates = candidates
     .sort((a, b) => b.score - a.score)
     .slice(0, query.maxResult)
 
   return {
-    bestMatch: candidates[0],
-    candidates,
+    bestMatch: sortedCandidates[0],
+    candidates: sortedCandidates,
     rawCount: records.length,
   }
 }
@@ -404,7 +408,7 @@ function searchResultToCandidate(
   input: TripAffiliateSearchInput,
   result: SearchResult,
   rankIndex: number,
-) {
+): TripAffiliateHotelCandidate | null {
   const parsed = parseTripUrl(result.url)
   if (!parsed || !isTripHotelDetailUrl(parsed)) return null
   const hotelId = tripHotelIdFromUrl(parsed)
