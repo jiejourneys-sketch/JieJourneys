@@ -868,11 +868,16 @@ function naverMapAppPlaceUrl(place: MapPlace, resolvedPlaceId = '') {
 
 function canResolveGooglePlaceId(place: MapPlace) {
   const url = place.spotGoogleMapsUrl?.trim()
-  return !googleMapsPlaceId(place) && Boolean(url && !url.includes('PASTE_YOUR_MAPS_LINK'))
+  if (!url || url.includes('PASTE_YOUR_MAPS_LINK')) return false
+  if (googleMapsPlaceId(place) || cachedGooglePlaceId(place)) return false
+  return !getResolvedMapUrlCache(url)?.googlePlaceIdResolved
 }
 
 function canResolveNaverPlaceId(place: MapPlace) {
-  return !naverMapPlaceId(place) && Boolean(naverMapUrl(place)?.trim())
+  const url = naverMapUrl(place)?.trim()
+  if (!url) return false
+  if (naverMapPlaceId(place) || cachedNaverPlaceId(place)) return false
+  return !getResolvedMapUrlCache(url)?.naverPlaceIdResolved
 }
 
 function needsTransportNavigationPlaceResolution(from: MapPlace, to: MapPlace) {
@@ -1514,6 +1519,8 @@ type ResolvedMapUrlData = {
   lng?: number
   googlePlaceId?: string
   naverPlaceId?: string
+  googlePlaceIdResolved?: boolean
+  naverPlaceIdResolved?: boolean
 }
 
 function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
@@ -1534,6 +1541,8 @@ function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
               ...(typeof data.lng === 'number' && Number.isFinite(data.lng) ? { lng: data.lng } : {}),
               ...(typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim() ? { googlePlaceId: data.googlePlaceId.trim() } : {}),
               ...(typeof data.naverPlaceId === 'string' && data.naverPlaceId.trim() ? { naverPlaceId: data.naverPlaceId.trim() } : {}),
+              ...(data.googlePlaceIdResolved === true ? { googlePlaceIdResolved: true } : {}),
+              ...(data.naverPlaceIdResolved === true ? { naverPlaceIdResolved: true } : {}),
             }
           : null
       }
@@ -1555,6 +1564,30 @@ function setResolvedMapUrlCache(url: string, data: ResolvedMapUrlData) {
   }
 }
 
+function cachedGooglePlaceId(place: MapPlace) {
+  const url = place.spotGoogleMapsUrl?.trim()
+  if (!url || url.includes('PASTE_YOUR_MAPS_LINK')) return ''
+
+  const cached = getResolvedMapUrlCache(url)
+  const cachedCoordinates =
+    cached?.lat != null && cached.lng != null ? { lat: cached.lat, lng: cached.lng } : parseGoogleMapsUrl(cached?.url ?? '')
+  return trustedProviderPlaceId(
+    place,
+    cached?.googlePlaceId || googleMapsPlaceIdFromUrl(cached?.url),
+    cachedCoordinates?.lat,
+    cachedCoordinates?.lng,
+    isCustomPlaceId(place.id),
+  )
+}
+
+function cachedNaverPlaceId(place: MapPlace) {
+  const url = naverMapUrl(place)?.trim()
+  if (!url) return ''
+
+  const cached = getResolvedMapUrlCache(url)
+  return cached?.naverPlaceId || naverMapPlaceIdFromUrl(cached?.url)
+}
+
 async function resolveNaverMapUrlPlaceId(urlValue: string | undefined, signal: AbortSignal) {
   const url = urlValue?.trim()
   if (!url) return ''
@@ -1564,6 +1597,7 @@ async function resolveNaverMapUrlPlaceId(urlValue: string | undefined, signal: A
   const cached = getResolvedMapUrlCache(url)
   const cachedPlaceId = cached?.naverPlaceId || naverMapPlaceIdFromUrl(cached?.url)
   if (cachedPlaceId) return cachedPlaceId
+  if (cached?.naverPlaceIdResolved) return ''
 
   const res = await fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(url)}`, {
     cache: 'no-store',
@@ -1580,6 +1614,7 @@ async function resolveNaverMapUrlPlaceId(urlValue: string | undefined, signal: A
   setResolvedMapUrlCache(url, {
     url: resolvedUrl,
     ...(resolvedPlaceId ? { naverPlaceId: resolvedPlaceId } : {}),
+    naverPlaceIdResolved: true,
   })
 
   return resolvedPlaceId || ''
@@ -1610,6 +1645,7 @@ async function resolveGooglePlaceId(place: MapPlace, signal: AbortSignal) {
     isCustomPlaceId(place.id),
   )
   if (cachedPlaceId) return cachedPlaceId
+  if (cached?.googlePlaceIdResolved) return ''
 
   const res = await fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(url)}`, {
     cache: 'no-store',
@@ -1646,6 +1682,7 @@ async function resolveGooglePlaceId(place: MapPlace, signal: AbortSignal) {
     ...(typeof data.query === 'string' && data.query.trim() ? { query: data.query.trim() } : {}),
     ...(resolvedCoordinates ? { lat: resolvedCoordinates.lat, lng: resolvedCoordinates.lng } : {}),
     ...(resolvedPlaceId ? { googlePlaceId: resolvedPlaceId } : {}),
+    googlePlaceIdResolved: true,
   })
 
   return resolvedPlaceId || ''
@@ -3226,18 +3263,21 @@ function SortableTransportItem({
     resolvedNavigationIds.key === navigationResolveKey
       ? resolvedNavigationIds
       : null
-  const fromGooglePlaceId = activeResolvedNavigationIds?.fromGooglePlaceId || (navigationFrom ? googleMapsPlaceId(navigationFrom) : '')
-  const toGooglePlaceId = activeResolvedNavigationIds?.toGooglePlaceId || (navigationTo ? googleMapsPlaceId(navigationTo) : '')
-  const navigationNeedsResolution =
-    navigationFrom && navigationTo ? needsTransportNavigationPlaceResolution(navigationFrom, navigationTo) : false
-  const navigationResolving = Boolean(
-    navigationNeedsResolution && navigationResolveKey && resolvedNavigationIds.key !== navigationResolveKey,
-  )
+  const fromGooglePlaceId =
+    activeResolvedNavigationIds?.fromGooglePlaceId ||
+    (navigationFrom ? googleMapsPlaceId(navigationFrom) || cachedGooglePlaceId(navigationFrom) : '')
+  const toGooglePlaceId =
+    activeResolvedNavigationIds?.toGooglePlaceId ||
+    (navigationTo ? googleMapsPlaceId(navigationTo) || cachedGooglePlaceId(navigationTo) : '')
+  const fromNaverPlaceId =
+    activeResolvedNavigationIds?.fromNaverPlaceId || (navigationFrom ? cachedNaverPlaceId(navigationFrom) : '')
+  const toNaverPlaceId =
+    activeResolvedNavigationIds?.toNaverPlaceId || (navigationTo ? cachedNaverPlaceId(navigationTo) : '')
   const navigationPlaceIds: TransportNavigationPlaceIds = {
     ...(fromGooglePlaceId ? { fromGooglePlaceId } : {}),
     ...(toGooglePlaceId ? { toGooglePlaceId } : {}),
-    ...(activeResolvedNavigationIds?.fromNaverPlaceId ? { fromNaverPlaceId: activeResolvedNavigationIds.fromNaverPlaceId } : {}),
-    ...(activeResolvedNavigationIds?.toNaverPlaceId ? { toNaverPlaceId: activeResolvedNavigationIds.toNaverPlaceId } : {}),
+    ...(fromNaverPlaceId ? { fromNaverPlaceId } : {}),
+    ...(toNaverPlaceId ? { toNaverPlaceId } : {}),
   }
   const navigationHref = navigationPlaces
     ? transportNavigationUrl(navigationPlaces.from, navigationPlaces.to, activeNavigationMode, navigationPlaceIds)
@@ -3247,7 +3287,7 @@ function SortableTransportItem({
     : ''
   const [navigationChangePending, setNavigationChangePending] = useState(false)
   const navigationKeyRef = useRef<string | null>(null)
-  const navigationUpdating = navigationResolving || navigationChangePending
+  const navigationUpdating = navigationChangePending
 
   const commitDraft = () => {
     if (readOnly) return
@@ -6136,6 +6176,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         lat,
         lng,
         ...(googlePlaceId ? { googlePlaceId } : {}),
+        googlePlaceIdResolved: true,
       })
       setCustomDraft((draft) => ({
         ...draft,
@@ -6244,6 +6285,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           ...(resolvedLat != null ? { lat: resolvedLat } : {}),
           ...(resolvedLng != null ? { lng: resolvedLng } : {}),
           ...(resolvedGooglePlaceId ? { googlePlaceId: resolvedGooglePlaceId } : {}),
+          googlePlaceIdResolved: true,
         })
         const resolvedCoordinates =
           resolvedLat != null && resolvedLng != null ? { lat: resolvedLat, lng: resolvedLng } : parseGoogleMapsUrl(resolvedUrl)
