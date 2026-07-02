@@ -91,7 +91,7 @@ const plannerCollisionDetection: CollisionDetection = (args) => {
 const mobileDragTargetIndex = (fromIndex: number, toIndex: number, deltaY: number) => {
   if (!isMobilePlannerViewport() || Math.abs(toIndex - fromIndex) <= 1) return toIndex
   const dragDirection = Math.sign(toIndex - fromIndex)
-  const maxSteps = Math.max(1, Math.floor(Math.abs(deltaY) / 96))
+  const maxSteps = Math.max(1, Math.ceil(Math.abs(deltaY) / 56))
   return fromIndex + dragDirection * Math.min(Math.abs(toIndex - fromIndex), maxSteps)
 }
 
@@ -5716,7 +5716,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan) return
     const transportItem = createTransportItem()
     setMode('order')
-    setMobilePanelOpen(true)
+    setMobilePanelState(isMobilePlannerViewport() ? 'full' : 'half')
     setOpenPlannerMenu(null)
     setPlanItems((items) => {
       const fallbackIndex = (() => {
@@ -6992,7 +6992,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const handlePanelBodyTouchStart = useCallback((e: ReactTouchEvent<HTMLDivElement>) => {
     if (!mobilePanelOpen || e.touches.length !== 1) return
     const target = e.target as HTMLElement
-    if (target.closest(`.${styles.dragHandle}`)) {
+    if (target.closest(`.${styles.dragHandle}, .${styles.transportDragHandle}, .${styles.dayDragHandle}`)) {
       panelBodyTouchStartYRef.current = null
       panelBodyPullCanCollapseRef.current = false
       return
@@ -7701,13 +7701,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   expanded={expandedPlanItem === item}
                                   navigationPlaces={navigationPlaces}
                                   onToggleExpanded={() => {
-                                    if (mobilePanelStateRef.current === 'full' && isMobilePlannerViewport()) {
-                                      pendingHalfPanelFocusRef.current = { mode: 'transport', itemId: item }
-                                      pendingHalfPanelExpandItemRef.current = expandedPlanItem === item ? null : item
-                                      pendingHalfPanelFocusRetryRef.current = 0
-                                      setMobilePanelState('half')
-                                      return
-                                    }
                                     setExpandedPlanItemWithScrollCompensation(expandedPlanItem === item ? null : item)
                                   }}
                                   onChange={(info) => updateTransportItem(item, info)}
