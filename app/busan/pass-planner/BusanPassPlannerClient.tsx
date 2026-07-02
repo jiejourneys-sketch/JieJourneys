@@ -2094,9 +2094,9 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
   const viewToken = params.get(PLANNER_PREVIEW_PARAM)?.trim()
   if (!id && !viewToken) return null
 
-  const query = viewToken
-    ? `${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(viewToken)}`
-    : `id=${encodeURIComponent(id ?? '')}`
+  const query = id
+    ? `id=${encodeURIComponent(id)}`
+    : `${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(viewToken ?? '')}`
   const res = await fetch(`/api/pass-planner/book?${query}`, {
     cache: 'no-store',
   })

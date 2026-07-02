@@ -206,7 +206,7 @@ function customRegionFromUrl(regionKey: string, countryName: string): PlannerReg
 }
 
 async function fetchPlannerBookMeta(plannerId: string, readToken: string): Promise<PlannerBookMetaLookup> {
-  const query = readToken ? `v=${encodeURIComponent(readToken)}` : `id=${encodeURIComponent(plannerId)}`
+  const query = plannerId ? `id=${encodeURIComponent(plannerId)}` : `v=${encodeURIComponent(readToken)}`
   const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
   if (res.status === 404 || res.status === 410) return { book: null, unavailable: true }
   if (!res.ok) return { book: null, unavailable: false }
@@ -370,7 +370,7 @@ export default function ToolsPlannerPage() {
                 setRecentPlanners(
                   upsertRecentPlanner({
                     id: plannerId,
-                    readToken: readToken || undefined,
+                    readToken: undefined,
                     regionKey: region.key,
                     source,
                     countryName,
@@ -385,7 +385,7 @@ export default function ToolsPlannerPage() {
                 countryName,
                 source,
                 plannerId: plannerId || undefined,
-                readToken: readToken || undefined,
+                readToken: plannerId ? undefined : readToken || undefined,
               })
             } catch {
               if (cancelled) return
@@ -417,7 +417,7 @@ export default function ToolsPlannerPage() {
             setRecentPlanners(
               upsertRecentPlanner({
                 id: plannerId,
-                readToken: readToken || undefined,
+                readToken: undefined,
                 regionKey: customRegion.key,
                 source,
                 countryName,
@@ -432,7 +432,7 @@ export default function ToolsPlannerPage() {
             countryName,
             source,
             plannerId: plannerId || undefined,
-            readToken: readToken || undefined,
+            readToken: plannerId ? undefined : readToken || undefined,
           })
         }
 
@@ -570,7 +570,7 @@ export default function ToolsPlannerPage() {
       countryName,
       source,
       plannerId: planner?.id,
-      readToken: planner?.readToken,
+      readToken: planner?.id ? undefined : planner?.readToken,
     })
   }
 
@@ -627,7 +627,7 @@ export default function ToolsPlannerPage() {
     }
 
     const countryName = plannerDisplayName(lookup.book.city, planner.regionKey)
-    const nextPlanner = { ...planner, countryName }
+    const nextPlanner = { id: planner.id, countryName }
     const params = new URLSearchParams()
     params.set('region', region.key)
     if (planner.source === 'pass') params.set('source', 'pass')
@@ -815,8 +815,7 @@ export default function ToolsPlannerPage() {
       initialSearchParams: {
         region: region.key,
         ...(source === 'pass' ? { source: 'pass' } : {}),
-        ...(started.plannerId ? { p: started.plannerId } : {}),
-        ...(started.readToken ? { v: started.readToken } : {}),
+        ...(started.plannerId ? { p: started.plannerId } : started.readToken ? { v: started.readToken } : {}),
       },
       recentListKey: RECENT_PLANNERS_KEY,
       recentRegionKey: region.key,
