@@ -8,6 +8,7 @@ import ShareBookButton from './components/ShareBookButton'
 import TotalExpenseInline from './components/TotalExpenseInline'
 import RememberBook from './components/RememberBook'
 import BillBookDataProvider from './components/BillBookDataProvider'
+import SharedBookInAppBrowserGuard from './components/SharedBookInAppBrowserGuard'
 
 export default async function Page({
   params
@@ -35,6 +36,7 @@ export default async function Page({
 
   return (
     <BillBookDataProvider bookId={id}>
+      <SharedBookInAppBrowserGuard bookId={id} />
       <RememberBook bookId={id} />
       <div
         className="row"

@@ -2,15 +2,24 @@
 
 import { useEffect, useState } from 'react'
 
-type InApp = 'instagram' | 'line' | 'facebook' | 'other'
+type InApp = 'instagram' | 'line' | 'messenger' | 'facebook'
+type GuardVariant = 'create' | 'shared'
 
 export function detectInAppBrowser(): InApp | null {
   if (typeof navigator === 'undefined') return null
   const ua = navigator.userAgent
   if (/Instagram/i.test(ua)) return 'instagram'
   if (/Line\//i.test(ua)) return 'line'
+  if (/Messenger|FBAN\/MessengerForiOS/i.test(ua)) return 'messenger'
   if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook'
   return null
+}
+
+function inAppBrowserName(browser: InApp) {
+  if (browser === 'instagram') return 'IG'
+  if (browser === 'line') return 'LINE'
+  if (browser === 'messenger') return 'Messenger'
+  return 'Facebook'
 }
 
 function isIOS(): boolean {
@@ -26,9 +35,13 @@ function openInSystemBrowser() {
 export default function InAppBrowserGuard({
   onContinue,
   onClose,
+  variant = 'create',
+  copyUrl,
 }: {
   onContinue: () => void
   onClose: () => void
+  variant?: GuardVariant
+  copyUrl?: string
 }) {
   const [browser, setBrowser] = useState<InApp | null>(null)
   const [copied, setCopied] = useState(false)
@@ -44,7 +57,7 @@ export default function InAppBrowserGuard({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href)
+      await navigator.clipboard.writeText(copyUrl ?? window.location.href)
       setCopied(true)
     } catch { /* noop */ }
   }
@@ -82,10 +95,12 @@ export default function InAppBrowserGuard({
           建議先切換到 {browserName}
         </p>
         <p style={{ color: '#6b7280', fontSize: '0.875rem', lineHeight: 1.7, marginBottom: 24 }}>
-          這樣下次才找得到你的帳本 ✓
+          {variant === 'shared'
+            ? `你現在透過 ${inAppBrowserName(browser)} 內建瀏覽器查看分享帳本。建議複製完整連結，再到 ${browserName} 開啟。`
+            : '這樣下次才找得到你的帳本 ✓'}
         </p>
 
-        {browser === 'line' ? (
+        {variant === 'create' && browser === 'line' ? (
           <button
             onClick={openInSystemBrowser}
             style={{
@@ -134,7 +149,7 @@ export default function InAppBrowserGuard({
             fontSize: '0.85rem', cursor: 'pointer',
           }}
         >
-          繼續在這裡建立
+          {variant === 'shared' ? '繼續在這裡查看' : '繼續在這裡建立'}
         </button>
       </div>
     </div>
