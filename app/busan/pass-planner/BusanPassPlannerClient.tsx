@@ -51,7 +51,7 @@ import styles from './passPlanner.module.css'
 type PlannerMode = 'add' | 'order'
 type TierFilter = NonNullable<MapPlace['officialPassTier']> | 'all'
 type FocusSource = 'marker' | 'list'
-type InAppBrowser = 'instagram' | 'line' | 'facebook' | null
+type InAppBrowser = 'instagram' | 'line' | 'messenger' | 'facebook' | null
 type MobilePanelState = 'collapsed' | 'half' | 'full'
 type PlannerItem = string
 type PlannerFocusTarget =
@@ -1438,6 +1438,7 @@ function detectInAppBrowser(): InAppBrowser {
   const ua = navigator.userAgent
   if (/Instagram/i.test(ua)) return 'instagram'
   if (/Line\//i.test(ua)) return 'line'
+  if (/Messenger|FBAN\/MessengerForiOS/i.test(ua)) return 'messenger'
   if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook'
   return null
 }
@@ -1450,6 +1451,7 @@ function preferredBrowserName() {
 function inAppBrowserName(browser: InAppBrowser) {
   if (browser === 'instagram') return 'IG'
   if (browser === 'line') return 'LINE'
+  if (browser === 'messenger') return 'Messenger'
   if (browser === 'facebook') return 'Facebook'
   return '內建'
 }
@@ -3723,9 +3725,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [locationPromptMessage, setLocationPromptMessage] = useState('')
   const [locationRequesting, setLocationRequesting] = useState(false)
   const [dayView, setDayView] = useState<DayView>('all')
+  const [dayViewStorageReadyKey, setDayViewStorageReadyKey] = useState('')
   const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions'>(null)
   const plannerPdfModuleRef = useRef<Promise<typeof import('./plannerPdf')> | null>(null)
   const pdfDownloading = pdfDownloadStatus !== 'idle'
+  const dayViewStorageKey = `${config.storageKey}:day-view:${plannerBookId ?? 'draft'}`
+  const inAppPromptIdentity =
+    config.initialSearchParams?.[PLANNER_BOOK_PARAM] ??
+    config.initialSearchParams?.[PLANNER_PREVIEW_PARAM] ??
+    ''
   const mobilePanelOpen = mobilePanelState !== 'collapsed'
   const setMobilePanelOpen = useCallback((next: boolean | ((open: boolean) => boolean)) => {
     setMobilePanelState((state) => {
@@ -4783,9 +4791,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   useEffect(() => {
     if (initialPlannerLoadRef.current) return
-    initialPlannerLoadRef.current = true
 
     const id = window.setTimeout(() => {
+      if (initialPlannerLoadRef.current) return
+      initialPlannerLoadRef.current = true
       ;(async () => {
         try {
           const initialSearch = config.initialSearchParams
@@ -4915,6 +4924,38 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       window.localStorage.setItem(`${config.storageKey}:book-updated-at`, plannerBookUpdatedAt)
     }
   }, [config.storageKey, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
+
+  useEffect(() => {
+    if (!storageReady || dayViewStorageReadyKey === dayViewStorageKey) return
+    let nextDayView: DayView = 'all'
+    try {
+      const stored = window.localStorage.getItem(dayViewStorageKey)
+      const storedDay = stored ? Number.parseInt(stored, 10) : Number.NaN
+      if (Number.isInteger(storedDay) && storedDay >= 1 && storedDay <= plannedDays.length) {
+        nextDayView = storedDay
+      } else if (
+        !stored &&
+        dayViewStorageReadyKey.endsWith(':draft') &&
+        dayView !== 'all' &&
+        dayView <= plannedDays.length
+      ) {
+        nextDayView = dayView
+      }
+    } catch {
+      // Keep the default view when storage is unavailable.
+    }
+    setDayView(nextDayView)
+    setDayViewStorageReadyKey(dayViewStorageKey)
+  }, [dayView, dayViewStorageKey, dayViewStorageReadyKey, plannedDays.length, storageReady])
+
+  useEffect(() => {
+    if (!storageReady || dayViewStorageReadyKey !== dayViewStorageKey) return
+    try {
+      window.localStorage.setItem(dayViewStorageKey, String(dayView))
+    } catch {
+      // The planner still works when storage is unavailable.
+    }
+  }, [dayView, dayViewStorageKey, dayViewStorageReadyKey, storageReady])
 
   const selectDayView = useCallback((nextDayView: DayView) => {
     setDayView(nextDayView)
@@ -5575,23 +5616,39 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const dismissInAppPrompt = useCallback(() => {
     try {
-      window.localStorage.setItem(`${config.storageKey}:in-app-browser-prompt-dismissed`, '1')
+      if (inAppPromptIdentity) {
+        window.sessionStorage.setItem(
+          `${config.storageKey}:in-app-browser-prompt-dismissed:${inAppPromptIdentity}`,
+          '1',
+        )
+      }
     } catch {
       // Ignore storage limits or private-browser restrictions.
     }
     setInAppPromptOpen(false)
-  }, [config.storageKey])
+  }, [config.storageKey, inAppPromptIdentity])
 
   const maybeOpenInAppPrompt = useCallback(() => {
-    if (!config.saveReminderEnabled || !inAppBrowser) return
+    if (!config.saveReminderEnabled || !inAppBrowser || !inAppPromptIdentity) return
     try {
-      if (window.localStorage.getItem(`${config.storageKey}:in-app-browser-prompt-dismissed`) === '1') return
+      if (
+        window.sessionStorage.getItem(
+          `${config.storageKey}:in-app-browser-prompt-dismissed:${inAppPromptIdentity}`,
+        ) === '1'
+      ) {
+        return
+      }
     } catch {
       // If storage is blocked, still show the prompt once in this session.
     }
     setInAppPromptCopied(false)
     setInAppPromptOpen(true)
-  }, [config.saveReminderEnabled, config.storageKey, inAppBrowser])
+  }, [config.saveReminderEnabled, config.storageKey, inAppBrowser, inAppPromptIdentity])
+
+  useEffect(() => {
+    if (!storageReady || !plannerBookId) return
+    maybeOpenInAppPrompt()
+  }, [maybeOpenInAppPrompt, plannerBookId, storageReady])
 
   const copyInAppPromptLink = useCallback(async () => {
     try {
@@ -6596,6 +6653,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               {
                 id: book.id,
                 readToken: savedReadToken ?? '',
+                access: 'edit',
                 regionKey: config.recentRegionKey,
                 source: config.recentSource ?? 'map',
                 countryName: config.recentCountryName ?? config.shareTitle,
@@ -7971,9 +8029,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             >
               <h2 id="in-app-browser-title">建議用 {preferredBrowserName()} 開啟</h2>
               <p>
-                你現在在 {inAppBrowserName(inAppBrowser)} 內建瀏覽器。排好的行程會先存在這裡，但 App 關掉後比較容易被清掉。
+                你現在透過 {inAppBrowserName(inAppBrowser)} 內建瀏覽器查看分享行程，關閉 App 後可能不容易再次找到這個頁面。
               </p>
-              <p>複製連結到 {preferredBrowserName()} 開啟，行程比較不容易消失。</p>
+              <p>建議複製完整連結，再到 {preferredBrowserName()} 開啟。</p>
               <div className={styles.confirmActions}>
                 <button type="button" className={styles.confirmPrimary} onClick={copyInAppPromptLink}>
                   {inAppPromptCopied ? '已複製' : '複製連結'}

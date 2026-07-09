@@ -248,6 +248,10 @@
 }
 
 .recentOpen strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   font-size: 16px;
   font-weight: 950;
 }
@@ -260,10 +264,22 @@
 
 .recentOpen em {
   flex: 0 0 auto;
-  color: #1f7a8c;
-  font-size: 14px;
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 11px;
   font-style: normal;
-  font-weight: 950;
+  font-weight: 900;
+  line-height: 1.4;
+}
+
+.editBadge {
+  background: #e7f6f8;
+  color: #146477;
+}
+
+.previewBadge {
+  background: #eef2f7;
+  color: #526174;
 }
 
 .recentActions {

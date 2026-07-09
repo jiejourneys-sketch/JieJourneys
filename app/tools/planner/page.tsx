@@ -26,11 +26,13 @@ type PlannerRegion = {
 }
 
 type PlannerSource = 'map' | 'pass'
-type InAppBrowser = 'instagram' | 'line' | 'facebook' | null
+type PlannerAccess = 'edit' | 'preview'
+type InAppBrowser = 'instagram' | 'line' | 'messenger' | 'facebook' | null
 
 type RecentPlanner = {
   id: string
   readToken?: string
+  access: PlannerAccess
   regionKey: string
   source?: PlannerSource
   countryName: string
@@ -38,6 +40,8 @@ type RecentPlanner = {
 }
 
 type PlannerBookMeta = {
+  id?: string
+  readToken?: string
   city?: string
 }
 
@@ -63,6 +67,7 @@ function detectInAppBrowser(): InAppBrowser {
   const ua = navigator.userAgent
   if (/Instagram/i.test(ua)) return 'instagram'
   if (/Line\//i.test(ua)) return 'line'
+  if (/Messenger|FBAN\/MessengerForiOS/i.test(ua)) return 'messenger'
   if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'facebook'
   return null
 }
@@ -75,6 +80,7 @@ function preferredBrowserName() {
 function inAppBrowserName(browser: InAppBrowser) {
   if (browser === 'instagram') return 'IG'
   if (browser === 'line') return 'LINE'
+  if (browser === 'messenger') return 'Messenger'
   if (browser === 'facebook') return 'Facebook'
   return 'App'
 }
@@ -210,9 +216,14 @@ async function fetchPlannerBookMeta(plannerId: string, readToken: string): Promi
   const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
   if (res.status === 404 || res.status === 410) return { book: null, unavailable: true }
   if (!res.ok) return { book: null, unavailable: false }
-  const data = (await res.json()) as { city?: unknown }
+  const data = (await res.json()) as { id?: unknown; read_token?: unknown; city?: unknown }
   return {
     book: {
+      id: typeof data.id === 'string' && data.id.trim() ? data.id.trim() : undefined,
+      readToken:
+        typeof data.read_token === 'string' && data.read_token.trim()
+          ? data.read_token.trim()
+          : undefined,
       city: typeof data.city === 'string' && data.city.trim() ? data.city.trim() : undefined,
     },
     unavailable: false,
@@ -226,6 +237,7 @@ function cleanRecentPlannerItems(value: unknown): RecentPlanner[] {
     .map((item) => ({
       id: typeof item.id === 'string' ? item.id : '',
       readToken: typeof item.readToken === 'string' ? item.readToken : undefined,
+      access: (item.access === 'preview' ? 'preview' : 'edit') as PlannerAccess,
       regionKey: typeof item.regionKey === 'string' ? item.regionKey : '',
       source: (item.source === 'pass' ? 'pass' : 'map') as PlannerSource,
       countryName: plannerDisplayName(typeof item.countryName === 'string' ? item.countryName : '', typeof item.regionKey === 'string' ? item.regionKey : ''),
@@ -247,12 +259,18 @@ function clearPlannerLocalDraft(regionKey: string, source: PlannerSource) {
   window.localStorage.removeItem(`${key}:book-id`)
   window.localStorage.removeItem(`${key}:book-read-token`)
   window.localStorage.removeItem(`${key}:book-updated-at`)
+  window.localStorage.removeItem(`${key}:day-view:draft`)
 }
 
 function upsertRecentPlanner(planner: RecentPlanner) {
   const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
   const current = cleanRecentPlannerItems(raw ? JSON.parse(raw) : [])
-  const next = [planner, ...current.filter((item) => item.id !== planner.id)].slice(0, 12)
+  const existing = current.find((item) => item.id === planner.id)
+  const nextPlanner =
+    existing?.access === 'edit' && planner.access === 'preview'
+      ? { ...existing, countryName: planner.countryName, updatedAt: planner.updatedAt }
+      : planner
+  const next = [nextPlanner, ...current.filter((item) => item.id !== planner.id)].slice(0, 12)
   window.localStorage.setItem(RECENT_PLANNERS_KEY, JSON.stringify(next))
   return next
 }
@@ -268,6 +286,7 @@ function removeRecentPlanner(planner: Pick<RecentPlanner, 'id' | 'readToken' | '
   }
 
   const storageKey = plannerStorageKey(planner.regionKey, planner.source ?? 'map')
+  window.localStorage.removeItem(`${storageKey}:day-view:${planner.id}`)
   if (window.localStorage.getItem(`${storageKey}:book-id`) === planner.id) {
     window.localStorage.removeItem(`${storageKey}:book-id`)
     window.localStorage.removeItem(`${storageKey}:book-read-token`)
@@ -280,7 +299,10 @@ async function pruneUnavailableRecentPlanners(items: RecentPlanner[]) {
   const checked = await Promise.all(
     items.map(async (item) => {
       try {
-        const lookup = await fetchPlannerBookMeta(item.id, item.readToken ?? '')
+        const lookup = await fetchPlannerBookMeta(
+          item.access === 'edit' ? item.id : '',
+          item.access === 'preview' ? item.readToken ?? '' : '',
+        )
         if (lookup.unavailable) {
           removeRecentPlanner(item)
           return null
@@ -366,11 +388,12 @@ export default function ToolsPlannerPage() {
                 return
               }
               const countryName = plannerDisplayName(book.city, region.key)
-              if (plannerId) {
+              if (book.id) {
                 setRecentPlanners(
                   upsertRecentPlanner({
-                    id: plannerId,
-                    readToken: undefined,
+                    id: book.id ?? plannerId,
+                    readToken: (book.readToken ?? readToken) || undefined,
+                    access: plannerId ? 'edit' : 'preview',
                     regionKey: region.key,
                     source,
                     countryName,
@@ -413,11 +436,12 @@ export default function ToolsPlannerPage() {
         const startCustomSharedPlanner = (book?: PlannerBookMeta | null) => {
           const countryName = plannerDisplayName(book?.city, regionKey)
           const customRegion = customRegionFromUrl(regionKey, countryName)
-          if (plannerId) {
+          if (book?.id) {
             setRecentPlanners(
               upsertRecentPlanner({
-                id: plannerId,
-                readToken: undefined,
+                id: book?.id ?? plannerId,
+                readToken: (book?.readToken ?? readToken) || undefined,
+                access: plannerId ? 'edit' : 'preview',
                 regionKey: customRegion.key,
                 source,
                 countryName,
@@ -554,7 +578,7 @@ export default function ToolsPlannerPage() {
     countryName = region.shortLabel,
     shouldLoadKnownPlaces = true,
     source: PlannerSource = 'map',
-    planner?: Pick<RecentPlanner, 'id' | 'readToken'>,
+    planner?: { id?: string; readToken?: string },
     resetDraft = !planner,
   ) => {
     if (!planner && inAppBrowser) {
@@ -606,6 +630,11 @@ export default function ToolsPlannerPage() {
   }
 
   const openRecentPlanner = async (planner: RecentPlanner) => {
+    if (planner.access === 'preview' && !planner.readToken) {
+      setRecentPlanners(removeRecentPlanner(planner).slice(0, 8))
+      alert('這個預覽連結已無法使用，已從最近行程移除。')
+      return
+    }
     const region =
       knownRegions.find((item) => item.key === planner.regionKey) ?? {
         key: planner.regionKey,
@@ -615,7 +644,10 @@ export default function ToolsPlannerPage() {
         places: [],
         zoom: 7,
       }
-    const lookup = await fetchPlannerBookMeta(planner.id, planner.readToken ?? '')
+    const lookup = await fetchPlannerBookMeta(
+      planner.access === 'edit' ? planner.id : '',
+      planner.access === 'preview' ? planner.readToken ?? '' : '',
+    )
     if (!lookup.book) {
       if (lookup.unavailable) {
         setRecentPlanners(removeRecentPlanner(planner).slice(0, 8))
@@ -627,13 +659,22 @@ export default function ToolsPlannerPage() {
     }
 
     const countryName = plannerDisplayName(lookup.book.city, planner.regionKey)
-    const nextPlanner = { id: planner.id, countryName }
+    const nextPlanner = { id: planner.id, readToken: planner.readToken, countryName }
     const params = new URLSearchParams()
     params.set('region', region.key)
     if (planner.source === 'pass') params.set('source', 'pass')
-    params.set('p', planner.id)
+    if (planner.access === 'preview') params.set('v', planner.readToken ?? '')
+    else params.set('p', planner.id)
     window.history.replaceState(null, '', `/tools/planner?${params.toString()}`)
-    startPlanner(region, countryName, true, planner.source ?? 'map', nextPlanner)
+    startPlanner(
+      region,
+      countryName,
+      true,
+      planner.source ?? 'map',
+      planner.access === 'preview'
+        ? { readToken: planner.readToken }
+        : nextPlanner,
+    )
   }
 
   const openRenamePlanner = (planner: RecentPlanner) => {
@@ -680,6 +721,11 @@ export default function ToolsPlannerPage() {
     const planner = deleteTarget
     if (!planner) return
     if (deletingPlannerId) return
+    if (planner.access === 'preview') {
+      setRecentPlanners(removeRecentPlanner(planner).slice(0, 8))
+      setDeleteTarget(null)
+      return
+    }
     setDeletingPlannerId(planner.id)
     try {
       const params = new URLSearchParams({ id: planner.id })
@@ -700,6 +746,7 @@ export default function ToolsPlannerPage() {
       }
 
       const storageKey = plannerStorageKey(planner.regionKey, planner.source ?? 'map')
+      window.localStorage.removeItem(`${storageKey}:day-view:${planner.id}`)
       if (window.localStorage.getItem(`${storageKey}:book-id`) === planner.id) {
         window.localStorage.removeItem(`${storageKey}:book-id`)
         window.localStorage.removeItem(`${storageKey}:book-read-token`)
@@ -891,23 +938,30 @@ export default function ToolsPlannerPage() {
                 <article key={`${planner.regionKey}-${planner.id}`} className={styles.recentCard}>
                   <button className={styles.recentOpen} type="button" onClick={() => openRecentPlanner(planner)}>
                     <span>
-                      <strong>{planner.countryName}</strong>
+                      <strong>
+                        {planner.countryName}
+                        <em className={planner.access === 'preview' ? styles.previewBadge : styles.editBadge}>
+                          {planner.access === 'preview' ? '預覽' : '可編輯'}
+                        </em>
+                      </strong>
                       {planner.updatedAt ? <small>{new Date(planner.updatedAt).toLocaleString('zh-TW')}</small> : null}
                     </span>
                   </button>
                   <span className={styles.recentActions}>
-                    <button
-                      className={styles.recentEditButton}
-                      type="button"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        openRenamePlanner(planner)
-                      }}
-                      aria-label={`重新命名${planner.countryName}行程`}
-                    >
-                      ✎
-                    </button>
+                    {planner.access === 'edit' ? (
+                      <button
+                        className={styles.recentEditButton}
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          openRenamePlanner(planner)
+                        }}
+                        aria-label={`重新命名${planner.countryName}行程`}
+                      >
+                        ✎
+                      </button>
+                    ) : null}
                     <button
                       className={styles.recentDeleteButton}
                       type="button"
@@ -917,7 +971,11 @@ export default function ToolsPlannerPage() {
                         setDeleteTarget(planner)
                       }}
                       disabled={deletingPlannerId === planner.id}
-                      aria-label={`刪除${planner.countryName}行程`}
+                      aria-label={
+                        planner.access === 'preview'
+                          ? `從最近行程移除${planner.countryName}`
+                          : `刪除${planner.countryName}行程`
+                      }
                     >
                       ×
                     </button>
@@ -1004,8 +1062,14 @@ export default function ToolsPlannerPage() {
             <button className={styles.confirmClose} type="button" onClick={() => setDeleteTarget(null)} aria-label="關閉">
               ×
             </button>
-            <h2 id="planner-delete-title">刪除這個行程？</h2>
-            <p>「{deleteTarget.countryName}」會從最近行程移除，分享連結和預覽連結也會失效。</p>
+            <h2 id="planner-delete-title">
+              {deleteTarget.access === 'preview' ? '從最近行程移除？' : '刪除這個行程？'}
+            </h2>
+            <p>
+              {deleteTarget.access === 'preview'
+                ? `「${deleteTarget.countryName}」只會從這台裝置的最近行程移除，不會刪除朋友分享的行程。`
+                : `「${deleteTarget.countryName}」會從最近行程與雲端一併刪除，分享連結和預覽連結也會失效。`}
+            </p>
             <div className={styles.confirmActions}>
               <button type="button" className={styles.confirmCancel} onClick={() => setDeleteTarget(null)}>
                 取消
@@ -1016,7 +1080,11 @@ export default function ToolsPlannerPage() {
                 onClick={deleteRecentPlanner}
                 disabled={deletingPlannerId === deleteTarget.id}
               >
-                {deletingPlannerId === deleteTarget.id ? '刪除中...' : '刪除'}
+                {deletingPlannerId === deleteTarget.id
+                  ? '刪除中...'
+                  : deleteTarget.access === 'preview'
+                    ? '移除'
+                    : '刪除'}
               </button>
             </div>
           </section>
