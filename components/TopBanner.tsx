@@ -33,11 +33,11 @@ export default function TopBanner() {
             <strong>完美行購物 優惠碼：</strong>
             <PromoLink
               href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
-              promoCode="SH66U"
+              promoCode="GGGT6XAA"
               data-event="promo_wamazingbuy"
               className="code-link"
             >
-              <span className="code">SH66U ↗</span>
+              <span className="code">GGGT6XAA ↗</span>
             </PromoLink>
           </div>
           <div>

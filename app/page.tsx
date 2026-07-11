@@ -89,7 +89,7 @@ export default function HomePage() {
             </a>
             <PromoLink
               href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
-              promoCode="SH66U"
+              promoCode="GGGT6XAA"
               data-event="home_tools_wamazingbuy"
               data-item="tool"
             >
