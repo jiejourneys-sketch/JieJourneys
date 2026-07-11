@@ -71,6 +71,9 @@ export default function OsakaPage() {
                 <a className="pass-btn" href="/osaka/pass-map" data-event="osaka_pass_map" data-platform="map">
                   地圖
                 </a>
+                <a className="pass-btn" href="/osaka/osaka-amazing-pass" data-event="osaka_pass_article" data-platform="article">
+                  文章
+                </a>
               </div>
             </div>
           </div>

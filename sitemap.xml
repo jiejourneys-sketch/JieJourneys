@@ -72,6 +72,15 @@
       <image:loc>https://www.jiejourneys.com/assets/osaka-passmap-search.png</image:loc>
     </image:image>
   </url>
+  <url>
+    <loc>https://www.jiejourneys.com/osaka/osaka-amazing-pass</loc>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/osaka-pass-summary.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://www.jiejourneys.com/assets/osaka-pass-free-attractions.png</image:loc>
+    </image:image>
+  </url>
   <url><loc>https://www.jiejourneys.com/osaka/journeys</loc></url>
 
   <!-- 富士山 -->

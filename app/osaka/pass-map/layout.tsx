@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '大阪周遊券地圖｜免費互動地圖・Osaka Amazing Pass免費設施・優惠景點・店家優惠・一鍵GoogleMap導航'
+const title = '大阪周遊券地圖｜免費設施・優惠景點・餐飲特典互動地圖 | JieJourneys(旅杰)'
 const description =
-  '大阪周遊券地圖整理了所有設施的位置，包含Osaka Amazing Pass 免費設施、優惠設施與店家優惠，也說明幾乎可免費搭大阪市區地鐵和巴士。包含通天閣、梅田藍天大廈、大阪城、道頓堀遊船、聖瑪麗亞號、天保山摩天輪、HEP FIVE 摩天輪等景點，可切換分類、查看高低價值標記、KKDAY、KLOOK、Trip 購買連結與 Google Map 導航。'
-const shareImage = 'https://www.jiejourneys.com/assets/og-share.png'
+  '用大阪周遊券地圖快速查看免費設施、優惠景點與餐飲特典位置，搭配高價值/中價值/低價值標記、Google Map 導航、行程排序工具與大阪周遊券購買連結，方便規劃難波、梅田、大阪城、天保山等區域路線。'
 const searchImage = 'https://www.jiejourneys.com/assets/osaka-passmap-search.png'
 
 export const metadata: Metadata = {
@@ -30,13 +29,13 @@ export const metadata: Metadata = {
     title,
     description,
     url: 'https://www.jiejourneys.com/osaka/pass-map',
-    images: [{ url: shareImage, width: 1200, height: 630 }],
+    images: [{ url: searchImage, width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
     title,
     description,
-    images: [shareImage],
+    images: [searchImage],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/osaka/pass-map' },
   robots: {

@@ -884,6 +884,31 @@ a.link-item {
   border-color: #176070;
   color: #ffffff !important;
 }
+.seo-page .seo-figure {
+  margin: 18px 0 20px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+.seo-page .seo-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.seo-page .seo-figure figcaption {
+  padding: 10px 14px 12px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  color: var(--seo-ink-3);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.seo-page .seo-media-grid {
+  display: grid;
+  gap: 16px;
+  margin: 16px 0 18px;
+}
 
 /* Hero spacing：H1 → p → video box */
 .seo-page .seo-hero {

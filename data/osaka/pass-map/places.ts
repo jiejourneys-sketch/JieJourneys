@@ -1998,7 +1998,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
     category: 'food',
     plannerCategory: 'shop',
     name: 'EXPOCITY',
-    description: '可至 LaLaport EXPOCITY 2F 中央遊客服務處／免稅櫃台領取 2026 年度特殊優惠券。',
+    description: '可至 LaLaport EXPOCITY 2F 中央遊客服務處／免稅櫃台領取年度特殊優惠券。',
     lat: 34.805489,
     lng: 135.5344665,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/sT8oXRoufKwWdEKt5',
@@ -2009,4 +2009,3 @@ export const osakaPassMapPlaces: MapPlace[] = [
     markerStyleId: 'icon-1686-BDBDBD',
   },
 ]
-

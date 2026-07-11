@@ -51,6 +51,7 @@ const sitemapRoutes: SitemapRoute[] = [
   { path: '/osaka/video', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/osaka/map', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/osaka-map-search.png'] },
   { path: '/osaka/pass-map', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/osaka-passmap-search.png'] },
+  { path: '/osaka/osaka-amazing-pass', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/osaka-pass-summary.png', '/assets/osaka-pass-free-attractions.png'] },
   { path: '/osaka/journeys', changeFrequency: 'monthly', priority: 0.6 },
 
   { path: '/fuji', changeFrequency: 'monthly', priority: 0.8 },
