@@ -111,11 +111,14 @@ type AgodaHotelIndexRecord = {
   longitude?: number
   url?: string
   starRating?: number
+  reviewCount?: number
   reviewScore?: number
+  accommodationType?: string
 }
 
 type RankedAgodaHotelCandidate = AgodaAffiliateHotelCandidate & {
   nameScore: number
+  accommodationType?: string
 }
 
 let hotelIndexCache: { path: string; records: AgodaHotelIndexRecord[] } | null = null
@@ -490,10 +493,11 @@ async function searchAgodaHotelIndex(
     const distanceScore = typeof distanceKm === 'number' ? scoreDistance(distanceKm) : 0
     const cityBonus =
       query.city && hotel.city && normalizeHotelName(query.city) === normalizeHotelName(hotel.city) ? 0.03 : 0
+    const accommodationBonus = isLikelyAccommodationRecord(hotel) ? 0.02 : 0
     const score = Math.min(
       1,
       Math.max(
-        hasCoordinates ? nameScore * 0.78 + distanceScore * 0.22 + cityBonus : nameScore + cityBonus,
+        hasCoordinates ? nameScore * 0.78 + distanceScore * 0.22 + cityBonus + accommodationBonus : nameScore + cityBonus,
         coordinateOnlyScore,
       ),
     )
@@ -506,6 +510,7 @@ async function searchAgodaHotelIndex(
       nameScore: Number(nameScore.toFixed(4)),
       bookingUrl: normalizeAgodaLandingUrl(hotel.url || '', hotel.hotelId, config, query),
       source: 'index',
+      ...(hotel.accommodationType ? { accommodationType: hotel.accommodationType } : {}),
       ...(hotel.city ? { city: hotel.city } : {}),
       ...(hotel.countryCode ? { countryCode: hotel.countryCode } : {}),
       ...(hotel.cityId ? { cityId: hotel.cityId } : {}),
@@ -517,12 +522,20 @@ async function searchAgodaHotelIndex(
     })
   })
 
-  candidates.sort((a, b) => b.score - a.score || b.nameScore - a.nameScore)
+  candidates.sort((a, b) =>
+    b.score - a.score ||
+    b.nameScore - a.nameScore ||
+    (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY) ||
+    (b.reviewScore ?? 0) - (a.reviewScore ?? 0),
+  )
   const topCandidates = candidates.slice(0, 8).map(({ nameScore: _nameScore, ...candidate }) => candidate)
   const bestMatch = topCandidates[0]
   const bestRankedMatch = candidates[0]
+  const safeCoordinateMatch = isSafeCoordinateOnlyMatch(bestRankedMatch, candidates[1])
   const safeBestScore =
-    bestRankedMatch && bestRankedMatch.nameScore >= 0.42 ? bestRankedMatch.score : Math.min(bestRankedMatch?.score ?? 0, 0.77)
+    bestRankedMatch && (bestRankedMatch.nameScore >= 0.42 || safeCoordinateMatch)
+      ? bestRankedMatch.score
+      : Math.min(bestRankedMatch?.score ?? 0, 0.77)
   const matchStatus = getMatchStatus(safeBestScore)
 
   return {
@@ -568,8 +581,18 @@ function getMatchStatus(score: number): AgodaAffiliateMatchStatus {
 }
 
 function scoreHotelName(query: string, candidate: string) {
-  const normalizedQuery = normalizeHotelName(query)
-  const normalizedCandidate = normalizeHotelName(candidate)
+  const queryVariants = normalizeHotelNameVariants(query)
+  const candidateVariants = normalizeHotelNameVariants(candidate)
+  let bestScore = 0
+  queryVariants.forEach((normalizedQuery) => {
+    candidateVariants.forEach((normalizedCandidate) => {
+      bestScore = Math.max(bestScore, scoreNormalizedHotelName(normalizedQuery, normalizedCandidate))
+    })
+  })
+  return Number(bestScore.toFixed(4))
+}
+
+function scoreNormalizedHotelName(normalizedQuery: string, normalizedCandidate: string) {
   if (!normalizedQuery || !normalizedCandidate) return 0
   if (normalizedQuery === normalizedCandidate) return 1
 
@@ -585,6 +608,33 @@ function scoreHotelName(query: string, candidate: string) {
   const bigramScore = diceScore(toBigrams(normalizedQuery), toBigrams(normalizedCandidate))
   return Number((tokenScore * 0.55 + bigramScore * 0.45).toFixed(4))
 }
+
+function normalizeHotelNameVariants(value: string) {
+  return Array.from(new Set([
+    normalizeHotelName(value),
+    normalizeHotelName(expandHotelNameAliases(value)),
+  ].filter(Boolean)))
+}
+
+function expandHotelNameAliases(value: string) {
+  return HOTEL_NAME_ALIAS_REPLACEMENTS.reduce(
+    (text, [pattern, replacement]) => text.replace(pattern, ` ${replacement} `),
+    value,
+  )
+}
+
+const HOTEL_NAME_ALIAS_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/福岡|福冈/g, 'fukuoka'],
+  [/沖繩|冲绳|沖縄/g, 'okinawa'],
+  [/那霸|那覇/g, 'naha'],
+  [/大阪/g, 'osaka'],
+  [/難波|难波/g, 'namba'],
+  [/大國町|大国町/g, 'daikokucho'],
+  [/東急|东急/g, 'tokyu'],
+  [/蒙特利|蒙特雷/g, 'monterey'],
+  [/里士滿|里士满/g, 'richmond'],
+  [/飯店|酒店|旅館|旅店|ホテル/g, 'hotel'],
+]
 
 function normalizeHotelName(value: string) {
   return value
@@ -644,6 +694,34 @@ function scoreCoordinateOnlyMatch(distanceKm: number) {
   if (distanceKm <= 0.15) return 0.82
   if (distanceKm <= 0.25) return 0.78
   return 0
+}
+
+function isSafeCoordinateOnlyMatch(candidate?: RankedAgodaHotelCandidate, nextCandidate?: RankedAgodaHotelCandidate) {
+  if (!candidate || candidate.nameScore >= 0.42 || !isLikelyAccommodationCandidate(candidate)) return false
+  const distanceKm = candidate.distanceKm
+  if (typeof distanceKm !== 'number') return false
+
+  const nextDistanceKm = nextCandidate?.distanceKm
+  const nearestIsClear =
+    typeof nextDistanceKm !== 'number' ||
+    nextDistanceKm - distanceKm >= 0.08 ||
+    candidate.score - (nextCandidate?.score ?? 0) >= 0.05
+
+  if (distanceKm <= 0.03 && nearestIsClear) return true
+  if (distanceKm <= 0.08 && candidate.nameScore >= 0.18 && nearestIsClear) return true
+  return false
+}
+
+function isLikelyAccommodationCandidate(candidate: RankedAgodaHotelCandidate) {
+  return isLikelyAccommodationText([candidate.accommodationType, candidate.hotelName].filter(Boolean).join(' '))
+}
+
+function isLikelyAccommodationRecord(record: AgodaHotelIndexRecord) {
+  return isLikelyAccommodationText([record.accommodationType, record.hotelName].filter(Boolean).join(' '))
+}
+
+function isLikelyAccommodationText(value: string) {
+  return /\b(?:hotel|resort|ryokan|inn|hostel|guest\s*house|guesthouse|serviced\s*apartment|apartment|villa|lodge|stay)\b/i.test(value)
 }
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
