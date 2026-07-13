@@ -951,6 +951,40 @@
   display: none;
 }
 
+.nearbyKnownPlacesHint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 7px 9px;
+  border: 1px solid rgba(31, 122, 140, 0.16);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.nearbyKnownPlacesHint span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nearbyKnownPlacesHint button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  border: none;
+  border-radius: 8px;
+  padding: 4px 10px;
+  background: var(--cta);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .filterTabs :global(.tab) {
   display: inline-flex;
   align-items: center;
@@ -3259,6 +3293,18 @@
   .filtersDense .filterTabs {
     gap: 3px;
     margin: 0 !important;
+  }
+
+  .nearbyKnownPlacesHint {
+    align-items: stretch;
+    gap: 6px;
+    margin-top: 5px;
+    padding: 6px 8px;
+  }
+
+  .nearbyKnownPlacesHint button {
+    min-width: 76px;
+    padding-inline: 8px;
   }
 
   .customPlacePanel {

@@ -70,8 +70,6 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
     .filter(Boolean)
     .slice(0, MAX_ITEMS)
 
-  if (!city || items.length === 0) return null
-
   const notes: Record<string, string> = {}
   const rawNotes = input.notes && typeof input.notes === 'object' ? (input.notes as Record<string, unknown>) : {}
   Object.entries(rawNotes)
@@ -140,6 +138,8 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
         ...(links.length > 0 ? { links } : {}),
       }
     })
+
+  if (!city || (items.length === 0 && Object.keys(customPlaces).length === 0)) return null
 
   const userLinks: Record<string, unknown> = {}
   const rawUserLinks =

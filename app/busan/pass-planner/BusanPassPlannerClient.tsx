@@ -2473,7 +2473,7 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
   const bookId = typeof data.id === 'string' && data.id ? data.id : id
   const userLinks = cleanUserLinks(data.user_links)
 
-  return items.length > 0 && bookId
+  return (items.length > 0 || Object.keys(customPlaces).length > 0) && bookId
     ? {
         id: bookId,
         readToken: typeof data.read_token === 'string' ? data.read_token : null,
@@ -4707,6 +4707,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ),
     [customCategoryItems, customPlaces, sourcePlaceById],
   )
+  const customPlaceCount = useMemo(() => Object.keys(customPlaces).length, [customPlaces])
   const allPlaces = useMemo(
     () => [...places, ...nearbyKnownPlaces, ...customMapPlaces],
     [customMapPlaces, nearbyKnownPlaces, places],
@@ -4735,6 +4736,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     () => validPlanItems.filter((item) => Boolean(planItemPlace(item, placeById))),
     [placeById, validPlanItems],
   )
+  const hasSavablePlannerContent = validPlanItems.length > 0 || customPlaceCount > 0
   const validPlanPlaceIds = useMemo(
     () => validPlanIds.map((item) => planItemPlaceId(item)).filter(Boolean) as string[],
     [validPlanIds],
@@ -4744,9 +4746,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [placeById, validPlanIds],
   )
   const nearbyKnownPlacesStorageKey = `${config.storageKey}:nearby-known:${plannerBookId ?? 'draft'}`
+  const nearbyKnownPlacesSuggestionForDraft = useMemo(() => {
+    if (places.length > 0 || nearbyKnownPlaces.length > 0) return null
+    return nearbyKnownPlacesSuggestion([...customMapPlaces, ...plannedPlaces], config.matchPlaces ?? [])
+  }, [config.matchPlaces, customMapPlaces, nearbyKnownPlaces.length, places.length, plannedPlaces])
   useEffect(() => {
-    if (!storageReady || places.length > 0 || nearbyKnownPlaces.length > 0) return
-    const suggestion = nearbyKnownPlacesSuggestion([...customMapPlaces, ...plannedPlaces], config.matchPlaces ?? [])
+    if (!storageReady) return
+    const suggestion = nearbyKnownPlacesSuggestionForDraft
     if (!suggestion) return
 
     const stored = window.localStorage.getItem(nearbyKnownPlacesStorageKey)
@@ -4758,12 +4764,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (stored === `dismissed:${suggestion.key}`) return
     setNearbyKnownPlacesPrompt(suggestion)
   }, [
-    config.matchPlaces,
-    customMapPlaces,
-    nearbyKnownPlaces.length,
+    nearbyKnownPlacesSuggestionForDraft,
     nearbyKnownPlacesStorageKey,
-    places.length,
-    plannedPlaces,
     storageReady,
   ])
   const plannedDays = useMemo(
@@ -5170,6 +5172,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           )
           const plannerBook = await fetchPlannerBook(initialSearch, placeById)
           if (plannerBook) {
+            const hasOrderedPlaces = plannerBook.items.some((item) => Boolean(planItemPlaceId(item)))
+            const hasCustomPlaces = Boolean(plannerBook.customPlaces && Object.keys(plannerBook.customPlaces).length > 0)
             setPlannerLinkUnavailable(false)
             setPlannerBookId(plannerBook.id)
             setPlannerBookReadToken(plannerBook.readToken)
@@ -5179,7 +5183,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             if (plannerBook.userLinks) setPlaceUserLinks(plannerBook.userLinks)
             setPlanItems(plannerBook.items)
             if (plannerBook.notes) setPlaceNotes(plannerBook.notes)
-            setMode('order')
+            setMode(hasOrderedPlaces ? 'order' : 'add')
+            setCustomOnly(!hasOrderedPlaces && hasCustomPlaces)
             setMobilePanelOpen(true)
             return
           }
@@ -5284,7 +5289,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       readOnlyPlan ||
       !plannerBookId ||
       !hotelAffiliateAutoSavePendingRef.current ||
-      validPlanItems.length === 0
+      !hasSavablePlannerContent
     ) {
       return
     }
@@ -5336,6 +5341,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     plannerBookId,
     plannerBookReadToken,
     readOnlyPlan,
+    hasSavablePlannerContent,
     storageReady,
     validPlanIds,
     validPlanItems,
@@ -7215,7 +7221,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     let savedReadToken = plannerBookReadToken
 
     try {
-      if (validPlanIds.length > 0) {
+      if (!hasSavablePlannerContent) {
+        setSaveLinkCopied(false)
+        setSavePreviewCopied(false)
+        setSaveSheetUrl(null)
+        setSaveSheetPreviewUrl(null)
+        alert('請先新增景點，或把景點加入我的順序後再保存。')
+        return
+      }
+
+      if (hasSavablePlannerContent) {
         const sharedNotes = Object.fromEntries(
           validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note),
         )
@@ -7269,7 +7284,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           shortShareId = ''
         }
       }
-      if (validPlanIds.length > 0 && !saveSucceeded) {
+      if (hasSavablePlannerContent && !saveSucceeded) {
         setSaveLinkCopied(false)
         setSavePreviewCopied(false)
         setSaveSheetUrl(null)
@@ -7285,8 +7300,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         first_place_id: planItemPlaceId(validPlanIds[0] ?? '') ?? '',
         share_path: sharePath,
         share_has_plan: validPlanIds.length > 0,
+        share_has_book: Boolean(savedPlannerBookId),
         planner_book_id: savedPlannerBookId,
         share_short_id: shortShareId,
+        custom_place_count: customPlaceCount,
       })
 
       if (config.saveReminderEnabled) {
@@ -7345,8 +7362,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     config.recentSource,
     config.plannerBookCityName,
     config.storageKey,
+    customPlaceCount,
     lookupPlaces,
     customPlaces,
+    hasSavablePlannerContent,
     placeUserLinks,
     placeNotes,
     plannerBookId,
@@ -7366,9 +7385,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     void saveAndSharePlan()
   }, [plannerBookId, readOnlyPlan, saveAndSharePlan, shareSaving])
 
-  const acceptNearbyKnownPlaces = useCallback(() => {
-    const suggestion = nearbyKnownPlacesPrompt
-    if (!suggestion) return
+  const applyNearbyKnownPlaces = useCallback((suggestion: NearbyKnownPlacesSuggestion) => {
     setNearbyKnownPlaces(suggestion.places)
     setNearbyKnownPlacesPrompt(null)
     setCustomOnly(false)
@@ -7378,7 +7395,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     } catch {
       // Ignore blocked storage.
     }
-  }, [allCategoryOn, nearbyKnownPlacesPrompt, nearbyKnownPlacesStorageKey])
+  }, [allCategoryOn, nearbyKnownPlacesStorageKey])
+
+  const acceptNearbyKnownPlaces = useCallback(() => {
+    const suggestion = nearbyKnownPlacesPrompt
+    if (!suggestion) return
+    applyNearbyKnownPlaces(suggestion)
+  }, [applyNearbyKnownPlaces, nearbyKnownPlacesPrompt])
+
+  const loadNearbyKnownPlacesManually = useCallback(() => {
+    const suggestion = nearbyKnownPlacesSuggestionForDraft
+    if (!suggestion) return
+    applyNearbyKnownPlaces(suggestion)
+  }, [applyNearbyKnownPlaces, nearbyKnownPlacesSuggestionForDraft])
+
+  const showNearbyKnownPlacesManualAction =
+    !readOnlyPlan &&
+    storageReady &&
+    !nearbyKnownPlacesPrompt &&
+    nearbyKnownPlaces.length === 0 &&
+    Boolean(nearbyKnownPlacesSuggestionForDraft)
 
   const dismissNearbyKnownPlaces = useCallback(() => {
     const suggestion = nearbyKnownPlacesPrompt
@@ -7960,6 +7996,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       自定
                     </button>
                   </div>
+                  {showNearbyKnownPlacesManualAction && nearbyKnownPlacesSuggestionForDraft ? (
+                    <div className={styles.nearbyKnownPlacesHint}>
+                      <span>{`${nearbyKnownPlacesSuggestionForDraft.label}\u53ef\u4ee5\u52a0\u5165`}</span>
+                      <button type="button" onClick={loadNearbyKnownPlacesManually}>
+                        {'\u8f09\u5165\u666f\u9ede'}
+                      </button>
+                    </div>
+                  ) : null}
                   {tierItems.length > 0 ? (
                     <div className={`${styles.filterTabs} tabs`} aria-label="官方區域篩選">
                       {tierItems.map(({ key, label }) => (
