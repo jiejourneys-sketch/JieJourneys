@@ -73,6 +73,7 @@ type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
 type PlannerUserLink = CustomPlannerLink
 type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id'
+type PlannerCountryCode = 'JP' | 'KR' | 'VN' | 'TW' | ''
 type HotelAffiliatePlannerResponse = {
   matchStatus?: string
   bestMatch?: {
@@ -81,6 +82,11 @@ type HotelAffiliatePlannerResponse = {
     bookingUrl?: unknown
     score?: unknown
   }
+}
+type NearbyKnownPlacesSuggestion = {
+  key: string
+  label: string
+  places: MapPlace[]
 }
 
 const plannerCollisionDetection: CollisionDetection = (args) => {
@@ -196,6 +202,10 @@ const PLANNER_PREVIEW_PARAM = 'v'
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
+const HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
+const HOTEL_AFFILIATE_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
+const NEARBY_KNOWN_PLACE_RADIUS_METERS = 25_000
 const DAY_ITEM_PREFIX = 'day:'
 const VISIT_ITEM_PREFIX = 'visit:'
 const CUSTOM_PLACE_PREFIX = 'custom:'
@@ -303,22 +313,73 @@ const defaultPlannerConfig: PlannerConfig = {
   tierItems: defaultTierItems,
 }
 
-const agodaCityHints = [
-  { cityId: 17172, countryCode: 'KR', patterns: [/busan|釜山/], lat: 35.1796, lng: 129.0756 },
-  { cityId: 14690, countryCode: 'KR', patterns: [/seoul|首爾|首尔/], lat: 37.5665, lng: 126.978 },
-  { cityId: 5085, countryCode: 'JP', patterns: [/tokyo|東京|东京/], lat: 35.6762, lng: 139.6503 },
-  { cityId: 9590, countryCode: 'JP', patterns: [/osaka|大阪/], lat: 34.6937, lng: 135.5023 },
-  { cityId: 247771, countryCode: 'JP', patterns: [/fuji|河口湖|fujikawaguchiko|kawaguchiko/], lat: 35.5013, lng: 138.7649 },
-  { cityId: 1784, countryCode: 'JP', patterns: [/kyoto|京都/], lat: 35.0116, lng: 135.7681 },
-  { cityId: 13313, countryCode: 'JP', patterns: [/nara|奈良/], lat: 34.6851, lng: 135.8048 },
-  { cityId: 5235, countryCode: 'JP', patterns: [/kobe|神戶|神戸/], lat: 34.6901, lng: 135.1955 },
-  { cityId: 2758, countryCode: 'VN', patterns: [/northvietnam|hanoi|河內|河内|北越/], lat: 21.0278, lng: 105.8342 },
-  { cityId: 17160, countryCode: 'VN', patterns: [/sapa|sa pa|沙壩|沙巴/], lat: 22.3364, lng: 103.8438 },
-  { cityId: 17245, countryCode: 'VN', patterns: [/ninh binh|ninh bình|寧平|宁平/], lat: 20.2506, lng: 105.9745 },
-  { cityId: 17182, countryCode: 'VN', patterns: [/ha long|hạ long|halong|下龍|下龙/], lat: 20.9712, lng: 107.0448 },
+const destinationGeoHints: Array<{
+  countryCode: Exclude<PlannerCountryCode, ''>
+  city: string
+  cityId?: number
+  patterns: RegExp[]
+  lat: number
+  lng: number
+  radiusKm: number
+}> = [
+  { cityId: 17172, countryCode: 'KR', city: 'Busan', patterns: [/busan|釜山/], lat: 35.1796, lng: 129.0756, radiusKm: 120 },
+  { cityId: 14690, countryCode: 'KR', city: 'Seoul', patterns: [/seoul|首爾|首尔/], lat: 37.5665, lng: 126.978, radiusKm: 140 },
+  { countryCode: 'KR', city: 'Jeju', patterns: [/jeju|濟州|济州/], lat: 33.4996, lng: 126.5312, radiusKm: 90 },
+  { cityId: 5085, countryCode: 'JP', city: 'Tokyo', patterns: [/tokyo|東京|东京/], lat: 35.6762, lng: 139.6503, radiusKm: 180 },
+  { cityId: 9590, countryCode: 'JP', city: 'Osaka', patterns: [/osaka|大阪|kansai|關西|関西|京阪/], lat: 34.6937, lng: 135.5023, radiusKm: 130 },
+  { cityId: 247771, countryCode: 'JP', city: 'Fujikawaguchiko', patterns: [/fuji|河口湖|fujikawaguchiko|kawaguchiko/], lat: 35.5013, lng: 138.7649, radiusKm: 90 },
+  { cityId: 1784, countryCode: 'JP', city: 'Kyoto', patterns: [/kyoto|京都/], lat: 35.0116, lng: 135.7681, radiusKm: 80 },
+  { cityId: 13313, countryCode: 'JP', city: 'Nara', patterns: [/nara|奈良/], lat: 34.6851, lng: 135.8048, radiusKm: 70 },
+  { cityId: 5235, countryCode: 'JP', city: 'Kobe', patterns: [/kobe|神戶|神戸/], lat: 34.6901, lng: 135.1955, radiusKm: 70 },
+  { countryCode: 'JP', city: 'Fukuoka', patterns: [/fukuoka|福岡|福冈/], lat: 33.5902, lng: 130.4017, radiusKm: 130 },
+  { countryCode: 'JP', city: 'Kumamoto', patterns: [/kumamoto|熊本/], lat: 32.8031, lng: 130.7079, radiusKm: 90 },
+  { cityId: 2758, countryCode: 'VN', city: 'Hanoi', patterns: [/northvietnam|vietnam|hanoi|河內|河内|北越/], lat: 21.0278, lng: 105.8342, radiusKm: 160 },
+  { cityId: 17160, countryCode: 'VN', city: 'Sapa', patterns: [/sapa|sa pa|沙壩|沙巴/], lat: 22.3364, lng: 103.8438, radiusKm: 90 },
+  { cityId: 17245, countryCode: 'VN', city: 'Ninh Binh', patterns: [/ninh binh|ninh bình|寧平|宁平/], lat: 20.2506, lng: 105.9745, radiusKm: 90 },
+  { cityId: 17182, countryCode: 'VN', city: 'Ha Long', patterns: [/ha long|hạ long|halong|下龍|下龙/], lat: 20.9712, lng: 107.0448, radiusKm: 90 },
 ]
 
-function plannerAffiliateCountryCode(config: PlannerConfig) {
+function coordinateCountryCode(latitude?: number, longitude?: number): PlannerCountryCode {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return ''
+  const lat = latitude as number
+  const lng = longitude as number
+  const nearest = destinationGeoHints
+    .map((hint) => ({
+      ...hint,
+      distanceKm: distanceMeters({ lat, lng }, { lat: hint.lat, lng: hint.lng }) / 1000,
+    }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)[0]
+  if (nearest && nearest.distanceKm <= nearest.radiusKm) return nearest.countryCode
+
+  const inJapan = lat >= 24 && lat <= 46 && lng >= 122 && lng <= 146
+  const inKorea = lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132
+  const inVietnam = lat >= 8 && lat <= 24 && lng >= 102 && lng <= 110
+  const inTaiwan = lat >= 21.5 && lat <= 25.5 && lng >= 119 && lng <= 123
+  if (inVietnam) return 'VN'
+  if (inTaiwan) return 'TW'
+  if (inJapan && inKorea) return nearest?.countryCode ?? ''
+  if (inJapan) return 'JP'
+  if (inKorea) return 'KR'
+  return ''
+}
+
+function nearestDestinationHint(latitude?: number, longitude?: number, countryCode: PlannerCountryCode = '') {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+  const lat = latitude as number
+  const lng = longitude as number
+  return destinationGeoHints
+    .filter((hint) => !countryCode || hint.countryCode === countryCode)
+    .map((hint) => ({
+      ...hint,
+      distanceKm: distanceMeters({ lat, lng }, { lat: hint.lat, lng: hint.lng }) / 1000,
+    }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)[0] ?? null
+}
+
+function plannerAffiliateCountryCode(config: PlannerConfig, latitude?: number, longitude?: number): PlannerCountryCode {
+  const coordinateCountry = coordinateCountryCode(latitude, longitude)
+  if (coordinateCountry) return coordinateCountry
+
   const text = [
     config.storageKey,
     config.eventPrefix,
@@ -341,9 +402,20 @@ function plannerAffiliateCountryCode(config: PlannerConfig) {
   return ''
 }
 
+function plannerAffiliateCityName(config: PlannerConfig, latitude?: number, longitude?: number) {
+  const countryCode = plannerAffiliateCountryCode(config, latitude, longitude)
+  const nearest = nearestDestinationHint(latitude, longitude, countryCode)
+  if (nearest && nearest.distanceKm <= nearest.radiusKm) return nearest.city
+  return config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle
+}
+
 function plannerAgodaCityId(config: PlannerConfig, latitude?: number, longitude?: number) {
   const configuredCityId = config.agodaCityId
   if (typeof configuredCityId === 'number' && Number.isInteger(configuredCityId) && configuredCityId > 0) return configuredCityId
+  const coordinateCountry = coordinateCountryCode(latitude, longitude)
+  const coordinateMatch = nearestDestinationHint(latitude, longitude, coordinateCountry)
+  if (coordinateMatch?.cityId && coordinateMatch.distanceKm <= coordinateMatch.radiusKm) return coordinateMatch.cityId
+
   const text = [
     config.storageKey,
     config.eventPrefix,
@@ -358,20 +430,22 @@ function plannerAgodaCityId(config: PlannerConfig, latitude?: number, longitude?
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
-  const countryCode = plannerAffiliateCountryCode(config)
-  const textMatch = agodaCityHints.find((hint) => hint.patterns.some((pattern) => pattern.test(text)))
-  if (textMatch) return textMatch.cityId
+  const countryCode = plannerAffiliateCountryCode(config, latitude, longitude)
+  const textMatch = destinationGeoHints.find(
+    (hint) => hint.cityId && hint.patterns.some((pattern) => pattern.test(text)),
+  )
+  if (textMatch?.cityId) return textMatch.cityId
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return undefined
 
-  const nearest = agodaCityHints
-    .filter((hint) => !countryCode || hint.countryCode === countryCode)
+  const nearest = destinationGeoHints
+    .filter((hint) => hint.cityId && (!countryCode || hint.countryCode === countryCode))
     .map((hint) => ({
       ...hint,
       distanceKm: distanceMeters({ lat: latitude as number, lng: longitude as number }, { lat: hint.lat, lng: hint.lng }) / 1000,
     }))
     .sort((a, b) => a.distanceKm - b.distanceKm)[0]
 
-  return nearest && nearest.distanceKm <= 120 ? nearest.cityId : undefined
+  return nearest && nearest.distanceKm <= nearest.radiusKm ? nearest.cityId : undefined
 }
 
 function mergeCustomPlannerLinks(links: CustomPlannerLink[] | undefined, link: CustomPlannerLink) {
@@ -405,6 +479,96 @@ function mergeCustomPlannerLinks(links: CustomPlannerLink[] | undefined, link: C
     })
     .slice(0, 8)
   return merged
+}
+
+function hasHotelAffiliateProviderLink(links: CustomPlannerLink[] | undefined, provider: 'Agoda' | 'Trip') {
+  const providerKey = provider.toLowerCase()
+  const providerHost = provider === 'Agoda' ? 'agoda.com' : 'trip.com'
+  return (links ?? []).some((link) => {
+    const label = link.label.trim().toLowerCase()
+    const href = link.href.trim().toLowerCase()
+    return label === providerKey || href.includes(providerHost)
+  })
+}
+
+function hotelAffiliateLookupCacheKey(provider: 'Agoda' | 'Trip', hotelName: string, latitude: number, longitude: number) {
+  const key = [provider, hotelName.toLowerCase().trim(), latitude.toFixed(5), longitude.toFixed(5)].join('|')
+  return `${HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX}${encodeURIComponent(key)}`
+}
+
+function hotelAffiliateLookupCoolingDown(cacheKey: string) {
+  try {
+    const raw = window.localStorage.getItem(cacheKey)
+    if (!raw) return false
+    const data = JSON.parse(raw) as { retryAfter?: unknown }
+    const retryAfter = typeof data.retryAfter === 'number' ? data.retryAfter : 0
+    if (retryAfter > Date.now()) return true
+    window.localStorage.removeItem(cacheKey)
+    return false
+  } catch {
+    return false
+  }
+}
+
+function rememberHotelAffiliateLookupMiss(cacheKey: string, ttlMs: number) {
+  try {
+    window.localStorage.setItem(cacheKey, JSON.stringify({ retryAfter: Date.now() + ttlMs }))
+  } catch {
+    // Lookup caching is best-effort only.
+  }
+}
+
+function clearHotelAffiliateLookupMiss(cacheKey: string) {
+  try {
+    window.localStorage.removeItem(cacheKey)
+  } catch {
+    // Ignore blocked storage.
+  }
+}
+
+function knownPlannerRegionKey(place: MapPlace) {
+  if (place.id.startsWith('osaka-')) return 'osaka'
+  if (place.id.startsWith('busan-')) return 'busan'
+  if (place.id.startsWith('tokyo-')) return 'tokyo'
+  if (place.id.startsWith('fuji-')) return 'fuji'
+  if (place.id.startsWith('northvietnam-')) return 'northvietnam'
+  return ''
+}
+
+function knownPlannerRegionLabel(key: string) {
+  if (key === 'osaka') return '大阪地圖'
+  if (key === 'busan') return '釜山地圖'
+  if (key === 'tokyo') return '東京地圖'
+  if (key === 'fuji') return '富士河口湖地圖'
+  if (key === 'northvietnam') return '北越地圖'
+  return '附近地圖'
+}
+
+function nearbyKnownPlacesSuggestion(anchorPlaces: MapPlace[], candidatePlaces: MapPlace[]): NearbyKnownPlacesSuggestion | null {
+  if (anchorPlaces.length === 0 || candidatePlaces.length === 0) return null
+  const stats = new Map<string, { key: string; label: string; count: number; distance: number }>()
+
+  candidatePlaces.forEach((candidate) => {
+    const key = knownPlannerRegionKey(candidate)
+    if (!key) return
+    const nearestDistance = anchorPlaces.reduce((nearest, anchor) => {
+      const distance = distanceMeters(anchor, candidate)
+      return distance < nearest ? distance : nearest
+    }, Number.POSITIVE_INFINITY)
+    if (nearestDistance > NEARBY_KNOWN_PLACE_RADIUS_METERS) return
+    const current = stats.get(key)
+    stats.set(key, {
+      key,
+      label: knownPlannerRegionLabel(key),
+      count: (current?.count ?? 0) + 1,
+      distance: Math.min(current?.distance ?? Number.POSITIVE_INFINITY, nearestDistance),
+    })
+  })
+
+  const best = [...stats.values()].sort((a, b) => b.count - a.count || a.distance - b.distance)[0]
+  if (!best) return null
+  const places = candidatePlaces.filter((place) => knownPlannerRegionKey(place) === best.key)
+  return places.length > 0 ? { key: best.key, label: best.label, places } : null
 }
 
 function hotelAffiliateStatusText(provider: 'Agoda' | 'Trip', status: HotelAffiliateStatus | undefined) {
@@ -833,7 +997,7 @@ function naverMapAppDirectionsUrl(from: MapPlace, to: MapPlace, mode: TransportM
 }
 
 function isSouthKoreaCoordinate(place: MapPlace) {
-  return place.lat >= 33 && place.lat <= 38.8 && place.lng >= 124 && place.lng <= 132
+  return coordinateCountryCode(place.lat, place.lng) === 'KR'
 }
 
 function transportNavigationUrl(from: MapPlace, to: MapPlace, mode: TransportMode, placeIds: TransportNavigationPlaceIds = {}) {
@@ -3670,6 +3834,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const initialPlannerLoadRef = useRef(false)
   const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
+  const hotelAffiliateBackfillRef = useRef<Set<string>>(new Set())
+  const hotelAffiliateAutoSavePendingRef = useRef(false)
+  const hotelAffiliateAutoSaveTimerRef = useRef<number | null>(null)
 
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(() =>
@@ -3685,6 +3852,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [placeNotes, setPlaceNotes] = useState<Record<string, string>>({})
   const [placeUserLinks, setPlaceUserLinks] = useState<Record<string, PlannerUserLink[]>>({})
   const [customPlaces, setCustomPlaces] = useState<Record<string, CustomPlannerPlace>>({})
+  const [nearbyKnownPlaces, setNearbyKnownPlaces] = useState<MapPlace[]>([])
+  const [nearbyKnownPlacesPrompt, setNearbyKnownPlacesPrompt] = useState<NearbyKnownPlacesSuggestion | null>(null)
   const [customDraft, setCustomDraft] = useState<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const [agodaAffiliateStatus, setAgodaAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
   const [tripAffiliateStatus, setTripAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
@@ -4369,7 +4538,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ),
     [customCategoryItems, customPlaces, sourcePlaceById],
   )
-  const allPlaces = useMemo(() => [...places, ...customMapPlaces], [customMapPlaces, places])
+  const allPlaces = useMemo(
+    () => [...places, ...nearbyKnownPlaces, ...customMapPlaces],
+    [customMapPlaces, nearbyKnownPlaces, places],
+  )
   const lookupPlaces = useMemo(() => {
     const seen = new Set<string>()
     return [...allPlaces, ...(config.matchPlaces ?? [])].filter((place) => {
@@ -4402,6 +4574,29 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     () => validPlanIds.map((item) => planItemPlace(item, placeById)).filter(Boolean) as MapPlace[],
     [placeById, validPlanIds],
   )
+  const nearbyKnownPlacesStorageKey = `${config.storageKey}:nearby-known:${plannerBookId ?? 'draft'}`
+  useEffect(() => {
+    if (!storageReady || places.length > 0 || nearbyKnownPlaces.length > 0) return
+    const suggestion = nearbyKnownPlacesSuggestion([...customMapPlaces, ...plannedPlaces], config.matchPlaces ?? [])
+    if (!suggestion) return
+
+    const stored = window.localStorage.getItem(nearbyKnownPlacesStorageKey)
+    if (stored === `accepted:${suggestion.key}`) {
+      setNearbyKnownPlaces(suggestion.places)
+      setNearbyKnownPlacesPrompt(null)
+      return
+    }
+    if (stored === `dismissed:${suggestion.key}`) return
+    setNearbyKnownPlacesPrompt(suggestion)
+  }, [
+    config.matchPlaces,
+    customMapPlaces,
+    nearbyKnownPlaces.length,
+    nearbyKnownPlacesStorageKey,
+    places.length,
+    plannedPlaces,
+    storageReady,
+  ])
   const plannedDays = useMemo(
     () => splitPlanItemsByDay(validPlanItems, placeById),
     [placeById, validPlanItems],
@@ -4913,6 +5108,69 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (!storageReady || readOnlyPlan) return
     window.localStorage.setItem(`${config.storageKey}:user-links`, JSON.stringify(placeUserLinks))
   }, [config.storageKey, placeUserLinks, readOnlyPlan, storageReady])
+
+  useEffect(() => {
+    if (
+      !storageReady ||
+      readOnlyPlan ||
+      !plannerBookId ||
+      !hotelAffiliateAutoSavePendingRef.current ||
+      validPlanItems.length === 0
+    ) {
+      return
+    }
+
+    if (hotelAffiliateAutoSaveTimerRef.current !== null) {
+      window.clearTimeout(hotelAffiliateAutoSaveTimerRef.current)
+    }
+
+    hotelAffiliateAutoSaveTimerRef.current = window.setTimeout(() => {
+      hotelAffiliateAutoSaveTimerRef.current = null
+      hotelAffiliateAutoSavePendingRef.current = false
+      const sharedNotes = Object.fromEntries(
+        validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note),
+      )
+      void savePlannerBook(
+        config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+        plannerBookId,
+        validPlanItems,
+        sharedNotes,
+        customPlaces,
+        placeUserLinks,
+      ).then((book) => {
+        if (!book) return
+        const updatedAt = new Date().toISOString()
+        setPlannerBookReadToken(book.readToken ?? plannerBookReadToken)
+        setPlannerBookUpdatedAt(updatedAt)
+        removeJsonCache(`planner-book:id=${encodeURIComponent(book.id)}`)
+        const nextReadToken = book.readToken ?? plannerBookReadToken
+        if (nextReadToken) removeJsonCache(`planner-book:${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(nextReadToken)}`)
+        window.localStorage.setItem(`${config.storageKey}:book-updated-at`, updatedAt)
+        if (nextReadToken) window.localStorage.setItem(`${config.storageKey}:book-read-token`, nextReadToken)
+      })
+    }, 900)
+
+    return () => {
+      if (hotelAffiliateAutoSaveTimerRef.current !== null) {
+        window.clearTimeout(hotelAffiliateAutoSaveTimerRef.current)
+        hotelAffiliateAutoSaveTimerRef.current = null
+      }
+    }
+  }, [
+    config.plannerBookCityName,
+    config.recentCountryName,
+    config.shareTitle,
+    config.storageKey,
+    customPlaces,
+    placeNotes,
+    placeUserLinks,
+    plannerBookId,
+    plannerBookReadToken,
+    readOnlyPlan,
+    storageReady,
+    validPlanIds,
+    validPlanItems,
+  ])
 
   useEffect(() => {
     if (!storageReady || readOnlyPlan || !plannerBookId) return
@@ -5959,6 +6217,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPlaceUserLinks((links) => {
       const nextLinks = mergeCustomPlannerLinks(links[placeId], link)
       if (nextLinks === links[placeId]) return links
+      hotelAffiliateAutoSavePendingRef.current = true
       return { ...links, [placeId]: nextLinks }
     })
     setCustomPlaces((current) => {
@@ -5985,6 +6244,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
       return
     }
+    const cacheKey = hotelAffiliateLookupCacheKey('Agoda', hotelName, affiliateLat, affiliateLng)
+    if (hotelAffiliateLookupCoolingDown(cacheKey)) {
+      setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
+      return
+    }
 
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 12000)
@@ -5996,9 +6260,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         hotelName,
-        city: config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+        city: plannerAffiliateCityName(config, affiliateLat, affiliateLng),
         cityId: plannerAgodaCityId(config, affiliateLat, affiliateLng),
-        countryCode: plannerAffiliateCountryCode(config),
+        countryCode: plannerAffiliateCountryCode(config, affiliateLat, affiliateLng),
         lat: affiliateLat,
         lng: affiliateLng,
         language: 'zh-tw',
@@ -6011,26 +6275,32 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       .then((data: HotelAffiliatePlannerResponse | null) => {
         if (data?.matchStatus === 'not_configured') {
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS)
           setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'not_configured' }))
           return
         }
         if (data?.matchStatus === 'needs_city_id') {
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS)
           setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'needs_city_id' }))
           return
         }
         if (data?.matchStatus !== 'matched') {
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS)
           setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
           return
         }
         const bookingUrl = typeof data.bestMatch?.bookingUrl === 'string' ? data.bestMatch.bookingUrl.trim() : ''
         if (!bookingUrl) {
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS)
           setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
           return
         }
+        clearHotelAffiliateLookupMiss(cacheKey)
         appendHotelAffiliateLink(place.id, 'Agoda', bookingUrl)
         setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
       })
       .catch(() => {
+        rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_ERROR_COOLDOWN_MS)
         setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'error' }))
         // Auto affiliate lookup is helpful but should never block saving the custom place.
       })
@@ -6041,6 +6311,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan || cleanCustomPlaceCategory(place.category) !== 'hotel') return
     const hotelName = (place.googlePlaceName || place.name).trim()
     if (!hotelName || !Number.isFinite(place.lat) || !Number.isFinite(place.lng)) {
+      setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
+      return
+    }
+    const affiliateLat = place.googlePlaceLat ?? place.lat
+    const affiliateLng = place.googlePlaceLng ?? place.lng
+    const cacheKey = hotelAffiliateLookupCacheKey('Trip', hotelName, affiliateLat, affiliateLng)
+    if (hotelAffiliateLookupCoolingDown(cacheKey)) {
       setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
       return
     }
@@ -6055,8 +6332,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         hotelName,
-        city: config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
-        countryCode: plannerAffiliateCountryCode(config),
+        city: plannerAffiliateCityName(config, place.googlePlaceLat ?? place.lat, place.googlePlaceLng ?? place.lng),
+        cityId: plannerAgodaCityId(config, place.googlePlaceLat ?? place.lat, place.googlePlaceLng ?? place.lng),
+        countryCode: plannerAffiliateCountryCode(config, place.googlePlaceLat ?? place.lat, place.googlePlaceLng ?? place.lng),
         lat: place.googlePlaceLat ?? place.lat,
         lng: place.googlePlaceLng ?? place.lng,
       }),
@@ -6068,26 +6346,65 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       .then((data) => {
         if (data?.matchStatus === 'not_configured') {
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS)
           setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'not_configured' }))
           return
         }
         if (data?.matchStatus !== 'matched') {
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS)
           setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
           return
         }
         const bookingUrl = typeof data.bestMatch?.bookingUrl === 'string' ? data.bestMatch.bookingUrl.trim() : ''
         if (!bookingUrl) {
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS)
           setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
           return
         }
+        clearHotelAffiliateLookupMiss(cacheKey)
         appendHotelAffiliateLink(place.id, 'Trip', bookingUrl)
         setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
       })
       .catch(() => {
+        rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_ERROR_COOLDOWN_MS)
         setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'error' }))
       })
       .finally(() => window.clearTimeout(timeout))
   }, [appendHotelAffiliateLink, config, readOnlyPlan])
+
+  useEffect(() => {
+    if (!storageReady || readOnlyPlan) return
+    Object.values(customPlaces).forEach((place) => {
+      if (cleanCustomPlaceCategory(place.category) !== 'hotel') return
+      const links = [...(place.links ?? []), ...(placeUserLinks[place.id] ?? [])]
+      const lat = place.googlePlaceLat ?? place.lat
+      const lng = place.googlePlaceLng ?? place.lng
+      const lookupKey = `${place.id}:${place.googlePlaceName || place.name}:${lat}:${lng}`
+
+      if (!hasHotelAffiliateProviderLink(links, 'Agoda')) {
+        const key = `agoda:${lookupKey}`
+        if (!hotelAffiliateBackfillRef.current.has(key)) {
+          hotelAffiliateBackfillRef.current.add(key)
+          resolveAgodaAffiliateLinkForCustomPlace(place)
+        }
+      }
+
+      if (!hasHotelAffiliateProviderLink(links, 'Trip')) {
+        const key = `trip:${lookupKey}`
+        if (!hotelAffiliateBackfillRef.current.has(key)) {
+          hotelAffiliateBackfillRef.current.add(key)
+          resolveTripAffiliateLinkForCustomPlace(place)
+        }
+      }
+    })
+  }, [
+    customPlaces,
+    placeUserLinks,
+    readOnlyPlan,
+    resolveAgodaAffiliateLinkForCustomPlace,
+    resolveTripAffiliateLinkForCustomPlace,
+    storageReady,
+  ])
 
   const addCustomDraftLink = () => {
     if (!customDraft.id) return
@@ -6768,6 +7085,31 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     void saveAndSharePlan()
   }, [plannerBookId, readOnlyPlan, saveAndSharePlan, shareSaving])
+
+  const acceptNearbyKnownPlaces = useCallback(() => {
+    const suggestion = nearbyKnownPlacesPrompt
+    if (!suggestion) return
+    setNearbyKnownPlaces(suggestion.places)
+    setNearbyKnownPlacesPrompt(null)
+    setCustomOnly(false)
+    setCategoryOn(allCategoryOn)
+    try {
+      window.localStorage.setItem(nearbyKnownPlacesStorageKey, `accepted:${suggestion.key}`)
+    } catch {
+      // Ignore blocked storage.
+    }
+  }, [allCategoryOn, nearbyKnownPlacesPrompt, nearbyKnownPlacesStorageKey])
+
+  const dismissNearbyKnownPlaces = useCallback(() => {
+    const suggestion = nearbyKnownPlacesPrompt
+    setNearbyKnownPlacesPrompt(null)
+    if (!suggestion) return
+    try {
+      window.localStorage.setItem(nearbyKnownPlacesStorageKey, `dismissed:${suggestion.key}`)
+    } catch {
+      // Ignore blocked storage.
+    }
+  }, [nearbyKnownPlacesPrompt, nearbyKnownPlacesStorageKey])
 
   const handleDownloadPdf = useCallback(async () => {
     if (pdfDownloading || plannedPlaces.length === 0) return
@@ -7972,6 +8314,29 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 </button>
                 <button type="button" className={styles.confirmPrimary} onClick={confirmUpdateSharedPlan} disabled={shareSaving}>
                   {shareSaving ? '儲存中...' : '儲存更新'}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {nearbyKnownPlacesPrompt ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={dismissNearbyKnownPlaces}>
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="nearby-known-places-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="nearby-known-places-title">載入{nearbyKnownPlacesPrompt.label}？</h2>
+              <p>這份行程的位置靠近旅杰已整理的地圖資料，可以加入景點、住宿和商店清單一起排。</p>
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.confirmSecondary} onClick={dismissNearbyKnownPlaces}>
+                  先不要
+                </button>
+                <button type="button" className={styles.confirmPrimary} onClick={acceptNearbyKnownPlaces}>
+                  載入地圖資料
                 </button>
               </div>
             </section>

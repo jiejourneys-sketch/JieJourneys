@@ -114,6 +114,10 @@ type AgodaHotelIndexRecord = {
   reviewScore?: number
 }
 
+type RankedAgodaHotelCandidate = AgodaAffiliateHotelCandidate & {
+  nameScore: number
+}
+
 let hotelIndexCache: { path: string; records: AgodaHotelIndexRecord[] } | null = null
 let hotelIndexPromise: Promise<{ path: string; records: AgodaHotelIndexRecord[] }> | null = null
 
@@ -463,7 +467,7 @@ async function searchAgodaHotelIndex(
   }
 
   const hasCoordinates = typeof query.latitude === 'number' && typeof query.longitude === 'number'
-  const candidates: AgodaAffiliateHotelCandidate[] = []
+  const candidates: RankedAgodaHotelCandidate[] = []
 
   index.records.forEach((hotel) => {
     if (query.countryCode && hotel.countryCode && hotel.countryCode.toUpperCase() !== query.countryCode) return
@@ -499,6 +503,7 @@ async function searchAgodaHotelIndex(
       hotelId: hotel.hotelId,
       hotelName: hotel.hotelName,
       score: Number(score.toFixed(4)),
+      nameScore: Number(nameScore.toFixed(4)),
       bookingUrl: normalizeAgodaLandingUrl(hotel.url || '', hotel.hotelId, config, query),
       source: 'index',
       ...(hotel.city ? { city: hotel.city } : {}),
@@ -512,15 +517,18 @@ async function searchAgodaHotelIndex(
     })
   })
 
-  candidates.sort((a, b) => b.score - a.score)
-  const topCandidates = candidates.slice(0, 8)
+  candidates.sort((a, b) => b.score - a.score || b.nameScore - a.nameScore)
+  const topCandidates = candidates.slice(0, 8).map(({ nameScore: _nameScore, ...candidate }) => candidate)
   const bestMatch = topCandidates[0]
-  const matchStatus = getMatchStatus(bestMatch?.score ?? 0)
+  const bestRankedMatch = candidates[0]
+  const safeBestScore =
+    bestRankedMatch && bestRankedMatch.nameScore >= 0.42 ? bestRankedMatch.score : Math.min(bestRankedMatch?.score ?? 0, 0.77)
+  const matchStatus = getMatchStatus(safeBestScore)
 
   return {
     loaded: true,
     matchStatus,
-    ...(bestMatch && bestMatch.score >= 0.78 ? { bestMatch } : {}),
+    ...(bestMatch && matchStatus === 'matched' ? { bestMatch } : {}),
     candidates: topCandidates,
     totalRecords: index.records.length,
   }

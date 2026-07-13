@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
   const alternateHotelNames = cleanStringArray(input.alternateHotelNames ?? input.alternateNames, 4, 160)
   const agodaMatch = await searchAgodaAffiliateHotels({
     hotelName,
+    cityId: cleanInteger(input.cityId, 1, 9999999),
     city,
     countryCode,
     latitude,

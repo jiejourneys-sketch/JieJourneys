@@ -148,6 +148,10 @@ const knownRegions: PlannerRegion[] = [
   },
 ]
 
+const allKnownPlannerPlaces = uniquePlaces(
+  knownRegions.flatMap((region) => [...region.places, ...(region.matchPlaces ?? [])]),
+)
+
 const semanticCategories: NonNullable<PlannerConfig['categoryItems']> = [
   { key: 'ticket', label: '票券' },
   { key: 'spot', label: '景點' },
@@ -207,6 +211,7 @@ function customRegionFromUrl(regionKey: string, countryName: string): PlannerReg
     shortLabel: label,
     center: GENERIC_CENTER,
     places: [],
+    matchPlaces: allKnownPlannerPlaces,
     zoom: 7,
   }
 }
@@ -762,7 +767,7 @@ export default function ToolsPlannerPage() {
     const countryName = trimmedCountryInput || '自由行'
     const blankMatchPlaces = matchedRegion
       ? uniquePlaces([...matchedRegion.places, ...(matchedRegion.matchPlaces ?? [])])
-      : []
+      : allKnownPlannerPlaces
     if (!forceBlank && matchedRegion) {
       startPlanner(matchedRegion, countryName, true, preferredSource)
       return
