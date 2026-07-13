@@ -1057,7 +1057,7 @@ export default function MapClient({
   const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list') => {
     setSelectedId(place.id)
     if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MAP_MQ).matches) {
-      setMobileSheetExpanded(true)
+      setMobileSheetState('half')
       setMobileSheetBrowseDual(source === 'list')
       if (source === 'marker') {
         mapClickSuppressUntilRef.current = Date.now() + 500
@@ -1093,7 +1093,7 @@ export default function MapClient({
         align(isDesktopViewport() ? 'smooth' : 'smooth')
       })
     })
-  }, [setMobileSheetExpanded])
+  }, [])
 
   useEffect(() => {
     if (!mapReady || typeof window === 'undefined') return
