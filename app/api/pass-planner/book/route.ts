@@ -13,6 +13,20 @@ const MAX_USER_LINKS_PER_PLACE = 8
 const PLANNER_RETENTION_DAYS = 365
 const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel'])
 
+function cleanGooglePlaceTypes(value: unknown) {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => {
+      if (!item || item.length > 64 || !/^[a-z0-9_]+$/.test(item) || seen.has(item)) return false
+      seen.add(item)
+      return true
+    })
+    .slice(0, 20)
+}
+
 type PlannerBookPayload = {
   id?: string
   city: string
@@ -89,10 +103,13 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
       const googlePlaceName = typeof source.googlePlaceName === 'string' ? source.googlePlaceName.trim().slice(0, 120) : ''
       const googlePlaceLat = typeof source.googlePlaceLat === 'number' ? source.googlePlaceLat : Number(source.googlePlaceLat)
       const googlePlaceLng = typeof source.googlePlaceLng === 'number' ? source.googlePlaceLng : Number(source.googlePlaceLng)
+      const googlePlaceTypes = cleanGooglePlaceTypes(source.googlePlaceTypes)
+      const googlePlaceTypesResolved = source.googlePlaceTypesResolved === true || googlePlaceTypes.length > 0
       const naverUrl = typeof source.naverUrl === 'string' ? source.naverUrl.trim().slice(0, 500) : ''
       const naverPlaceId = typeof source.naverPlaceId === 'string' ? source.naverPlaceId.trim().slice(0, 80) : ''
       const naverPlaceName = typeof source.naverPlaceName === 'string' ? source.naverPlaceName.trim().slice(0, 120) : ''
       const category = typeof source.category === 'string' && CUSTOM_PLACE_CATEGORIES.has(source.category) ? source.category : 'free'
+      const hotelAffiliateManual = source.hotelAffiliateManual === true
       const links = Array.isArray(source.links)
         ? source.links
             .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
@@ -114,9 +131,12 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
         ...(googlePlaceId && Number.isFinite(googlePlaceLat) && Number.isFinite(googlePlaceLng)
           ? { googlePlaceLat, googlePlaceLng }
           : {}),
+        ...(googlePlaceTypes.length > 0 ? { googlePlaceTypes } : {}),
+        ...(googlePlaceTypesResolved ? { googlePlaceTypesResolved: true } : {}),
         ...(naverUrl ? { naverUrl } : {}),
         ...(naverPlaceId ? { naverPlaceId } : {}),
         ...(naverPlaceName ? { naverPlaceName } : {}),
+        ...(hotelAffiliateManual ? { hotelAffiliateManual: true } : {}),
         ...(links.length > 0 ? { links } : {}),
       }
     })

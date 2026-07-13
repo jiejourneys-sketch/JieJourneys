@@ -72,8 +72,10 @@ type DayView = 'all' | number
 type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
 type PlannerUserLink = CustomPlannerLink
-type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id'
+type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id' | 'skipped'
 type PlannerCountryCode = 'JP' | 'KR' | 'VN' | 'TW' | ''
+type HotelAffiliateEligibility = 'eligible' | 'pending_place_type' | 'skipped'
+type HotelAffiliateNameSignal = 'lodging' | 'non_lodging' | 'unknown'
 type HotelAffiliatePlannerResponse = {
   matchStatus?: string
   bestMatch?: {
@@ -113,9 +115,12 @@ type CustomPlannerPlace = {
   googlePlaceName?: string
   googlePlaceLat?: number
   googlePlaceLng?: number
+  googlePlaceTypes?: string[]
+  googlePlaceTypesResolved?: boolean
   naverUrl?: string
   naverPlaceId?: string
   naverPlaceName?: string
+  hotelAffiliateManual?: boolean
   links?: CustomPlannerLink[]
 }
 type CustomPlaceDraft = {
@@ -126,6 +131,8 @@ type CustomPlaceDraft = {
   googlePlaceName: string
   googlePlaceLat: number | null
   googlePlaceLng: number | null
+  googlePlaceTypes: string[]
+  googlePlaceTypesResolved: boolean
   naverUrl: string
   naverPlaceId: string
   naverPlaceName: string
@@ -203,6 +210,7 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
+const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 const HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const NEARBY_KNOWN_PLACE_RADIUS_METERS = 25_000
@@ -215,6 +223,56 @@ const NAVER_COORD_OFFSET = 200 * NAVER_COORD_PRECISION
 const NAVER_COORD_CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const NAVER_MAP_APP_NAME = 'www.jiejourneys.com'
 const TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS = 250
+const HOTEL_AFFILIATE_LODGING_GOOGLE_TYPES = new Set([
+  'lodging',
+  'hotel',
+  'hostel',
+  'motel',
+  'inn',
+  'resort_hotel',
+  'guest_house',
+  'bed_and_breakfast',
+  'extended_stay_hotel',
+  'serviced_apartment',
+  'ryokan',
+])
+const HOTEL_AFFILIATE_NON_LODGING_GOOGLE_TYPES = new Set([
+  'airport',
+  'amusement_park',
+  'aquarium',
+  'bakery',
+  'bar',
+  'bus_station',
+  'cafe',
+  'car_rental',
+  'church',
+  'convenience_store',
+  'department_store',
+  'gas_station',
+  'hindu_temple',
+  'hospital',
+  'meal_delivery',
+  'meal_takeaway',
+  'mosque',
+  'museum',
+  'park',
+  'parking',
+  'pharmacy',
+  'place_of_worship',
+  'restaurant',
+  'school',
+  'shopping_mall',
+  'store',
+  'subway_station',
+  'supermarket',
+  'synagogue',
+  'taxi_stand',
+  'tourist_attraction',
+  'train_station',
+  'transit_station',
+  'university',
+  'zoo',
+])
 const TRANSPORT_MODE_LABELS: Record<TransportMode, string> = {
   walk: '步行',
   subway: '地鐵',
@@ -243,6 +301,8 @@ const emptyCustomPlaceDraft: CustomPlaceDraft = {
   googlePlaceName: '',
   googlePlaceLat: null,
   googlePlaceLng: null,
+  googlePlaceTypes: [],
+  googlePlaceTypesResolved: false,
   naverUrl: '',
   naverPlaceId: '',
   naverPlaceName: '',
@@ -491,6 +551,100 @@ function hasHotelAffiliateProviderLink(links: CustomPlannerLink[] | undefined, p
   })
 }
 
+function cleanGooglePlaceTypes(value: unknown) {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => {
+      if (!item || item.length > 64 || !/^[a-z0-9_]+$/.test(item) || seen.has(item)) return false
+      seen.add(item)
+      return true
+    })
+    .slice(0, 20)
+}
+
+function sameStringArray(a: string[] | undefined, b: string[]) {
+  const left = a ?? []
+  return left.length === b.length && left.every((item, index) => item === b[index])
+}
+
+function googlePlaceTypeSignal(types: string[]): HotelAffiliateNameSignal {
+  if (types.some((type) => HOTEL_AFFILIATE_LODGING_GOOGLE_TYPES.has(type))) return 'lodging'
+  if (types.some((type) => HOTEL_AFFILIATE_NON_LODGING_GOOGLE_TYPES.has(type))) return 'non_lodging'
+  return 'unknown'
+}
+
+function hotelAffiliateNameSignal(place: Pick<CustomPlannerPlace, 'name' | 'googlePlaceName'>): HotelAffiliateNameSignal {
+  const text = [place.googlePlaceName, place.name].filter(Boolean).join(' ').toLowerCase()
+  if (!text) return 'unknown'
+  if (
+    /\b(?:hotel|hostel|motel|inn|resort|ryokan|guest\s*house|guesthouse|b&b|bnb|aparthotel|villa|stay)\b|酒店|飯店|饭店|旅館|旅馆|旅店|旅舍|民宿|住宿|ホテル|宿|호텔|리조트|게스트하우스/i.test(
+      text,
+    )
+  ) {
+    return 'lodging'
+  }
+  if (
+    /\b(?:airport|station|restaurant|steakhouse|cafe|coffee|bar|shop|store|mall|market|museum|park|temple|shrine|tower|castle|aquarium|zoo)\b|機場|机场|空港|餐廳|餐厅|咖啡|商店|百貨|百货|市場|市场|車站|车站|駅|公園|公园|博物館|博物馆|神社|寺|水族館|水族馆|動物園|动物园/i.test(
+      text,
+    )
+  ) {
+    return 'non_lodging'
+  }
+  return 'unknown'
+}
+
+function customPlaceHotelAffiliateEligibility(place: CustomPlannerPlace): HotelAffiliateEligibility {
+  if (cleanCustomPlaceCategory(place.category) !== 'hotel') return 'skipped'
+  if (place.hotelAffiliateManual) return 'eligible'
+
+  const typeSignal = googlePlaceTypeSignal(cleanGooglePlaceTypes(place.googlePlaceTypes))
+  if (typeSignal === 'lodging') return 'eligible'
+  if (typeSignal === 'non_lodging') return 'skipped'
+
+  const nameSignal = hotelAffiliateNameSignal(place)
+  if (nameSignal === 'lodging') return 'eligible'
+  if (nameSignal === 'non_lodging') return 'skipped'
+
+  if (place.googlePlaceId?.trim() && !place.googlePlaceTypesResolved) return 'pending_place_type'
+  return 'skipped'
+}
+
+function shouldResolveCustomPlaceGoogleTypes(place: CustomPlannerPlace) {
+  if (cleanCustomPlaceCategory(place.category) !== 'hotel') return false
+  if (place.hotelAffiliateManual || !place.googlePlaceId?.trim() || place.googlePlaceTypesResolved) return false
+  if (cleanGooglePlaceTypes(place.googlePlaceTypes).length > 0) return false
+  return hotelAffiliateNameSignal(place) === 'unknown'
+}
+
+function googlePlaceTypesCacheKey(placeId: string) {
+  return `${GOOGLE_PLACE_TYPES_CACHE_PREFIX}${encodeURIComponent(placeId.trim())}`
+}
+
+function getCachedGooglePlaceTypes(placeId: string) {
+  if (typeof window === 'undefined' || !placeId.trim()) return null
+  try {
+    const raw = window.localStorage.getItem(googlePlaceTypesCacheKey(placeId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { types?: unknown; resolved?: unknown }
+    const types = cleanGooglePlaceTypes(parsed.types)
+    return { types, resolved: parsed.resolved === true || types.length > 0 }
+  } catch {
+    return null
+  }
+}
+
+function rememberGooglePlaceTypes(placeId: string, types: string[], resolved = true) {
+  if (typeof window === 'undefined' || !placeId.trim()) return
+  try {
+    window.localStorage.setItem(googlePlaceTypesCacheKey(placeId), JSON.stringify({ types, resolved }))
+  } catch {
+    // Type caching is best-effort only.
+  }
+}
+
 function hotelAffiliateLookupCacheKey(provider: 'Agoda' | 'Trip', hotelName: string, latitude: number, longitude: number) {
   const key = [provider, hotelName.toLowerCase().trim(), latitude.toFixed(5), longitude.toFixed(5)].join('|')
   return `${HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX}${encodeURIComponent(key)}`
@@ -578,6 +732,7 @@ function hotelAffiliateStatusText(provider: 'Agoda' | 'Trip', status: HotelAffil
   if (status === 'not_configured') return `${provider} 未設定`
   if (status === 'needs_city_id') return `${provider} 資料不足`
   if (status === 'error') return `${provider} 暫時無法查詢`
+  if (status === 'skipped') return ''
   return ''
 }
 
@@ -1124,6 +1279,8 @@ function customPlaceToMapPlace(
     googlePlaceName: place.googlePlaceName || sourcePlace?.googlePlaceName,
     googlePlaceLat: place.googlePlaceLat ?? sourcePlace?.googlePlaceLat,
     googlePlaceLng: place.googlePlaceLng ?? sourcePlace?.googlePlaceLng,
+    googlePlaceTypes: place.googlePlaceTypes ?? sourcePlace?.googlePlaceTypes,
+    googlePlaceTypesResolved: place.googlePlaceTypesResolved ?? sourcePlace?.googlePlaceTypesResolved,
     naverPlaceId: place.naverPlaceId || sourcePlace?.naverPlaceId,
     naverPlaceName: place.naverPlaceName || sourcePlace?.naverPlaceName,
     spotActions: [...(sourcePlace?.spotActions ?? []), ...actions],
@@ -1147,10 +1304,13 @@ function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
     const googlePlaceName = cleanProviderText(source.googlePlaceName)
     const googlePlaceLat = cleanProviderCoordinate(source.googlePlaceLat)
     const googlePlaceLng = cleanProviderCoordinate(source.googlePlaceLng)
+    const googlePlaceTypes = cleanGooglePlaceTypes(source.googlePlaceTypes)
+    const googlePlaceTypesResolved = source.googlePlaceTypesResolved === true || googlePlaceTypes.length > 0
     const naverUrl = typeof source.naverUrl === 'string' ? source.naverUrl.trim() : ''
     const naverPlaceId = cleanProviderText(source.naverPlaceId, 80)
     const naverPlaceName = cleanProviderText(source.naverPlaceName)
     const category = cleanCustomPlaceCategory(source.category)
+    const hotelAffiliateManual = source.hotelAffiliateManual === true
     const links = Array.isArray(source.links)
       ? source.links
           .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
@@ -1171,9 +1331,12 @@ function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
       ...(googlePlaceId ? { googlePlaceId } : {}),
       ...(googlePlaceName ? { googlePlaceName } : {}),
       ...(googlePlaceLat != null && googlePlaceLng != null ? { googlePlaceLat, googlePlaceLng } : {}),
+      ...(googlePlaceTypes.length > 0 ? { googlePlaceTypes } : {}),
+      ...(googlePlaceTypesResolved ? { googlePlaceTypesResolved: true } : {}),
       ...(naverUrl ? { naverUrl } : {}),
       ...(naverPlaceId ? { naverPlaceId } : {}),
       ...(naverPlaceName ? { naverPlaceName } : {}),
+      ...(hotelAffiliateManual ? { hotelAffiliateManual: true } : {}),
       ...(links.length > 0 ? { links } : {}),
     }
   })
@@ -1684,8 +1847,10 @@ type ResolvedMapUrlData = {
   lat?: number
   lng?: number
   googlePlaceId?: string
+  googlePlaceTypes?: string[]
   naverPlaceId?: string
   googlePlaceIdResolved?: boolean
+  googlePlaceTypesResolved?: boolean
   naverPlaceIdResolved?: boolean
 }
 
@@ -1698,6 +1863,7 @@ function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
       const parsed = JSON.parse(raw) as unknown
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         const data = parsed as Record<string, unknown>
+        const googlePlaceTypes = cleanGooglePlaceTypes(data.googlePlaceTypes)
         return typeof data.url === 'string'
           ? {
               url: data.url,
@@ -1706,8 +1872,10 @@ function getResolvedMapUrlCache(url: string): ResolvedMapUrlData | null {
               ...(typeof data.lat === 'number' && Number.isFinite(data.lat) ? { lat: data.lat } : {}),
               ...(typeof data.lng === 'number' && Number.isFinite(data.lng) ? { lng: data.lng } : {}),
               ...(typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim() ? { googlePlaceId: data.googlePlaceId.trim() } : {}),
+              ...(googlePlaceTypes.length > 0 ? { googlePlaceTypes } : {}),
               ...(typeof data.naverPlaceId === 'string' && data.naverPlaceId.trim() ? { naverPlaceId: data.naverPlaceId.trim() } : {}),
               ...(data.googlePlaceIdResolved === true ? { googlePlaceIdResolved: true } : {}),
+              ...(data.googlePlaceTypesResolved === true || googlePlaceTypes.length > 0 ? { googlePlaceTypesResolved: true } : {}),
               ...(data.naverPlaceIdResolved === true ? { naverPlaceIdResolved: true } : {}),
             }
           : null
@@ -3835,6 +4003,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
   const hotelAffiliateBackfillRef = useRef<Set<string>>(new Set())
+  const googlePlaceTypeResolveRef = useRef<Set<string>>(new Set())
   const hotelAffiliateAutoSavePendingRef = useRef(false)
   const hotelAffiliateAutoSaveTimerRef = useRef<number | null>(null)
 
@@ -5667,6 +5836,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               googlePlaceName: '',
               googlePlaceLat: null,
               googlePlaceLng: null,
+              googlePlaceTypes: [],
+              googlePlaceTypesResolved: false,
               naverPlaceId: '',
               naverPlaceName: '',
             }))
@@ -5762,6 +5933,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           googlePlaceName: '',
           googlePlaceLat: null,
           googlePlaceLng: null,
+          googlePlaceTypes: [],
+          googlePlaceTypesResolved: false,
           naverPlaceId: '',
           naverPlaceName: '',
         }))
@@ -6235,8 +6408,57 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }, [])
 
+  const setCustomPlaceGoogleTypes = useCallback((placeId: string, googlePlaceId: string, typesValue: unknown, resolved = true) => {
+    const types = cleanGooglePlaceTypes(typesValue)
+    setCustomPlaces((current) => {
+      const place = current[placeId]
+      if (!place || place.googlePlaceId?.trim() !== googlePlaceId.trim()) return current
+      if (sameStringArray(place.googlePlaceTypes, types) && place.googlePlaceTypesResolved === resolved) return current
+
+      const nextPlace: CustomPlannerPlace = {
+        ...place,
+        googlePlaceTypesResolved: resolved,
+      }
+      if (types.length > 0) nextPlace.googlePlaceTypes = types
+      else delete nextPlace.googlePlaceTypes
+      hotelAffiliateAutoSavePendingRef.current = true
+      return { ...current, [placeId]: nextPlace }
+    })
+  }, [])
+
+  const resolveGooglePlaceTypesForCustomPlace = useCallback((place: CustomPlannerPlace) => {
+    if (!shouldResolveCustomPlaceGoogleTypes(place)) return
+    const googlePlaceId = place.googlePlaceId?.trim() ?? ''
+    if (!googlePlaceId) return
+
+    const cached = getCachedGooglePlaceTypes(googlePlaceId)
+    if (cached) {
+      setCustomPlaceGoogleTypes(place.id, googlePlaceId, cached.types, cached.resolved)
+      return
+    }
+
+    if (!window.google?.maps?.Geocoder) return
+    const resolveKey = `${place.id}:${googlePlaceId}`
+    if (googlePlaceTypeResolveRef.current.has(resolveKey)) return
+    googlePlaceTypeResolveRef.current.add(resolveKey)
+
+    const geocoder = new window.google.maps.Geocoder()
+    geocoder.geocode({ placeId: googlePlaceId }, (results, status) => {
+      if (status !== 'OK' && status !== 'ZERO_RESULTS') return
+      const types = status === 'OK' ? cleanGooglePlaceTypes(results?.[0]?.types) : []
+      rememberGooglePlaceTypes(googlePlaceId, types, true)
+      setCustomPlaceGoogleTypes(place.id, googlePlaceId, types, true)
+    })
+  }, [setCustomPlaceGoogleTypes])
+
   const resolveAgodaAffiliateLinkForCustomPlace = useCallback((place: CustomPlannerPlace) => {
-    if (readOnlyPlan || cleanCustomPlaceCategory(place.category) !== 'hotel') return
+    const eligibility = customPlaceHotelAffiliateEligibility(place)
+    if (readOnlyPlan || eligibility !== 'eligible') {
+      if (!readOnlyPlan && eligibility === 'skipped') {
+        setAgodaAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
+      }
+      return
+    }
     const hotelName = (place.googlePlaceName || place.name).trim()
     const affiliateLat = place.googlePlaceLat ?? place.lat
     const affiliateLng = place.googlePlaceLng ?? place.lng
@@ -6308,7 +6530,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [appendHotelAffiliateLink, config, readOnlyPlan])
 
   const resolveTripAffiliateLinkForCustomPlace = useCallback((place: CustomPlannerPlace) => {
-    if (readOnlyPlan || cleanCustomPlaceCategory(place.category) !== 'hotel') return
+    const eligibility = customPlaceHotelAffiliateEligibility(place)
+    if (readOnlyPlan || eligibility !== 'eligible') {
+      if (!readOnlyPlan && eligibility === 'skipped') {
+        setTripAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
+      }
+      return
+    }
     const hotelName = (place.googlePlaceName || place.name).trim()
     if (!hotelName || !Number.isFinite(place.lat) || !Number.isFinite(place.lng)) {
       setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
@@ -6372,10 +6600,39 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       .finally(() => window.clearTimeout(timeout))
   }, [appendHotelAffiliateLink, config, readOnlyPlan])
 
+  const forceHotelAffiliateLookupForCustomPlace = useCallback(
+    (placeId: string) => {
+      const place = customPlaces[placeId]
+      if (!place || readOnlyPlan) return
+      const manualPlace: CustomPlannerPlace = { ...place, hotelAffiliateManual: true }
+      const links = [...(place.links ?? []), ...(placeUserLinks[placeId] ?? [])]
+      hotelAffiliateAutoSavePendingRef.current = true
+      setCustomPlaces((current) => ({ ...current, [placeId]: manualPlace }))
+      if (!hasHotelAffiliateProviderLink(links, 'Agoda')) resolveAgodaAffiliateLinkForCustomPlace(manualPlace)
+      if (!hasHotelAffiliateProviderLink(links, 'Trip')) resolveTripAffiliateLinkForCustomPlace(manualPlace)
+    },
+    [customPlaces, placeUserLinks, readOnlyPlan, resolveAgodaAffiliateLinkForCustomPlace, resolveTripAffiliateLinkForCustomPlace],
+  )
+
+  useEffect(() => {
+    if (!storageReady || readOnlyPlan || !mapReady) return
+    Object.values(customPlaces).forEach((place) => {
+      resolveGooglePlaceTypesForCustomPlace(place)
+    })
+  }, [customPlaces, mapReady, readOnlyPlan, resolveGooglePlaceTypesForCustomPlace, storageReady])
+
   useEffect(() => {
     if (!storageReady || readOnlyPlan) return
     Object.values(customPlaces).forEach((place) => {
       if (cleanCustomPlaceCategory(place.category) !== 'hotel') return
+      const eligibility = customPlaceHotelAffiliateEligibility(place)
+      if (eligibility !== 'eligible') {
+        if (eligibility === 'skipped') {
+          setAgodaAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
+          setTripAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
+        }
+        return
+      }
       const links = [...(place.links ?? []), ...(placeUserLinks[place.id] ?? [])]
       const lat = place.googlePlaceLat ?? place.lat
       const lng = place.googlePlaceLng ?? place.lng
@@ -6447,6 +6704,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       googlePlaceName: place.googlePlaceName ?? '',
       googlePlaceLat: place.googlePlaceLat ?? null,
       googlePlaceLng: place.googlePlaceLng ?? null,
+      googlePlaceTypes: cleanGooglePlaceTypes(place.googlePlaceTypes),
+      googlePlaceTypesResolved: place.googlePlaceTypesResolved === true,
       naverUrl: place.naverUrl ?? '',
       naverPlaceId: place.naverPlaceId ?? '',
       naverPlaceName: place.naverPlaceName ?? '',
@@ -6543,6 +6802,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const lng = location.lng()
       const name = resolvedName || cleanGoogleMapsQueryPlaceName(query)
       const googlePlaceId = results?.[0]?.place_id?.trim() ?? ''
+      const googlePlaceTypes = cleanGooglePlaceTypes(results?.[0]?.types)
       setResolvedMapUrlCache(cacheKey, {
         url: resolvedUrl,
         ...(name ? { name } : {}),
@@ -6550,7 +6810,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         lat,
         lng,
         ...(googlePlaceId ? { googlePlaceId } : {}),
+        ...(googlePlaceTypes.length > 0 ? { googlePlaceTypes } : {}),
         googlePlaceIdResolved: true,
+        googlePlaceTypesResolved: googlePlaceTypes.length > 0,
       })
       setCustomDraft((draft) => ({
         ...draft,
@@ -6561,6 +6823,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         ...(googlePlaceId
           ? { googlePlaceId, googlePlaceName: name, googlePlaceLat: lat, googlePlaceLng: lng }
           : {}),
+        googlePlaceTypes,
+        googlePlaceTypesResolved: googlePlaceTypes.length > 0,
         picking: true,
       }))
       revealResolvedCustomPlace({ lat, lng })
@@ -6585,6 +6849,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       googlePlaceName: directGooglePlaceId ? parsedName : '',
       googlePlaceLat: directGooglePlaceId && coordinates ? coordinates.lat : null,
       googlePlaceLng: directGooglePlaceId && coordinates ? coordinates.lng : null,
+      googlePlaceTypes: [],
+      googlePlaceTypesResolved: false,
       ...(!draft.name.trim() && parsedName ? { name: parsedName } : {}),
       ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng, picking: true } : {}),
     }))
@@ -6602,6 +6868,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const resolvedName =
         cleanGoogleMapsQueryPlaceName(cachedResolved.name || '') || parseGoogleMapsPlaceName(cachedResolved.url)
       const cachedGooglePlaceId = cachedResolved.googlePlaceId || googleMapsPlaceIdFromUrl(cachedResolved.url)
+      const cachedGooglePlaceTypes = cleanGooglePlaceTypes(cachedResolved.googlePlaceTypes)
       if (!resolvedCoordinates && cachedResolved.query) {
         if (geocodeResolvedMapQuery(cachedResolved.query, cachedResolved.url, resolvedName, trimmedGoogleUrl, nextSeq)) return
         continueCustomPlaceManually(resolvedName)
@@ -6624,6 +6891,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 googlePlaceLng: resolvedCoordinates.lng,
               }
             : {}),
+          googlePlaceTypes: cachedGooglePlaceTypes,
+          googlePlaceTypesResolved: cachedResolved.googlePlaceTypesResolved === true || cachedGooglePlaceTypes.length > 0,
           picking: true,
         }))
         revealResolvedCustomPlace(resolvedCoordinates)
@@ -6660,6 +6929,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           ...(resolvedLng != null ? { lng: resolvedLng } : {}),
           ...(resolvedGooglePlaceId ? { googlePlaceId: resolvedGooglePlaceId } : {}),
           googlePlaceIdResolved: true,
+          googlePlaceTypesResolved: false,
         })
         const resolvedCoordinates =
           resolvedLat != null && resolvedLng != null ? { lat: resolvedLat, lng: resolvedLng } : parseGoogleMapsUrl(resolvedUrl)
@@ -6687,6 +6957,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       googlePlaceLng: resolvedCoordinates.lng,
                     }
                   : {}),
+                googlePlaceTypes: [],
+                googlePlaceTypesResolved: false,
                 picking: true,
               }
             : {}),
@@ -6742,9 +7014,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ...(customDraft.googlePlaceId.trim() && customDraft.googlePlaceLat != null && customDraft.googlePlaceLng != null
         ? { googlePlaceLat: customDraft.googlePlaceLat, googlePlaceLng: customDraft.googlePlaceLng }
         : {}),
+      ...(customDraft.googlePlaceTypes.length > 0 ? { googlePlaceTypes: cleanGooglePlaceTypes(customDraft.googlePlaceTypes) } : {}),
+      ...(customDraft.googlePlaceTypesResolved ? { googlePlaceTypesResolved: true } : {}),
       ...(customDraft.naverUrl.trim() ? { naverUrl: customDraft.naverUrl.trim() } : {}),
       ...(customDraft.naverPlaceId.trim() ? { naverPlaceId: customDraft.naverPlaceId.trim() } : {}),
       ...(customDraft.naverPlaceName.trim() ? { naverPlaceName: customDraft.naverPlaceName.trim() } : {}),
+      ...(existingPlace?.hotelAffiliateManual ? { hotelAffiliateManual: true } : {}),
       ...(nextLinks.length > 0 ? { links: nextLinks } : {}),
     }
 
@@ -6798,6 +7073,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ...(match.googlePlaceLat != null && match.googlePlaceLng != null
         ? { googlePlaceLat: match.googlePlaceLat, googlePlaceLng: match.googlePlaceLng }
         : {}),
+      ...(cleanGooglePlaceTypes(match.googlePlaceTypes).length > 0 ? { googlePlaceTypes: cleanGooglePlaceTypes(match.googlePlaceTypes) } : {}),
+      ...(match.googlePlaceTypesResolved ? { googlePlaceTypesResolved: true } : {}),
       ...(match.naverPlaceId ? { naverPlaceId: match.naverPlaceId } : {}),
       ...(match.naverPlaceName ? { naverPlaceName: match.naverPlaceName } : {}),
     }
@@ -6861,6 +7138,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (status !== 'OK' || !results?.[0]?.geometry?.location) return
       const location = results[0].geometry.location
       const googlePlaceId = results[0].place_id?.trim() ?? ''
+      const googlePlaceTypes = cleanGooglePlaceTypes(results[0].types)
       setCustomDraft((draft) => {
         if (!draft.id || !draft.nameConfirmed) return draft
         const lat = location.lat()
@@ -6877,6 +7155,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 googlePlaceLng: lng,
               }
             : {}),
+          googlePlaceTypes,
+          googlePlaceTypesResolved: googlePlaceTypes.length > 0,
           picking: true,
         }
       })
@@ -7894,6 +8174,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     const displayAddedCount = addedCount || (justAdded ? 1 : 0)
                     const added = displayAddedCount > 0
                     const isCustomPlace = isCustomPlaceId(place.id)
+                    const customPlace = isCustomPlace ? customPlaces[place.id] : undefined
+                    const customHotelLinks = customPlace ? [...(customPlace.links ?? []), ...(placeUserLinks[place.id] ?? [])] : []
+                    const customHotelEligibility = customPlace ? customPlaceHotelAffiliateEligibility(customPlace) : 'skipped'
+                    const showManualHotelAffiliateLookup =
+                      Boolean(customPlace) &&
+                      !readOnlyPlan &&
+                      plannerPlaceCategory(place, customCategoryItems) === 'hotel' &&
+                      customHotelEligibility === 'skipped' &&
+                      (!hasHotelAffiliateProviderLink(customHotelLinks, 'Agoda') ||
+                        !hasHotelAffiliateProviderLink(customHotelLinks, 'Trip'))
                     const hotelAffiliateStatuses =
                       isCustomPlace && plannerPlaceCategory(place, customCategoryItems) === 'hotel'
                         ? [
@@ -7946,6 +8236,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           {hotelAffiliateStatuses.map((status) => (
                             <span key={status} className={styles.affiliateStatus}>{status}</span>
                           ))}
+                          {showManualHotelAffiliateLookup ? (
+                            <button
+                              type="button"
+                              className={styles.affiliateLookupButton}
+                              onClick={() => forceHotelAffiliateLookupForCustomPlace(place.id)}
+                            >
+                              仍查住宿
+                            </button>
+                          ) : null}
                           <span className={styles.inlineMapLinks}>
                             <PlannerInlineCardLinks place={place} userLinks={placeUserLinks[place.id] ?? []} />
                           </span>

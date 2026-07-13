@@ -17,6 +17,8 @@ export type MapPlace = {
   googlePlaceName?: string
   googlePlaceLat?: number
   googlePlaceLng?: number
+  googlePlaceTypes?: string[]
+  googlePlaceTypesResolved?: boolean
   naverPlaceId?: string
   naverPlaceName?: string
   mapButtonMapEvent?: string

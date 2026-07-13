@@ -1130,6 +1130,27 @@
   white-space: nowrap;
 }
 
+.affiliateLookupButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border: 1px solid color-mix(in srgb, var(--planner-category-color, var(--cta)) 24%, #ffffff);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #ffffff;
+  color: var(--planner-category-color, var(--cta));
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.affiliateLookupButton:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
 .inlineMapLinks {
   display: contents;
   align-self: center;
