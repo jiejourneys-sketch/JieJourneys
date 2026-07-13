@@ -76,6 +76,15 @@ type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_co
 type PlannerCountryCode = 'JP' | 'KR' | 'VN' | 'TW' | ''
 type HotelAffiliateEligibility = 'eligible' | 'pending_place_type' | 'skipped'
 type HotelAffiliateNameSignal = 'lodging' | 'non_lodging' | 'unknown'
+type GooglePlaceDetailsData = {
+  name?: string
+  formattedAddress?: string
+  lat?: number
+  lng?: number
+  types?: string[]
+  googleMapsUrl?: string
+  website?: string
+}
 type HotelAffiliatePlannerResponse = {
   matchStatus?: string
   bestMatch?: {
@@ -212,6 +221,9 @@ const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v2'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
+const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v1:'
+const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
+const GOOGLE_PLACE_DETAILS_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_HIT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
@@ -622,8 +634,21 @@ function shouldResolveCustomPlaceGoogleTypes(place: CustomPlannerPlace) {
   return hotelAffiliateNameSignal(place) === 'unknown'
 }
 
+function shouldResolveCustomPlaceGoogleDetails(place: CustomPlannerPlace) {
+  if (cleanCustomPlaceCategory(place.category) !== 'hotel') return false
+  if (!place.googlePlaceId?.trim()) return false
+  const hasName = Boolean(place.googlePlaceName?.trim())
+  const hasTypes = place.googlePlaceTypesResolved || cleanGooglePlaceTypes(place.googlePlaceTypes).length > 0
+  const hasCoordinates = Number.isFinite(place.googlePlaceLat) && Number.isFinite(place.googlePlaceLng)
+  return !hasName || !hasTypes || !hasCoordinates
+}
+
 function googlePlaceTypesCacheKey(placeId: string) {
   return `${GOOGLE_PLACE_TYPES_CACHE_PREFIX}${encodeURIComponent(placeId.trim())}`
+}
+
+function googlePlaceDetailsCacheKey(placeId: string) {
+  return `${GOOGLE_PLACE_DETAILS_CACHE_PREFIX}${encodeURIComponent(placeId.trim())}`
 }
 
 function getCachedGooglePlaceTypes(placeId: string) {
@@ -646,6 +671,84 @@ function rememberGooglePlaceTypes(placeId: string, types: string[], resolved = t
   } catch {
     // Type caching is best-effort only.
   }
+}
+
+function getCachedGooglePlaceDetails(placeId: string): GooglePlaceDetailsData | null {
+  if (typeof window === 'undefined' || !placeId.trim()) return null
+  try {
+    const raw = window.localStorage.getItem(googlePlaceDetailsCacheKey(placeId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { details?: unknown; expiresAt?: unknown; retryAfter?: unknown }
+    const retryAfter = typeof parsed.retryAfter === 'number' ? parsed.retryAfter : 0
+    if (retryAfter > Date.now()) return null
+    const expiresAt = typeof parsed.expiresAt === 'number' ? parsed.expiresAt : 0
+    if (expiresAt <= Date.now()) {
+      window.localStorage.removeItem(googlePlaceDetailsCacheKey(placeId))
+      return null
+    }
+    return cleanGooglePlaceDetails(parsed.details)
+  } catch {
+    return null
+  }
+}
+
+function googlePlaceDetailsCoolingDown(placeId: string) {
+  if (typeof window === 'undefined' || !placeId.trim()) return false
+  try {
+    const raw = window.localStorage.getItem(googlePlaceDetailsCacheKey(placeId))
+    if (!raw) return false
+    const parsed = JSON.parse(raw) as { retryAfter?: unknown }
+    const retryAfter = typeof parsed.retryAfter === 'number' ? parsed.retryAfter : 0
+    if (retryAfter > Date.now()) return true
+    if (retryAfter > 0) window.localStorage.removeItem(googlePlaceDetailsCacheKey(placeId))
+    return false
+  } catch {
+    return false
+  }
+}
+
+function rememberGooglePlaceDetails(placeId: string, details: GooglePlaceDetailsData) {
+  if (typeof window === 'undefined' || !placeId.trim()) return
+  try {
+    window.localStorage.setItem(
+      googlePlaceDetailsCacheKey(placeId),
+      JSON.stringify({ details, expiresAt: Date.now() + GOOGLE_PLACE_DETAILS_CACHE_TTL_MS }),
+    )
+  } catch {
+    // Details caching is best-effort only.
+  }
+}
+
+function rememberGooglePlaceDetailsMiss(placeId: string) {
+  if (typeof window === 'undefined' || !placeId.trim()) return
+  try {
+    window.localStorage.setItem(
+      googlePlaceDetailsCacheKey(placeId),
+      JSON.stringify({ retryAfter: Date.now() + GOOGLE_PLACE_DETAILS_ERROR_COOLDOWN_MS }),
+    )
+  } catch {
+    // Details caching is best-effort only.
+  }
+}
+
+function cleanGooglePlaceDetails(value: unknown): GooglePlaceDetailsData | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const data = value as Record<string, unknown>
+  const lat = typeof data.lat === 'number' && Number.isFinite(data.lat) ? data.lat : undefined
+  const lng = typeof data.lng === 'number' && Number.isFinite(data.lng) ? data.lng : undefined
+  const types = cleanGooglePlaceTypes(data.types)
+  const details: GooglePlaceDetailsData = {
+    ...(typeof data.name === 'string' && data.name.trim() ? { name: data.name.trim().slice(0, 160) } : {}),
+    ...(typeof data.formattedAddress === 'string' && data.formattedAddress.trim()
+      ? { formattedAddress: data.formattedAddress.trim().slice(0, 240) }
+      : {}),
+    ...(lat != null ? { lat } : {}),
+    ...(lng != null ? { lng } : {}),
+    ...(types.length > 0 ? { types } : {}),
+    ...(typeof data.googleMapsUrl === 'string' && data.googleMapsUrl.trim() ? { googleMapsUrl: data.googleMapsUrl.trim().slice(0, 500) } : {}),
+    ...(typeof data.website === 'string' && data.website.trim() ? { website: data.website.trim().slice(0, 500) } : {}),
+  }
+  return Object.keys(details).length > 0 ? details : null
 }
 
 function hotelAffiliateLookupCacheKey(provider: 'Agoda' | 'Trip', hotelName: string, latitude: number, longitude: number) {
@@ -1005,12 +1108,38 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
 
     const s = document.createElement('script')
     s.id = SCRIPT_ID
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}`
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places`
     s.async = true
     s.onload = () => resolve()
     s.onerror = () => reject(new Error('load failed'))
     document.head.appendChild(s)
   })
+}
+
+async function loadGooglePlacesLibrary() {
+  if (typeof window === 'undefined') return false
+  if (window.google?.maps?.places?.PlacesService) return true
+  const importer = (window.google?.maps as (typeof google.maps & { importLibrary?: (name: string) => Promise<unknown> }) | undefined)?.importLibrary
+  if (typeof importer !== 'function') return false
+  await importer('places').catch(() => null)
+  return Boolean(window.google?.maps?.places?.PlacesService)
+}
+
+function googlePlaceDetailsFromPlaceResult(result: google.maps.places.PlaceResult | null | undefined): GooglePlaceDetailsData | null {
+  if (!result) return null
+  const location = result.geometry?.location
+  const lat = location ? location.lat() : undefined
+  const lng = location ? location.lng() : undefined
+  const details: GooglePlaceDetailsData = {
+    ...(result.name?.trim() ? { name: result.name.trim().slice(0, 160) } : {}),
+    ...(result.formatted_address?.trim() ? { formattedAddress: result.formatted_address.trim().slice(0, 240) } : {}),
+    ...(typeof lat === 'number' && Number.isFinite(lat) ? { lat } : {}),
+    ...(typeof lng === 'number' && Number.isFinite(lng) ? { lng } : {}),
+    ...(cleanGooglePlaceTypes(result.types).length > 0 ? { types: cleanGooglePlaceTypes(result.types) } : {}),
+    ...(result.url?.trim() ? { googleMapsUrl: result.url.trim().slice(0, 500) } : {}),
+    ...(result.website?.trim() ? { website: result.website.trim().slice(0, 500) } : {}),
+  }
+  return Object.keys(details).length > 0 ? details : null
 }
 
 function googleMapsPinUrl(place: MapPlace) {
@@ -3985,6 +4114,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const mapUserGestureUntilRef = useRef(0)
   const locateButtonRef = useRef<HTMLButtonElement | null>(null)
   const customUrlResolveSeqRef = useRef(0)
+  const googlePlaceDetailsResolveRef = useRef<Set<string>>(new Set())
   const addCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const planCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const dayDividerRefs = useRef<Record<string, HTMLElement | null>>({})
@@ -6452,6 +6582,104 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }, [])
 
+  const setCustomPlaceGoogleDetails = useCallback((
+    placeId: string,
+    googlePlaceId: string,
+    details: GooglePlaceDetailsData,
+    options?: { persist?: boolean },
+  ) => {
+    const types = cleanGooglePlaceTypes(details.types)
+    const shouldPersist = options?.persist !== false
+    setCustomPlaces((current) => {
+      const place = current[placeId]
+      if (!place || place.googlePlaceId?.trim() !== googlePlaceId.trim()) return current
+
+      const nextPlace: CustomPlannerPlace = { ...place }
+      const nextName = details.name?.trim()
+      if (nextName && nextName !== place.googlePlaceName) nextPlace.googlePlaceName = nextName
+      if (typeof details.lat === 'number' && typeof details.lng === 'number') {
+        nextPlace.googlePlaceLat = details.lat
+        nextPlace.googlePlaceLng = details.lng
+      }
+      if (types.length > 0) nextPlace.googlePlaceTypes = types
+      nextPlace.googlePlaceTypesResolved = true
+
+      const unchanged =
+        nextPlace.googlePlaceName === place.googlePlaceName &&
+        nextPlace.googlePlaceLat === place.googlePlaceLat &&
+        nextPlace.googlePlaceLng === place.googlePlaceLng &&
+        sameStringArray(cleanGooglePlaceTypes(nextPlace.googlePlaceTypes), cleanGooglePlaceTypes(place.googlePlaceTypes)) &&
+        nextPlace.googlePlaceTypesResolved === place.googlePlaceTypesResolved
+      if (unchanged) return current
+
+      if (shouldPersist) hotelAffiliateAutoSavePendingRef.current = true
+      return { ...current, [placeId]: nextPlace }
+    })
+  }, [])
+
+  const resolveGooglePlaceDetailsInBrowser = useCallback(async (googlePlaceId: string) => {
+    const placesReady = await loadGooglePlacesLibrary()
+    if (!placesReady || !window.google?.maps?.places?.PlacesService) return null
+    const serviceHost = mapRef.current ?? document.createElement('div')
+    const service = new google.maps.places.PlacesService(serviceHost)
+    return new Promise<GooglePlaceDetailsData | null>((resolve) => {
+      service.getDetails(
+        {
+          placeId: googlePlaceId,
+          fields: ['place_id', 'name', 'formatted_address', 'geometry', 'types', 'url', 'website'],
+        },
+        (result, status) => {
+          if (status !== google.maps.places.PlacesServiceStatus.OK) {
+            resolve(null)
+            return
+          }
+          resolve(googlePlaceDetailsFromPlaceResult(result))
+        },
+      )
+    })
+  }, [])
+
+  const resolveGooglePlaceDetailsForCustomPlace = useCallback((place: CustomPlannerPlace) => {
+    if (!shouldResolveCustomPlaceGoogleDetails(place)) return
+    const googlePlaceId = place.googlePlaceId?.trim() ?? ''
+    if (!googlePlaceId) return
+
+    const cached = getCachedGooglePlaceDetails(googlePlaceId)
+    if (cached) {
+      setCustomPlaceGoogleDetails(place.id, googlePlaceId, cached, { persist: !readOnlyPlan })
+      return
+    }
+    if (googlePlaceDetailsCoolingDown(googlePlaceId)) return
+
+    const resolveKey = `${place.id}:${googlePlaceId}`
+    if (googlePlaceDetailsResolveRef.current.has(resolveKey)) return
+    googlePlaceDetailsResolveRef.current.add(resolveKey)
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 10000)
+    const loadDetails = async () => {
+      const res = await fetch(`/api/pass-planner/google-place-details?placeId=${encodeURIComponent(googlePlaceId)}&language=en`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      }).catch(() => null)
+      const data = res?.ok ? await res.json().catch(() => null) : null
+      return cleanGooglePlaceDetails(data) ?? await resolveGooglePlaceDetailsInBrowser(googlePlaceId)
+    }
+    loadDetails()
+      .then((details) => {
+        if (!details) {
+          rememberGooglePlaceDetailsMiss(googlePlaceId)
+          return
+        }
+        rememberGooglePlaceDetails(googlePlaceId, details)
+        setCustomPlaceGoogleDetails(place.id, googlePlaceId, details, { persist: !readOnlyPlan })
+      })
+      .catch(() => {
+        rememberGooglePlaceDetailsMiss(googlePlaceId)
+      })
+      .finally(() => window.clearTimeout(timeout))
+  }, [readOnlyPlan, resolveGooglePlaceDetailsInBrowser, setCustomPlaceGoogleDetails])
+
   const resolveGooglePlaceTypesForCustomPlace = useCallback((place: CustomPlannerPlace) => {
     if (!shouldResolveCustomPlaceGoogleTypes(place)) return
     const googlePlaceId = place.googlePlaceId?.trim() ?? ''
@@ -6655,9 +6883,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   useEffect(() => {
     if (!storageReady || readOnlyPlan || !mapReady) return
     Object.values(customPlaces).forEach((place) => {
-      resolveGooglePlaceTypesForCustomPlace(place)
+      if (shouldResolveCustomPlaceGoogleDetails(place)) resolveGooglePlaceDetailsForCustomPlace(place)
+      else resolveGooglePlaceTypesForCustomPlace(place)
     })
-  }, [customPlaces, mapReady, readOnlyPlan, resolveGooglePlaceTypesForCustomPlace, storageReady])
+  }, [customPlaces, mapReady, readOnlyPlan, resolveGooglePlaceDetailsForCustomPlace, resolveGooglePlaceTypesForCustomPlace, storageReady])
 
   useEffect(() => {
     if (!storageReady) return
