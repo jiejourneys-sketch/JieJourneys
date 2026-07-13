@@ -1164,6 +1164,11 @@
     max-height: 55vh;
   }
 
+  .mobileSheetFull {
+    height: calc(100dvh - 8px);
+    max-height: calc(100dvh - 8px);
+  }
+
   /* 地標點選後：僅一張卡片，高度依內容（不超過螢幕比例） */
   .mobileSheetExpandedSingle {
     height: auto;

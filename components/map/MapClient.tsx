@@ -74,6 +74,7 @@ const NAVER_MAP_APP_NAME = 'www.jiejourneys.com'
 
 type LocationFollowMode = 'idle' | 'follow' | 'heading'
 type LocateButtonMode = 'idle' | 'located' | 'requesting' | 'following' | 'heading' | 'paused-follow' | 'paused-heading'
+type MobileSheetState = 'collapsed' | 'half' | 'full'
 
 function useMobileMapLayout() {
   const [yes, setYes] = useState(false)
@@ -485,9 +486,10 @@ function panMobileMarkerAboveSheet(map: google.maps.Map) {
 }
 
 function getMobileSheetMetrics() {
-  if (typeof window === 'undefined') return { collapsedPx: 72, expandedPx: 400 }
+  if (typeof window === 'undefined') return { collapsedPx: 72, expandedPx: 400, fullPx: 720 }
   const h = window.innerHeight
-  return { collapsedPx: Math.round(h * 0.1), expandedPx: Math.round(h * 0.55) }
+  const expandedPx = Math.round(h * 0.55)
+  return { collapsedPx: Math.round(h * 0.1), expandedPx, fullPx: Math.max(expandedPx, h - 8) }
 }
 
 function scrollCardIntoScrollContainer(container: HTMLElement, card: HTMLElement) {
@@ -881,6 +883,7 @@ export default function MapClient({
     startHeightPx: number
     collapsedPx: number
     expandedPx: number
+    fullPx: number
   } | null>(null)
   const sheetLiveHeightRef = useRef<number | null>(null)
   const singleSwipeStartRef = useRef<number | null>(null)
@@ -892,11 +895,22 @@ export default function MapClient({
 
   const isMobileMapLayout = useMobileMapLayout()
   const siteHeaderPx = useSiteHeaderHeightPx()
-  const [mobileSheetExpanded, setMobileSheetExpanded] = useState(false)
+  const [mobileSheetState, setMobileSheetState] = useState<MobileSheetState>('collapsed')
   const [mobileSheetBrowseDual, setMobileSheetBrowseDual] = useState(true)
   const [sheetDragging, setSheetDragging] = useState(false)
   const [sheetDragHeightPx, setSheetDragHeightPx] = useState<number | null>(null)
   const [mobileBelowContentActive, setMobileBelowContentActive] = useState(false)
+  const mobileSheetExpanded = mobileSheetState !== 'collapsed'
+  const setMobileSheetExpanded = useCallback((next: boolean | ((expanded: boolean) => boolean)) => {
+    setMobileSheetState((state) => {
+      const expanded = state !== 'collapsed'
+      const resolved = typeof next === 'function' ? next(expanded) : next
+      return resolved ? (state === 'full' ? 'full' : 'half') : 'collapsed'
+    })
+  }, [])
+  const cycleMobileSheetState = useCallback(() => {
+    setMobileSheetState((state) => (state === 'collapsed' ? 'half' : state === 'half' ? 'full' : 'collapsed'))
+  }, [])
 
   const activeCategoryItems = categoryItems ?? CITY_MAP_CATEGORY_TOGGLE_ITEMS
   const categoryLabelMap = useMemo(
@@ -1032,9 +1046,13 @@ export default function MapClient({
   }, [filteredPlaces, selectedId])
 
   const showSingleMobileCard =
-    mobileSheetExpanded && !!selectedPlace && !mobileSheetBrowseDual && hasAnyListPlaces
+    mobileSheetState === 'half' && !!selectedPlace && !mobileSheetBrowseDual && hasAnyListPlaces
 
   showSingleMobileCardRef.current = showSingleMobileCard
+
+  useEffect(() => {
+    if (mobileSheetState === 'full' && !mobileSheetBrowseDual) setMobileSheetBrowseDual(true)
+  }, [mobileSheetBrowseDual, mobileSheetState])
 
   const focusPlace = useCallback((place: MapPlace, source: FocusSource = 'list') => {
     setSelectedId(place.id)
@@ -1075,7 +1093,7 @@ export default function MapClient({
         align(isDesktopViewport() ? 'smooth' : 'smooth')
       })
     })
-  }, [])
+  }, [setMobileSheetExpanded])
 
   useEffect(() => {
     if (!mapReady || typeof window === 'undefined') return
@@ -1433,7 +1451,7 @@ export default function MapClient({
       google.maps.event.removeListener(clickL)
       google.maps.event.removeListener(zoomL)
     }
-  }, [mapReady, isMobileMapLayout])
+  }, [mapReady, isMobileMapLayout, setMobileSheetExpanded])
 
   useEffect(() => {
     if (!mapReady || !mapRef.current || !isMobileMapLayout) return
@@ -1441,7 +1459,7 @@ export default function MapClient({
       google.maps.event.trigger(mapRef.current!, 'resize')
     }, 300)
     return () => window.clearTimeout(t)
-  }, [mobileSheetExpanded, mapReady, isMobileMapLayout])
+  }, [mobileSheetState, mapReady, isMobileMapLayout])
 
   const markLocationAutoCentering = useCallback((duration = 700) => {
     autoCenteringLocationRef.current = true
@@ -1678,7 +1696,7 @@ export default function MapClient({
     prevMobileLayoutRef.current = isMobileMapLayout
     // 只在「手機 → 桌機」切換時重置 sheet，避免 mount 時因 isMobileMapLayout 初始 false 誤觸展開
     if (wasMobile && !isMobileMapLayout) setMobileSheetExpanded(false)
-  }, [isMobileMapLayout])
+  }, [isMobileMapLayout, setMobileSheetExpanded])
 
   useEffect(() => {
     const el = mobileScrollContainerRef.current
@@ -1742,14 +1760,14 @@ export default function MapClient({
       el.removeEventListener('touchend', onEnd)
       el.removeEventListener('touchcancel', onEnd)
     }
-  }, [isMobileMapLayout, showSingleMobileCard, selectedPlace?.id])
+  }, [isMobileMapLayout, showSingleMobileCard, selectedPlace?.id, setMobileSheetExpanded])
 
   const onMobileSheetDragPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return
     const sheet = mobileSheetRef.current
     if (!sheet) return
     singleCardWhenSheetDragStartedRef.current = showSingleMobileCardRef.current
-    const { collapsedPx, expandedPx } = getMobileSheetMetrics()
+    const { collapsedPx, expandedPx, fullPx } = getMobileSheetMetrics()
     const startHeightPx = Math.round(sheet.getBoundingClientRect().height)
     sheetDragSessionRef.current = {
       pointerId: e.pointerId,
@@ -1757,6 +1775,7 @@ export default function MapClient({
       startHeightPx,
       collapsedPx,
       expandedPx,
+      fullPx,
     }
     sheetLiveHeightRef.current = startHeightPx
     setSheetDragHeightPx(startHeightPx)
@@ -1792,7 +1811,7 @@ export default function MapClient({
 
     const delta = d.startY - e.clientY
     const next = Math.round(d.startHeightPx + delta)
-    const clamped = Math.min(d.expandedPx, Math.max(d.collapsedPx, next))
+    const clamped = Math.min(d.fullPx, Math.max(d.collapsedPx, next))
     sheetLiveHeightRef.current = clamped
     setSheetDragHeightPx(clamped)
   }, [])
@@ -1810,19 +1829,26 @@ export default function MapClient({
     const finalH = sheetLiveHeightRef.current ?? d.startHeightPx
     const moved = Math.abs(finalH - d.startHeightPx) > 8
     sheetLiveHeightRef.current = null
-    const mid = (d.collapsedPx + d.expandedPx) / 2
     const singleAtStart = singleCardWhenSheetDragStartedRef.current
     singleCardWhenSheetDragStartedRef.current = false
     if (!moved) {
-      setMobileSheetExpanded((prev) => !prev)
+      cycleMobileSheetState()
     } else {
-      setMobileSheetExpanded(finalH >= mid)
+      const snapPoints = [
+        { state: 'collapsed' as const, height: d.collapsedPx },
+        { state: 'half' as const, height: d.expandedPx },
+        { state: 'full' as const, height: d.fullPx },
+      ]
+      const nearest = snapPoints.reduce((best, point) =>
+        Math.abs(point.height - finalH) < Math.abs(best.height - finalH) ? point : best,
+      )
+      setMobileSheetState(nearest.state)
     }
     if (singleAtStart && moved && finalH > d.startHeightPx + 12) {
       setMobileSheetBrowseDual(true)
     }
     setSheetDragHeightPx(null)
-  }, [])
+  }, [cycleMobileSheetState])
 
   const onMobileSheetClose = useCallback((e: ReactMouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
@@ -1832,7 +1858,7 @@ export default function MapClient({
     setSheetDragging(false)
     setSheetDragHeightPx(null)
     setMobileSheetExpanded(false)
-  }, [])
+  }, [setMobileSheetExpanded])
 
   const onMobileSinglePointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     singleSwipeStartRef.current = e.clientY
@@ -1849,7 +1875,7 @@ export default function MapClient({
         singleSwipeStartRef.current = null
       }
     },
-    [mobileSheetBrowseDual],
+    [mobileSheetBrowseDual, setMobileSheetExpanded],
   )
 
   const onMobileSinglePointerUp = useCallback(() => {
@@ -1874,7 +1900,7 @@ export default function MapClient({
         singleSwipeStartRef.current = null
       }
     },
-    [mobileSheetBrowseDual],
+    [mobileSheetBrowseDual, setMobileSheetExpanded],
   )
 
   const onMobileSingleTouchEnd = useCallback(() => {
@@ -1897,8 +1923,9 @@ export default function MapClient({
     }
     const delta = e.touches[0].clientY - dualScrollPullStartRef.current
     if (delta > 60) {
+      if (e.cancelable) e.preventDefault()
       dualScrollPullStartRef.current = null
-      setMobileSheetExpanded(false)
+      setMobileSheetState((state) => (state === 'full' ? 'half' : 'collapsed'))
     }
   }, [])
 
@@ -1926,7 +1953,7 @@ export default function MapClient({
         page_path: location.pathname,
       })
     }
-  }, [gtagPrefix])
+  }, [gtagPrefix, setMobileSheetExpanded])
 
   useEffect(() => {
     if (!isMobileMapLayout || !belowContent) {
@@ -2483,11 +2510,13 @@ export default function MapClient({
           className={`${styles.mobileSheet} ${mobileBelowContentActive ? styles.mobileSheetHidden : ''} ${
             sheetDragging ? styles.mobileSheetDragging : ''
           } ${
-            !mobileSheetExpanded
+            mobileSheetState === 'collapsed'
               ? styles.mobileSheetCollapsed
-              : showSingleMobileCard
-                ? styles.mobileSheetExpandedSingle
-                : styles.mobileSheetExpanded
+              : mobileSheetState === 'full'
+                ? styles.mobileSheetFull
+                : showSingleMobileCard
+                  ? styles.mobileSheetExpandedSingle
+                  : styles.mobileSheetExpanded
           }`}
           style={
             sheetDragHeightPx != null
@@ -2503,7 +2532,11 @@ export default function MapClient({
               tabIndex={0}
               aria-expanded={mobileSheetExpanded}
               aria-label={
-                mobileSheetExpanded ? '拖曳調整高度，鬆手吸附；點一下切換收合' : '向上拖曳展開；點一下切換'
+                mobileSheetState === 'full'
+                  ? '向下拖曳縮小面板；點一下收合'
+                  : mobileSheetState === 'half'
+                    ? '向上拖曳全屏，向下拖曳收合；點一下切換'
+                    : '向上拖曳展開；點一下切換'
               }
               data-event={`${gtagPrefix}_mobile_sheet_drag`}
               data-item="sheet_drag"
@@ -2514,7 +2547,7 @@ export default function MapClient({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
-                  setMobileSheetExpanded((v) => !v)
+                  cycleMobileSheetState()
                 }
               }}
             />
