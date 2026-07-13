@@ -32,12 +32,52 @@
   line-height: 1.18;
 }
 
+.introRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 10px;
+}
+
+.introRow h1 {
+  margin: 0;
+}
+
 .lead {
   margin: 0 0 22px;
   color: #64748b;
   font-size: 16px;
   font-weight: 700;
   line-height: 1.75;
+}
+
+.guideLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 7px 13px;
+  border: 1px solid rgba(31, 122, 140, 0.28);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1f7a8c;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.guideLink:hover {
+  border-color: rgba(31, 122, 140, 0.5);
+  background: #f0f9fb;
+  color: #1f7a8c;
+}
+
+.guideLinkIcon {
+  font-size: 16px;
 }
 
 .field {
@@ -484,6 +524,18 @@
 
   .panel h1 {
     font-size: 27px;
+  }
+
+  .introRow {
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .guideLink {
+    min-height: 34px;
+    padding: 6px 12px;
+    font-size: 13px;
   }
 
   .lead {

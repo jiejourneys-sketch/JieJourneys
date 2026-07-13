@@ -886,7 +886,19 @@ export default function ToolsPlannerPage() {
       <main className={styles.page}>
         <section className={styles.panel} aria-label="建立通用行程排序">
         <p className={styles.eyebrow}>JieJourneys Planner</p>
-        <h1>旅杰規劃</h1>
+        <div className={styles.introRow}>
+          <h1>旅杰規劃</h1>
+          <a
+            href="https://www.instagram.com/reel/Dap0wcrBB6_/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.guideLink}
+            data-event="plannerIG"
+          >
+            <span className={styles.guideLinkIcon}>🎬</span>
+            看看怎麼用
+          </a>
+        </div>
         <p className={styles.lead}>輸入目的地，開始排行程。</p>
 
         <label className={styles.field}>
