@@ -44,7 +44,7 @@ import {
 } from '@/lib/cityMapPlaceCategory'
 import { cityMapMarkerZIndex, selectedMarkerArrowIcon } from '@/lib/cityMapMarkers'
 import { getGtag } from '@/lib/gtag'
-import { hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
+import { hotelAffiliateGooglePlaceTypeSignal, hotelAffiliatePlaceNameSignal } from '@/lib/hotelAffiliatePlaceSignals'
 import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import type { MapPlace } from '@/lib/mapPlace'
 import styles from './passPlanner.module.css'
@@ -220,7 +220,7 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v3'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v4'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v1:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
@@ -541,6 +541,8 @@ function googlePlaceTypeSignal(types: string[]): HotelAffiliateNameSignal {
 }
 
 function hotelAffiliateNameSignal(place: Pick<CustomPlannerPlace, 'name' | 'googlePlaceName'>): HotelAffiliateNameSignal {
+  const normalizedSignal = hotelAffiliatePlaceNameSignal([place.googlePlaceName, place.name])
+  if (normalizedSignal !== 'unknown') return normalizedSignal
   const text = [place.googlePlaceName, place.name].filter(Boolean).join(' ').toLowerCase()
   if (!text) return 'unknown'
   if (
