@@ -1209,6 +1209,27 @@
   text-decoration: none;
 }
 
+.inlineMapLinks > button.iconLinkActive[data-link-label] {
+  font-size: 0;
+}
+
+.inlineMapLinks > button.iconLinkActive[data-link-label]::before {
+  content: attr(data-link-label);
+  font-size: 12px;
+}
+
+.inlineMapLinks > button.iconLinkActive {
+  border-color: color-mix(in srgb, var(--planner-category-color, var(--cta)) 34%, #ffffff);
+  background: color-mix(in srgb, var(--planner-category-color, var(--cta)) 10%, #ffffff);
+  color: var(--planner-category-color, var(--cta));
+}
+
+.inlineMapLinks > button.iconLinkPrimary {
+  border-color: var(--planner-category-color, var(--cta));
+  background: var(--planner-category-color, var(--cta));
+  color: #ffffff;
+}
+
 .inlineMapLinks .plannerLinksBox {
   order: 10;
   flex: 1 0 100%;

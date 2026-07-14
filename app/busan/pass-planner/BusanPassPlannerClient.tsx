@@ -218,11 +218,11 @@ const PLANNER_BOOK_PARAM = 'p'
 const PLANNER_PREVIEW_PARAM = 'v'
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
-const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v2:'
+const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v3:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v6'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v7'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
-const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v3:'
+const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v4:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 const GOOGLE_PLACE_DETAILS_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_HIT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
@@ -629,6 +629,32 @@ function shouldResolveCustomPlaceGoogleDetails(place: CustomPlannerPlace) {
   const hasTypes = place.googlePlaceTypesResolved || cleanGooglePlaceTypes(place.googlePlaceTypes).length > 0
   const hasCoordinates = Number.isFinite(place.googlePlaceLat) && Number.isFinite(place.googlePlaceLng)
   return !hasTypes || !hasCoordinates || shouldResolveCustomPlaceGoogleAffiliateName(place)
+}
+
+function hasEveryHotelAffiliateProviderLink(links: CustomPlannerLink[] | undefined) {
+  return hasHotelAffiliateProviderLink(links, 'Agoda') && hasHotelAffiliateProviderLink(links, 'Trip')
+}
+
+function shouldResolveCustomPlaceGoogleIdentityForAffiliate(
+  place: CustomPlannerPlace,
+  links: CustomPlannerLink[] | undefined,
+) {
+  if (hasEveryHotelAffiliateProviderLink(links)) return false
+  if (place.googlePlaceId?.trim()) return false
+  const url = place.googleUrl?.trim() ?? ''
+  if (!url || url.includes('PASTE_YOUR_MAPS_LINK') || !shouldResolveGoogleMapsUrl(url)) return false
+
+  const cached = getResolvedMapUrlCache(url)
+  const cachedPlaceId = cached?.googlePlaceId || googleMapsPlaceIdFromUrl(cached?.url)
+  if (cached?.googlePlaceIdResolved && !cachedPlaceId) return false
+
+  const typeSignal = googlePlaceTypeSignal(cleanGooglePlaceTypes(place.googlePlaceTypes))
+  if (typeSignal === 'non_lodging') return false
+
+  const nameSignal = hotelAffiliateNameSignal(place)
+  const userMarkedHotel = cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual === true
+  if (nameSignal === 'non_lodging' && !userMarkedHotel) return false
+  return userMarkedHotel || nameSignal === 'lodging' || typeSignal === 'lodging' || Boolean(cachedPlaceId)
 }
 
 function googlePlaceTypesCacheKey(placeId: string) {
@@ -3605,14 +3631,25 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
   const actionLinks = plannerActionLinks(place)
   const [linkLabel, setLinkLabel] = useState('')
   const [linkHref, setLinkHref] = useState('')
+  const customActionLinkCount = isCustomPlaceId(place.id)
+    ? actionLinks.filter((link) => link.event === 'custom_place_link').length
+    : 0
+  const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
+  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href))
+  const visibleUserLinkCount = generalUserLinks.filter((link) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim())).length
+  const displayLinkCount = customActionLinkCount + visibleUserLinkCount
   const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href))
+  const linkButtonClassName = `${styles.iconLink} ${styles.iconLinkActive} ${displayLinkCount > 0 ? styles.iconLinkPrimary : ''}`
+  const linkButtonLabel = `\u9023\u7d50${displayLinkCount > 0 ? ` ${displayLinkCount}` : ''}`
 
   return (
     <>
       {hasInlineLinks ? (
         <button
-          className={styles.iconLink}
+          className={linkButtonClassName}
           type="button"
+          aria-label={linkButtonLabel}
+          data-link-label={linkButtonLabel}
           onClick={() => setOpenPanel((panel) => (panel === 'links' ? null : 'links'))}
         >
           連結
@@ -4140,6 +4177,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
   const hotelAffiliateBackfillRef = useRef<Set<string>>(new Set())
   const googlePlaceTypeResolveRef = useRef<Set<string>>(new Set())
+  const customPlaceGoogleIdentityResolveRef = useRef<Set<string>>(new Set())
   const hotelAffiliateAutoSavePendingRef = useRef(false)
   const hotelAffiliateAutoSaveTimerRef = useRef<number | null>(null)
 
@@ -6570,6 +6608,55 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }, [])
 
+  const setCustomPlaceGoogleIdentity = useCallback((
+    placeId: string,
+    identity: {
+      resolvedUrl?: string
+      name?: string
+      googlePlaceId?: string
+      googlePlaceLat?: number
+      googlePlaceLng?: number
+      googlePlaceTypes?: string[]
+      googlePlaceTypesResolved?: boolean
+    },
+  ) => {
+    const googlePlaceTypes = cleanGooglePlaceTypes(identity.googlePlaceTypes)
+    setCustomPlaces((current) => {
+      const place = current[placeId]
+      if (!place) return current
+
+      const nextPlace: CustomPlannerPlace = { ...place }
+      const resolvedUrl = identity.resolvedUrl?.trim()
+      if (resolvedUrl && resolvedUrl !== place.googleUrl) nextPlace.googleUrl = resolvedUrl
+
+      const googlePlaceId = identity.googlePlaceId?.trim() ?? ''
+      if (googlePlaceId && googlePlaceId !== place.googlePlaceId) nextPlace.googlePlaceId = googlePlaceId
+
+      const googlePlaceName = identity.name?.trim()
+      if (googlePlaceName && googlePlaceName !== place.googlePlaceName) nextPlace.googlePlaceName = googlePlaceName
+
+      if (typeof identity.googlePlaceLat === 'number' && typeof identity.googlePlaceLng === 'number') {
+        nextPlace.googlePlaceLat = identity.googlePlaceLat
+        nextPlace.googlePlaceLng = identity.googlePlaceLng
+      }
+      if (googlePlaceTypes.length > 0) nextPlace.googlePlaceTypes = googlePlaceTypes
+      if (identity.googlePlaceTypesResolved === true || googlePlaceTypes.length > 0) nextPlace.googlePlaceTypesResolved = true
+
+      const unchanged =
+        nextPlace.googleUrl === place.googleUrl &&
+        nextPlace.googlePlaceId === place.googlePlaceId &&
+        nextPlace.googlePlaceName === place.googlePlaceName &&
+        nextPlace.googlePlaceLat === place.googlePlaceLat &&
+        nextPlace.googlePlaceLng === place.googlePlaceLng &&
+        sameStringArray(cleanGooglePlaceTypes(nextPlace.googlePlaceTypes), cleanGooglePlaceTypes(place.googlePlaceTypes)) &&
+        nextPlace.googlePlaceTypesResolved === place.googlePlaceTypesResolved
+      if (unchanged) return current
+
+      hotelAffiliateAutoSavePendingRef.current = true
+      return { ...current, [placeId]: nextPlace }
+    })
+  }, [])
+
   const setCustomPlaceGoogleDetails = useCallback((
     placeId: string,
     googlePlaceId: string,
@@ -6692,6 +6779,167 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setCustomPlaceGoogleTypes(place.id, googlePlaceId, types, true)
     })
   }, [setCustomPlaceGoogleTypes])
+
+  const resolveCustomPlaceGoogleIdentityForAffiliate = useCallback((place: CustomPlannerPlace, links: CustomPlannerLink[]) => {
+    if (!shouldResolveCustomPlaceGoogleIdentityForAffiliate(place, links)) return
+    const url = place.googleUrl?.trim() ?? ''
+    if (!url) return
+
+    const resolveKey = `${place.id}:${url}:${place.lat.toFixed(5)}:${place.lng.toFixed(5)}`
+    if (customPlaceGoogleIdentityResolveRef.current.has(resolveKey)) return
+    customPlaceGoogleIdentityResolveRef.current.add(resolveKey)
+
+    const applyIdentity = (identity: {
+      resolvedUrl: string
+      name?: string
+      googlePlaceId?: string
+      googlePlaceLat?: number
+      googlePlaceLng?: number
+      googlePlaceTypes?: string[]
+      googlePlaceTypesResolved?: boolean
+    }) => {
+      setCustomPlaceGoogleIdentity(place.id, identity)
+    }
+
+    const cached = getResolvedMapUrlCache(url)
+    const cachedCoordinates =
+      cached?.lat != null && cached.lng != null ? { lat: cached.lat, lng: cached.lng } : parseGoogleMapsUrl(cached?.url ?? '')
+    const cachedPlaceId = trustedProviderPlaceId(
+      customPlaceToMapPlace(place),
+      cached?.googlePlaceId || googleMapsPlaceIdFromUrl(cached?.url),
+      cachedCoordinates?.lat,
+      cachedCoordinates?.lng,
+      true,
+    )
+    if (cachedPlaceId) {
+      applyIdentity({
+        resolvedUrl: cached?.url ?? url,
+        ...(cached?.name ? { name: cached.name } : {}),
+        googlePlaceId: cachedPlaceId,
+        ...(cachedCoordinates ? { googlePlaceLat: cachedCoordinates.lat, googlePlaceLng: cachedCoordinates.lng } : {}),
+        ...(cached?.googlePlaceTypes ? { googlePlaceTypes: cached.googlePlaceTypes } : {}),
+        googlePlaceTypesResolved: cached?.googlePlaceTypesResolved === true,
+      })
+      return
+    }
+
+    const geocodeResolvedIdentity = (
+      resolvedUrl: string,
+      query: string,
+      name: string,
+      referenceCoordinates: { lat: number; lng: number },
+    ) => {
+      if (!window.google?.maps?.Geocoder || !query) {
+        setResolvedMapUrlCache(url, {
+          url: resolvedUrl,
+          ...(name ? { name } : {}),
+          ...(query ? { query } : {}),
+          lat: referenceCoordinates.lat,
+          lng: referenceCoordinates.lng,
+          googlePlaceIdResolved: true,
+          googlePlaceTypesResolved: false,
+        })
+        return
+      }
+
+      const geocoder = new window.google.maps.Geocoder()
+      geocoder.geocode({ address: query, location: referenceCoordinates }, (results, status) => {
+        const result = status === 'OK' ? results?.[0] : null
+        const location = result?.geometry?.location ?? null
+        const geocodedCoordinates = location ? { lat: location.lat(), lng: location.lng() } : null
+        const trustedGoogleResult =
+          Boolean(geocodedCoordinates) &&
+          distanceMeters(referenceCoordinates, geocodedCoordinates as { lat: number; lng: number }) <= TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS
+        const googlePlaceId = trustedGoogleResult ? result?.place_id?.trim() ?? '' : ''
+        const googlePlaceTypes = trustedGoogleResult ? cleanGooglePlaceTypes(result?.types) : []
+
+        setResolvedMapUrlCache(url, {
+          url: resolvedUrl,
+          ...(name ? { name } : {}),
+          query,
+          lat: referenceCoordinates.lat,
+          lng: referenceCoordinates.lng,
+          ...(googlePlaceId ? { googlePlaceId } : {}),
+          ...(googlePlaceTypes.length > 0 ? { googlePlaceTypes } : {}),
+          googlePlaceIdResolved: true,
+          googlePlaceTypesResolved: googlePlaceTypes.length > 0,
+        })
+
+        if (!googlePlaceId) return
+        applyIdentity({
+          resolvedUrl,
+          ...(name ? { name } : {}),
+          googlePlaceId,
+          googlePlaceLat: geocodedCoordinates?.lat ?? referenceCoordinates.lat,
+          googlePlaceLng: geocodedCoordinates?.lng ?? referenceCoordinates.lng,
+          googlePlaceTypes,
+          googlePlaceTypesResolved: googlePlaceTypes.length > 0,
+        })
+      })
+    }
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 10000)
+    fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(url)}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { url?: unknown; title?: unknown; query?: unknown; lat?: unknown; lng?: unknown; googlePlaceId?: unknown } | null) => {
+        if (typeof data?.url !== 'string') return
+
+        const resolvedUrl = data.url
+        const resolvedTitle = typeof data.title === 'string' ? cleanGoogleMapsQueryPlaceName(data.title) : ''
+        const resolvedQuery =
+          typeof data.query === 'string' && data.query.trim() ? data.query.trim() : parseGoogleMapsQuery(resolvedUrl)
+        const resolvedCoordinates =
+          typeof data.lat === 'number' && Number.isFinite(data.lat) && typeof data.lng === 'number' && Number.isFinite(data.lng)
+            ? { lat: data.lat, lng: data.lng }
+            : parseGoogleMapsUrl(resolvedUrl) ?? { lat: place.lat, lng: place.lng }
+        const resolvedName = resolvedTitle || parseGoogleMapsPlaceName(resolvedUrl) || place.name
+        const directPlaceId =
+          (typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim()) ||
+          googleMapsPlaceIdFromUrl(resolvedUrl)
+        const trustedPlaceId = trustedProviderPlaceId(
+          customPlaceToMapPlace(place),
+          directPlaceId,
+          resolvedCoordinates.lat,
+          resolvedCoordinates.lng,
+          true,
+        )
+
+        if (trustedPlaceId) {
+          setResolvedMapUrlCache(url, {
+            url: resolvedUrl,
+            ...(resolvedName ? { name: resolvedName } : {}),
+            ...(resolvedQuery ? { query: resolvedQuery } : {}),
+            lat: resolvedCoordinates.lat,
+            lng: resolvedCoordinates.lng,
+            googlePlaceId: trustedPlaceId,
+            googlePlaceIdResolved: true,
+            googlePlaceTypesResolved: false,
+          })
+          applyIdentity({
+            resolvedUrl,
+            ...(resolvedName ? { name: resolvedName } : {}),
+            googlePlaceId: trustedPlaceId,
+            googlePlaceLat: resolvedCoordinates.lat,
+            googlePlaceLng: resolvedCoordinates.lng,
+            googlePlaceTypesResolved: false,
+          })
+          return
+        }
+
+        const identityQuery = resolvedQuery || resolvedName
+        geocodeResolvedIdentity(resolvedUrl, identityQuery, resolvedName, resolvedCoordinates)
+      })
+      .catch(() => {
+        // Existing custom places should remain usable even if background enrichment fails.
+      })
+      .finally(() => {
+        window.clearTimeout(timeout)
+      })
+  }, [setCustomPlaceGoogleIdentity])
 
   const resolveAgodaAffiliateLinkForCustomPlace = useCallback((place: CustomPlannerPlace) => {
     const eligibility = customPlaceHotelAffiliateEligibility(place)
@@ -6879,10 +7127,24 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   useEffect(() => {
     if (!storageReady || readOnlyPlan || !mapReady) return
     Object.values(customPlaces).forEach((place) => {
+      const links = [...(place.links ?? []), ...(placeUserLinks[place.id] ?? [])]
+      if (shouldResolveCustomPlaceGoogleIdentityForAffiliate(place, links)) {
+        resolveCustomPlaceGoogleIdentityForAffiliate(place, links)
+        return
+      }
       if (shouldResolveCustomPlaceGoogleDetails(place)) resolveGooglePlaceDetailsForCustomPlace(place)
       else resolveGooglePlaceTypesForCustomPlace(place)
     })
-  }, [customPlaces, mapReady, readOnlyPlan, resolveGooglePlaceDetailsForCustomPlace, resolveGooglePlaceTypesForCustomPlace, storageReady])
+  }, [
+    customPlaces,
+    mapReady,
+    placeUserLinks,
+    readOnlyPlan,
+    resolveCustomPlaceGoogleIdentityForAffiliate,
+    resolveGooglePlaceDetailsForCustomPlace,
+    resolveGooglePlaceTypesForCustomPlace,
+    storageReady,
+  ])
 
   useEffect(() => {
     if (!storageReady) return
@@ -6896,6 +7158,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         return
       }
       const links = [...(place.links ?? []), ...(placeUserLinks[place.id] ?? [])]
+      if (shouldResolveCustomPlaceGoogleIdentityForAffiliate(place, links)) return
       const lat = place.googlePlaceLat ?? place.lat
       const lng = place.googlePlaceLng ?? place.lng
       const lookupKey = `${place.id}:${place.googlePlaceName || place.name}:${lat}:${lng}`
@@ -8523,6 +8786,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     const isCustomPlace = isCustomPlaceId(place.id)
                     const customPlace = isCustomPlace ? customPlaces[place.id] : undefined
                     const customHotelLinks = customPlace ? [...(customPlace.links ?? []), ...(placeUserLinks[place.id] ?? [])] : []
+                    const customHotelHasAgodaLink = hasHotelAffiliateProviderLink(customHotelLinks, 'Agoda')
+                    const customHotelHasTripLink = hasHotelAffiliateProviderLink(customHotelLinks, 'Trip')
+                    const customHotelHasAffiliateLink = customHotelHasAgodaLink || customHotelHasTripLink
                     const customHotelEligibility = customPlace ? customPlaceHotelAffiliateEligibility(customPlace) : 'skipped'
                     const showManualHotelAffiliateLookup =
                       customPlace
@@ -8530,14 +8796,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           plannerPlaceCategory(place, customCategoryItems) === 'hotel' &&
                           customPlaceHotelAffiliateManualLookupAllowed(customPlace) &&
                           customHotelEligibility === 'skipped' &&
-                          (!hasHotelAffiliateProviderLink(customHotelLinks, 'Agoda') ||
-                            !hasHotelAffiliateProviderLink(customHotelLinks, 'Trip'))
+                          (!customHotelHasAgodaLink || !customHotelHasTripLink)
                         : false
                     const hotelAffiliateStatuses =
                       isCustomPlace && plannerPlaceCategory(place, customCategoryItems) === 'hotel'
                         ? [
-                            hotelAffiliateStatusText('Agoda', agodaAffiliateStatus[place.id]),
-                            hotelAffiliateStatusText('Trip', tripAffiliateStatus[place.id]),
+                            customHotelHasAgodaLink ? '' : hotelAffiliateStatusText('Agoda', agodaAffiliateStatus[place.id]),
+                            customHotelHasTripLink ? '' : hotelAffiliateStatusText('Trip', tripAffiliateStatus[place.id]),
                           ].filter(Boolean)
                         : []
                     return (
@@ -8582,6 +8847,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           </span>
                         ) : null}
                         <span className={styles.addCardControls}>
+                          {customHotelHasAffiliateLink ? (
+                            <span className={styles.inlineMapLinks}>
+                              <PlannerInlineCardLinks place={place} userLinks={placeUserLinks[place.id] ?? []} />
+                            </span>
+                          ) : null}
                           {hotelAffiliateStatuses.map((status) => (
                             <span key={status} className={styles.affiliateStatus}>{status}</span>
                           ))}
@@ -8594,9 +8864,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               仍查住宿
                             </button>
                           ) : null}
-                          <span className={styles.inlineMapLinks}>
-                            <PlannerInlineCardLinks place={place} userLinks={placeUserLinks[place.id] ?? []} />
-                          </span>
+                          {!customHotelHasAffiliateLink ? (
+                            <span className={styles.inlineMapLinks}>
+                              <PlannerInlineCardLinks place={place} userLinks={placeUserLinks[place.id] ?? []} />
+                            </span>
+                          ) : null}
                           {!readOnlyPlan ? (
                             <span className={styles.addCardActions}>
                               {added ? <span className={styles.addedButton}>已加入 {displayAddedCount}</span> : null}
