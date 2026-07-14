@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgodaAffiliatePublicConfig, searchAgodaAffiliateHotels } from '@/lib/agodaAffiliate'
+import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,10 @@ export async function POST(req: NextRequest) {
 
   const hotelName = cleanString(input.hotelName ?? input.googlePlaceName ?? input.name, 160)
   if (!hotelName) return NextResponse.json({ error: 'missing_hotel_name' }, { status: 400 })
+  const googlePlaceTypes = cleanHotelAffiliateGooglePlaceTypes(input.googlePlaceTypes ?? input.placeTypes, 12)
+  const placeTypeSignal = hotelAffiliateGooglePlaceTypeSignal(googlePlaceTypes)
+  const explicitLodgingHint = cleanBoolean(input.lodgingHint ?? input.isLodging ?? input.hotelAffiliateEligible)
+  const lodgingHint = placeTypeSignal === 'lodging' || (explicitLodgingHint && placeTypeSignal !== 'non_lodging')
 
   const result = await searchAgodaAffiliateHotels({
     hotelName,
@@ -21,6 +26,7 @@ export async function POST(req: NextRequest) {
     countryCode: cleanString(input.countryCode, 2),
     latitude: cleanNumber(input.latitude ?? input.lat, -90, 90),
     longitude: cleanNumber(input.longitude ?? input.lng, -180, 180),
+    lodgingHint,
     checkInDate: cleanDate(input.checkInDate),
     checkOutDate: cleanDate(input.checkOutDate),
     adults: cleanInteger(input.adults, 1, 16),
@@ -42,6 +48,12 @@ export async function POST(req: NextRequest) {
 
 function cleanString(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : undefined
+}
+
+function cleanBoolean(value: unknown) {
+  if (value === true) return true
+  if (typeof value === 'string') return value.trim().toLowerCase() === 'true'
+  return false
 }
 
 function cleanInteger(value: unknown, min: number, max: number) {

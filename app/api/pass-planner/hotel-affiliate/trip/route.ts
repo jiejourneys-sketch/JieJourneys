@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTripAffiliatePublicConfig, searchTripAffiliateHotels } from '@/lib/tripAffiliate'
 import { searchAgodaAffiliateHotels } from '@/lib/agodaAffiliate'
+import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,10 @@ export async function POST(req: NextRequest) {
   const latitude = cleanNumber(input.latitude ?? input.lat, -90, 90)
   const longitude = cleanNumber(input.longitude ?? input.lng, -180, 180)
   const alternateHotelNames = cleanStringArray(input.alternateHotelNames ?? input.alternateNames, 4, 160)
+  const googlePlaceTypes = cleanHotelAffiliateGooglePlaceTypes(input.googlePlaceTypes ?? input.placeTypes, 12)
+  const placeTypeSignal = hotelAffiliateGooglePlaceTypeSignal(googlePlaceTypes)
+  const explicitLodgingHint = cleanBoolean(input.lodgingHint ?? input.isLodging ?? input.hotelAffiliateEligible)
+  const lodgingHint = placeTypeSignal === 'lodging' || (explicitLodgingHint && placeTypeSignal !== 'non_lodging')
   const agodaMatch = await searchAgodaAffiliateHotels({
     hotelName,
     cityId: cleanInteger(input.cityId, 1, 9999999),
@@ -26,6 +31,7 @@ export async function POST(req: NextRequest) {
     countryCode,
     latitude,
     longitude,
+    lodgingHint,
     language: 'zh-tw',
   }).catch(() => null)
   const agodaHotelName =
@@ -64,6 +70,12 @@ function cleanStringArray(value: unknown, maxItems: number, maxLength: number) {
     .map((item) => (typeof item === 'string' ? item.trim().slice(0, maxLength) : ''))
     .filter(Boolean)
     .slice(0, maxItems)
+}
+
+function cleanBoolean(value: unknown) {
+  if (value === true) return true
+  if (typeof value === 'string') return value.trim().toLowerCase() === 'true'
+  return false
 }
 
 function cleanInteger(value: unknown, min: number, max: number) {

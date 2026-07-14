@@ -24,6 +24,7 @@ export type AgodaAffiliateSearchInput = {
   countryCode?: string
   latitude?: number
   longitude?: number
+  lodgingHint?: boolean
   checkInDate?: string
   checkOutDate?: string
   adults?: number
@@ -79,6 +80,7 @@ export type AgodaAffiliateSearchResponse = {
     countryCode?: string
     latitude?: number
     longitude?: number
+    lodgingHint: boolean
     datesExplicit: boolean
     currencyExplicit: boolean
     languageExplicit: boolean
@@ -173,6 +175,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
     countryCode: cleanCode(input.countryCode, '', 2).toUpperCase(),
     latitude: readCoordinate(input.latitude, -90, 90),
     longitude: readCoordinate(input.longitude, -180, 180),
+    lodgingHint: input.lodgingHint === true,
     datesExplicit: dates.datesExplicit,
     currencyExplicit: Boolean(input.currency?.trim()),
     languageExplicit: Boolean(input.language?.trim()),
@@ -531,10 +534,10 @@ async function searchAgodaHotelIndex(
   const topCandidates = candidates.slice(0, 8).map(({ nameScore: _nameScore, ...candidate }) => candidate)
   const bestMatch = topCandidates[0]
   const bestRankedMatch = candidates[0]
-  const safeCoordinateMatch = isSafeCoordinateOnlyMatch(bestRankedMatch, candidates[1])
+  const safeCoordinateMatch = isSafeCoordinateOnlyMatch(bestRankedMatch, candidates[1], query.lodgingHint)
   const safeBestScore =
     bestRankedMatch && (bestRankedMatch.nameScore >= 0.42 || safeCoordinateMatch)
-      ? bestRankedMatch.score
+      ? Math.max(bestRankedMatch.score, safeCoordinateMatch ? 0.92 : 0)
       : Math.min(bestRankedMatch?.score ?? 0, 0.77)
   const matchStatus = getMatchStatus(safeBestScore)
 
@@ -696,19 +699,19 @@ function scoreCoordinateOnlyMatch(distanceKm: number) {
   return 0
 }
 
-function isSafeCoordinateOnlyMatch(candidate?: RankedAgodaHotelCandidate, nextCandidate?: RankedAgodaHotelCandidate) {
+function isSafeCoordinateOnlyMatch(candidate?: RankedAgodaHotelCandidate, nextCandidate?: RankedAgodaHotelCandidate, lodgingHint = false) {
   if (!candidate || candidate.nameScore >= 0.42 || !isLikelyAccommodationCandidate(candidate)) return false
   const distanceKm = candidate.distanceKm
   if (typeof distanceKm !== 'number') return false
 
   const nextDistanceKm = nextCandidate?.distanceKm
-  const nearestIsClear =
+  const nearestIsClearlySeparated =
     typeof nextDistanceKm !== 'number' ||
-    nextDistanceKm - distanceKm >= 0.08 ||
-    candidate.score - (nextCandidate?.score ?? 0) >= 0.05
+    nextDistanceKm - distanceKm >= 0.08
 
-  if (distanceKm <= 0.03 && nearestIsClear) return true
-  if (distanceKm <= 0.08 && candidate.nameScore >= 0.18 && nearestIsClear) return true
+  if (distanceKm <= 0.03 && nearestIsClearlySeparated) return true
+  if (distanceKm <= 0.08 && candidate.nameScore >= 0.18 && nearestIsClearlySeparated) return true
+  if (lodgingHint && distanceKm <= 0.15 && nearestIsClearlySeparated) return true
   return false
 }
 

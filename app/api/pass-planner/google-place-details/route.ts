@@ -48,12 +48,18 @@ export async function GET(request: NextRequest) {
   if (!apiKey) return NextResponse.json({ configured: false, error: 'google_places_key_missing' }, { status: 503 })
 
   const language = cleanLanguage(request.nextUrl.searchParams.get('language')) || 'en'
-  const newApiResult = await fetchGooglePlaceDetailsNew(placeId, apiKey, language)
+  const mode = cleanDetailsMode(request.nextUrl.searchParams.get('mode'))
+  const newApiResult = await fetchGooglePlaceDetailsNew(placeId, apiKey, language, mode)
   if (newApiResult) return NextResponse.json(newApiResult)
 
   const url = new URL('https://maps.googleapis.com/maps/api/place/details/json')
   url.searchParams.set('place_id', placeId)
-  url.searchParams.set('fields', 'place_id,name,formatted_address,geometry,types,url,website')
+  url.searchParams.set(
+    'fields',
+    mode === 'classification'
+      ? 'place_id,geometry,types'
+      : 'place_id,name,formatted_address,geometry,types,url,website',
+  )
   url.searchParams.set('language', language)
   url.searchParams.set('key', apiKey)
 
@@ -101,7 +107,7 @@ export async function GET(request: NextRequest) {
   })
 }
 
-async function fetchGooglePlaceDetailsNew(placeId: string, apiKey: string, language: string) {
+async function fetchGooglePlaceDetailsNew(placeId: string, apiKey: string, language: string, mode: GooglePlaceDetailsMode) {
   const url = new URL(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`)
   url.searchParams.set('languageCode', language)
 
@@ -110,7 +116,10 @@ async function fetchGooglePlaceDetailsNew(placeId: string, apiKey: string, langu
     headers: {
       accept: 'application/json',
       'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,types,googleMapsUri,websiteUri',
+      'X-Goog-FieldMask':
+        mode === 'classification'
+          ? 'id,location,types'
+          : 'id,displayName,formattedAddress,location,types,googleMapsUri,websiteUri',
     },
   }).catch(() => null)
 
@@ -156,6 +165,12 @@ function cleanPlaceId(value: string | null) {
 function cleanLanguage(value: string | null) {
   const clean = value?.trim() ?? ''
   return /^[a-z]{2}(?:-[A-Z]{2})?$/i.test(clean) ? clean.slice(0, 12) : ''
+}
+
+type GooglePlaceDetailsMode = 'classification' | 'full'
+
+function cleanDetailsMode(value: string | null): GooglePlaceDetailsMode {
+  return value?.trim().toLowerCase() === 'classification' ? 'classification' : 'full'
 }
 
 function readCoordinate(value: unknown, min: number, max: number) {
