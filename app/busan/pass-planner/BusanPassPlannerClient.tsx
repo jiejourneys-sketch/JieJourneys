@@ -220,9 +220,9 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v4'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v5'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
-const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v1:'
+const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v2:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 const GOOGLE_PLACE_DETAILS_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_HIT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
@@ -568,11 +568,11 @@ function customPlaceHotelAffiliateEligibility(place: CustomPlannerPlace): HotelA
   if (typeSignal === 'non_lodging') return 'skipped'
 
   const nameSignal = hotelAffiliateNameSignal(place)
-  if (nameSignal === 'non_lodging') return 'skipped'
-
-  if (shouldProbeCustomPlaceHotelAffiliateGoogleDetails(place)) return 'pending_place_type'
+  const userMarkedHotel = cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual
+  if (nameSignal === 'non_lodging' && !userMarkedHotel) return 'skipped'
   if (nameSignal === 'lodging') return 'eligible'
-  if (cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual) return 'eligible'
+  if (userMarkedHotel) return 'eligible'
+  if (shouldProbeCustomPlaceHotelAffiliateGoogleDetails(place)) return 'pending_place_type'
   return 'skipped'
 }
 
@@ -589,11 +589,13 @@ function customPlaceHotelAffiliateManualLookupAllowed(place: CustomPlannerPlace)
 }
 
 function shouldProbeCustomPlaceHotelAffiliateGoogleDetails(place: CustomPlannerPlace) {
-  if (!place.googlePlaceId?.trim() || place.googlePlaceTypesResolved) return false
-  if (cleanGooglePlaceTypes(place.googlePlaceTypes).length > 0) return false
+  if (!place.googlePlaceId?.trim()) return false
+  const types = cleanGooglePlaceTypes(place.googlePlaceTypes)
+  if (types.length > 0) return false
   const nameSignal = hotelAffiliateNameSignal(place)
-  if (nameSignal === 'non_lodging') return false
-  return cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual === true || nameSignal === 'lodging'
+  const userMarkedHotel = cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual === true
+  if (nameSignal === 'non_lodging' && !userMarkedHotel) return false
+  return true
 }
 
 function shouldResolveCustomPlaceGoogleTypes(place: CustomPlannerPlace) {
