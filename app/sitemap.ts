@@ -19,6 +19,8 @@ const sitemapRoutes: SitemapRoute[] = [
   { path: '/tools/bill', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/tools/resources', changeFrequency: 'monthly', priority: 0.5 },
 
+  { path: '/japan/tax-free-2026', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/japan-tax-free-comparison-2026.png'] },
+
   { path: '/busan', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/busan/hotel', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/busan/ticket', changeFrequency: 'monthly', priority: 0.7 },

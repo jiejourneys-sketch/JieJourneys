@@ -226,8 +226,9 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
                     </details>
                   ) : null}
                   <div className="actions">
-                    {card.actions.map((action) =>
-                      action.promoCode ? (
+                    {card.actions.map((action) => {
+                      const isExternal = /^https?:\/\//.test(action.href)
+                      return action.promoCode ? (
                         <PromoLink
                           key={`${card.title}-${action.label}-${action.href}`}
                           className={action.className || 'btn'}
@@ -244,16 +245,16 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
                           key={`${card.title}-${action.label}-${action.href}`}
                           className={action.className || 'btn'}
                           href={action.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          target={isExternal ? '_blank' : undefined}
+                          rel={isExternal ? 'noopener noreferrer' : undefined}
                           data-event={action.event}
                           data-platform={action.platform}
                           data-section={action.section}
                         >
                           {action.label}
                         </a>
-                      ),
-                    )}
+                      )
+                    })}
                   </div>
                 </div>
               </article>

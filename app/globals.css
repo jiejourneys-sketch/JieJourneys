@@ -910,6 +910,109 @@ a.link-item {
   margin: 16px 0 18px;
 }
 
+.japan-tax-free-page .article-updated {
+  margin: 0 0 18px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.japan-tax-free-page .tax-free-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.japan-tax-free-page .tax-free-summary-grid > div,
+.japan-tax-free-page .wamazing-callout {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 16px;
+}
+.japan-tax-free-page .summary-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.japan-tax-free-page .tax-free-summary-grid strong,
+.japan-tax-free-page .wamazing-callout strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.3;
+}
+.japan-tax-free-page .tax-free-summary-grid p,
+.japan-tax-free-page .wamazing-callout p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.japan-tax-free-page .tax-free-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.japan-tax-free-page .tax-free-table-scroll table {
+  min-width: 720px;
+}
+.japan-tax-free-page .tax-free-portrait-figure {
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.japan-tax-free-page .tax-free-wide-figure {
+  max-width: 920px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.japan-tax-free-page .tax-free-steps li + li,
+.japan-tax-free-page .tax-free-checklist li + li {
+  margin-top: 8px;
+}
+.japan-tax-free-page .wamazing-callout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin: 18px 0 20px;
+  background: #f0f9fb;
+  border-color: rgba(31, 122, 140, 0.18);
+}
+.japan-tax-free-page .wamazing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 920px) {
+  .japan-tax-free-page .tax-free-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .japan-tax-free-page .wamazing-callout {
+    grid-template-columns: 1fr;
+  }
+  .japan-tax-free-page .wamazing-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .japan-tax-free-page .tax-free-summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .japan-tax-free-page .tax-free-summary-grid > div,
+  .japan-tax-free-page .wamazing-callout {
+    padding: 14px;
+  }
+  .japan-tax-free-page .wamazing-actions .seo-buy-link {
+    width: 100%;
+  }
+}
+
 /* Hero spacing：H1 → p → video box */
 .seo-page .seo-hero {
   position: relative;
