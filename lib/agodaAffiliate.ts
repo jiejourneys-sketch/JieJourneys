@@ -700,7 +700,8 @@ function scoreCoordinateOnlyMatch(distanceKm: number) {
 }
 
 function isSafeCoordinateOnlyMatch(candidate?: RankedAgodaHotelCandidate, nextCandidate?: RankedAgodaHotelCandidate, lodgingHint = false) {
-  if (!candidate || candidate.nameScore >= 0.42 || !isLikelyAccommodationCandidate(candidate)) return false
+  if (!candidate || candidate.nameScore >= 0.42) return false
+  if (!lodgingHint && !isLikelyAccommodationCandidate(candidate)) return false
   const distanceKm = candidate.distanceKm
   if (typeof distanceKm !== 'number') return false
 
