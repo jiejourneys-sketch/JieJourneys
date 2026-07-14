@@ -220,7 +220,7 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v3:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v7'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v8'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v4:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
@@ -436,11 +436,14 @@ function plannerAffiliateCityName(config: PlannerConfig, latitude?: number, long
 }
 
 function plannerAgodaCityId(config: PlannerConfig, latitude?: number, longitude?: number) {
-  const configuredCityId = config.agodaCityId
-  if (typeof configuredCityId === 'number' && Number.isInteger(configuredCityId) && configuredCityId > 0) return configuredCityId
+  const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
   const coordinateCountry = coordinateCountryCode(latitude, longitude)
   const coordinateMatch = nearestDestinationHint(latitude, longitude, coordinateCountry)
-  if (coordinateMatch?.cityId && coordinateMatch.distanceKm <= coordinateMatch.radiusKm) return coordinateMatch.cityId
+  if (coordinateMatch && coordinateMatch.distanceKm <= coordinateMatch.radiusKm) return coordinateMatch.cityId
+  if (hasCoordinates) return undefined
+
+  const configuredCityId = config.agodaCityId
+  if (typeof configuredCityId === 'number' && Number.isInteger(configuredCityId) && configuredCityId > 0) return configuredCityId
 
   const text = [
     config.storageKey,
