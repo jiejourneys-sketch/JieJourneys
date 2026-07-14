@@ -58,6 +58,8 @@ export async function GET(request: NextRequest) {
     'fields',
     mode === 'classification'
       ? 'place_id,geometry,types'
+      : mode === 'affiliate'
+        ? 'place_id,name,geometry,types'
       : 'place_id,name,formatted_address,geometry,types,url,website',
   )
   url.searchParams.set('language', language)
@@ -119,6 +121,8 @@ async function fetchGooglePlaceDetailsNew(placeId: string, apiKey: string, langu
       'X-Goog-FieldMask':
         mode === 'classification'
           ? 'id,location,types'
+          : mode === 'affiliate'
+            ? 'id,displayName,location,types'
           : 'id,displayName,formattedAddress,location,types,googleMapsUri,websiteUri',
     },
   }).catch(() => null)
@@ -167,10 +171,13 @@ function cleanLanguage(value: string | null) {
   return /^[a-z]{2}(?:-[A-Z]{2})?$/i.test(clean) ? clean.slice(0, 12) : ''
 }
 
-type GooglePlaceDetailsMode = 'classification' | 'full'
+type GooglePlaceDetailsMode = 'classification' | 'affiliate' | 'full'
 
 function cleanDetailsMode(value: string | null): GooglePlaceDetailsMode {
-  return value?.trim().toLowerCase() === 'classification' ? 'classification' : 'full'
+  const clean = value?.trim().toLowerCase()
+  if (clean === 'classification') return 'classification'
+  if (clean === 'affiliate') return 'affiliate'
+  return 'full'
 }
 
 function readCoordinate(value: unknown, min: number, max: number) {

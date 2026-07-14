@@ -218,11 +218,11 @@ const PLANNER_BOOK_PARAM = 'p'
 const PLANNER_PREVIEW_PARAM = 'v'
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
-const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:'
+const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v2:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v5'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v6'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
-const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v2:'
+const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v3:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 const GOOGLE_PLACE_DETAILS_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_HIT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
@@ -602,11 +602,33 @@ function shouldResolveCustomPlaceGoogleTypes(place: CustomPlannerPlace) {
   return shouldProbeCustomPlaceHotelAffiliateGoogleDetails(place)
 }
 
+function shouldResolveCustomPlaceGoogleAffiliateName(place: CustomPlannerPlace) {
+  if (!place.googlePlaceId?.trim()) return false
+
+  const typeSignal = googlePlaceTypeSignal(cleanGooglePlaceTypes(place.googlePlaceTypes))
+  if (typeSignal === 'non_lodging') return false
+
+  const nameSignal = hotelAffiliateNameSignal(place)
+  const userMarkedHotel = cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual === true
+  if (nameSignal === 'non_lodging' && !userMarkedHotel) return false
+  if (typeSignal !== 'lodging' && nameSignal !== 'lodging' && !userMarkedHotel) return false
+
+  const googlePlaceName = place.googlePlaceName?.trim() ?? ''
+  if (!googlePlaceName) return true
+  return /[^\x00-\x7F]/.test(googlePlaceName)
+}
+
 function shouldResolveCustomPlaceGoogleDetails(place: CustomPlannerPlace) {
-  if (!shouldProbeCustomPlaceHotelAffiliateGoogleDetails(place)) return false
+  if (!place.googlePlaceId?.trim()) return false
+  const typeSignal = googlePlaceTypeSignal(cleanGooglePlaceTypes(place.googlePlaceTypes))
+  if (typeSignal === 'non_lodging') return false
+  const nameSignal = hotelAffiliateNameSignal(place)
+  const userMarkedHotel = cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual === true
+  if (nameSignal === 'non_lodging' && !userMarkedHotel) return false
+
   const hasTypes = place.googlePlaceTypesResolved || cleanGooglePlaceTypes(place.googlePlaceTypes).length > 0
   const hasCoordinates = Number.isFinite(place.googlePlaceLat) && Number.isFinite(place.googlePlaceLng)
-  return !hasTypes || !hasCoordinates
+  return !hasTypes || !hasCoordinates || shouldResolveCustomPlaceGoogleAffiliateName(place)
 }
 
 function googlePlaceTypesCacheKey(placeId: string) {
@@ -6592,7 +6614,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       service.getDetails(
         {
           placeId: googlePlaceId,
-          fields: ['place_id', 'geometry', 'types'],
+          fields: ['place_id', 'name', 'geometry', 'types'],
         },
         (result, status) => {
           if (status !== google.maps.places.PlacesServiceStatus.OK) {
@@ -6624,7 +6646,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 10000)
     const loadDetails = async () => {
-      const res = await fetch(`/api/pass-planner/google-place-details?placeId=${encodeURIComponent(googlePlaceId)}&language=en&mode=classification`, {
+      const res = await fetch(`/api/pass-planner/google-place-details?placeId=${encodeURIComponent(googlePlaceId)}&language=en&mode=affiliate`, {
         cache: 'no-store',
         signal: controller.signal,
       }).catch(() => null)
@@ -7026,29 +7048,42 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     resolvedName: string,
     cacheKey: string,
     nextSeq: number,
+    options: { referenceCoordinates?: { lat: number; lng: number } } = {},
   ) => {
     if (!query || !window.google?.maps?.Geocoder) return false
     setCustomUrlResolving(true)
     const geocoder = new window.google.maps.Geocoder()
-    geocoder.geocode({ address: query }, (results, status) => {
+    const request: google.maps.GeocoderRequest = { address: query }
+    if (options.referenceCoordinates) request.location = options.referenceCoordinates
+    geocoder.geocode(request, (results, status) => {
       if (customUrlResolveSeqRef.current !== nextSeq) return
-      const location = status === 'OK' ? results?.[0]?.geometry?.location : null
-      if (!location) {
+      const result = status === 'OK' ? results?.[0] : null
+      const location = result?.geometry?.location ?? null
+      const referenceCoordinates = options.referenceCoordinates
+      if (!location && !referenceCoordinates) {
         continueCustomPlaceManually(resolvedName || cleanGoogleMapsQueryPlaceName(query))
         setCustomUrlResolving(false)
         return
       }
-      const lat = location.lat()
-      const lng = location.lng()
+      const geocodedCoordinates = location ? { lat: location.lat(), lng: location.lng() } : null
+      const finalCoordinates = referenceCoordinates ?? geocodedCoordinates
+      if (!finalCoordinates) {
+        continueCustomPlaceManually(resolvedName || cleanGoogleMapsQueryPlaceName(query))
+        setCustomUrlResolving(false)
+        return
+      }
+      const trustedGoogleResult =
+        Boolean(geocodedCoordinates) &&
+        (!referenceCoordinates || distanceMeters(referenceCoordinates, geocodedCoordinates as { lat: number; lng: number }) <= TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS)
       const name = resolvedName || cleanGoogleMapsQueryPlaceName(query)
-      const googlePlaceId = results?.[0]?.place_id?.trim() ?? ''
-      const googlePlaceTypes = cleanGooglePlaceTypes(results?.[0]?.types)
+      const googlePlaceId = trustedGoogleResult ? result?.place_id?.trim() ?? '' : ''
+      const googlePlaceTypes = trustedGoogleResult ? cleanGooglePlaceTypes(result?.types) : []
       setResolvedMapUrlCache(cacheKey, {
         url: resolvedUrl,
         ...(name ? { name } : {}),
         query,
-        lat,
-        lng,
+        lat: finalCoordinates.lat,
+        lng: finalCoordinates.lng,
         ...(googlePlaceId ? { googlePlaceId } : {}),
         ...(googlePlaceTypes.length > 0 ? { googlePlaceTypes } : {}),
         googlePlaceIdResolved: true,
@@ -7058,16 +7093,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         ...draft,
         googleUrl: resolvedUrl,
         ...((!draft.name.trim() || isGenericGoogleMapsPlaceName(draft.name)) && name ? { name } : {}),
-        lat,
-        lng,
+        lat: finalCoordinates.lat,
+        lng: finalCoordinates.lng,
         ...(googlePlaceId
-          ? { googlePlaceId, googlePlaceName: name, googlePlaceLat: lat, googlePlaceLng: lng }
+          ? {
+              googlePlaceId,
+              googlePlaceName: name,
+              googlePlaceLat: geocodedCoordinates?.lat ?? finalCoordinates.lat,
+              googlePlaceLng: geocodedCoordinates?.lng ?? finalCoordinates.lng,
+            }
           : {}),
         googlePlaceTypes,
         googlePlaceTypesResolved: googlePlaceTypes.length > 0,
         picking: true,
       }))
-      revealResolvedCustomPlace({ lat, lng })
+      revealResolvedCustomPlace(finalCoordinates)
       setCustomUrlResolving(false)
     })
     return true
@@ -7115,6 +7155,20 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         return
       }
       if (resolvedCoordinates) {
+        if (!cachedGooglePlaceId && cachedResolved.query && cachedResolved.googlePlaceIdResolved !== true) {
+          if (
+            geocodeResolvedMapQuery(
+              cachedResolved.query,
+              cachedResolved.url,
+              resolvedName,
+              trimmedGoogleUrl,
+              nextSeq,
+              { referenceCoordinates: resolvedCoordinates },
+            )
+          ) {
+            return
+          }
+        }
         setCustomDraft((draft) => ({
           ...draft,
           googleUrl: cachedResolved.url,
@@ -7161,23 +7215,38 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const resolvedLat = typeof data.lat === 'number' && Number.isFinite(data.lat) ? data.lat : null
         const resolvedLng = typeof data.lng === 'number' && Number.isFinite(data.lng) ? data.lng : null
         const resolvedGooglePlaceId = typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim() ? data.googlePlaceId.trim() : ''
-        setResolvedMapUrlCache(trimmedGoogleUrl, {
-          url: resolvedUrl,
-          ...(resolvedTitle ? { name: resolvedTitle } : {}),
-          ...(resolvedQuery ? { query: resolvedQuery } : {}),
-          ...(resolvedLat != null ? { lat: resolvedLat } : {}),
-          ...(resolvedLng != null ? { lng: resolvedLng } : {}),
-          ...(resolvedGooglePlaceId ? { googlePlaceId: resolvedGooglePlaceId } : {}),
-          googlePlaceIdResolved: true,
-          googlePlaceTypesResolved: false,
-        })
         const resolvedCoordinates =
           resolvedLat != null && resolvedLng != null ? { lat: resolvedLat, lng: resolvedLng } : parseGoogleMapsUrl(resolvedUrl)
         const resolvedName = resolvedTitle || parseGoogleMapsPlaceName(resolvedUrl)
-        if (!resolvedCoordinates && resolvedQuery) {
-          if (geocodeResolvedMapQuery(resolvedQuery, resolvedUrl, resolvedName, trimmedGoogleUrl, nextSeq)) return
+        const resolvedIdentityQuery = resolvedQuery || resolvedName
+        setResolvedMapUrlCache(trimmedGoogleUrl, {
+          url: resolvedUrl,
+          ...(resolvedName ? { name: resolvedName } : {}),
+          ...(resolvedIdentityQuery ? { query: resolvedIdentityQuery } : {}),
+          ...(resolvedLat != null ? { lat: resolvedLat } : {}),
+          ...(resolvedLng != null ? { lng: resolvedLng } : {}),
+          ...(resolvedGooglePlaceId ? { googlePlaceId: resolvedGooglePlaceId } : {}),
+          ...(resolvedGooglePlaceId ? { googlePlaceIdResolved: true } : {}),
+          googlePlaceTypesResolved: false,
+        })
+        if (!resolvedCoordinates && resolvedIdentityQuery) {
+          if (geocodeResolvedMapQuery(resolvedIdentityQuery, resolvedUrl, resolvedName, trimmedGoogleUrl, nextSeq)) return
           continueCustomPlaceManually(resolvedName)
           return
+        }
+        if (resolvedCoordinates && !resolvedGooglePlaceId && resolvedIdentityQuery) {
+          if (
+            geocodeResolvedMapQuery(
+              resolvedIdentityQuery,
+              resolvedUrl,
+              resolvedName,
+              trimmedGoogleUrl,
+              nextSeq,
+              { referenceCoordinates: resolvedCoordinates },
+            )
+          ) {
+            return
+          }
         }
         setCustomDraft((draft) => ({
           ...draft,

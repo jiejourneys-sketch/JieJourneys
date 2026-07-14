@@ -41,7 +41,25 @@ function cleanGoogleMapsTitle(value: string) {
     .replace(/^(?:Google Maps|Google\s*(?:\u5730\u5716|\u5730\u56fe))\s*$/i, '')
     .replace(/\s+/g, ' ')
     .trim()
+  if (/^(?:Google Maps|Google\s*(?:\u5730\u5716|\u5730\u56fe))(?:\s+\S+)?$/i.test(normalized)) return null
   return normalized || null
+}
+
+function decodeGoogleMapsPathPlaceName(value: string) {
+  try {
+    const url = new URL(value)
+    const match = url.pathname.match(/\/maps\/(?:place|search)\/([^/?@]+)/)
+    if (!match?.[1]) return null
+    return cleanGoogleMapsQueryTitle(decodeURIComponent(match[1].replace(/\+/g, ' ')))
+  } catch {
+    const match = value.match(/\/maps\/(?:place|search)\/([^/?@]+)/)
+    if (!match?.[1]) return null
+    try {
+      return cleanGoogleMapsQueryTitle(decodeURIComponent(match[1].replace(/\+/g, ' ')))
+    } catch {
+      return cleanGoogleMapsQueryTitle(match[1].replace(/\+/g, ' '))
+    }
+  }
 }
 
 function decodeGoogleMapsQuery(value: string) {
@@ -257,8 +275,9 @@ export async function GET(request: NextRequest) {
     }
 
     const coordinates = extractGoogleMapsCoordinates(resolvedUrl) ?? extractGoogleMapsCoordinates(html)
-    const query = decodeGoogleMapsQuery(resolvedUrl)
-    const title = cleanGoogleMapsQueryTitle(query) ?? extractGoogleMapsTitle(html)
+    const pathPlaceName = decodeGoogleMapsPathPlaceName(resolvedUrl)
+    const query = decodeGoogleMapsQuery(resolvedUrl) ?? pathPlaceName
+    const title = cleanGoogleMapsQueryTitle(query) ?? pathPlaceName ?? extractGoogleMapsTitle(html)
     const googlePlaceId = extractGoogleMapsPlaceId(resolvedUrl) ?? extractGoogleMapsPlaceId(html)
 
     return NextResponse.json({
