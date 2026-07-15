@@ -1161,7 +1161,8 @@ function googlePlaceDetailsFromPlaceResult(result: google.maps.places.PlaceResul
 
 function googleMapsPinUrl(place: MapPlace) {
   const url = place.spotGoogleMapsUrl?.trim()
-  if (url && !url.includes('PASTE_YOUR_MAPS_LINK')) return url
+  const googleUrl = url && !url.includes('PASTE_YOUR_MAPS_LINK') ? googleMapsUrlFromInput(url) : ''
+  if (googleUrl) return googleUrl
   return `https://www.google.com/maps?q=${place.lat},${place.lng}`
 }
 
@@ -1554,6 +1555,85 @@ function extractGoogleMapsUrlFromText(value: string) {
   return (match?.[0] ?? trimmed).replace(/[)\].,，。]+$/g, '')
 }
 
+function looksLikeUrl(value: string) {
+  const trimmed = value.trim()
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) || /^(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:[/?#]|$)/i.test(trimmed)
+}
+
+function googleMapsInputNotice(value: string) {
+  return looksLikeUrl(value)
+    ? '請先貼 Google Maps 連結定位，其他連結可稍後新增。'
+    : '請貼上 Google Maps 連結來定位景點。'
+}
+
+function setAffiliateParam(url: URL, key: string, value: string) {
+  const lowerKey = key.toLowerCase()
+  Array.from(url.searchParams.keys()).forEach((paramKey) => {
+    if (paramKey.toLowerCase() === lowerKey) url.searchParams.delete(paramKey)
+  })
+  url.searchParams.set(key, value)
+}
+
+function parsePlannerLinkUrl(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  try {
+    return new URL(trimmed)
+  } catch {
+    if (!looksLikeUrl(trimmed)) return null
+    try {
+      return new URL(`https://${trimmed}`)
+    } catch {
+      return null
+    }
+  }
+}
+
+function normalizePlannerAffiliateHref(value: string) {
+  const url = parsePlannerLinkUrl(value)
+  if (!url) return value.trim()
+  const hostname = url.hostname.toLowerCase()
+
+  if (hostname === 'klook.com' || hostname.endsWith('.klook.com')) {
+    url.protocol = 'https:'
+    setAffiliateParam(url, 'aid', '93798')
+    return url.toString()
+  }
+
+  if (hostname === 'kkday.com' || hostname.endsWith('.kkday.com')) {
+    url.protocol = 'https:'
+    setAffiliateParam(url, 'cid', '22312')
+    return url.toString()
+  }
+
+  if (hostname === 'agoda.com' || hostname.endsWith('.agoda.com')) {
+    const hotelId = url.searchParams.get('hid')?.trim()
+    if (hotelId) {
+      const partnerUrl = new URL('https://www.agoda.com/partners/partnersearch.aspx')
+      partnerUrl.searchParams.set('pcs', '1')
+      partnerUrl.searchParams.set('cid', '1945734')
+      partnerUrl.searchParams.set('hid', hotelId)
+      return partnerUrl.toString()
+    }
+    url.protocol = 'https:'
+    setAffiliateParam(url, 'pcs', '1')
+    setAffiliateParam(url, 'cid', '1945734')
+    return url.toString()
+  }
+
+  if (hostname === 'trip.com' || hostname.endsWith('.trip.com')) {
+    url.protocol = 'https:'
+    url.hostname = 'tw.trip.com'
+    setAffiliateParam(url, 'Allianceid', '6833709')
+    setAffiliateParam(url, 'SID', '242535686')
+    setAffiliateParam(url, 'trip_sub1', '')
+    setAffiliateParam(url, 'trip_sub3', 'D16730765')
+    return url.toString()
+  }
+
+  return value.trim()
+}
+
 function cleanGoogleMapsPlaceName(name: string) {
   const normalized = name
     .trim()
@@ -1730,6 +1810,11 @@ function isShortGoogleMapsUrl(value: string) {
   } catch {
     return false
   }
+}
+
+function googleMapsUrlFromInput(value: string) {
+  const trimmedGoogleUrl = extractGoogleMapsUrlFromText(value).trim()
+  return shouldResolveGoogleMapsUrl(trimmedGoogleUrl) ? trimmedGoogleUrl : ''
 }
 
 function isPlannerMapAction(action: { label: string; href: string; platform?: string }) {
@@ -4205,7 +4290,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [tripAffiliateStatus, setTripAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
   const [customDraftReturnMode, setCustomDraftReturnMode] = useState<'add' | 'order'>('add')
   const [customDraftReturnItem, setCustomDraftReturnItem] = useState<PlannerItem | null>(null)
-  const [customPlaceSaveError, setCustomPlaceSaveError] = useState<'name' | 'location' | null>(null)
+  const [customPlaceSaveError, setCustomPlaceSaveError] = useState<'googleUrl' | 'name' | 'location' | null>(null)
   const [customUrlResolving, setCustomUrlResolving] = useState(false)
   const [storageReady, setStorageReady] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -5170,6 +5255,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customDraftCategoryLabel =
     customCategoryItems.find((item) => item.key === customDraft.category)?.label ?? '景點'
   const customDraftLinks = customDraft.id ? (placeUserLinks[customDraft.id] ?? customPlaces[customDraft.id]?.links ?? []) : []
+  const customGoogleUrlNotice =
+    customDraft.googleUrl.trim() && !googleMapsUrlFromInput(customDraft.googleUrl)
+      ? googleMapsInputNotice(customDraft.googleUrl)
+      : ''
+  const showCustomPlaceConfirm =
+    !customGoogleUrlNotice && Boolean(customDraft.googleUrl.trim() || customDraft.lat != null || customUrlResolving)
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -6529,7 +6620,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const addPlaceUserLink = (placeId: string, link: PlannerUserLink) => {
     if (readOnlyPlan) return
     const label = link.label.trim().slice(0, 40)
-    const href = link.href.trim().slice(0, 500)
+    const href = normalizePlannerAffiliateHref(link.href).slice(0, 500)
     if (!label || !href) return
     setPlaceUserLinks((links) => ({
       ...links,
@@ -6553,7 +6644,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const setCustomPlacePrimaryUserLink = (placeId: string, labelValue: string, hrefValue: string) => {
     if (readOnlyPlan) return
     const label = labelValue.trim().slice(0, 40)
-    const href = hrefValue.trim().slice(0, 500)
+    const href = normalizePlannerAffiliateHref(hrefValue).slice(0, 500)
     if (!label || !href) return
     const nextPrimary = { label, href }
     const nextPrimaryKey = label + '::' + href
@@ -7382,15 +7473,32 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const updateCustomGoogleUrl = (googleUrl: string) => {
     const extractedGoogleUrl = extractGoogleMapsUrlFromText(googleUrl)
     const trimmedGoogleUrl = extractedGoogleUrl.trim()
-    const coordinates = parseGoogleMapsUrl(trimmedGoogleUrl)
-    const directGooglePlaceId = googleMapsPlaceIdFromUrl(trimmedGoogleUrl)
-    const parsedName = parseGoogleMapsSharedTextName(googleUrl, trimmedGoogleUrl) || parseGoogleMapsPlaceName(trimmedGoogleUrl)
+    const isGoogleMapsInput = Boolean(trimmedGoogleUrl && shouldResolveGoogleMapsUrl(trimmedGoogleUrl))
     const nextSeq = customUrlResolveSeqRef.current + 1
     customUrlResolveSeqRef.current = nextSeq
     setCustomUrlResolving(false)
+    if (googleUrl.trim() && !isGoogleMapsInput) {
+      setCustomDraft((draft) => ({
+        ...draft,
+        googleUrl,
+        googlePlaceId: '',
+        googlePlaceName: '',
+        googlePlaceLat: null,
+        googlePlaceLng: null,
+        googlePlaceTypes: [],
+        googlePlaceTypesResolved: false,
+      }))
+      return
+    }
+
+    const coordinates = isGoogleMapsInput ? parseGoogleMapsUrl(trimmedGoogleUrl) : null
+    const directGooglePlaceId = isGoogleMapsInput ? googleMapsPlaceIdFromUrl(trimmedGoogleUrl) : ''
+    const parsedName = isGoogleMapsInput
+      ? parseGoogleMapsSharedTextName(googleUrl, trimmedGoogleUrl) || parseGoogleMapsPlaceName(trimmedGoogleUrl)
+      : ''
     setCustomDraft((draft) => ({
       ...draft,
-      googleUrl: trimmedGoogleUrl || googleUrl,
+      googleUrl: googleUrl.trim() ? trimmedGoogleUrl || googleUrl : '',
       googlePlaceId: directGooglePlaceId,
       googlePlaceName: directGooglePlaceId ? parsedName : '',
       googlePlaceLat: directGooglePlaceId && coordinates ? coordinates.lat : null,
@@ -7402,7 +7510,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }))
     if (coordinates) revealResolvedCustomPlace(coordinates)
     const shouldResolveUrl =
-      shouldResolveGoogleMapsUrl(trimmedGoogleUrl) && (isShortGoogleMapsUrl(trimmedGoogleUrl) || !coordinates || !parsedName)
+      isGoogleMapsInput && (isShortGoogleMapsUrl(trimmedGoogleUrl) || !coordinates || !parsedName)
     if (!shouldResolveUrl) return
 
     const cachedResolved = getResolvedMapUrlCache(trimmedGoogleUrl)
@@ -7553,6 +7661,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const saveCustomPlace = () => {
     const id = customDraft.id ?? `${CUSTOM_PLACE_PREFIX}${Date.now().toString(36)}`
     const name = customDraft.name.trim()
+    if (customDraft.googleUrl.trim() && !googleMapsUrlFromInput(customDraft.googleUrl)) {
+      setCustomPlaceSaveError('googleUrl')
+      return
+    }
     if (!name) {
       setCustomPlaceSaveError('name')
       return
@@ -7563,12 +7675,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     const linkLabel = customDraft.linkLabel.trim()
     const linkUrl = customDraft.linkUrl.trim()
+    const cleanGoogleUrl = googleMapsUrlFromInput(customDraft.googleUrl)
     const existingPlace = customPlaces[id]
     const baseLinks = placeUserLinks[id] ?? existingPlace?.links ?? []
     const pendingLinks = linkLabel && linkUrl ? [{ label: linkLabel, href: linkUrl }] : []
     const seenCustomLinks = new Set<string>()
     const nextLinks = [...baseLinks, ...pendingLinks]
-      .map((link) => ({ label: link.label.trim().slice(0, 40), href: link.href.trim().slice(0, 500) }))
+      .map((link) => ({ label: link.label.trim().slice(0, 40), href: normalizePlannerAffiliateHref(link.href).slice(0, 500) }))
       .filter((link) => {
         if (!link.label || !link.href) return false
         const key = link.label + '::' + link.href
@@ -7583,7 +7696,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       category: semanticPlannerCategory(cleanCustomPlaceCategory(customDraft.category), customCategoryItems),
       lat: customDraft.lat,
       lng: customDraft.lng,
-      ...(customDraft.googleUrl.trim() ? { googleUrl: customDraft.googleUrl.trim() } : {}),
+      ...(cleanGoogleUrl ? { googleUrl: cleanGoogleUrl } : {}),
       ...(customDraft.googlePlaceId.trim() ? { googlePlaceId: customDraft.googlePlaceId.trim() } : {}),
       ...(customDraft.googlePlaceName.trim() ? { googlePlaceName: customDraft.googlePlaceName.trim() } : {}),
       ...(customDraft.googlePlaceId.trim() && customDraft.googlePlaceLat != null && customDraft.googlePlaceLng != null
@@ -7633,6 +7746,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan) return
     const id = customDraft.id ?? `${CUSTOM_PLACE_PREFIX}${Date.now().toString(36)}`
     const category = semanticPlannerCategory(cleanCustomPlaceCategory(match.category), customCategoryItems)
+    const matchGoogleUrl = googleMapsUrlFromInput(match.spotGoogleMapsUrl ?? '') || googleMapsUrlFromInput(customDraft.googleUrl)
     const customPlace: CustomPlannerPlace = {
       id,
       sourcePlaceId: match.id,
@@ -7640,9 +7754,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       category,
       lat: match.lat,
       lng: match.lng,
-      ...(match.spotGoogleMapsUrl || customDraft.googleUrl.trim()
-        ? { googleUrl: match.spotGoogleMapsUrl || customDraft.googleUrl.trim() }
-        : {}),
+      ...(matchGoogleUrl ? { googleUrl: matchGoogleUrl } : {}),
       ...(match.googlePlaceId ? { googlePlaceId: match.googlePlaceId } : {}),
       ...(match.googlePlaceName ? { googlePlaceName: match.googlePlaceName } : {}),
       ...(match.googlePlaceLat != null && match.googlePlaceLng != null
@@ -8613,17 +8725,20 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           <input
                             value={customDraft.googleUrl}
                             onChange={(event) => updateCustomGoogleUrl(event.target.value)}
-                            onBlur={refocusPendingCustomMapPosition}
+                            onBlur={() => {
+                              refocusPendingCustomMapPosition()
+                              if (customGoogleUrlNotice) setCustomPlaceSaveError('googleUrl')
+                            }}
                             placeholder="貼上 Google Maps 分享連結"
                           />
                         </label>
-                        {customUrlResolving ? (
+                        {customUrlResolving || customGoogleUrlNotice ? (
                           <p className={styles.customPlaceStatus}>
-                            {'\u6b63\u5728\u641c\u5c0b\u666f\u9ede\u540d\u7a31\u2026'}
+                            {customUrlResolving ? '\u6b63\u5728\u641c\u5c0b\u666f\u9ede\u540d\u7a31\u2026' : customGoogleUrlNotice}
                           </p>
                         ) : null}
                       </div>
-                      {customDraft.googleUrl.trim() || customDraft.lat != null || customUrlResolving ? (
+                      {showCustomPlaceConfirm ? (
                         <div ref={customConfirmRef} className={styles.customPlaceConfirm}>
                           <div className={styles.customPlaceStepTitle}>
                             <span>2</span>
@@ -9190,12 +9305,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               onClick={(e) => e.stopPropagation()}
             >
               <h2 id="custom-place-save-error-title">
-                {customPlaceSaveError === 'name' ? '先確認景點名稱' : '先確認地圖位置'}
+                {customPlaceSaveError === 'googleUrl'
+                  ? '請貼上 Google Maps 連結'
+                  : customPlaceSaveError === 'name'
+                    ? '先確認景點名稱'
+                    : '先確認地圖位置'}
               </h2>
               <p>
-                {customPlaceSaveError === 'name'
-                  ? '這條 Google Maps 連結只解析到地址，請補上景點、餐廳或住宿名稱後再儲存。'
-                  : '請先看上方地圖確認標記位置，或點地圖設定位置後再儲存。'}
+                {customPlaceSaveError === 'googleUrl'
+                  ? customGoogleUrlNotice || '請貼上 Google Maps 連結來定位景點。'
+                  : customPlaceSaveError === 'name'
+                    ? '這條 Google Maps 連結只解析到地址，請補上景點、餐廳或住宿名稱後再儲存。'
+                    : '請先看上方地圖確認標記位置，或點地圖設定位置後再儲存。'}
               </p>
               <div className={styles.confirmActions}>
                 <button
@@ -9210,7 +9331,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     }
                   }}
                 >
-                  {customPlaceSaveError === 'name' ? '回去填名稱' : '到地圖確認'}
+                  {customPlaceSaveError === 'googleUrl'
+                    ? '回去貼連結'
+                    : customPlaceSaveError === 'name'
+                      ? '回去填名稱'
+                      : '到地圖確認'}
                 </button>
                 <button type="button" className={styles.confirmSecondary} onClick={() => setCustomPlaceSaveError(null)}>
                   先取消
