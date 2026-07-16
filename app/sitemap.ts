@@ -11,6 +11,54 @@ type SitemapRoute = {
   images?: string[]
 }
 
+const lastModifiedByPath: Record<string, string> = {
+  '/': '2026-07-11',
+  '/contact': '2026-04-10',
+  '/countries': '2026-05-09',
+  '/tools/planner': '2026-07-13',
+  '/tools/bill': '2026-04-16',
+  '/tools/resources': '2026-07-01',
+  '/japan/tax-free-2026': '2026-07-14',
+  '/busan': '2026-05-17',
+  '/busan/hotel': '2026-06-06',
+  '/busan/ticket': '2026-06-15',
+  '/busan/transport': '2026-05-17',
+  '/busan/video': '2026-05-09',
+  '/busan/map': '2026-06-18',
+  '/busan/pass-map': '2026-06-17',
+  '/busan/journeys': '2026-05-01',
+  '/northvietnam': '2026-05-12',
+  '/northvietnam/hotel': '2026-06-06',
+  '/northvietnam/ticket': '2026-06-15',
+  '/northvietnam/transport': '2026-05-17',
+  '/northvietnam/video': '2026-05-10',
+  '/northvietnam/map': '2026-06-18',
+  '/northvietnam/journeys': '2026-04-25',
+  '/tokyo': '2026-05-01',
+  '/tokyo/hotel': '2026-06-06',
+  '/tokyo/ticket': '2026-06-15',
+  '/tokyo/transport': '2026-07-01',
+  '/tokyo/video': '2026-07-14',
+  '/tokyo/map': '2026-06-18',
+  '/tokyo/journeys': '2026-04-25',
+  '/osaka': '2026-07-11',
+  '/osaka/hotel': '2026-06-18',
+  '/osaka/ticket': '2026-07-11',
+  '/osaka/transport': '2026-07-01',
+  '/osaka/video': '2026-07-14',
+  '/osaka/map': '2026-06-18',
+  '/osaka/pass-map': '2026-07-11',
+  '/osaka/osaka-amazing-pass': '2026-07-11',
+  '/osaka/journeys': '2026-04-10',
+  '/fuji': '2026-05-27',
+  '/fuji/hotel': '2026-06-06',
+  '/fuji/ticket': '2026-06-15',
+  '/fuji/transport': '2026-07-01',
+  '/fuji/video': '2026-05-17',
+  '/fuji/map': '2026-06-18',
+  '/fuji/pass-map': '2026-06-17',
+}
+
 const sitemapRoutes: SitemapRoute[] = [
   { path: '/', changeFrequency: 'weekly', priority: 1 },
   { path: '/contact', changeFrequency: 'yearly', priority: 0.3 },
@@ -66,9 +114,14 @@ const sitemapRoutes: SitemapRoute[] = [
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return sitemapRoutes.map(({ path, images, ...route }) => ({
-    url: `${SITE_URL}${path}`,
-    ...route,
-    ...(images ? { images: images.map((image) => `${SITE_URL}${image}`) } : {}),
-  }))
+  return sitemapRoutes.map(({ path, images, ...route }) => {
+    const lastModified = lastModifiedByPath[path]
+
+    return {
+      url: `${SITE_URL}${path}`,
+      ...(lastModified ? { lastModified } : {}),
+      ...route,
+      ...(images ? { images: images.map((image) => `${SITE_URL}${image}`) } : {}),
+    }
+  })
 }

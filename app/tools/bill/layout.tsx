@@ -8,15 +8,21 @@ import { BillPathProvider } from './components/BillPathProvider'
 const desc =
   '旅杰分帳（JieJourneys Bill）是最簡單好用的旅行分帳工具：免登入建立帳本、多人共同記帳、支出分攤與結帳建議一目了然，快速算清楚每個人該付多少、該收多少。'
 
+const SITE_URL = 'https://www.jiejourneys.com'
 const OG_IMAGE = 'https://www.jiejourneys.com/assets/og-share.png'
-const BILL_URL = 'https://www.jiejourneys.com/tools/bill'
+const BILL_URL = `${SITE_URL}/tools/bill`
 
 export function generateMetadata(): Metadata {
   return {
-    metadataBase: new URL(BILL_URL),
+    metadataBase: new URL(SITE_URL),
     title: { default: '旅杰分帳｜JieJourneys Bill', template: '%s｜JieJourneys Bill' },
     description: desc,
+    alternates: { canonical: BILL_URL },
     icons: { icon: '/assets/logo.jpg', apple: '/assets/logo.jpg' },
+    robots: {
+      index: true,
+      follow: true,
+    },
     openGraph: {
       type: 'website',
       url: BILL_URL,
