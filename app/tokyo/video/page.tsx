@@ -3,6 +3,8 @@ import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
+import SeoContentSection from '@/components/seo/SeoContentSection'
+import SeoFaqSection from '@/components/seo/SeoFaqSection'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -20,11 +22,11 @@ const cards = [
   { title: '惠比壽花園點燈｜最佳路線', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'HibiyaGardenIllumination', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DShsI6gEa8u/', className: 'btn primary', event: 'tokyovideo_HibiyaGardenIlluminationIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/I6VfBsc9YJE', className: 'btn', event: 'tokyovideo_HibiyaGardenIlluminationYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/9qXKYa7AxGZ', className: 'btn', event: 'tokyovideo_HibiyaGardenIlluminationXHS', platform: '小紅書', section: 'video' }] },
   { title: '地鐵 vs JR｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'MetroVSJR', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTVMB2FkTt5/', className: 'btn primary', event: 'tokyovideo_MetroVSJRIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/xNN5iQLFGcU', className: 'btn', event: 'tokyovideo_MetroVSJRYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3MITM21zfli', className: 'btn', event: 'tokyovideo_MetroVSJRXHS', platform: '小紅書', section: 'video' }] },
   { title: 'JR vs 新幹線｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'JRVSXinganxian', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DVBVYRckTUG/', className: 'btn primary', event: 'tokyovideo_JRVSXGXIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/j_Ws48TTzbE', className: 'btn', event: 'tokyovideo_JRVSXGXYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/2h8p1nd33PE', className: 'btn', event: 'tokyovideo_JRVSXGXXHS', platform: '小紅書', section: 'video' }] },
-  { title: '東京地鐵票券｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'TokyoSubwayTicket', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTnNqDgkZOm/', className: 'btn primary', event: 'tokyovideo_TokyoSubwayTicketIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/dz2aJtW3y9c', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3CIm2CzXmSI', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketXHS', platform: '小紅書', section: 'video' }] },
+  { title: '東京地鐵票券｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'TokyoSubwayTicket', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTnNqDgkZOm/', className: 'btn primary', event: 'tokyovideo_TokyoSubwayTicketIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/dz2aJtW3y9c', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3CIm2CzXmSI', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketXHS', platform: '小紅書', section: 'video' }, { label: '文章', href: '/tokyo/tokyo-subway-ticket?from=tokyo-video', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketArticle', platform: 'article', section: 'video' }] },
   { title: '東京地鐵搭乘｜3個重點', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'TokyoSubwayTips', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DT5PNXdk4DM/', className: 'btn primary', event: 'tokyovideo_TokyoSubwayTipsIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/9KtpGIZE9wk', className: 'btn', event: 'tokyovideo_TokyoSubwayTipsYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/4nx9iQs8ukJ', className: 'btn', event: 'tokyovideo_TokyoSubwayTipsXHS', platform: '小紅書', section: 'video' }] },
-  { title: '成田機場到市區｜3種方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'NaritaAirportToCity', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DULQxKUkVR2/', className: 'btn primary', event: 'tokyovideo_NaritaAirportToCityIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/vdFwmQd8CLQ', className: 'btn', event: 'tokyovideo_NaritaAirportToCityYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/6SAdU1cGAHr', className: 'btn', event: 'tokyovideo_NaritaAirportToCityXHS', platform: '小紅書', section: 'video' }] },
-  { title: '成田機場到市區｜最便宜方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'NaritaAirportToCity2', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DUdSUu1kdXn/', className: 'btn primary', event: 'tokyovideo_NaritaAirportToCity2IG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/rKJejwOTIw0', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2YT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/AgcJoBlsdj8', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2XHS', platform: '小紅書', section: 'video' }] },
-  { title: '羽田機場到市區｜3種方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'HNDToCity', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DUvT5Etkf4f/', className: 'btn primary', event: 'tokyovideo_HNDToCityIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/fTtfgB93DE4', className: 'btn', event: 'tokyovideo_HNDToCityYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/5Un3Rc5yHnU', className: 'btn', event: 'tokyovideo_HNDToCityXHS', platform: '小紅書', section: 'video' }] },
+  { title: '成田機場到市區｜3種方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'NaritaAirportToCity', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DULQxKUkVR2/', className: 'btn primary', event: 'tokyovideo_NaritaAirportToCityIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/vdFwmQd8CLQ', className: 'btn', event: 'tokyovideo_NaritaAirportToCityYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/6SAdU1cGAHr', className: 'btn', event: 'tokyovideo_NaritaAirportToCityXHS', platform: '小紅書', section: 'video' }, { label: '文章', href: '/tokyo/narita-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_NaritaAirportToCityArticle', platform: 'article', section: 'video' }] },
+  { title: '成田機場到市區｜最便宜方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'NaritaAirportToCity2', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DUdSUu1kdXn/', className: 'btn primary', event: 'tokyovideo_NaritaAirportToCity2IG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/rKJejwOTIw0', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2YT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/AgcJoBlsdj8', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2XHS', platform: '小紅書', section: 'video' }, { label: '文章', href: '/tokyo/narita-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2Article', platform: 'article', section: 'video' }] },
+  { title: '羽田機場到市區｜3種方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'HNDToCity', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DUvT5Etkf4f/', className: 'btn primary', event: 'tokyovideo_HNDToCityIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/fTtfgB93DE4', className: 'btn', event: 'tokyovideo_HNDToCityYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/5Un3Rc5yHnU', className: 'btn', event: 'tokyovideo_HNDToCityXHS', platform: '小紅書', section: 'video' }, { label: '文章', href: '/tokyo/haneda-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_HNDToCityArticle', platform: 'article', section: 'video' }] },
   { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'VisitJapanWeb', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'tokyovideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'tokyovideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3g4dVW46U4I', className: 'btn', event: 'tokyovideo_visitjapanwebXHS', platform: '小紅書', section: 'video' }] },
   { title: '日幣換匯攻略', meta: '行前準備', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'JPYExchange', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTDKcCoEZBS/', className: 'btn primary', event: 'tokyovideo_JPYExchangeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/FfMj7w2R7BA', className: 'btn', event: 'tokyovideo_JPYExchangeYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/83JoRvRQFSc', className: 'btn', event: 'tokyovideo_JPYExchangeXHS', platform: '小紅書', section: 'video' }] },
   { title: '日本退稅新制｜2026懶人包', meta: '行前準備', note: '整理 2026/11/1 後日本免稅流程、新舊制度差異、機場退稅與完美行購物注意事項。', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'japan-tax-free-2026-article', actions: [{ label: '文章', href: '/japan/tax-free-2026?from=tokyo-video', className: 'btn primary', event: 'tokyovideo_taxfree2026_article', platform: 'article', section: 'video' }] },
@@ -71,191 +73,124 @@ export default function TokyoVideoPage() {
 
         <SeoCtaSection text="" href="/tokyo/map" linkText="熱門景點地圖" newTab dataEvent="tokyovideo_SEO_spotmap" />
 
-        <section className="seo-content" aria-label="快速理解摘要">
-          <h2 className="seo-h2">東京自由行快速理解</h2>
+        <SeoContentSection title="東京短影音怎麼看？先用影片抓路線，再回卡片找連結">
+          <p>
+            這頁不是只放短影音連結，而是幫你把東京自由行的觀看順序排好。第一次去東京，先看區域和交通，再看景點票券；已經排好行程的人，就直接用上方標籤找你要的影片。
+          </p>
 
-          <div className="seo-prose space-y-6">
-            <div>
-              <h3 className="seo-h3">👉 東京怎麼玩？</h3>
-              <p>
-                抓一個原則就好：<strong>一半景點 + 一半逛街購物</strong>。
-              </p>
-              <p>
-                交通很簡單，地鐵為主，有些路線搭 JR，用 Google Maps 幾乎都能順利移動。
-              </p>
-            </div>
+          <h3 className="seo-h3">第一次東京，先看這三類</h3>
+          <ol>
+            <li>先看東京區域影片，理解上野淺草、東京車站銀座、新宿澀谷這幾個核心。</li>
+            <li>再看地鐵 vs JR、東京地鐵券，避免一開始就亂買 Pass。</li>
+            <li>最後看成田或羽田機場交通，決定住宿區域和進市區方式。</li>
+          </ol>
 
-            <div>
-              <h3 className="seo-h3">👉 東京其實只要分 <a
-                href="https://www.instagram.com/reel/DVlYnZjksc7/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_3areas"
-              >
-                <strong>3區</strong>
-              </a></h3>
-              <ul>
-                <li>① 上野 / 淺草寺 / 晴空塔（偏傳統 + 第一天）</li>
-                <li>② 皇居 / 銀座 / 築地市場（市中心 + 美食）</li>
-                <li>③ 新宿 / 原宿 / 澀谷（逛街 + 夜生活）</li>
-              </ul>
-            </div>
+          <h3 className="seo-h3">東側路線：上野、淺草、晴空塔</h3>
+          <p>
+            想玩傳統東京，先從淺草寺、晴空塔、上野開始。淺草適合排半天走雷門、仲見世、淺草寺；晴空塔可以接商場和夜景；上野則適合阿美橫町、上野公園和博物館。可以先看
+            <a
+              href="https://www.instagram.com/reel/DXRh-ucSyoW/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="tokyovideo_article_asakusa_ig"
+              data-platform="IG"
+              data-section="article"
+            >
+              <strong> 淺草寺影片</strong>
+            </a>
+            和
+            <a
+              href="https://www.instagram.com/reel/DV3aGGdFNsc/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="tokyovideo_article_skytree_ig"
+              data-platform="IG"
+              data-section="article"
+            >
+              <strong> 晴空塔影片</strong>
+            </a>
+            。
+          </p>
 
-            <div>
-              <h3 className="seo-h3">👉 各區重點</h3>
-              <ul>
-                <li>上野：恩賜公園、阿美橫町</li>
-                <li>淺草寺：雷門、參拜走走</li>
-                <li><a
-                href="https://www.instagram.com/reel/DV3aGGdFNsc/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_skytreeIG"
-              >
-                <strong>晴空塔</strong>
-              </a>(<a
-                href="https://www.kkday.com/zh-tw/product/10759-tokyo-skytree-observatory-advance-ticket-japan?cid=22312"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_skytreeKKday"
-              >
-                <strong>購票</strong>)
-              </a>
-              ：商場 + 夜景</li>
-                <li>皇居：天皇住所</li>
-                <li>銀座：主要逛街購物</li>
-                <li>築地市場：吃美食</li>
-                <li>新宿：也是購物熱區</li>
-                <li>原宿：<a
-                href="https://www.instagram.com/reel/DWte3LWzhea/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_harajukuIG"
-              >
-                <strong>明治神宮</strong>
-              </a></li>
-                <li>澀谷：購物 + <a
-                href="https://www.instagram.com/reel/DWJbrmXFDuf/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_shibuyaIG"
-              >
-                <strong>澀谷展望台</strong>
-              </a>(<a
-                href="https://www.kkday.com/zh-tw/product/133300-shibuya-sky-observatory-e-ticket-tokyo?cid=22312"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_shibuyaKKday"
-              >
-                <strong>購票</strong>)
-              </a></li>
-              </ul>
-            </div>
+          <h3 className="seo-h3">西側路線：新宿、原宿、澀谷</h3>
+          <p>
+            想逛街、拍城市感、晚上想熱鬧，就看新宿、原宿、澀谷這一組。明治神宮適合放白天，澀谷和 SHIBUYA SKY 適合放下午到晚上。想先抓感覺可以看
+            <a
+              href="https://www.instagram.com/reel/DWte3LWzhea/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="tokyovideo_article_meiji_ig"
+              data-platform="IG"
+              data-section="article"
+            >
+              <strong> 明治神宮影片</strong>
+            </a>
+            和
+            <a
+              href="https://www.instagram.com/reel/DWJbrmXFDuf/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="tokyovideo_article_shibuya_sky_ig"
+              data-platform="IG"
+              data-section="article"
+            >
+              <strong> SHIBUYA SKY 影片</strong>
+            </a>
+            。
+          </p>
 
-            <div>
-              <h3 className="seo-h3">👉 東京吃什麼？</h3>
-              <p>
-                生魚片、壽司、丼飯、壽喜燒、拉麵、燒肉、和牛，基本上隨便吃都很好吃，不太會踩雷。
-              </p>
-            </div>
+          <h3 className="seo-h3">交通影片：看完再決定要買什麼票</h3>
+          <p>
+            東京市區以地鐵和 JR 為主，Google Maps 基本上能帶你走，但票券還是要先分清楚。地鐵券只適合東京 Metro 和都營地鐵密集搭乘，不是萬用交通卡；如果你還不確定，可以先看
+            <a
+              href="/tokyo/tokyo-subway-ticket?from=tokyo-video"
+              data-event="tokyovideo_article_subway_ticket"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 東京地鐵券文章</strong>
+            </a>
+            。
+          </p>
 
-            <div>
-              <h3 className="seo-h3">👉 <a
-                href="https://www.instagram.com/reel/DT5PNXdk4DM/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_googlemapIG"
-              >
-                <strong>東京交通怎麼搭</strong>
-              </a>？</h3>
-              <p>
-                地鐵為主，部分搭 JR，用 Google Maps 幾乎都能搞定。
-              </p>
-              <p>如果行程都在市區，可以考慮<a
-                href="https://www.instagram.com/reel/DTnNqDgkZOm/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_tokyosubwayticketIG"
-              >
-                <strong>東京地鐵券</strong>
-              </a>(<a
-                href="https://www.kkday.com/zh-tw/product/5989-24-48-72-hr-tokyo-subway-ticket-japan?cid=22312"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_tokyosubwayticketKKday"
-              >
-                <strong>購票</strong>)</a>。</p>
-            </div>
+          <h3 className="seo-h3">機場影片：成田和羽田不要混著看</h3>
+          <p>
+            成田距離市區遠，重點是選 Skyliner、N&apos;EX、Access 特急、利木津巴士或 LCB；羽田離市區近，通常看京急電鐵、東京單軌電車和巴士就好。完整文字版可以看
+            <a
+              href="/tokyo/narita-airport-to-tokyo?from=tokyo-video"
+              data-event="tokyovideo_article_narita"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 成田機場文章</strong>
+            </a>
+            和
+            <a
+              href="/tokyo/haneda-airport-to-tokyo?from=tokyo-video"
+              data-event="tokyovideo_article_haneda"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 羽田機場文章</strong>
+            </a>
+            。
+          </p>
 
-            <div>
-              <h3 className="seo-h3">👉 機場怎麼進市區？</h3>
-              <p>
-                成田：Skyliner、N&apos;EX、利木津巴士，去淺草可搭 Access 特急；<a
-                href="https://www.google.com/maps/d/u/0/viewer?mid=1ZmBLaHH4TUkIxpwun8PUQETXJGN2rQ4&ll=35.577416342687144%2C139.92618605&z=10"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_naritaMap"
-              >
-                <strong>交通地圖</strong></a>。
-              </p>
-              <p>羽田：京急電鐵、東京單軌電車、利木津巴士；<a
-                href="https://www.google.com/maps/d/u/0/viewer?mid=1d5zUE9pWTdlrDUplV7Q5ARZ6GoIhOQA&ll=36.03124517546043%2C139.83772095&z=9"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_hanedaMap"
-              >
-                <strong>交通地圖</strong></a>。</p>
-              <p>雖然看起來複雜，但 Google Maps 幾乎都能帶你走。</p>
-            </div>
-          </div>
-        </section>
+          <h3 className="seo-h3">行前準備：入境、換匯、退稅放最後確認</h3>
+          <p>
+            影片看完之後，再補 Visit Japan Web、換匯和退稅。這些不是決定行程路線的核心，但會影響抵達和購物流程；出發前再確認一次即可。
+          </p>
+        </SeoContentSection>
 
-        <section className="seo-faq" id="seo-faq" aria-label="FAQ">
-          <h2 className="seo-h2">東京短影片合輯常見問題</h2>
-          <ul className="seo-faq-list seo-prose seo-faq-prose" role="list">
-            <li className="seo-faq-item">
-              <h3 className="seo-h3 seo-faq-q">
-                <span className="seo-faq-qicon" aria-hidden="true">
-                  Q
-                </span>
-                <span>👉 第一次去東京看哪支影片最有用？</span>
-              </h3>
-              <p className="seo-faq-a">先看「東京三大區怎麼分」，再看「地鐵 vs JR」，最後補你想去的景點影片就夠了。</p>
-            </li>
-
-            <li className="seo-faq-item">
-              <h3 className="seo-h3 seo-faq-q">
-                <span className="seo-faq-qicon" aria-hidden="true">
-                  Q
-                </span>
-                <span>👉 成田機場到市區怎麼選？</span>
-              </h3>
-              <p className="seo-faq-a">
-                想快：Skyliner或N&apos;EX
-                <br />
-                想到指定地點：利木津巴士
-                <br />
-                想到淺草寺：搭Access特急
-              </p>
-            </li>
-
-            <li className="seo-faq-item">
-              <h3 className="seo-h3 seo-faq-q">
-                <span className="seo-faq-qicon" aria-hidden="true">
-                  Q
-                </span>
-                <span>👉 Visit Japan Web 要填嗎？</span>
-              </h3>
-              <p className="seo-faq-a">建議填，就不用現場填紙本，出發前 6 小時內完成即可；<a
-                href="https://services.digital.go.jp/zh-cmn-hant/visit-japan-web/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="tokyovideo_SEO_visitjapanweb"
-              >
-                <strong>官網在這裡</strong></a>。</p>
-            </li>
-          </ul>
-        </section>
+        <SeoFaqSection
+          title="東京短影片合輯常見問題"
+          items={[
+            { q: '第一次去東京先看哪支影片？', a: '先看東京區域影片，再看地鐵 vs JR 和地鐵券，最後看你抵達機場的交通影片。這樣比較不會一開始就被票券和景點清單打散。' },
+            { q: '成田機場和羽田機場交通影片都要看嗎？', a: '不用。你飛哪個機場就看哪個。成田重點是距離遠、路線選擇多；羽田重點是離市區近，通常京急或單軌電車就能解決。' },
+            { q: '東京地鐵券影片看完還需要看文章嗎？', a: '建議看。影片適合抓重點，文章會把 24/48/72 小時、使用範圍、什麼時候划算講得比較完整。' },
+            { q: '景點影片看完要去哪裡買票？', a: '回到東京票券頁，用展望台、主題類、親子類、水族館或一日遊標籤找卡片，再比較 KKDAY、KLOOK、Trip。' },
+          ]}
+        />
       </main>
       <Footer />
     </>

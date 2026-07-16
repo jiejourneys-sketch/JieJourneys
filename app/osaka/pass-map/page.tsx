@@ -50,7 +50,7 @@ export default function OsakaPassMapPage() {
         },
         {
           label: '攻略',
-          href: '/osaka/osaka-amazing-pass',
+          href: '/osaka/osaka-amazing-pass?from=pass-map',
           event: 'osakapassmap_top_article',
           platform: 'internal',
         },
@@ -69,7 +69,7 @@ export default function OsakaPassMapPage() {
             <div className="seo-prose">
               <p>
                 這頁是工具型地圖，重點是快速看位置：先切換「免費設施」、「優惠設施」、「店家優惠」，再用顏色判斷哪些點值得優先排進同一天。完整購買方式、回本邏輯和路線範例，放在
-                <a href="/osaka/osaka-amazing-pass" data-event="osakapassmap_internal_article_intro" data-section="seo_content">
+                <a href="/osaka/osaka-amazing-pass?from=pass-map" data-event="osakapassmap_internal_article_intro" data-section="seo_content">
                   大阪周遊券完整攻略
                 </a>
                 。
@@ -78,7 +78,7 @@ export default function OsakaPassMapPage() {
               <div className="seo-buy-links" aria-label="大阪周遊券相關連結">
                 <a
                   className="seo-buy-link primary"
-                  href="/osaka/osaka-amazing-pass"
+                  href="/osaka/osaka-amazing-pass?from=pass-map"
                   data-event="osakapassmap_article_cta"
                   data-platform="internal"
                   data-section="seo_content"

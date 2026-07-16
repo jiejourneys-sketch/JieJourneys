@@ -439,6 +439,8 @@ const cards: CityCard[] = [
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20106-mt-fuji-pass-lake-kawaguchi-attraction-ticket-japan?cid=22312', className: 'btn primary', event: 'fujiticket_pass_kkday', platform: 'KKDAY', section: 'ticket_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/132532-mt-fuji-pass/?aid=93798', className: 'btn', event: 'fujiticket_pass_klook', platform: 'KLOOK', section: 'ticket_card' },
+      { label: '地圖', href: '/fuji/pass-map', className: 'btn', event: 'fujiticket_pass_map', platform: 'map', section: 'ticket_card' },
+      { label: '文章', href: '/fuji/mt-fuji-pass?from=ticket', className: 'btn', event: 'fujiticket_pass_article', platform: 'article', section: 'ticket_card' },
     ],
   },
   {

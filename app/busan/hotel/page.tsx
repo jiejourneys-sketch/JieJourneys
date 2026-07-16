@@ -86,42 +86,17 @@ export default function BusanHotelPage() {
         <SeoCtaSection text="" href="/busan/map" linkText="釜山住宿地圖" newTab dataEvent="busanhotel_SEO_spotmap" />
         <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanhotel_SEO_passmap" />
 
-        <SeoContentSection title="釜山住宿區域怎麼選？">
-          <h3 className="seo-h3">海雲台（看海＋放鬆）</h3>
-          <p>海雲台是最熱門的釜山住宿推薦區域，適合第一次來釜山、想住海景飯店的人，周邊有海雲台海水浴場與膠囊列車，整體氛圍偏度假放鬆。</p>
-
-          <h3 className="seo-h3">廣安里（海景＋夜景）</h3>
+        <SeoContentSection title="釜山住宿怎麼選？先看你的行程重心">
           <p>
-            廣安里是熱門的釜山海景住宿區域，適合情侶或喜歡拍照的人，晚上氣氛很好，還有
-            <a
-              href="https://www.gwangallimdrone.co.kr/en/information"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="busanhotel_drone"
-            >
-              無人機表演
-            </a>
-            ，是釜山住宿推薦中夜景最強的區域之一。
+            釜山住宿不要只看飯店漂亮不漂亮，先看你每天要跑哪一區。釜山景點是沿著海岸和地鐵線分散的城市，住錯區域會把時間花在移動上；住對區域，行程會舒服很多。
           </p>
-          <h3 className="seo-h3">西面（交通最方便）</h3>
-          <p>西面是交通最方便的釜山住宿區域，地鐵交會站，去各大景點都順，適合第一次自由行或行程安排較多的人，是最實用的釜山住宿推薦選擇。</p>
 
-          <h3 className="seo-h3">南浦洞（美食＋逛街）</h3>
-          <p>南浦洞是釜山美食與逛街集中區域，靠近 BIFF、札嘎其市場，適合喜歡吃東西與購物的人，是釜山住宿推薦中生活機能最方便的區域之一。</p>
-
-          <h3 className="seo-h3">第一次去釜山住哪裡？</h3>
-          <ul>
-            <li>想住海邊看海景：海雲台或廣安里</li>
-            <li>想交通方便：西面</li>
-            <li>想吃東西＋逛街：南浦洞</li>
-          </ul>
-
-          <h3 className="seo-h3">快速比較表（可選）</h3>
+          <h3 className="seo-h3">四大住宿區域快速比較</h3>
           <table>
             <thead>
               <tr>
                 <th>區域</th>
-                <th>適合誰</th>
+                <th>最適合</th>
                 <th>優點</th>
                 <th>注意</th>
               </tr>
@@ -129,30 +104,84 @@ export default function BusanHotelPage() {
             <tbody>
               <tr>
                 <td>海雲台</td>
-                <td>第一次來、想度假看海</td>
-                <td>海景強、氛圍放鬆、靠近膠囊列車</td>
-                <td>到南浦洞較遠</td>
+                <td>想看海、放鬆、搭膠囊列車</td>
+                <td>海灘、藍線公園、海雲台商圈集中，度假感最強。</td>
+                <td>離南浦洞、甘川洞較遠，行程跑西邊會拉車程。</td>
               </tr>
               <tr>
                 <td>廣安里</td>
-                <td>喜歡夜景、拍照、生活感</td>
-                <td>海景夜景漂亮、氛圍感強</td>
-                <td>距離地鐵站走路10分鐘</td>
+                <td>想看夜景、遊艇、週六無人機</td>
+                <td>廣安大橋夜景很有記憶點，晚上吃飯喝咖啡選擇多。</td>
+                <td>多數飯店到地鐵站需要走一段，拖大行李要留意距離。</td>
               </tr>
               <tr>
                 <td>西面</td>
-                <td>行程密集、交通優先</td>
-                <td>靠近機場、地鐵交會、去哪都順</td>
-                <td>不是海邊</td>
+                <td>第一次自由行、每天都要換區</td>
+                <td>地鐵 1 號線和 2 號線交會，去南浦洞、海雲台、機場方向都平均。</td>
+                <td>不是海邊，飯店景觀通常不會是主打。</td>
               </tr>
               <tr>
                 <td>南浦洞</td>
-                <td>愛逛街、美食、想住熱鬧</td>
-                <td>市場/商圈集中、吃逛方便</td>
-                <td>不是海邊</td>
+                <td>想吃市場、美食、舊市區景點</td>
+                <td>札嘎其市場、BIFF、國際市場、釜山塔、甘川洞和松島都好接。</td>
+                <td>到海雲台和東釜山較遠，想天天看海不適合。</td>
               </tr>
             </tbody>
           </table>
+
+          <h3 className="seo-h3">我的住宿選法</h3>
+          <ol>
+            <li>第一次去釜山、行程還沒很確定：先選西面，交通最保守。</li>
+            <li>想要一早醒來就是海：選海雲台，膠囊列車、海岸列車、海雲台海灘都順。</li>
+            <li>重視夜景和氣氛：選廣安里，週六晚上可以把無人機和遊艇排在一起。</li>
+            <li>想吃市場、逛街、跑甘川洞：選南浦洞，舊市區行程最省時間。</li>
+          </ol>
+
+          <h3 className="seo-h3">不同天數怎麼住？</h3>
+          <p>
+            3 天 2 夜不建議換飯店，西面或你最想玩的區域選一個就好。4 天 3 夜可以住西面或海雲台一路到底；如果是 5 天 4 夜以上，可以前半住南浦洞或西面跑舊市區，後半住海雲台或廣安里，把海景和夜景集中玩。
+          </p>
+
+          <h3 className="seo-h3">海雲台和廣安里怎麼選？</h3>
+          <p>
+            海雲台比較像度假區，白天行程更強，適合搭
+            <a
+              href="https://www.instagram.com/reel/DMu5uZxTdO8/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="busanhotel_capsule_ig"
+              data-platform="IG"
+              data-section="article"
+            >
+              <strong>膠囊列車</strong>
+            </a>
+            、逛海雲台海灘、跑東釜山。廣安里比較像夜生活和海景餐廳區，適合排
+            <a
+              href="https://www.instagram.com/reel/DVTW_MLkpj4/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="busanhotel_yacht_ig"
+              data-platform="IG"
+              data-section="article"
+            >
+              <strong>遊艇</strong>
+            </a>
+            和廣安大橋夜景。想看更完整區域位置，可以搭配
+            <a
+              href="/busan/map"
+              data-event="busanhotel_map_inline"
+              data-platform="internal"
+              data-section="article"
+            >
+              <strong>釜山住宿地圖</strong>
+            </a>
+            一起看。
+          </p>
+
+          <h3 className="seo-h3">西面和南浦洞怎麼選？</h3>
+          <p>
+            西面是效率解，適合每天往不同方向跑；南浦洞是生活感和美食解，適合把札嘎其市場、BIFF、國際市場、甘川洞、釜山塔放在行程主軸。你如果第一次去又很怕交通麻煩，我會先選西面；如果你本來就想吃市場、逛舊市區，南浦洞會更有旅行感。
+          </p>
         </SeoContentSection>  
 
         <SeoFaqSection
@@ -160,15 +189,23 @@ export default function BusanHotelPage() {
           items={[
               {
                 q: '第一次去釜山住哪裡？',
-                a: '大方向這樣選：想看海景選海雲台或廣安里，想交通方便選西面，想吃東西與逛街選南浦洞。',
+                a: '最保守選西面，因為地鐵 1 號線和 2 號線交會，去南浦洞、海雲台、機場方向都相對平均。想度假看海再選海雲台或廣安里。',
               },
               {
                 q: '釜山住海雲台還是西面比較好？',
-                a: '想放鬆看海景選海雲台；如果行程密集、每天移動較多，西面交通更方便。',
+                a: '海雲台適合把海景、膠囊列車、東釜山排成主軸；西面適合每天換區、想減少交通失誤的人。第一次自由行如果還沒決定行程，西面比較穩。',
               },
               {
-                q: '釜山住宿一晚多少錢？',
-                a: '釜山住宿價格依區域與季節不同，平價飯店約台幣1500～3000元，高級海景飯店可能4000元以上。',
+                q: '釜山住廣安里方便嗎？',
+                a: '廣安里晚上很漂亮，適合夜景、餐廳、咖啡廳和遊艇，但很多飯店離地鐵站要走一段。行李多或長輩同行時，要特別看飯店到地鐵出口的距離。',
+              },
+              {
+                q: '釜山可以分兩區住宿嗎？',
+                a: '5 天 4 夜以上可以分。前半住南浦洞或西面跑舊市區，後半住海雲台或廣安里玩海線；3 天 2 夜不太建議換飯店，移動成本太高。',
+              },
+              {
+                q: '南浦洞適合第一次去釜山嗎？',
+                a: '適合喜歡市場、美食、舊市區的人。札嘎其市場、國際市場、BIFF、釜山塔、甘川洞都好接；但如果你最期待海雲台和膠囊列車，南浦洞就會偏遠。',
               },
             ]}
         />

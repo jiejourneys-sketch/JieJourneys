@@ -51,53 +51,103 @@ export default function TokyoHotelPage() {
 
         <SeoCtaSection text="" href="/tokyo/map" linkText="東京住宿地圖" newTab dataEvent="tokyohotel_SEO_map" />
 
-        <SeoContentSection title="東京住宿區域怎麼選？">
-          <h3 className="seo-h3">上野（機場進市區最方便）</h3>
+        <SeoContentSection title="東京住宿怎麼選？先看機場和每天會去的區域">
           <p>
-            上野最大優點是<strong>Skyliner 可以直達</strong>，速度快又省事，對大多數從成田機場進東京的人來說很方便。
+            東京住宿不要只看哪一站有名，先把行程分成東側、西側和市中心。住對區域，每天少轉一次車，體感差很多；住錯區域，就算飯店很漂亮，也會一直被轉乘和拖行李消耗。
           </p>
 
-          <h3 className="seo-h3">淺草寺周邊（相對便宜、偏生活感）</h3>
+          <h3 className="seo-h3">五大住宿區域快速比較</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>區域</th>
+                <th>適合誰</th>
+                <th>注意點</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>上野</td>
+                <td>成田進出、第一次東京、想去淺草和晴空塔。</td>
+                <td>往澀谷、新宿比較像跨區移動。</td>
+              </tr>
+              <tr>
+                <td>淺草</td>
+                <td>想住傳統街區、房價想壓低、行程偏上野淺草。</td>
+                <td>沒有 JR，去西東京通常要轉地鐵。</td>
+              </tr>
+              <tr>
+                <td>東京車站 / 銀座</td>
+                <td>行程分散、要搭新幹線、喜歡百貨和乾淨街區。</td>
+                <td>住宿預算通常比較高。</td>
+              </tr>
+              <tr>
+                <td>新宿</td>
+                <td>想逛街、夜生活、安排河口湖或富士山。</td>
+                <td>車站大又複雜，第一次拖行李要留時間。</td>
+              </tr>
+              <tr>
+                <td>澀谷</td>
+                <td>喜歡潮流購物、原宿表參道、晚上想熱鬧。</td>
+                <td>熱門區房價高，安靜度看飯店位置。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 className="seo-h3">我的選法：先看你從哪個機場進東京</h3>
           <p>
-            想找比較便宜的住宿，可以看淺草寺周邊。
-            <br />
-            交通上通常是上野轉車，或是搭 <strong>Access 特急</strong> 直達淺草方向。
+            成田機場進市區，如果想快又直覺，上野很適合，因為 Skyliner 能到上野、日暮里；如果住新宿、澀谷或東京車站，N&apos;EX 會比較不用搬行李轉車。想看完整機場交通比較，可以先看
+            <a
+              href="/tokyo/narita-airport-to-tokyo?from=tokyo-hotel"
+              data-event="tokyohotel_article_narita"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 成田機場到市區文章</strong>
+            </a>
+            。
+          </p>
+          <p>
+            羽田機場離市區近很多，京急電鐵和東京單軌電車都方便。住銀座、東京車站、品川一帶會很順；如果住淺草、押上方向，京急直通都營淺草線也很好用。可以搭配
+            <a
+              href="/tokyo/haneda-airport-to-tokyo?from=tokyo-hotel"
+              data-event="tokyohotel_article_haneda"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 羽田機場到市區文章</strong>
+            </a>
+            一起看。
           </p>
 
-          <h3 className="seo-h3">東京車站（最中心，去哪都方便）</h3>
-          <p>東京車站周邊就是市中心樞紐，去各區域都順，行程分散的人住這裡會很省心。</p>
-
-          <h3 className="seo-h3">銀座（購物區）</h3>
-          <p>銀座主打逛街購物，喜歡精品、百貨氛圍的人會很愛；也能順路搭配東京車站的交通便利性。</p>
-
-          <h3 className="seo-h3">澀谷（逛街購物＋熱鬧）</h3>
+          <h3 className="seo-h3">東側行程多：上野或淺草最省力</h3>
           <p>
-            澀谷適合喜歡逛街購物、想住熱鬧一點的人。
-            <br />
-            從機場來的話，<strong>N&apos;EX</strong> 可直達澀谷。
+            如果你的東京行程有淺草寺、晴空塔、上野公園、阿美橫町、秋葉原，住宿直接放上野或淺草就很舒服。上野交通比較全面，淺草更有傳統街區感，晚上也比新宿澀谷安靜。
           </p>
 
-          <h3 className="seo-h3">新宿（購物區＋河口湖/富士山交通）</h3>
+          <h3 className="seo-h3">西側逛街多：新宿或澀谷比較順</h3>
           <p>
-            新宿也是購物熱區，而且很適合要安排河口湖、富士山行程的人（可搭乘<a
-                    href="https://www.kkday.com/zh-tw/transportation/list_page/japan-rail/jp-shinjuku-rail-to-jp-kawaguchiko-rail?cid=22312"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-event="tokyohotel_SEO_fujisan"
-                  >
-                    <strong>富士回遊</strong>
-                  </a>）。
-            <br />
-            <strong>N&apos;EX</strong> 也可直達新宿、東京車站。
+            如果每天都在新宿、原宿、表參道、澀谷、明治神宮移動，住西側會少很多跨城時間。新宿更像交通總站，澀谷更像逛街和夜生活核心；如果你有安排
+            <a
+              href="https://www.kkday.com/zh-tw/transportation/list_page/japan-rail/jp-shinjuku-rail-to-jp-kawaguchiko-rail?cid=22312"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="tokyohotel_article_fuji_train"
+              data-platform="KKDAY"
+              data-section="article"
+            >
+              <strong> 富士回遊</strong>
+            </a>
+            或河口湖，新宿通常更好接。
           </p>
 
-          <h3 className="seo-h3">第一次去東京住哪裡？（快速結論）</h3>
+          <h3 className="seo-h3">結論：第一次東京我會這樣選</h3>
           <ul>
-            <li>想省機場交通：上野</li>
-            <li>想住比較便宜：淺草寺周邊</li>
-            <li>想去哪都方便：東京車站</li>
-            <li>想逛街購物＋熱鬧：澀谷 / 新宿 / 銀座</li>
-            <li>要跑河口湖/富士山：新宿</li>
+            <li>成田進出、想簡單：上野。</li>
+            <li>預算想壓低、喜歡傳統街區：淺草。</li>
+            <li>行程分散、要搭新幹線：東京車站。</li>
+            <li>購物夜生活、河口湖富士山：新宿。</li>
+            <li>原宿表參道澀谷為主：澀谷。</li>
           </ul>
         </SeoContentSection>
 
@@ -105,16 +155,20 @@ export default function TokyoHotelPage() {
           title="東京住宿常見問題"
           items={[
             {
-              q: '東京住宿推薦住哪一區？',
-              a: '第一次到東京建議住新宿/上野/東京車站/澀谷，全部都可從成田機場直達，交通最方便。',
+              q: '第一次東京住宿最推薦哪一區？',
+              a: '如果沒有特別偏好，我會先看上野或新宿。上野適合成田進出和東側行程；新宿適合購物、夜生活和河口湖富士山。',
             },
             {
-              q: '東京哪個區域住宿最便宜？',
-              a: '淺草通常價格較便宜，生活機能也不錯；如果想要更多飯店選擇與競爭價格，也可以考慮池袋或新宿周邊。',
+              q: '東京住宿哪裡比較便宜？',
+              a: '通常淺草、上野外圍、池袋會比銀座、東京車站、澀谷好找價格。不要只看行政區，重點是離地鐵站或 JR 站走路幾分鐘。',
             },
             {
-              q: '東京住宿要靠近哪個車站最方便？',
-              a: '基本上新宿、上野、東京車站、澀谷，這四個車站幾乎所有景點都能快速到達，轉乘也最方便。',
+              q: '東京車站適合住嗎？',
+              a: '適合行程分散、會搭新幹線或想住乾淨安靜街區的人。不過房價通常較高，如果每天都在新宿澀谷逛街，住西側會更順。',
+            },
+            {
+              q: '住淺草會不會不方便？',
+              a: '如果主要玩上野、淺草、晴空塔、築地、銀座，其實很方便；但如果每天都跑新宿澀谷，就會比較常跨區轉車。',
             },
           ]}
         />

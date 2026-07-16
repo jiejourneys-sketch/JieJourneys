@@ -46,6 +46,13 @@ export default function FujiPassMapPage() {
           external: true,
         },
         {
+          label: '文章',
+          href: '/fuji/mt-fuji-pass?from=pass-map',
+          event: 'fujipassmap_top_article',
+          platform: 'article',
+          placement: 'afterBelowContent',
+        },
+        {
           label: '排序',
           href: '/tools/planner?region=fuji&source=pass',
           event: 'fujipassmap_top_planner',
@@ -96,6 +103,10 @@ export default function FujiPassMapPage() {
                 、
                 <a href="/fuji/ticket" data-event="fujipassmap_internal_ticket" data-section="seo_content">
                   富士河口湖票券整理
+                </a>
+                、
+                <a href="/fuji/mt-fuji-pass?from=pass-map" data-event="fujipassmap_internal_article" data-section="seo_content">
+                  富士山周遊券攻略
                 </a>
                 、
                 <a href="/fuji/transport" data-event="fujipassmap_internal_transport" data-section="seo_content">

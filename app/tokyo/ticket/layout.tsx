@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 const title =
   '東京景點門票與一日遊攻略｜迪士尼、SHIBUYA SKY、teamLab、富士山行程整理 | JieJourneys (旅杰)'
 const description =
-  '東京自由行門票懶人包，整理東京迪士尼、SHIBUYA SKY、晴空塔、東京鐵塔、哈利波特影城、teamLab、水族館等熱門景點票券，也收錄富士山、鎌倉江之島、日光、茨城等近郊一日遊，方便出發前比較 KKDAY、KLOOK、Trip 預訂連結。'
+  '東京票券攻略整理展望台、東京迪士尼、哈利波特影城、teamLab、水族館、富士山河口湖、鎌倉江之島、日光與常陸海濱公園一日遊，教你先分景點類型與交通難度，再比較 KKDAY、KLOOK、Trip 購票連結。'
 
 export const metadata: Metadata = {
   title,

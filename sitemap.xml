@@ -24,6 +24,8 @@
       <image:loc>https://www.jiejourneys.com/assets/busan-passmap-search.png</image:loc>
     </image:image>
   </url>
+  <url><loc>https://www.jiejourneys.com/busan/visit-busan-pass</loc></url>
+  <url><loc>https://www.jiejourneys.com/busan/busan-yacht-suyeong-diamond-bay</loc></url>
   <url><loc>https://www.jiejourneys.com/busan/journeys</loc></url>
 
   <!-- 北越區 -->
@@ -31,6 +33,7 @@
   <url><loc>https://www.jiejourneys.com/northvietnam/hotel</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/northvietnam/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/northvietnam/hanoi-to-sapa-transport</loc></url>
   <url>
     <loc>https://www.jiejourneys.com/northvietnam/map</loc>
     <image:image>
@@ -45,6 +48,9 @@
   <url><loc>https://www.jiejourneys.com/tokyo/hotel</loc></url>
   <url><loc>https://www.jiejourneys.com/tokyo/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/tokyo/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/tokyo/narita-airport-to-tokyo</loc></url>
+  <url><loc>https://www.jiejourneys.com/tokyo/haneda-airport-to-tokyo</loc></url>
+  <url><loc>https://www.jiejourneys.com/tokyo/tokyo-subway-ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/tokyo/video</loc></url>
   <url>
     <loc>https://www.jiejourneys.com/tokyo/map</loc>
@@ -59,6 +65,7 @@
   <url><loc>https://www.jiejourneys.com/osaka/hotel</loc></url>
   <url><loc>https://www.jiejourneys.com/osaka/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/osaka/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/osaka/kansai-airport-to-osaka</loc></url>
   <url><loc>https://www.jiejourneys.com/osaka/video</loc></url>
   <url>
     <loc>https://www.jiejourneys.com/osaka/map</loc>
@@ -88,6 +95,8 @@
   <url><loc>https://www.jiejourneys.com/fuji/hotel</loc></url>
   <url><loc>https://www.jiejourneys.com/fuji/ticket</loc></url>
   <url><loc>https://www.jiejourneys.com/fuji/transport</loc></url>
+  <url><loc>https://www.jiejourneys.com/fuji/tokyo-to-kawaguchiko</loc></url>
+  <url><loc>https://www.jiejourneys.com/fuji/mt-fuji-pass</loc></url>
   <url><loc>https://www.jiejourneys.com/fuji/video</loc></url>
   <url>
     <loc>https://www.jiejourneys.com/fuji/map</loc>

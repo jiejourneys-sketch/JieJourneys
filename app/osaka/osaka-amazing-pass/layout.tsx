@@ -5,6 +5,8 @@ import {
   osakaAmazingPassTitle,
 } from './pageMeta'
 
+const shareImage = 'https://www.jiejourneys.com/assets/og-share.png'
+
 export const metadata: Metadata = {
   title: osakaAmazingPassTitle,
   description: osakaAmazingPassDescription,
@@ -27,9 +29,9 @@ export const metadata: Metadata = {
     url: osakaAmazingPassCanonical,
     images: [
       {
-        url: 'https://www.jiejourneys.com/assets/osaka-pass-summary.png',
-        width: 762,
-        height: 542,
+        url: shareImage,
+        width: 1200,
+        height: 630,
       },
     ],
   },
@@ -37,7 +39,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: osakaAmazingPassTitle,
     description: osakaAmazingPassDescription,
-    images: ['https://www.jiejourneys.com/assets/osaka-pass-summary.png'],
+    images: [shareImage],
   },
   alternates: { canonical: osakaAmazingPassCanonical },
 }

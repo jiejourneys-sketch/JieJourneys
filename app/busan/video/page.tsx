@@ -158,6 +158,7 @@ export default function BusanVideoPage() {
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DVTW_MLkpj4/', className: 'btn primary', event: 'busanvideo_YachtIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/N56k5869RVw', className: 'btn', event: 'busanvideo_YachtYT', platform: 'YouTube', section: 'video' },
         { label: '小紅書', href: 'https://xhslink.com/o/8B2iEV9P095', className: 'btn', event: 'busanvideo_YachtXHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/busan-yacht-suyeong-diamond-bay?from=video', className: 'btn', event: 'busanvideo_yacht_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -251,9 +252,10 @@ export default function BusanVideoPage() {
       datasetKey: 'video',
       datasetValue: 'pass-24-48-3-5',
       actions: [
-        { label: 'IG Reels', href: 'https://www.instagram.com/reel/DUDiZzQkdUe/', className: 'btn primary', event: 'busanvideo_pass2026', platform: 'IG', section: 'video' },
-        { label: 'YouTube', href: 'https://www.youtube.com/shorts/ppTGbWXDM0k', className: 'btn', event: 'busanvideo_pass2026YT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/6QHeZo5sDIU', className: 'btn', event: 'busanvideo_pass2026XHS', platform: '小紅書', section: 'video' },
+        { label: 'IG Reels', href: 'https://www.instagram.com/reel/DUDiZzQkdUe/', className: 'btn primary', event: 'busanvideo_pass_ig', platform: 'IG', section: 'video' },
+        { label: 'YouTube', href: 'https://www.youtube.com/shorts/ppTGbWXDM0k', className: 'btn', event: 'busanvideo_pass_youtube', platform: 'YouTube', section: 'video' },
+        { label: '小紅書', href: 'https://xhslink.com/o/6QHeZo5sDIU', className: 'btn', event: 'busanvideo_pass_xhs', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/visit-busan-pass?from=video', className: 'btn', event: 'busanvideo_pass_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -359,219 +361,504 @@ export default function BusanVideoPage() {
         <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanvideo_SEO_spotmap" />
         <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanvideo_SEO_passmap" />
 
-        <section className="seo-content" aria-label="快速理解摘要">
-          <h2 className="seo-h2">釜山自由行快速理解</h2>
+        <section className="seo-content" aria-label="釜山短影片完整攻略">
+          <h2 className="seo-h2">釜山短影片怎麼看：先抓區域，再排景點</h2>
           <div className="seo-prose">
-            <h3 className="seo-h3">釜山好不好玩</h3>
             <p>
-              海景＋膠囊列車為主，節奏舒服好拍。同時有購物（彩妝）＋美食（烤肉 / 海鮮 / 糖餅）
+              釜山不是把景點塞越多越好，重點是先把城市切成幾個區域：南浦洞看舊市區、市場和甘川洞；海雲台看海景、藍線公園和膠囊列車；西面適合住宿、轉乘和逛街；廣安里則留給夜景、無人機和遊艇。影片可以先看總覽，再挑區域補細節，排起來會順很多。
             </p>
 
-            <h3 className="seo-h3">區域怎麼分</h3>
+            <h3 className="seo-h3">建議觀看順序</h3>
+            <ol>
+              <li>
+                先看
+                <a
+                  href="https://www.instagram.com/reel/DObDFXuEZFE/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="busanvideo_article_suitable_ig"
+                  data-platform="IG"
+                  data-section="article"
+                >
+                  <strong>韓國釜山｜適合你？</strong>
+                </a>
+                ，確認釜山是不是你喜歡的旅行節奏。
+              </li>
+              <li>
+                接著看
+                <a
+                  href="https://www.instagram.com/reel/DK4dIqzzJBE/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="busanvideo_article_fastguide1_ig"
+                  data-platform="IG"
+                  data-section="article"
+                >
+                  <strong>最速攻略上集</strong>
+                </a>
+                和
+                <a
+                  href="https://www.instagram.com/reel/DLCwV2yzbSv/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="busanvideo_article_fastguide2_ig"
+                  data-platform="IG"
+                  data-section="article"
+                >
+                  <strong>最速攻略下集</strong>
+                </a>
+                ，先把南浦洞、海雲台、西面、廣安里、松島、樂天世界這些位置關係抓起來。
+              </li>
+              <li>
+                決定住宿區後，再回頭看南浦洞、海雲台、膠囊列車、遊艇、釜山通行證和行前準備影片。
+              </li>
+            </ol>
+
+            <h3 className="seo-h3">第一次釜山自由行，區域這樣理解</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>區域</th>
+                  <th>適合安排</th>
+                  <th>先看影片</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>南浦洞 / 舊市區</td>
+                  <td>市場、美食、甘川洞、釜山塔、松島，適合排在同一天或相鄰兩天。</td>
+                  <td>
+                    <a
+                      href="https://www.instagram.com/reel/DLKer30zmDd/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-event="busanvideo_article_nampo1_ig"
+                      data-platform="IG"
+                      data-section="article"
+                    >
+                      <strong>南浦洞上集</strong>
+                    </a>
+                    、
+                    <a
+                      href="https://www.instagram.com/reel/DLeby5yTVTm/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-event="busanvideo_article_nampo2_ig"
+                      data-platform="IG"
+                      data-section="article"
+                    >
+                      <strong>南浦洞下集</strong>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>海雲台 / 東釜山</td>
+                  <td>海雲台海灘、藍線公園、膠囊列車、青沙浦、海東龍宮寺、樂天世界一帶。</td>
+                  <td>
+                    <a
+                      href="https://www.instagram.com/reel/DLuh1WzzM0c/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-event="busanvideo_article_haeundae_ig"
+                      data-platform="IG"
+                      data-section="article"
+                    >
+                      <strong>海雲台</strong>
+                    </a>
+                    、
+                    <a
+                      href="https://www.instagram.com/reel/DMu5uZxTdO8/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-event="busanvideo_article_capsule_ig"
+                      data-platform="IG"
+                      data-section="article"
+                    >
+                      <strong>膠囊列車</strong>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>西面</td>
+                  <td>市中心轉乘、逛街、住宿基地。想東西兩邊都跑，住西面通常最平均。</td>
+                  <td>
+                    <a
+                      href="https://www.instagram.com/reel/DK4dIqzzJBE/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-event="busanvideo_article_seomyeon_ig"
+                      data-platform="IG"
+                      data-section="article"
+                    >
+                      <strong>最速攻略上集</strong>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>廣安里</td>
+                  <td>廣安大橋夜景、週六無人機表演、遊艇。晚上來最有感。</td>
+                  <td>
+                    <a
+                      href="https://www.instagram.com/reel/DVTW_MLkpj4/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-event="busanvideo_article_yacht_ig"
+                      data-platform="IG"
+                      data-section="article"
+                    >
+                      <strong>遊艇影片</strong>
+                    </a>
+                    、
+                    <a
+                      href="/busan/busan-yacht-suyeong-diamond-bay?from=video"
+                      data-event="busanvideo_article_yacht_article"
+                      data-platform="article"
+                      data-section="article"
+                    >
+                      <strong>遊艇文章</strong>
+                    </a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3 className="seo-h3">南浦洞：市場、甘川洞、釜山塔一起排</h3>
             <p>
-            <a
-                href="https://www.instagram.com/reels/DK4dIqzzJBE/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEOsandaqu"
-              >
-                <strong>三大區</strong></a>：南浦洞 / 海雲台 / 西面
-              <br />
+              南浦洞很適合第一次去釜山的人，因為景點密度高，吃東西、逛市場、搭車去甘川洞文化村都方便。甘川洞本身是山坡上的彩色聚落，適合留時間慢慢拍照、走巷弄；看完可以回南浦洞接釜山塔或市場。先看
               <a
-                href="https://www.instagram.com/reels/DLCwV2yzbSv/"
+                href="https://www.instagram.com/reel/DL408o_ze1X/"
                 target="_blank"
                 rel="noopener noreferrer"
-                data-event="busanvideo_SEO_sanxiaoqu" 
+                data-event="busanvideo_article_gamcheon_ig"
+                data-platform="IG"
+                data-section="article"
               >
-                <strong>三小區</strong></a>：松島 / 廣安里 / 樂天世界
-                <br />
-            </p>
-
-            <h3 className="seo-h3">必玩重點</h3>
-            <p>
-              1. 南浦洞：BIFF糖餅、扎嘎其海鮮、<a
-                href="https://www.instagram.com/reels/DL408o_ze1X/"
+                <strong>甘川洞文化村</strong>
+              </a>
+              和
+              <a
+                href="https://www.instagram.com/reel/DMKh_XmzOdG/"
                 target="_blank"
                 rel="noopener noreferrer"
-                data-event="busanvideo_SEO_ganchuan"
-              >
-                <strong>甘川洞看小王子</strong>
-              </a>、<a
-                href="https://www.instagram.com/reels/DMKh_XmzOdG/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEO_fushantower"
+                data-event="busanvideo_article_tower_ig"
+                data-platform="IG"
+                data-section="article"
               >
                 <strong>釜山塔</strong>
-              </a>、逛市場
-              <br />
-              2. <a
-                href="https://www.instagram.com/reels/DLuh1WzzM0c/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEO_haiyuntai"
-              >
-                <strong>海雲台</strong>
-              </a>：海灘＋海雲台大道＋
-              <a
-                href="https://www.instagram.com/reels/DMu5uZxTdO8/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEOcapsule"
-              >
-                <strong>膠囊列車</strong>
               </a>
-              （<a
+              ，再用
+              <a
+                href="/busan/map"
+                data-event="busanvideo_article_spotmap"
+                data-platform="internal"
+                data-section="article"
+              >
+                <strong>釜山熱門景點地圖</strong>
+              </a>
+              看它們的位置，會比單看清單更好排。
+            </p>
+
+            <h3 className="seo-h3">海雲台：膠囊列車要先決定時間</h3>
+            <p>
+              海雲台這區的重點不是只去海灘，而是把海雲台海灘、藍線公園、天空膠囊列車、青沙浦沿線一起想。膠囊列車熱門時段很容易滿，官方訂票通常會提前開放一段時間，現場票也可能售完；如果你想拍順光或夕陽，建議先把膠囊列車時間固定，再回推海雲台和青沙浦的停留時間。
+            </p>
+            <p>
+              訂票可以看
+              <a
+                href="https://www.instagram.com/reel/DNIpqn1TE0k/"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_capsule_platform_ig"
+                data-platform="IG"
+                data-section="article"
+              >
+                <strong>平台訂票影片</strong>
+              </a>
+              、
+              <a
+                href="https://www.instagram.com/reel/DNarLsDTe2F/"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_capsule_official_ig"
+                data-platform="IG"
+                data-section="article"
+              >
+                <strong>官網訂票影片</strong>
+              </a>
+              ，實際購票連結則放這裡：
+              <a
                 href="https://www.kkday.com/zh-tw/product/123012-haeundae-blueline-park-sky-capsule-beach-train-ticket?cid=22312"
                 target="_blank"
                 rel="noopener noreferrer"
-                data-event="busanvideo_SEO_capsulekkday"
+                data-event="busanvideo_article_capsule_kkday"
+                data-platform="KKDAY"
+                data-section="article"
               >
-                <strong>購票</strong>
-              </a>）→ 可搭配青沙浦踏石、韓版灌籃高手平交道
-              <br />
-              3. 西面：最中心，交通方便，適合住宿＋逛街
-            </p>
-
-            <h3 className="seo-h3">其他景點</h3>
-            <p>
-              1.  松島：海景纜車
-              <br />
-              2. 廣安里：看廣安大橋夜景＋無人機(<a
-                href="https://www.gwangallimdrone.co.kr/en/information"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEO_wurenji"
-              >
-                <strong>演出表</strong></a>)＋<a
-                href="https://www.instagram.com/reels/DVTW_MLkpj4/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEO_youting"
-              >
-                <strong>遊艇</strong>
+                <strong>KKDAY</strong>
               </a>
-              <br />
-              3. 樂天世界：遊樂園＋斜坡滑車＋海東龍宮寺
-            </p>
-
-            <h3 className="seo-h3">行前準備</h3>
-            <p>
-              出發前3天填
+              、
               <a
-                href="https://www.instagram.com/reels/DKMrn6dzS4G/"
+                href="https://www.klook.com/zh-TW/activity/133293-haeundae-blueline-park-ticket-in-busan/?aid=93798"
                 target="_blank"
                 rel="noopener noreferrer"
-                data-event="busanvideo_SEO_earrival"
+                data-event="busanvideo_article_capsule_klook"
+                data-platform="KLOOK"
+                data-section="article"
               >
-                <strong>電子入境卡</strong>
-              </a>(<a
-                href="https://www.e-arrivalcard.go.kr/portal/main/index.do"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEO_earrivalofficial"
-              >
-                <strong>官網</strong>
-              </a>)
-              ＋搞懂
-              <a
-                href="https://www.instagram.com/reels/DUDiZzQkdUe/"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="busanvideo_SEO_pass"
-              >
-                <strong>釜山通行證</strong>
+                <strong>KLOOK</strong>
               </a>
+              。
             </p>
 
-            <h3 className="seo-h3">釜山通行證 (<a
+            <h3 className="seo-h3">廣安里：夜景、無人機、遊艇放同一晚</h3>
+            <p>
+              廣安里最適合晚上去，海灘正對廣安大橋，週六還能搭配無人機表演。我的排法會把晚餐、海邊散步、無人機、遊艇放在同一晚，行程感會比白天特地跑一趟更完整。無人機時間可以先看
+              <a
+                href="https://www.gwangallimdrone.co.kr/en/overview"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_drone_official"
+                data-platform="official"
+                data-section="article"
+              >
+                <strong>演出資訊</strong>
+              </a>
+              ，遊艇則先看
+              <a
+                href="/busan/busan-yacht-suyeong-diamond-bay?from=video"
+                data-event="busanvideo_article_yacht_compare"
+                data-platform="article"
+                data-section="article"
+              >
+                <strong>水營灣 VS 鑽石灣</strong>
+              </a>
+              ，再決定要拍照煙火感，還是想用釜山通行證。
+            </p>
+
+            <h3 className="seo-h3">釜山通行證：先算景點，不要先買票</h3>
+            <p>
+              釜山通行證有 24 / 48 小時，也有 Big 3 / Big 5。限時型適合把付費景點集中玩，限制型適合只挑幾個高單價景點。我的做法是先把想去的景點標在地圖上，再看它們能不能排成順路的一天或兩天；如果只是零散用，很容易沒有想像中划算。
+            </p>
+            <p>
+              可以先看
+              <a
+                href="https://www.instagram.com/reel/DUDiZzQkdUe/"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_pass_ig"
+                data-platform="IG"
+                data-section="article"
+              >
+                <strong>釜山通行證重點</strong>
+              </a>
+              ，再接
+              <a
+                href="/busan/visit-busan-pass?from=video"
+                data-event="busanvideo_article_pass_article"
+                data-platform="article"
+                data-section="article"
+              >
+                <strong>通行證文章</strong>
+              </a>
+              和
+              <a
+                href="/busan/pass-map"
+                data-event="busanvideo_article_passmap"
+                data-platform="internal"
+                data-section="article"
+              >
+                <strong>釜山通行證地圖</strong>
+              </a>
+              。要買的話，連結放這裡：
+              <a
                 href="https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312"
                 target="_blank"
                 rel="noopener noreferrer"
-                data-event="busanvideo_SEO_passkkday"
+                data-event="busanvideo_article_pass_kkday"
+                data-platform="KKDAY"
+                data-section="article"
               >
-                <strong>購票</strong></a>)</h3>
-            <p>
-              分24/48小時與Big3/Big5，多數人直接選48小時最划算。<a href="/busan/pass-map" data-event="busanvideo_SEO_passmap_inline">
-                <strong>釜山通行證地圖</strong>
+                <strong>KKDAY</strong>
               </a>
+              、
+              <a
+                href="https://www.klook.com/zh-TW/activity/81576-visit-busan-pass/?aid=93798"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_pass_klook"
+                data-platform="KLOOK"
+                data-section="article"
+              >
+                <strong>KLOOK</strong>
+              </a>
+              、
+              <a
+                href="https://tw.trip.com/things-to-do/detail/50618334?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5754051"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_pass_trip"
+                data-platform="Trip"
+                data-section="article"
+              >
+                <strong>Trip</strong>
+              </a>
+              。
             </p>
 
+            <h3 className="seo-h3">行前準備：把文件、現金、電源先處理好</h3>
+            <p>
+              行前準備不用複雜，但有幾件事最好出發前先確認：電子入境卡通常可在入境前 3 天內線上填寫；K-ETA 是否需要要依國籍和當下規定確認；韓幣可以先抓一部分現金；行動電源則要留意航空公司和機場規定。影片可以照
+              <a
+                href="https://www.instagram.com/reel/DKMrn6dzS4G/"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_earrival_ig"
+                data-platform="IG"
+                data-section="article"
+              >
+                <strong>電子入境卡</strong>
+              </a>
+              、
+              <a
+                href="https://www.instagram.com/reel/DKetNmXTW3E/"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_keta_ig"
+                data-platform="IG"
+                data-section="article"
+              >
+                <strong>K-ETA是否要申請</strong>
+              </a>
+              、
+              <a
+                href="https://www.instagram.com/reel/DKetKpgTvd7/"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_currency_ig"
+                data-platform="IG"
+                data-section="article"
+              >
+                <strong>韓幣怎麼換</strong>
+              </a>
+              、
+              <a
+                href="https://www.instagram.com/reel/DKmbjKIzsAT/"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="busanvideo_article_powerbank_ig"
+                data-platform="IG"
+                data-section="article"
+              >
+                <strong>行動電源規定</strong>
+              </a>
+              這個順序看。
+            </p>
           </div>
         </section>
 
         <SeoFaqSection
           title="釜山短影片合輯常見問題"
           items={[
-            { q: '第一次去釜山看哪支影片最有用？', a: '建議先看「認識釜山」和「景點攻略」，先建立行程框架，再依景點興趣挑海雲台、南浦洞、甘川洞等細節影片。' },
             {
-              q: '釜山Pass真的划算嗎？',
+              q: '第一次去釜山，先看哪幾支影片？',
+              a: '先看「韓國釜山｜適合你？」和兩支「最速攻略」，再依住宿區補南浦洞、海雲台、膠囊列車、廣安里遊艇和釜山通行證。這樣比較不會一開始就被景點清單打散。',
+            },
+            {
+              q: '釜山住宿選哪區最方便？',
+              a: '第一次去可以先想行程重心。想逛市場、甘川洞、舊市區就選南浦洞；想看海、搭膠囊列車就選海雲台；想東西兩邊都跑、重視交通和逛街就選西面。',
+            },
+            {
+              q: '釜山通行證真的划算嗎？',
               a: (
                 <>
-                  影片有詳細的24小時和48小時走法比較，以及景點限制說明。建議先看完「釜山通行證重點」；基本上多數人最後都會買 48 小時，建議用
+                  要看你能不能把高單價景點集中在同一天或兩天。建議先看
+                  <a
+                    href="/busan/visit-busan-pass?from=video"
+                    data-event="busanvideo_faq_pass_article"
+                    data-platform="article"
+                    data-section="faq"
+                  >
+                    <strong>通行證文章</strong>
+                  </a>
+                  和
+                  <a
+                    href="/busan/pass-map"
+                    data-event="busanvideo_faq_passmap"
+                    data-platform="internal"
+                    data-section="faq"
+                  >
+                    <strong>通行證地圖</strong>
+                  </a>
+                  ，再用
                   <a
                     href="https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312"
                     target="_blank"
                     rel="noopener noreferrer"
                     data-event="busanvideo_faq_pass_kkday"
+                    data-platform="KKDAY"
+                    data-section="faq"
                   >
                     <strong>KKDAY</strong>
-                  </a>{' '}
-                  /{' '}
+                  </a>
+                  、
                   <a
                     href="https://www.klook.com/zh-TW/activity/81576-visit-busan-pass/?aid=93798"
                     target="_blank"
                     rel="noopener noreferrer"
                     data-event="busanvideo_faq_pass_klook"
+                    data-platform="KLOOK"
+                    data-section="faq"
                   >
                     <strong>KLOOK</strong>
-                  </a>{' '}
-                  /{' '}
+                  </a>
+                  或
                   <a
                     href="https://tw.trip.com/things-to-do/detail/50618334?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5754051"
                     target="_blank"
                     rel="noopener noreferrer"
                     data-event="busanvideo_faq_pass_trip"
+                    data-platform="Trip"
+                    data-section="faq"
                   >
                     <strong>Trip</strong>
-                  </a>購買。
+                  </a>
+                  購買。
                 </>
               ),
             },
             {
-              q: '膠囊列車怎麼訂最方便？',
+              q: '膠囊列車要買官方還是平台？',
               a: (
                 <>
-                  建議提前訂票，熱門時段很容易滿。你可以用{' '}
+                  如果你要搶熱門時段，可以先看官網訂票邏輯；如果想中文介面或付款方便，就看平台票。連結可以用
                   <a
                     href="https://www.kkday.com/zh-tw/product/123012-haeundae-blueline-park-sky-capsule-beach-train-ticket?cid=22312"
                     target="_blank"
                     rel="noopener noreferrer"
                     data-event="busanvideo_faq_capsule_kkday"
+                    data-platform="KKDAY"
+                    data-section="faq"
                   >
                     <strong>KKDAY</strong>
-                  </a>{' '}
-                  /{' '}
+                  </a>
+                  或
                   <a
                     href="https://www.klook.com/zh-TW/activity/133293-haeundae-blueline-park-ticket-in-busan/?aid=93798"
                     target="_blank"
                     rel="noopener noreferrer"
                     data-event="busanvideo_faq_capsule_klook"
+                    data-platform="KLOOK"
+                    data-section="faq"
                   >
                     <strong>KLOOK</strong>
-                  </a>{' '}
-                  /{' '}
-                  <a
-                    href="https://tw.trip.com/travel-guide/attraction/busan/haeundae-blueline-park-131154386/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5754051"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    data-event="busanvideo_faq_capsule_trip"
-                  >
-                    <strong>Trip</strong>
-                  </a>{' '}
-                  訂票。
+                  </a>
+                  。
                 </>
               ),
+            },
+            {
+              q: '廣安里遊艇和無人機怎麼排？',
+              a: '建議排同一晚。先吃晚餐，再看廣安大橋夜景；如果是週六，確認無人機表演時間後，把遊艇放在前後銜接。想拍照和煙火感看水營灣，想用釜山通行證就看鑽石灣。',
             },
           ]}
         />

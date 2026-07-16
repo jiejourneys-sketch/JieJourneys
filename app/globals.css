@@ -668,7 +668,7 @@ a.link-item {
   display: flex;
   gap: 8px;
   justify-content: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   min-width: 0;
   max-width: 100%;
 }
@@ -721,7 +721,8 @@ a.link-item {
   }
   .pass-actions {
     grid-area: actions;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: center;
     gap: 6px;
     width: 100%;
@@ -735,11 +736,12 @@ a.link-item {
   }
   .pass-btn {
     font-size: 11px;
-    padding: 4px 6px;
+    padding: 6px 6px;
     border-radius: 9px;
-    flex: 0 1 auto;
+    width: 100%;
+    min-height: 32px;
     min-width: 0;
-    white-space: normal;
+    white-space: nowrap;
   }
 }
 @media (max-width: 360px) {
@@ -748,7 +750,7 @@ a.link-item {
   }
   .pass-btn {
     font-size: 11px;
-    padding: 4px 7px;
+    padding: 6px 7px;
   }
 }
 
@@ -988,6 +990,130 @@ a.link-item {
   gap: 10px;
 }
 
+.narita-transport-page .narita-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.narita-transport-page .haneda-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.narita-transport-page .kix-summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.narita-transport-page .narita-summary-grid > div,
+.narita-transport-page .narita-terminal-flow > div {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 16px;
+}
+
+.narita-transport-page .narita-summary-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.narita-transport-page .narita-summary-grid strong,
+.narita-transport-page .narita-terminal-flow strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #111827;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.narita-transport-page .narita-summary-grid p,
+.narita-transport-page .narita-terminal-flow p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+.narita-transport-page .narita-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.narita-transport-page .narita-table-scroll table {
+  min-width: 820px;
+}
+
+.narita-transport-page .narita-terminal-flow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+
+.narita-transport-page .narita-checklist li + li {
+  margin-top: 8px;
+}
+
+.narita-transport-page .pass-area-panel {
+  margin: 18px 0 22px;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+}
+
+.narita-transport-page .pass-area-group + .pass-area-group {
+  margin-top: 28px;
+}
+
+.narita-transport-page .pass-area-group h3 {
+  width: max-content;
+  margin: 0 auto 16px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: #a855f7;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.narita-transport-page .pass-area-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.narita-transport-page .pass-area-chip {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 12px;
+  border: 1px solid #dbe7f3;
+  border-radius: 8px;
+  background: #f7faff;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+.narita-transport-page .pass-area-note {
+  margin: 16px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+}
+
 @media (max-width: 920px) {
   .japan-tax-free-page .tax-free-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -997,6 +1123,9 @@ a.link-item {
   }
   .japan-tax-free-page .wamazing-actions {
     justify-content: flex-start;
+  }
+  .narita-transport-page .narita-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1010,6 +1139,24 @@ a.link-item {
   }
   .japan-tax-free-page .wamazing-actions .seo-buy-link {
     width: 100%;
+  }
+  .narita-transport-page .narita-summary-grid,
+  .narita-transport-page .narita-terminal-flow {
+    grid-template-columns: 1fr;
+  }
+  .narita-transport-page .pass-area-panel {
+    padding: 14px;
+  }
+  .narita-transport-page .pass-area-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .narita-transport-page .pass-area-chip {
+    min-height: 44px;
+  }
+  .narita-transport-page .narita-summary-grid > div,
+  .narita-transport-page .narita-terminal-flow > div {
+    padding: 14px;
   }
 }
 

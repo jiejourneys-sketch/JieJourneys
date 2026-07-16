@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '富士河口湖交通攻略｜東京出發・eSIM・富士回遊・巴士・周遊券全整理 | JieJourneys(旅杰)'
 const description =
-  '富士河口湖交通通訊攻略整理東京到河口湖的富士回遊、高速巴士、包車、自駕與機場接送，也比較 eSIM、SIM卡、WiFi 分享器怎麼選。想去五合目、御殿場Outlet、箱根或山中湖，可快速找到適合的移動方式、購買平台與時刻表連結。'
+  '富士河口湖交通通訊攻略整理東京到河口湖 3 種方式：富士回遊、高速巴士、包車自駕，也比較 eSIM、SIM卡、WiFi 分享器怎麼選。想去五合目、御殿場Outlet、箱根或山中湖，可快速找到適合的移動方式、購買平台與時刻表連結。'
 
 export const metadata: Metadata = {
   title,
@@ -11,6 +11,9 @@ export const metadata: Metadata = {
     '富士河口湖交通',
     '富士河口湖怎麼去',
     '東京到富士河口湖',
+    '東京到河口湖',
+    '富士回遊',
+    '河口湖高速巴士',
     '河口湖巴士',
     '富士河口湖eSIM',
     '富士河口湖周遊券',

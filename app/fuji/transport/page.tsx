@@ -13,6 +13,15 @@ const tabs = [
   { value: '交通', label: '交通', dataArea: '交通' },
 ]
 
+const kawaguchikoArticleAction = (event: string) => ({
+  label: '文章',
+  href: '/fuji/tokyo-to-kawaguchiko?from=transport',
+  className: 'btn',
+  event,
+  platform: 'article',
+  section: 'transport_card',
+})
+
 const cards: CityCard[] = [
   // ── 通訊 ─────────────────────────────────────────────────
   {
@@ -65,6 +74,7 @@ const cards: CityCard[] = [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/transportation/list_page/japan-rail/jp-shinjuku-rail-to-jp-kawaguchiko-rail?cid=22312', className: 'btn primary', event: 'fujitransport_excursion_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/japan-rail/kawaguchiko-station/28-tokyo/?aid=93798', className: 'btn', event: 'fujitransport_excursion_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: '時刻表', href: 'https://www.fujikyu-railway.jp/fujikaiyuu/', className: 'btn', event: 'fujitransport_excursion_timetable', platform: 'Timetable', section: 'transport_card' },
+      kawaguchikoArticleAction('fujitransport_excursion_article'),
     ],
   },
   {
@@ -75,6 +85,7 @@ const cards: CityCard[] = [
      { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/68978254/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujitransport_express_bus_trip', platform: 'Trip', section: 'transport_card' },
      { label: '官網', href: 'https://highway-buses.jp/chi/', className: 'btn', event: 'fujitransport_express_bus_official', platform: 'Timetable', section: 'transport_card' },
      { label: '時刻表', href: 'https://japantravel.navitime.com/zh-tw/area/jp/highwaybus/list/tokyo-to-yamanashi/', className: 'btn', event: 'fujitransport_express_bus_timetable', platform: 'Timetable', section: 'transport_card' },
+     kawaguchikoArticleAction('fujitransport_express_bus_article'),
     ],
   },
   {
@@ -83,6 +94,7 @@ const cards: CityCard[] = [
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/129967-narita-airport-tokyo-private-transfer-japan?cid=22312', className: 'btn primary', event: 'fujitransport_baoche_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/120898-car-rental-with-driver-tokyo-mtfuji-chinesespeaking/?aid=93798', className: 'btn', event: 'fujitransport_baoche_klook', platform: 'KLOOK', section: 'transport_card' }, 
+      kawaguchikoArticleAction('fujitransport_baoche_article'),
     ],
   },
   {
@@ -91,6 +103,7 @@ const cards: CityCard[] = [
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/9558-tokyo-private-day-tour-mt-fuji-hakone-and-downtown-tokyo-japan?cid=22312', className: 'btn primary', event: 'fujitransport_spotbaoche_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/87199-tokyo-private-one-day-tour-kyoto/?aid=93798', className: 'btn', event: 'fujitransport_spotbaoche_klook', platform: 'KLOOK', section: 'transport_card' }, 
+      kawaguchikoArticleAction('fujitransport_spotbaoche_article'),
     ],
   },
   {
@@ -101,6 +114,7 @@ const cards: CityCard[] = [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/car-rentals?cid=22312', className: 'btn', event: 'fujitransport_self_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-HK/car-rentals/city/28-tokyo-car-rentals/?aid=93798', className: 'btn', event: 'fujitransport_self_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: 'Trip', href: 'https://tw.trip.com/carhire/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16062937', className: 'btn', event: 'fujitransport_self_trip', platform: 'Trip', section: 'transport_card' },
+      kawaguchikoArticleAction('fujitransport_self_article'),
     ],
   },
 ]
@@ -158,6 +172,16 @@ export default function FujiTransportPage() {
             富士回遊是從新宿直達河口湖的特急列車，沿途景色漂亮、車廂舒適，約 2 小時，適合喜歡鐵道體驗的旅客。
             高速巴士從新宿或機場出發，價格較便宜，可提前在 KKDAY / KLOOK 購票，但遇塞車時間會拉長。
             兩者都直達河口湖站，選哪個看你的出發地點和預算。
+            想先用一篇文章判斷，可以看
+            <a
+              href="/fuji/tokyo-to-kawaguchiko?from=transport"
+              data-event="fujitransport_SEO_tokyo_kawaguchiko_article"
+              data-platform="article"
+              data-section="seo_content"
+            >
+              <strong>東京到河口湖 3 種方式</strong>
+            </a>
+            。
           </p>
 
           <h3 className="seo-h3">包車 vs 自駕：彈性最大的選擇</h3>

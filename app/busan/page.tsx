@@ -92,6 +92,7 @@ export default function BusanPage() {
                   rel="noopener noreferrer"
                   data-event="busan_pass_kkday"
                   data-platform="KKDAY"
+                  data-section="quick"
                 >
                   KKDAY
                 </a>
@@ -102,6 +103,7 @@ export default function BusanPage() {
                   rel="noopener noreferrer"
                   data-event="busan_pass_klook"
                   data-platform="KLOOK"
+                  data-section="quick"
                 >
                   KLOOK
                 </a>
@@ -112,6 +114,7 @@ export default function BusanPage() {
                   rel="noopener noreferrer"
                   data-event="busan_pass_trip"
                   data-platform="Trip"
+                  data-section="quick"
                 >
                   Trip
                 </a>
@@ -120,6 +123,7 @@ export default function BusanPage() {
                   href="/busan/pass-map"
                   data-event="busan_ditu"
                   data-platform="map"
+                  data-section="quick"
                 >
                   地圖
                 </a>
@@ -128,10 +132,20 @@ export default function BusanPage() {
                   href="https://www.instagram.com/reel/DUDiZzQkdUe/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  data-event="busan_2026"
-                  data-platform="map"
+                  data-event="busan_pass_intro_ig"
+                  data-platform="IG"
+                  data-section="quick"
                 >
                   介紹
+                </a>
+                <a
+                  className="pass-btn"
+                  href="/busan/visit-busan-pass"
+                  data-event="busan_pass_article"
+                  data-platform="article"
+                  data-section="quick"
+                >
+                  文章
                 </a>
               </div>
             </div>

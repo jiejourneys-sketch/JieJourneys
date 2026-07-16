@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '釜山票券攻略｜一日遊・釜山Pass・膠囊列車・景點門票總整理 | JieJourneys(旅杰)'
 const description =
-  '釜山票券攻略一次看懂：釜山Pass 24/48小時值不值得買、海雲台膠囊列車怎麼訂、熱門一日遊怎麼選，並整理樂天世界、X the Sky、松島纜車、SPA LAND、Running Man 等門票，快速比較 KKDAY、KLOOK、Trip 價格與路線。'
+  '釜山票券攻略整理釜山通行證、一日遊、膠囊列車、遊艇與熱門景點門票怎麼選，教你先用行程判斷要買 Pass、一日遊或單點票，再比較 KKDAY、KLOOK、Trip 連結。'
 
 export const metadata: Metadata = {
   title,

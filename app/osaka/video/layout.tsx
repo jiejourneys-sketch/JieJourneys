@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 const title =
   '大阪短影片合輯｜5個區域攻略、關西機場交通與行前準備 | JieJourneys(旅杰)'
 const description =
-  '大阪短影片攻略合輯，先用大阪5個區域攻略快速理解難波、心齋橋、梅田、天王寺與環球影城動線，再看關西機場到大阪市區3種方式，搭配 Visit Japan Web、日幣換匯等行前準備影片，適合第一次大阪自由行出發前快速抓重點。'
+  '大阪短影片攻略合輯，整理大阪住宿攻略、大阪周遊券、5個區域攻略、關西機場到大阪市區3種方式、Visit Japan Web、日幣換匯等影片，快速理解住宿區域、景點動線、票券與交通重點。'
 
 export const metadata: Metadata = {
   title,

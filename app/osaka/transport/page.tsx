@@ -16,6 +16,15 @@ const tabs = [
 
 const KIX_TRANSPORT_MAP_URL = 'https://www.google.com/maps/d/edit?mid=11LrZQhbY4ULNh46Oxe4NWci5Zas6UCA&usp=sharing'
 
+const kixArticleAction = (event: string) => ({
+  label: '文章',
+  href: '/osaka/kansai-airport-to-osaka?from=transport',
+  className: 'btn',
+  event,
+  platform: 'article',
+  section: 'transport_card',
+})
+
 const cards: CityCard[] = [
   // ── 通訊 ─────────────────────────────────────────────────
   {
@@ -70,6 +79,7 @@ const cards: CityCard[] = [
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/57078589/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16697837', className: 'btn', event: 'osakatransport_rapit_trip', platform: 'Trip', section: 'transport_card' },
       { label: '時刻表', href: 'https://www.nankai.co.jp/tc_railway/access-timetable', className: 'btn', event: 'osakatransport_rapit_timetable', platform: 'Timetable', section: 'transport_card' },
       { label: '地圖', href: KIX_TRANSPORT_MAP_URL, className: 'btn', event: 'osakatransport_rapit_map', platform: 'GoogleMap', section: 'transport_card' },
+      kixArticleAction('osakatransport_rapit_article'),
     ],
   },
   {
@@ -80,6 +90,7 @@ const cards: CityCard[] = [
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/18400-jr-haruka-airport-express-train-tickets-osaka/?aid=93798', className: 'btn', event: 'osakatransport_haruka_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/87364606/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16697837', className: 'btn', event: 'osakatransport_haruka_trip', platform: 'Trip', section: 'transport_card' },
       { label: '地圖', href: KIX_TRANSPORT_MAP_URL, className: 'btn', event: 'osakatransport_haruka_map', platform: 'GoogleMap', section: 'transport_card' },
+      kixArticleAction('osakatransport_haruka_article'),
     ],
   },
   {
@@ -91,6 +102,7 @@ const cards: CityCard[] = [
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/93684157?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16697837', className: 'btn', event: 'osakatransport_limousine_trip', platform: 'Trip', section: 'transport_card' },
       { label: '時刻表', href: 'https://www.kate.co.jp/tcn/timetable/index', className: 'btn', event: 'osakatransport_limousine_timetable', platform: 'Timetable', section: 'transport_card' },
       { label: '地圖', href: KIX_TRANSPORT_MAP_URL, className: 'btn', event: 'osakatransport_limousine_map', platform: 'GoogleMap', section: 'transport_card' },
+      kixArticleAction('osakatransport_limousine_article'),
     ],
   },
   {
@@ -100,6 +112,7 @@ const cards: CityCard[] = [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/129909-japan-kansai-international-airport-private-transfer-to-osaka-kyoto-nara-kobe-nagoya?cid=22312', className: 'btn primary', event: 'osakatransport_charter_kkday', platform: 'KKDAY', section: 'transport_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/15716-osaka-surrounding-areas-private-charter/?aid=93798', className: 'btn', event: 'osakatransport_charter_klook', platform: 'KLOOK', section: 'transport_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/105009650/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16697837', className: 'btn', event: 'osakatransport_charter_trip', platform: 'Trip', section: 'transport_card' },
+      kixArticleAction('osakatransport_charter_article'),
     ],
   },
   {
@@ -178,6 +191,18 @@ export default function OsakaTransportPage() {
             從關西機場進大阪，先看你住在哪一區。住<strong>難波、新今宮</strong>一帶，南海電鐵 <strong>Rapi:t</strong> 很直覺，路線簡單、下車後接大阪地鐵也方便。
             <br />
             如果住宿在<strong>天王寺、新大阪、京都、神戶</strong>方向，<strong>HARUKA</strong>會更適合，尤其是要直接往 JR 大站移動時，可以少轉幾次車。住在飯店門口有利木津巴士站的人，則可以比較<strong>利木津巴士</strong>，不用扛行李上下樓梯，但要把班次和塞車時間算進去。
+          </p>
+          <p>
+            我把三種方式另外整理成
+            <a
+              href="/osaka/kansai-airport-to-osaka?from=transport"
+              data-event="osakatransport_SEO_kix_article"
+              data-platform="article"
+              data-section="seo_content"
+            >
+              <strong>關西機場到大阪市區交通文章</strong>
+            </a>
+            ，如果你只想先快速選 Rapi:t、HARUKA 或利木津巴士，可以直接看那篇。
           </p>
 
           <h3 className="seo-h3">👉 行李多、同行人多：包車與自駕適合什麼情況</h3>

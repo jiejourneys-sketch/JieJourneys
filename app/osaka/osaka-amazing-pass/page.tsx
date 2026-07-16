@@ -4,6 +4,7 @@ import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   osakaAmazingPassCanonical,
   osakaAmazingPassDescription,
@@ -23,10 +24,7 @@ const articleJsonLd = {
   '@type': 'Article',
   headline: osakaAmazingPassTitle.replace(' | JieJourneys(旅杰)', ''),
   description: osakaAmazingPassDescription,
-  image: [
-    'https://www.jiejourneys.com/assets/osaka-pass-summary.png',
-    'https://www.jiejourneys.com/assets/osaka-pass-free-attractions.png',
-  ],
+  image: 'https://www.jiejourneys.com/assets/og-share.png',
   author: {
     '@type': 'Organization',
     name: 'JieJourneys',
@@ -42,10 +40,25 @@ const articleJsonLd = {
   mainEntityOfPage: osakaAmazingPassCanonical,
 }
 
-export default function OsakaAmazingPassPage() {
+type OsakaAmazingPassPageProps = {
+  searchParams?: PageSearchParams
+}
+
+function sourceBackHref(from: string | string[] | undefined) {
+  const value = Array.isArray(from) ? from[0] : from
+  if (value === 'osaka-video') return '/osaka/video'
+  if (value === 'ticket') return '/osaka/ticket'
+  if (value === 'pass-map') return '/osaka/pass-map'
+  return '/osaka'
+}
+
+export default async function OsakaAmazingPassPage({ searchParams }: OsakaAmazingPassPageProps) {
+  const params = (await searchParams) ?? {}
+  const backHref = sourceBackHref(params.from)
+
   return (
     <>
-      <CitySubpageHeader backHref="/osaka" eventPrefix="osakaamazingpass" />
+      <CitySubpageHeader backHref={backHref} eventPrefix="osakaamazingpass" />
       <main className="busan-main transport-main seo-page">
         <script
           type="application/ld+json"

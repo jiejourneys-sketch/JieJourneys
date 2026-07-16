@@ -36,7 +36,7 @@ export default function OsakaPage() {
           <div className="link-item pass-card" data-section="quick">
             <Image className="link-icon" src="/assets/ditu.png" alt="大阪周遊券" width={48} height={48} />
             <div className="pass-row">
-              <div className="pass-title">大阪周遊券地圖</div>
+              <div className="pass-title">大阪周遊券</div>
               <div className="pass-actions">
                 <a
                   className="pass-btn primary"
@@ -45,6 +45,7 @@ export default function OsakaPage() {
                   rel="noopener noreferrer"
                   data-event="osaka_pass_kkday"
                   data-platform="KKDAY"
+                  data-section="quick"
                 >
                   KKDAY
                 </a>
@@ -55,6 +56,7 @@ export default function OsakaPage() {
                   rel="noopener noreferrer"
                   data-event="osaka_pass_klook"
                   data-platform="KLOOK"
+                  data-section="quick"
                 >
                   KLOOK
                 </a>
@@ -65,13 +67,25 @@ export default function OsakaPage() {
                   rel="noopener noreferrer"
                   data-event="osaka_pass_trip"
                   data-platform="Trip"
+                  data-section="quick"
                 >
                   Trip
                 </a>
-                <a className="pass-btn" href="/osaka/pass-map" data-event="osaka_pass_map" data-platform="map">
+                <a className="pass-btn" href="/osaka/pass-map" data-event="osaka_pass_map" data-platform="map" data-section="quick">
                   地圖
                 </a>
-                <a className="pass-btn" href="/osaka/osaka-amazing-pass" data-event="osaka_pass_article" data-platform="article">
+                <a
+                  className="pass-btn"
+                  href="https://www.instagram.com/reel/Dap0xBSBbSI/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="osaka_pass_intro_ig"
+                  data-platform="IG"
+                  data-section="quick"
+                >
+                  介紹
+                </a>
+                <a className="pass-btn" href="/osaka/osaka-amazing-pass" data-event="osaka_pass_article" data-platform="article" data-section="quick">
                   文章
                 </a>
               </div>

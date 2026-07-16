@@ -102,6 +102,14 @@ export default function FujiPage() {
                 >
                   地圖
                 </a>
+                <a
+                  className="pass-btn"
+                  href="/fuji/mt-fuji-pass"
+                  data-event="fuji_pass_article"
+                  data-platform="article"
+                >
+                  文章
+                </a>
               </div>
             </div>
           </div>

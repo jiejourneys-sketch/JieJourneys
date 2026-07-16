@@ -63,31 +63,74 @@ export default async function BusanTicketPage({ searchParams }: BusanTicketPageP
         <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanticket_SEO_spotmap" />
         <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanticket_SEO_passmap" />
 
-        <SeoContentSection title="釜山一日遊與票券快速理解">
-          <h3 className="seo-h3">👉 一日遊怎麼選：先用想去的景點篩選</h3>
+        <SeoContentSection title="釜山票券怎麼買？先分三種情境">
           <p>
-            如果第一次到釜山、想把交通比較分散的景點排在同一天，可以先看<strong>一日遊票券</strong>。
-            <br />
-            常見路線會把<strong>甘川文化村</strong>、<strong>膠囊列車</strong>、<strong>海東龍宮寺</strong>、<strong>白淺灘文化村</strong>、<strong>青沙浦踏石展望台</strong>排在一起；想去慶州的話，也可以直接選含<strong>佛國寺</strong>、<strong>大陵苑</strong>、<strong>皇理團路</strong>、<strong>東宮與月池</strong>的釜山出發一日遊。
-            <br />
-            上方可以用景點標籤快速篩選，先挑你最想去的點，再比較 KKDAY、KLOOK、Trip 的路線內容和價格。
+            釜山票券不要一開始就全買。先判斷你需要的是「通行證」、「一日遊」還是「單點門票」：通行證用來集中玩高單價景點，一日遊用來解決分散景點的交通，單點門票則適合你只想玩一兩個重點。
           </p>
 
-          <h3 className="seo-h3">👉 最重要：搞懂釜山通行證（Visit Busan Pass）</h3>
+          <h3 className="seo-h3">三種票券快速比較</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>類型</th>
+                <th>適合誰</th>
+                <th>我的判斷</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>釜山通行證</td>
+                <td>想把展望台、遊艇、汗蒸幕、樂園或體驗景點集中玩的人。</td>
+                <td>先用通行證地圖排路線，能集中玩才買，不要只看景點數量。</td>
+              </tr>
+              <tr>
+                <td>一日遊</td>
+                <td>想去甘川洞、海東龍宮寺、青沙浦、白淺灘或慶州，但不想自己轉車的人。</td>
+                <td>適合第一次去、帶長輩、帶小孩、或想把分散景點塞進同一天。</td>
+              </tr>
+              <tr>
+                <td>單點門票</td>
+                <td>只想搭膠囊列車、去樂天世界、X the Sky、松島纜車或特定體驗的人。</td>
+                <td>行程鬆散時最乾淨，不會為了回本硬跑景點。</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 className="seo-h3">釜山通行證：先排路線，再買票</h3>
           <p>
+            釜山通行證分成 24 / 48 小時，以及 Big 3 / Big 5。限時型適合把景點集中在一天或兩天內玩，限制型適合只挑少數高單價景點。我的做法是先把想去的景點全部標在
             <a
-              href="https://www.instagram.com/reels/DUDiZzQkdUe/"
+              href="/busan/pass-map"
+              data-event="busanticket_passmap_inline"
+              data-platform="internal"
+              data-section="article"
+            >
+              <strong>釜山通行證地圖</strong>
+            </a>
+            ，再看能不能排成順路；如果一天內只能用到一兩個點，就先不要急著買。
+          </p>
+          <p>
+            想看完整規則、不能使用的景點和需要預約的項目，可以先看
+            <a
+              href="/busan/visit-busan-pass?from=ticket"
+              data-event="busanticket_pass_article"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong>釜山通行證文章</strong>
+            </a>
+            ，或搭配
+            <a
+              href="https://www.instagram.com/reel/DUDiZzQkdUe/"
               target="_blank"
               rel="noopener noreferrer"
-              data-event="busanticket_link_pass"
+              data-event="busanticket_pass_ig"
+              data-platform="IG"
+              data-section="article"
             >
-              <strong>釜山通行證</strong>
+              <strong>釜山通行證短影片</strong>
             </a>
-            主要分成<strong>限時型</strong>和<strong>限制型</strong>。
-            <br />
-            限時型：24 / 48 小時內玩所有包含的景點；限制型：Big 3（玩 3 個景點）/ Big 5（玩 5 個景點）。
-            <br />
-            基本上大多數人會買<strong>48 小時</strong>，CP 值最高、也比較好安排。
+            先抓重點。
           </p>
           <div className="seo-buy-links" aria-label="購買釜山通行證">
             <a
@@ -125,44 +168,90 @@ export default async function BusanTicketPage({ searchParams }: BusanTicketPageP
             </a>
           </div>
 
-          <h3 className="seo-h3">👉 Pass 沒包含怎麼辦？最熱門是膠囊列車（需另外買票）</h3>
+          <h3 className="seo-h3">一日遊：用景點標籤反推路線</h3>
           <p>
-            膠囊列車最常搭的就是<strong>尾浦站</strong>和<strong>青沙浦站</strong>來回。
-            <br />
-            多數人喜歡尾浦 → 青沙浦（覺得更靠海），但缺點是人多、票比較難買。
-            <br />
-            我的建議：可以改成<strong>青沙浦 → 尾浦</strong>搭
+            一日遊最適合處理「自己去很麻煩」的景點，例如甘川文化村、白淺灘文化村、海東龍宮寺、青沙浦踏石展望台、松島海水浴場，或釜山出發到慶州的佛國寺、大陵苑、皇理團路、東宮與月池。不要只看行程名稱，先看它有沒有包含你最想去的點，再比集合地、停留時間和是否含膠囊列車。
+          </p>
+
+          <h3 className="seo-h3">膠囊列車：熱門時段要提早處理</h3>
+          <p>
+            海雲台藍線公園的膠囊列車熱門時段很容易滿，官方訂票通常會提前開放一段時間，現場票數量有限。想拍照的人通常會先鎖定尾浦、青沙浦方向和時段，再決定要不要搭配海岸列車。
+          </p>
+          <p>
+            可以先看
             <a
-              href="https://www.instagram.com/reels/DMu5uZxTdO8/"
+              href="https://www.instagram.com/reel/DMu5uZxTdO8/"
               target="_blank"
               rel="noopener noreferrer"
-              data-event="busanticket_link_capsule"
+              data-event="busanticket_capsule_ig"
+              data-platform="IG"
+              data-section="article"
             >
-              <strong>膠囊列車</strong>
+              <strong>膠囊列車影片</strong>
             </a>
-            ；尾浦 → 青沙浦就用通行證內含的<strong>海岸列車</strong>，沿途一樣看得到海，體感差不多但更順。
+            ，購票可以用
+            <a
+              href="https://www.kkday.com/zh-tw/product/123012-haeundae-blueline-park-sky-capsule-beach-train-ticket?cid=22312"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="busanticket_capsule_kkday"
+              data-platform="KKDAY"
+              data-section="article"
+            >
+              <strong>KKDAY</strong>
+            </a>
+            或
+            <a
+              href="https://www.klook.com/zh-TW/activity/133293-haeundae-blueline-park-ticket-in-busan/?aid=93798"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="busanticket_capsule_klook"
+              data-platform="KLOOK"
+              data-section="article"
+            >
+              <strong>KLOOK</strong>
+            </a>
+            。
           </p>
 
-          <h3 className="seo-h3">👉 遊艇怎麼買：水營灣不含、鑽石灣才含</h3>
+          <h3 className="seo-h3">遊艇：先決定要拍照，還是要用 Pass</h3>
           <p>
-            <strong>水營灣遊艇</strong>不包含在釜山通行證裡，需要另外購買；通行證只能搭乘<strong>鑽石灣遊艇</strong>。
+            水營灣遊艇偏小船、拍照和煙火感比較明顯；鑽石灣遊艇船體較大，重點是可搭配釜山通行證。兩個不是誰一定比較好，而是目的不同。想先比較，可以看
+            <a
+              href="/busan/busan-yacht-suyeong-diamond-bay?from=ticket"
+              data-event="busanticket_link_yacht_article"
+              data-platform="article"
+              data-section="seo_content"
+            >
+              <strong>水營灣 vs 鑽石灣遊艇整理</strong>
+            </a>
+            。
           </p>
 
-          <h3 className="seo-h3">👉 汗蒸幕與其他熱門景點</h3>
+          <h3 className="seo-h3">熱門單點門票怎麼排？</h3>
           <p>
-            汗蒸幕基本上多數都包含在釜山通行證裡。
-            <br />
-            另外通行證涵蓋景點很多，熱門還包含：<strong>斜坡滑車</strong>、<strong>Busan X the Sky 展望台</strong>、<strong>松島纜車</strong>。
+            如果你只想玩一兩個重點，就不要硬買通行證。膠囊列車、樂天世界釜山、Busan X the Sky、松島纜車、SPA LAND、Running Man 這類單點門票，直接買單品通常更清楚。上方卡片可以用分類和景點標籤篩選，再看 KKDAY、KLOOK、Trip 哪個價格和取消規則最適合。
           </p>
 
-          <h3 className="seo-h3">👉 行前小提醒</h3>
+          <h3 className="seo-h3">我的購買順序</h3>
+          <ol>
+            <li>先把必去景點列出來，不要先買票。</li>
+            <li>如果高單價景點能集中，先算釜山通行證。</li>
+            <li>如果景點很分散，改看一日遊。</li>
+            <li>如果只玩一兩個點，買單點票就好。</li>
+            <li>膠囊列車、遊艇、熱門樂園先處理時段，再處理其他門票。</li>
+          </ol>
+
+          <h3 className="seo-h3">行前小提醒</h3>
           <p>
             出發前 3 天內先填好
             <a
-              href="https://www.instagram.com/reels/DKMrn6dzS4G/"
+              href="https://www.instagram.com/reel/DKMrn6dzS4G/"
               target="_blank"
               rel="noopener noreferrer"
               data-event="busanticket_link_earrival"
+              data-platform="IG"
+              data-section="article"
             >
               <strong>電子入境卡</strong>
             </a>
@@ -173,9 +262,11 @@ export default async function BusanTicketPage({ searchParams }: BusanTicketPageP
         <SeoFaqSection
           title="釜山票券常見問題"
           items={[
-            { q: '釜山通行證怎麼選？', a: '先分清楚兩種：限時型（24/48 小時內玩包含景點）與限制型（Big 3/Big 5）。第一次來、景點想跑多一點的人，多數都會選 48 小時。' },
-            { q: '膠囊列車怎麼搭比較順？', a: '膠囊列車通常是尾浦站 ↔ 青沙浦站，但熱門方向（尾浦→青沙浦）人多票難買。可以改搭青沙浦→尾浦，再用通行證內含的海岸列車補回尾浦→青沙浦，沿途一樣看海、體感差不多。' },
-            { q: '遊艇有包含在釜山通行證嗎？', a: '釜山通行證只能搭鑽石灣遊艇；水營灣遊艇不包含，需另外購票。' },
+            { q: '釜山通行證怎麼選？', a: '先分清楚兩種：限時型是 24/48 小時內集中玩景點，限制型是 Big 3/Big 5 挑指定數量景點。先用地圖排路線，能集中玩高單價景點才買。' },
+            { q: '第一次去釜山要買一日遊嗎？', a: '如果你想去甘川洞、白淺灘、海東龍宮寺、青沙浦、松島或慶州，又不想自己轉車，一日遊會省很多力。只在市區逛街吃飯就不一定需要。' },
+            { q: '膠囊列車有包含在釜山通行證嗎？', a: '膠囊列車通常要另外處理票券或時段，不要把它當成一定被通行證解決的項目。熱門時段建議提早訂。' },
+            { q: '遊艇有包含在釜山通行證嗎？', a: '通常要分水營灣和鑽石灣看。想用通行證多半看鑽石灣；想拍照、拍立得或煙火感，會比較常看水營灣。' },
+            { q: 'KKDAY、KLOOK、Trip 要怎麼比？', a: '先比是否含你要的時段和景點，再比集合地、取消規則、語言、價格。不要只看最低價，因為路線內容差一個點就會差很多。' },
           ]}
         />
       </main>

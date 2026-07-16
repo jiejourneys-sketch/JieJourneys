@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '東京住宿推薦｜住哪最方便？上野・淺草・新宿・澀谷・東京車站區域分析 | JieJourneys (旅杰)'
 const description =
-  '東京住宿怎麼選？新宿地鐵線路最多轉乘最方便、上野搭 Narita Express 直達最省事、淺草保留江戶風情且房價相對親民、澀谷潮流購物首選、東京車站適合喜愛新幹線移動的旅客。各區特色與適合對象完整分析，比較 Trip、Agoda 即時房價，快速鎖定最適合的住宿。'
+  '東京住宿怎麼選？整理上野、淺草、東京車站、銀座、新宿、澀谷住宿區域差異，依成田/羽田機場進市區、東側或西側行程、逛街購物、河口湖富士山動線，快速判斷第一次東京自由行住哪一區最順。'
 
 export const metadata: Metadata = {
   title,

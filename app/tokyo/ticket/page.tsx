@@ -46,38 +46,75 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
 
         <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyoticket_SEO_spotmap" />
 
-        <SeoContentSection title="東京票券快速理解">
-          <h3 className="seo-h3">👉 東京景點票券怎麼分（先抓分類才好挑）</h3>
-          <p>東京景點票券我會先分成：展望台／主題類／親子類／水族館，先選你想玩的類型。</p>
-
-          <h3 className="seo-h3">👉 展望台（最多人買）</h3>
+        <SeoContentSection title="東京票券怎麼買？先把景點分成五種">
           <p>
-            最有名的是 <strong>SHIBUYA SKY</strong>，<strong>晴空塔</strong>也是很多人必去。
-            <br />
-            其他還有東京鐵塔、六本木展望台，可以依你住哪區和行程順路程度選。
+            東京票券不要全部一起看，會很亂。我會先分成展望台、主題型、親子水族館、一日遊、交通票五種；先決定你這趟旅行的重點，再回到上方卡片比 KKDAY、KLOOK、Trip 的價格和取消規則。
           </p>
 
-          <h3 className="seo-h3">👉 主題類（需要先訂）</h3>
+          <h3 className="seo-h3">展望台：先選想看的城市角度</h3>
           <p>
-            像是 <strong>哈利波特影城</strong>、<strong>東京迪士尼</strong> 這種主題型行程，熱門時段通常都要先線上買票，臨時才買很容易沒位子。
+            <strong>SHIBUYA SKY</strong> 是澀谷上方的戶外感展望台，適合想看十字路口、夕陽和夜景的人；<strong>晴空塔</strong> 高度更高，適合安排淺草、押上、晴空塔商場一起玩。東京鐵塔和六本木展望台則比較適合住銀座、六本木、東京車站一帶的人順路排。
+          </p>
+          <div className="seo-buy-links" aria-label="東京展望台相關連結">
+            <a
+              className="seo-buy-link primary"
+              href="https://www.instagram.com/reel/DWJbrmXFDuf/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="tokyoticket_article_shibuya_sky_ig"
+              data-platform="IG"
+              data-section="article"
+            >
+              SHIBUYA SKY 影片
+            </a>
+            <a
+              className="seo-buy-link"
+              href="https://www.instagram.com/reel/DV3aGGdFNsc/"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="tokyoticket_article_skytree_ig"
+              data-platform="IG"
+              data-section="article"
+            >
+              晴空塔影片
+            </a>
+          </div>
+
+          <h3 className="seo-h3">主題型：迪士尼、哈利波特影城要先卡日期</h3>
+          <p>
+            東京迪士尼、東京迪士尼海洋、哈利波特影城這類不是「有空再去」的景點，通常要先決定日期和入場時段。尤其旺季、週末、連假，越晚處理越容易被票券限制行程。
           </p>
 
-          <h3 className="seo-h3">👉 東京近郊一日遊（富士山、鎌倉、日光、常陸海濱公園）</h3>
+          <h3 className="seo-h3">親子與水族館：適合雨天和半日行程</h3>
           <p>
-            <strong>富士山・河口湖</strong>也是東京出發最熱門的一日遊，不過富士山票券已獨立整理在專區，建議直接到富士山票券頁比較完整。
-            <br />
-            東京近郊中，<strong>鎌倉</strong>也是很受歡迎的選擇——鎌倉大佛、江之島、鶴岡八幡宮加上江之電體驗，通常搭車過去約1小時就能玩到。
-            <br />
-            <strong>日光</strong>則適合想看世界遺產的旅人，東照宮搭配中禪寺湖、華嚴瀑布，從東京搭電車約2小時。
-            <br />
-            <strong>常陸海濱公園</strong>以粉蝶花和掃帚草聞名，通常搭配大洗磯前神社和那珂湊海鮮市場，適合喜歡自然風景的行程。
+            親子類和水族館很適合塞在半天，像晴空塔搭配墨田水族館、品川水族館搭配品川/東京車站、台場或豐洲搭配室內展館。這類票不用每個都買，選一個最順路的就好。
           </p>
-          <p>以上行程都有不同團的選項，可切換到「一日遊」標籤篩選。</p>
 
-          <h3 className="seo-h3">👉 小提醒：SHIBUYA SKY 傍晚很熱門</h3>
+          <h3 className="seo-h3">東京近郊一日遊：看交通難度，不是只看景點名</h3>
           <p>
-            SHIBUYA SKY 的傍晚時段（看夕陽/夜景）通常最搶，建議<strong>14天前線上購票</strong>，行程才不會被票卡住。
+            富士山河口湖、鎌倉江之島、日光、常陸海濱公園都可以從東京出發。我的判斷方式是：自己搭車簡單的可以自由行；轉乘麻煩、景點分散、想拍照不想查車的人，再看一日遊。上方「一日遊」標籤可以用景點關鍵字篩選。
           </p>
+
+          <h3 className="seo-h3">交通票：市區看地鐵券，郊外才看 JR Pass</h3>
+          <p>
+            如果行程多在東京市區，先看
+            <a
+              href="/tokyo/tokyo-subway-ticket?from=tokyo-ticket"
+              data-event="tokyoticket_article_subway_ticket"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 東京地鐵券文章</strong>
+            </a>
+            。如果會跑鎌倉、日光、富士山或多段新幹線，再回頭算 JR Pass 或區域 Pass，不要看到 Pass 就先買。
+          </p>
+
+          <h3 className="seo-h3">我會照這個順序買</h3>
+          <ol>
+            <li>先買一定會滿或一定要指定日期的票：迪士尼、哈利波特影城、熱門展望台。</li>
+            <li>再處理一日遊：富士山、日光、常陸海濱公園這類交通比較麻煩的路線。</li>
+            <li>最後才買交通券和零散景點票，避免行程還沒定就買錯。</li>
+          </ol>
         </SeoContentSection>
         <SeoFaqSection
           title="東京票券常見問題"
@@ -92,7 +129,7 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
                 </>
               ),
             },
-            { q: '東京景點票要提前多久訂？', a: '結論：能提早就提早訂。熱門時段/旺季很容易售完，臨時才買常常會沒票或要排很久。' },
+            { q: '東京景點票要提前多久訂？', a: '迪士尼、哈利波特影城、熱門展望台建議先處理日期；水族館、一般展館和比較彈性的景點，可以等行程大致排好再買。' },
             {
               q: '東京景點票在哪買比較划算？',
               a: (
@@ -103,6 +140,8 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
                     target="_blank"
                     rel="noopener noreferrer"
                     data-event="tokyoticket_faq_kkday"
+                    data-platform="KKDAY"
+                    data-section="faq"
                   >
                     <strong>KKDAY</strong>
                   </a>{' '}
@@ -112,6 +151,8 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
                     target="_blank"
                     rel="noopener noreferrer"
                     data-event="tokyoticket_faq_klook"
+                    data-platform="KLOOK"
+                    data-section="faq"
                   >
                     <strong>KLOOK</strong>
                   </a>{' '}
@@ -121,6 +162,8 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
                     target="_blank"
                     rel="noopener noreferrer"
                     data-event="tokyoticket_faq_trip"
+                    data-platform="Trip"
+                    data-section="faq"
                   >
                     <strong>Trip</strong>
                   </a>
@@ -128,6 +171,7 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
                 </>
               ),
             },
+            { q: '東京一日遊要自己去還是買團？', a: '鎌倉江之島自己去不難；富士山拍照點、日光多點移動、常陸海濱公園接大洗時，買一日遊會省掉很多轉乘和時間壓力。' },
           ]}
         />
       </main>

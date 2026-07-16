@@ -77,7 +77,7 @@ export default async function JapanTaxFree2026Page({ searchParams }: JapanTaxFre
         url: `${SITE_URL}/assets/og-share.png`,
       },
     },
-    image: `${SITE_URL}/assets/japan-tax-free-comparison-2026.png`,
+    image: `${SITE_URL}/assets/og-share.png`,
   }
 
   const faqJsonLd = {
