@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   kansaiAirportToOsakaCanonical,
@@ -22,7 +23,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => (
         <a
           key={`${link.label}-${link.href}`}
@@ -44,6 +45,7 @@ function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
 const linkGroups = {
   videos: [
     { label: 'IG｜3種方式', href: 'https://www.instagram.com/reel/DZhualih3oF/', event: 'osakakix_video_3ways_ig', platform: 'IG', primary: true },
+    { label: 'YouTube', href: 'https://www.youtube.com/shorts/0DAV327wmN4', event: 'osakakix_video_3ways_yt', platform: 'YouTube' },
   ],
   rapit: [
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/19691-nankai-rapit-airport-express-kix-to-osaka?cid=22312', event: 'osakakix_rapit_kkday', platform: 'KKDAY', primary: true },
@@ -185,13 +187,13 @@ export default async function KansaiAirportToOsakaPage({ searchParams }: KansaiA
           </div>
         </section>
 
-        <section className="seo-content" id="video-guide" aria-label="關西機場交通短影片">
-          <h2 className="seo-h2">先看短影片：3 種方式先抓方向</h2>
+        <section className="seo-content" id="video-guide" aria-label="關西機場交通短影音">
+          <h2 className="seo-h2">先看短影音：3 種方式先抓方向</h2>
           <div className="seo-prose">
             <p>
               如果你想先用短影音抓概念，可以先看我的關西機場到大阪市區 3 種方式。看完再回來比住宿區域和購票連結，會比較不容易買錯。
             </p>
-            <ActionLinks label="關西機場交通短影片" links={linkGroups.videos} />
+            <SeoVideoLinkMenu label="關西機場進市區｜3種方式" links={linkGroups.videos} />
           </div>
         </section>
 

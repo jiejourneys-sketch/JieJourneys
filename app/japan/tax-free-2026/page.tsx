@@ -4,6 +4,7 @@ import Footer from '@/components/Footer'
 import PromoLink from '@/components/PromoLink'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 
 const SITE_URL = 'https://www.jiejourneys.com'
@@ -12,6 +13,10 @@ const PAGE_URL = `${SITE_URL}${PAGE_PATH}`
 const UPDATED_AT = '2026-07-14'
 const WAMAZING_SHOP_URL = 'https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339'
 const WAMAZING_REFERRAL_URL = 'https://tw.wamazing.com/kaimono/lp/referral-campaign'
+const taxFreeVideoLinks = [
+  { label: 'IG', href: 'https://www.instagram.com/reel/Da72R_yBXam/', event: 'japantaxfree_video_ig', platform: 'IG' },
+  { label: 'YouTube', href: 'https://www.youtube.com/shorts/ULH9oonQ7-I', event: 'japantaxfree_video_youtube', platform: 'YouTube' },
+]
 
 const title = '日本退稅新制懶人包｜2026/11/1 起免稅流程、機場退稅、完美行購物一次看懂'
 const description =
@@ -141,6 +146,13 @@ export default async function JapanTaxFree2026Page({ searchParams }: JapanTaxFre
               <strong>托運前先辦退稅</strong>
               <p>可能需要出示購買商品，建議不要太早把退稅商品放進托運行李。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="日本退稅新制短影音">
+          <h2 className="seo-h2">日本退稅新制短影音</h2>
+          <div className="seo-prose">
+            <SeoVideoLinkMenu label="日本退稅新制" links={taxFreeVideoLinks} />
           </div>
         </section>
 

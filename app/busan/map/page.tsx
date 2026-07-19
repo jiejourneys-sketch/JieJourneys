@@ -9,6 +9,7 @@ export default function BusanMapPage() {
       places={busanMapPlaces}
       mapCenter={BUSAN_MAP_CENTER}
       gtagPrefix="busanmap"
+      collapseLocationLinks
       title="釜山景點地圖"
       backHref="/busan"
       defaultCategories={{ spot: true, free: true, shop: false, hotel: true }}
@@ -66,7 +67,7 @@ export default function BusanMapPage() {
                 這張釜山景點地圖把票券景點、免費景點、商店美食和住宿放在同一張互動地圖上。第一次去釜山時，可以先打開「票券」和「景點」分類，看海雲台、南浦洞、西面、廣安里、松島、甘川文化村的位置，再決定每天住哪裡、怎麼排路線。
               </p>
               <p>
-                每張卡片都會盡量附上 Google Map 或 Naver Map 導航，有些熱門景點也會放 IG、YouTube、小紅書短影片，方便你先看現場畫面再決定要不要排進行程。
+                每張卡片都會盡量附上 Google Map 或 Naver Map 導航，有些熱門景點也會放 IG、YouTube 短影音，方便你先看現場畫面再決定要不要排進行程。
               </p>
               <p>
                 如果你還在比較票券、住宿或交通，可以先看
@@ -86,6 +87,32 @@ export default function BusanMapPage() {
                   釜山五日行程 PDF
                 </a>
                 ，再回來對照地圖會更好排。
+              </p>
+              <p>
+                如果你還在決定每天要跑哪一側，可以先看
+                <a href="/busan/busan-fast-guide?from=busan-map" data-event="busanmap_internal_fastguide" data-section="seo_content">
+                  釜山最速攻略
+                </a>
+                ，把西面、南浦洞、海雲台、松島、廣安里和東釜山的位置關係抓起來，再回到地圖標點會更直覺。
+              </p>
+              <p>
+                如果你主要在排海雲台和東釜山，可以接著看
+                <a href="/busan/haeundae-guide?from=busan-map" data-event="busanmap_internal_haeundae" data-section="seo_content">
+                  海雲台攻略
+                </a>
+                、
+                <a href="/busan/capsule-train-guide?from=busan-map" data-event="busanmap_internal_capsule" data-section="seo_content">
+                  膠囊列車攻略
+                </a>
+                ，或用
+                <a href="/busan/visit-busan-pass-24h-route?from=busan-map" data-event="busanmap_internal_pass24" data-section="seo_content">
+                  通行證 24 小時走法
+                </a>
+                和
+                <a href="/busan/visit-busan-pass-48h-route?from=busan-map" data-event="busanmap_internal_pass48" data-section="seo_content">
+                  48 小時走法
+                </a>
+                對照景點位置。
               </p>
 
               <h3 className="seo-h3">第一次去釜山先看哪些區域？</h3>

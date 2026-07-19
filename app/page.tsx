@@ -132,15 +132,6 @@ export default function HomePage() {
             >
               YouTube
             </a>
-            <a
-              href="https://xhslink.com/m/6OAjLumXIO1"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="home_social_xiaohongshu"
-              data-platform="xiaohongshu"
-            >
-              小紅書
-            </a>
           </div>
         </section>
 

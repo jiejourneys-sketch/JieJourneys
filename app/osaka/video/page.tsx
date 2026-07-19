@@ -22,7 +22,6 @@ const cards: CityCard[] = [
     actions: [
       { label: 'IG Reels', href: 'https://www.instagram.com/reel/DaFxlxQBagx/', className: 'btn primary', event: 'osakavideo_hotelguideIG', platform: 'IG', section: 'video' },
       { label: 'YouTube', href: 'https://www.youtube.com/shorts/HFe3OPfmTGw', className: 'btn', event: 'osakavideo_hotelguideYT', platform: 'YouTube', section: 'video' },
-      { label: '小紅書', href: 'https://xhslink.com/o/2SNBoNjSSsh', className: 'btn', event: 'osakavideo_hotelguideXHS', platform: '小紅書', section: 'video' },
       { label: '文章', href: '/osaka/hotel', className: 'btn', event: 'osakavideo_hotelguideArticle', platform: 'article', section: 'video' },
     ],
   },
@@ -35,7 +34,6 @@ const cards: CityCard[] = [
     actions: [
       { label: 'IG Reels', href: 'https://www.instagram.com/reel/Dap0xBSBbSI/', className: 'btn primary', event: 'osakavideo_amazingpassIG', platform: 'IG', section: 'video' },
       { label: 'YouTube', href: 'https://www.youtube.com/shorts/u1g5J6SGZR4', className: 'btn', event: 'osakavideo_amazingpassYT', platform: 'YouTube', section: 'video' },
-      { label: '小紅書', href: 'https://xhslink.com/o/2MTj00LLPcq', className: 'btn', event: 'osakavideo_amazingpassXHS', platform: '小紅書', section: 'video' },
       { label: '文章', href: '/osaka/osaka-amazing-pass?from=osaka-video', className: 'btn', event: 'osakavideo_amazingpassArticle', platform: 'article', section: 'video' },
     ],
   },
@@ -48,7 +46,6 @@ const cards: CityCard[] = [
     actions: [
       { label: 'IG Reels', href: 'https://www.instagram.com/reel/DZPs30vhboN/', className: 'btn primary', event: 'osakavideo_5areasIG', platform: 'IG', section: 'video' },
       { label: 'YouTube', href: 'https://www.youtube.com/shorts/0DAV327wmN4', className: 'btn', event: 'osakavideo_5areasYT', platform: 'YouTube', section: 'video' },
-      { label: '小紅書', href: 'https://xhslink.com/o/5r8AWxmXhfv', className: 'btn', event: 'osakavideo_5areasXHS', platform: '小紅書', section: 'video' },
     ],
   },
   {
@@ -60,13 +57,12 @@ const cards: CityCard[] = [
     actions: [
       { label: 'IG Reels', href: 'https://www.instagram.com/reel/DZhualih3oF/', className: 'btn primary', event: 'osakavideo_kix3waysIG', platform: 'IG', section: 'video' },
       { label: 'YouTube', href: 'https://www.youtube.com/shorts/0DAV327wmN4', className: 'btn', event: 'osakavideo_kix3waysYT', platform: 'YouTube', section: 'video' },
-      { label: '小紅書', href: 'https://xhslink.com/o/4AsThJolQtS', className: 'btn', event: 'osakavideo_kix3waysXHS', platform: '小紅書', section: 'video' },
       { label: '文章', href: '/osaka/kansai-airport-to-osaka?from=video', className: 'btn', event: 'osakavideo_kix3waysArticle', platform: 'article', section: 'video' },
     ],
   },
-  { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'visit-japan-web', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'osakavideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'osakavideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3g4dVW46U4I', className: 'btn', event: 'osakavideo_visitjapanwebXHS', platform: '小紅書', section: 'video' }] },
-  { title: '日幣換匯攻略', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'jpy-exchange', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTDKcCoEZBS/', className: 'btn primary', event: 'osakavideo_JPYExchangeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/FfMj7w2R7BA', className: 'btn', event: 'osakavideo_JPYExchangeYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/83JoRvRQFSc', className: 'btn', event: 'osakavideo_JPYExchangeXHS', platform: '小紅書', section: 'video' }] },
-  { title: '日本退稅新制｜2026懶人包', meta: '行前準備', note: '整理 2026/11/1 後日本免稅流程、新舊制度差異、機場退稅與完美行購物注意事項。', area: '行前準備', datasetKey: 'video', datasetValue: 'japan-tax-free-2026-article', actions: [{ label: '文章', href: '/japan/tax-free-2026?from=osaka-video', className: 'btn primary', event: 'osakavideo_taxfree2026_article', platform: 'article', section: 'video' }] },
+  { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'visit-japan-web', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'osakavideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'osakavideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }] },
+  { title: '日幣換匯攻略', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'jpy-exchange', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTDKcCoEZBS/', className: 'btn primary', event: 'osakavideo_JPYExchangeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/FfMj7w2R7BA', className: 'btn', event: 'osakavideo_JPYExchangeYT', platform: 'YouTube', section: 'video' }] },
+  { title: '日本退稅新制｜2026懶人包', meta: '行前準備', note: '整理 2026/11/1 後日本免稅流程、新舊制度差異、機場退稅與完美行購物注意事項。', area: '行前準備', datasetKey: 'video', datasetValue: 'japan-tax-free-2026-article', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/Da72R_yBXam/', className: 'btn primary', event: 'osakavideo_taxfree2026_ig', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/ULH9oonQ7-I', className: 'btn', event: 'osakavideo_taxfree2026_youtube', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/japan/tax-free-2026?from=osaka-video', className: 'btn primary', event: 'osakavideo_taxfree2026_article', platform: 'article', section: 'video' }] },
 ]
 
 export default function OsakaVideoPage() {
@@ -105,7 +101,7 @@ export default function OsakaVideoPage() {
         <h2 className="seo-h2" id="videoListTitle">
           大阪短影片合輯（依主題分類）
         </h2>
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="osaka_video_tab" />
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="osaka_video_tab" collapseVideoActions />
 
         <SeoCtaSection text="" href="/osaka/map" linkText="大阪熱門景點地圖" newTab dataEvent="osakavideo_SEO_spotmap" />
         <SeoCtaSection text="" href="/osaka/pass-map" linkText="大阪周遊券地圖" newTab dataEvent="osakavideo_SEO_passmap" />

@@ -117,7 +117,7 @@ export default async function BusanTicketPage({ searchParams }: BusanTicketPageP
               data-platform="article"
               data-section="article"
             >
-              <strong>釜山通行證文章</strong>
+              <strong>釜山通行證完整攻略</strong>
             </a>
             ，或搭配
             <a
@@ -132,7 +132,7 @@ export default async function BusanTicketPage({ searchParams }: BusanTicketPageP
             </a>
             先抓重點。
           </p>
-          <div className="seo-buy-links" aria-label="購買釜山通行證">
+          <div className="seo-buy-links seo-action-links" aria-label="購買釜山通行證">
             <a
               className="seo-buy-link primary"
               href="https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312"

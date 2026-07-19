@@ -23,14 +23,6 @@ export const BUSAN_MAP_SPOT_VIDEO_ACTIONS: Partial<Record<string, CityCardAction
       platform: 'YouTube',
       section: 'video',
     },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/9rE8N60xj96',
-      className: 'btn',
-      event: 'busanmapvideo_towerXHS',
-      platform: '小紅書',
-      section: 'video',
-    },
   ],
   'Diamond Bay Yacht｜鑽石灣遊艇': [
     {
@@ -48,14 +40,6 @@ export const BUSAN_MAP_SPOT_VIDEO_ACTIONS: Partial<Record<string, CityCardAction
       className: 'btn',
       event: 'busanmapvideo_DiamondBayYachtYT',
       platform: 'YouTube',
-      section: 'video',
-    },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/8B2iEV9P095',
-      className: 'btn',
-      event: 'busanmapvideo_DiamondBayYachtXHS',
-      platform: '小紅書',
       section: 'video',
     },
   ],
@@ -77,14 +61,6 @@ export const BUSAN_MAP_SPOT_VIDEO_ACTIONS: Partial<Record<string, CityCardAction
       platform: 'YouTube',
       section: 'video',
     },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/8B2iEV9P095',
-      className: 'btn',
-      event: 'busanmapvideo_YachtHolicXHS',
-      platform: '小紅書',
-      section: 'video',
-    },
   ],
   '膠囊列車&海岸列車': [
     {
@@ -102,14 +78,6 @@ export const BUSAN_MAP_SPOT_VIDEO_ACTIONS: Partial<Record<string, CityCardAction
       className: 'btn',
       event: 'busanmapvideo_SkycapYT',
       platform: 'YouTube',
-      section: 'video',
-    },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/4JILJiyezmL',
-      className: 'btn',
-      event: 'busanmapvideo_SkycapXHS',
-      platform: '小紅書',
       section: 'video',
     },
   ],

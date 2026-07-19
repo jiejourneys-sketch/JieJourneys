@@ -32,9 +32,6 @@ const excludedHosts = [
   "instagram.com",
   "youtube.com",
   "youtu.be",
-  "xiaohongshu.com",
-  "xhslink.com",
-  "rednote.com",
 ];
 
 const pageNameMap: Record<string, string> = {

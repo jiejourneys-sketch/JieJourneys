@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import {
   tokyoSubwayTicketCanonical,
   tokyoSubwayTicketDescription,
@@ -20,7 +21,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => (
         <a
           key={`${link.label}-${link.href}`}
@@ -40,9 +41,13 @@ function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
 }
 
 const linkGroups = {
-  videos: [
+  ticketVideo: [
     { label: 'IG｜地鐵票券', href: 'https://www.instagram.com/reel/DTnNqDgkZOm/', event: 'tokyosubwayticket_video_ticket_ig', platform: 'IG', primary: true },
+    { label: 'YouTube', href: 'https://www.youtube.com/shorts/dz2aJtW3y9c', event: 'tokyosubwayticket_video_ticket_yt', platform: 'YouTube' },
+  ],
+  tipsVideo: [
     { label: 'IG｜搭乘重點', href: 'https://www.instagram.com/reel/DT5PNXdk4DM/', event: 'tokyosubwayticket_video_tips_ig', platform: 'IG' },
+    { label: 'YouTube', href: 'https://www.youtube.com/shorts/9KtpGIZE9wk', event: 'tokyosubwayticket_video_tips_yt', platform: 'YouTube' },
   ],
   subway: [
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/5989-24-48-72-hr-tokyo-subway-ticket-japan?cid=22312', event: 'tokyosubwayticket_subway_kkday', platform: 'KKDAY', primary: true },
@@ -163,11 +168,12 @@ export default function TokyoSubwayTicketPage() {
           </div>
         </section>
 
-        <section className="seo-content" id="video-guide" aria-label="東京地鐵券短影片">
-          <h2 className="seo-h2">先看 IG 短影片：東京地鐵券怎麼選</h2>
+        <section className="seo-content" id="video-guide" aria-label="東京地鐵券短影音">
+          <h2 className="seo-h2">先看 IG 短影音：東京地鐵券怎麼選</h2>
           <div className="seo-prose">
-            <p>想先用短影片抓重點，可以先看東京地鐵票券，再補一支地鐵搭乘重點；看完再回來對照你一天會搭幾次。</p>
-            <ActionLinks label="東京地鐵券 IG 短影片" links={linkGroups.videos} />
+            <p>想先用短影音抓重點，可以先看東京地鐵票券，再補一支地鐵搭乘重點；看完再回來對照你一天會搭幾次。</p>
+            <SeoVideoLinkMenu label="地鐵票券" links={linkGroups.ticketVideo} />
+            <SeoVideoLinkMenu label="地鐵搭乘" links={linkGroups.tipsVideo} />
           </div>
         </section>
 

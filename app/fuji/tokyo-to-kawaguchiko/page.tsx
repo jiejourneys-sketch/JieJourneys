@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   tokyoToKawaguchikoCanonical,
@@ -22,7 +23,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => {
         const isExternal = /^https?:\/\//.test(link.href)
         return (
@@ -48,7 +49,6 @@ const linkGroups = {
   videos: [
     { label: 'IG｜3種方式', href: 'https://www.instagram.com/reel/DX1lCACSFYX/', event: 'fujikawaguchiko_video_3ways_ig', platform: 'IG', primary: true },
     { label: 'YouTube', href: 'https://www.youtube.com/shorts/nj79P4JUujQ', event: 'fujikawaguchiko_video_3ways_yt', platform: 'YouTube' },
-    { label: '小紅書', href: 'https://xhslink.com/o/3O0UGvYCRaJ', event: 'fujikawaguchiko_video_3ways_xhs', platform: '小紅書' },
   ],
   excursion: [
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/transportation/list_page/japan-rail/jp-shinjuku-rail-to-jp-kawaguchiko-rail?cid=22312', event: 'fujikawaguchiko_excursion_kkday', platform: 'KKDAY', primary: true },
@@ -188,13 +188,13 @@ export default async function TokyoToKawaguchikoPage({ searchParams }: TokyoToKa
           </div>
         </section>
 
-        <section className="seo-content" id="video-guide" aria-label="東京到河口湖短影片">
-          <h2 className="seo-h2">先看短影片：3 種方式先抓方向</h2>
+        <section className="seo-content" id="video-guide" aria-label="東京到河口湖短影音">
+          <h2 className="seo-h2">先看短影音：3 種方式先抓方向</h2>
           <div className="seo-prose">
             <p>
               如果你想先用短影音抓重點，可以先看我的東京到河口湖 3 種方式。看完再回來比富士回遊、高速巴士和包車自駕，會比較不容易買錯。
             </p>
-            <ActionLinks label="東京到河口湖短影片" links={linkGroups.videos} />
+            <SeoVideoLinkMenu label="東京到河口湖" links={linkGroups.videos} />
           </div>
         </section>
 

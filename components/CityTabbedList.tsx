@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import AreaTabs, { type TabItem } from '@/components/AreaTabs'
 import PromoLink from '@/components/PromoLink'
+import { useShortVideoMenuAutoClose } from '@/components/shortVideoMenu'
 
 export type CityCardAction = {
   label: string
@@ -47,6 +48,8 @@ type Props = {
   tabs: TabItem[]
   cards: CityCard[]
   tabEvent: string
+  /** 將 IG／YouTube 收進同一個可展開的短影音選單。 */
+  collapseVideoActions?: boolean
   /**
    * 指定哪個 tab 的 area 值要顯示 tag 多選篩選列。
    * 例如 tagFilterArea="一日遊" 時，切到「一日遊」tab 會在卡片上方出現 tag 篩選按鈕。
@@ -61,7 +64,51 @@ type Props = {
   tagDefaultAreaOnAll?: string
 }
 
-export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, tagFilterAreas, tagOrder, tagHideOnAll, tagDefaultAreaOnAll }: Props) {
+function videoPlatformKey(action: CityCardAction) {
+  const value = `${action.platform ?? ''} ${action.label}`
+  if (/youtube/i.test(value)) return 'youtube'
+  if (/instagram|ig/i.test(value)) return 'instagram'
+  return null
+}
+
+const videoPlatformMeta = {
+  instagram: { label: 'IG' },
+  youtube: { label: 'YouTube' },
+} as const
+
+function CardVideoMenu({ cardTitle, actions }: { cardTitle: string; actions: CityCardAction[] }) {
+  const { detailsRef } = useShortVideoMenuAutoClose()
+
+  return (
+    <details ref={detailsRef} name="short-video-menu" className="card-video-menu">
+      <summary>
+        短影音
+      </summary>
+      <div className="card-video-platforms">
+        {actions.map((action) => {
+          const platformKey = videoPlatformKey(action)!
+          const platform = videoPlatformMeta[platformKey]
+          return (
+            <a
+              key={`${cardTitle}-${action.label}-${action.href}`}
+              className={`card-video-platform card-video-platform-${platformKey}`}
+              href={action.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event={action.event}
+              data-platform={action.platform}
+              data-section={action.section}
+            >
+              <span>{platform.label}</span>
+            </a>
+          )
+        })}
+      </div>
+    </details>
+  )
+}
+
+export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoActions = false, tagFilterArea, tagFilterAreas, tagOrder, tagHideOnAll, tagDefaultAreaOnAll }: Props) {
   const [activeTab, setActiveTab] = useState('all')
   const [hasSelectedTab, setHasSelectedTab] = useState(false)
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
@@ -209,6 +256,13 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
             if (card.datasetKey && card.datasetValue) {
               dataProps[`data-${card.datasetKey}`] = card.datasetValue
             }
+            const videoActions = collapseVideoActions
+              ? card.actions.filter((action) => videoPlatformKey(action))
+              : []
+            const groupVideoActions = videoActions.length >= 2
+            const standaloneActions = groupVideoActions
+              ? card.actions.filter((action) => !videoPlatformKey(action))
+              : card.actions
             return (
               <article key={`${card.area}-${card.title}`} className="stay-card" {...dataProps}>
                 <div>
@@ -225,8 +279,9 @@ export default function CityTabbedList({ tabs, cards, tabEvent, tagFilterArea, t
                       </ul>
                     </details>
                   ) : null}
-                  <div className="actions">
-                    {card.actions.map((action) => {
+                  <div className={`actions${groupVideoActions ? ' grouped-video-actions' : ''}`}>
+                    {groupVideoActions ? <CardVideoMenu cardTitle={card.title} actions={videoActions} /> : null}
+                    {standaloneActions.map((action) => {
                       const isExternal = /^https?:\/\//.test(action.href)
                       return action.promoCode ? (
                         <PromoLink

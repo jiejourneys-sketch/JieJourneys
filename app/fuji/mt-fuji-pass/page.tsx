@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   mtFujiPassCanonical,
@@ -22,7 +23,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => {
         const isExternal = /^https?:\/\//.test(link.href)
         return (
@@ -48,7 +49,6 @@ const linkGroups = {
   videos: [
     { label: 'IG｜周遊券', href: 'https://www.instagram.com/reel/DY9rYLxy_o7/', event: 'fujipass_video_ig', platform: 'IG', primary: true },
     { label: 'YouTube', href: 'https://www.youtube.com/shorts/4gnbR3VbNSs', event: 'fujipass_video_yt', platform: 'YouTube' },
-    { label: '小紅書', href: 'https://xhslink.com/o/AimsPvqTE4I', event: 'fujipass_video_xhs', platform: '小紅書' },
   ],
   pass: [
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20106-mt-fuji-pass-lake-kawaguchi-attraction-ticket-japan?cid=22312', event: 'fujipass_article_kkday', platform: 'KKDAY', primary: true },
@@ -187,7 +187,7 @@ export default async function MtFujiPassPage({ searchParams }: MtFujiPassPagePro
             <p>
               如果你想先用短影音抓重點，可以先看我的富士山周遊券影片。看完再回來看地圖和購票連結，會比較知道自己要買 1 日、2 日還是 3 日。
             </p>
-            <ActionLinks label="富士山周遊券短影片" links={linkGroups.videos} />
+            <SeoVideoLinkMenu label="富士山周遊券" links={linkGroups.videos} />
             <ActionLinks label="富士山周遊券購票連結" links={linkGroups.pass} />
           </div>
         </section>

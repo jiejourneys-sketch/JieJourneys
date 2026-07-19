@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import {
   naritaAirportToTokyoCanonical,
   naritaAirportToTokyoDescription,
@@ -21,7 +22,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => (
         <a
           key={`${link.label}-${link.href}`}
@@ -41,9 +42,13 @@ function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
 }
 
 const linkGroups = {
-  videos: [
+  mainVideo: [
     { label: 'IG｜3種方式', href: 'https://www.instagram.com/reel/DULQxKUkVR2/', event: 'tokyonarita_video_3ways_ig', platform: 'IG', primary: true },
+    { label: 'YouTube', href: 'https://www.youtube.com/shorts/vdFwmQd8CLQ', event: 'tokyonarita_video_3ways_yt', platform: 'YouTube' },
+  ],
+  budgetVideo: [
     { label: 'IG｜最便宜方式', href: 'https://www.instagram.com/reel/DUdSUu1kdXn/', event: 'tokyonarita_video_budget_ig', platform: 'IG' },
+    { label: 'YouTube', href: 'https://www.youtube.com/shorts/rKJejwOTIw0', event: 'tokyonarita_video_budget_yt', platform: 'YouTube' },
   ],
   skyliner: [
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/7913-keisei-skyliner-narita-airport-express-ticket?cid=22312', event: 'tokyonarita_skyliner_kkday', platform: 'KKDAY', primary: true },
@@ -158,7 +163,7 @@ export default function NaritaAirportToTokyoPage() {
           ctaLinks={[
             { label: '快速結論', href: '#quick-answer', dataEvent: 'tokyonarita_hero_quick', platform: 'article' },
             { label: '方式比較', href: '#comparison', dataEvent: 'tokyonarita_hero_comparison', platform: 'article' },
-            { label: 'IG短影片', href: '#video-guide', dataEvent: 'tokyonarita_hero_video', platform: 'IG' },
+            { label: 'IG短影音', href: '#video-guide', dataEvent: 'tokyonarita_hero_video', platform: 'IG' },
           ]}
         />
 
@@ -192,11 +197,12 @@ export default function NaritaAirportToTokyoPage() {
           </div>
         </section>
 
-        <section className="seo-content" id="video-guide" aria-label="成田機場交通短影片">
-          <h2 className="seo-h2">先看 IG 短影片：成田機場進市區怎麼選</h2>
+        <section className="seo-content" id="video-guide" aria-label="成田機場交通短影音">
+          <h2 className="seo-h2">先看 IG 短影音：成田機場進市區怎麼選</h2>
           <div className="seo-prose">
             <p>想先用影片抓重點，可以先看這兩支：一支講成田進市區主要方式，一支專門整理省錢路線。</p>
-            <ActionLinks label="成田機場交通 IG 短影片" links={linkGroups.videos} />
+            <SeoVideoLinkMenu label="成田進市區｜3種方式" links={linkGroups.mainVideo} />
+            <SeoVideoLinkMenu label="成田進市區｜最便宜" links={linkGroups.budgetVideo} />
           </div>
         </section>
 

@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   visitBusanPassCanonical,
@@ -21,7 +22,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => {
         const isExternal = /^https?:\/\//.test(link.href)
         return (
@@ -44,10 +45,21 @@ function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
 }
 
 const linkGroups = {
-  videos: [
+  passOverviewVideos: [
     { label: 'IG｜通行證重點', href: 'https://www.instagram.com/reel/DUDiZzQkdUe/', event: 'visitbusanpass_video_main_ig', platform: 'IG', primary: true },
+    { label: 'YouTube｜通行證重點', href: 'https://www.youtube.com/shorts/ppTGbWXDM0k', event: 'visitbusanpass_video_main_yt', platform: 'YouTube' },
+  ],
+  pass24hVideos: [
     { label: 'IG｜24小時走法', href: 'https://www.instagram.com/reel/DOJBfeBEdwN/', event: 'visitbusanpass_video_24h_ig', platform: 'IG' },
+    { label: 'YouTube｜24小時走法', href: 'https://www.youtube.com/shorts/e2aeNYmKc38', event: 'visitbusanpass_video_24h_yt', platform: 'YouTube' },
+  ],
+  pass48hVideos: [
     { label: 'IG｜48小時走法', href: 'https://www.instagram.com/reel/DO0y_wnEUa9/', event: 'visitbusanpass_video_48h_ig', platform: 'IG' },
+    { label: 'YouTube｜48小時走法', href: 'https://www.youtube.com/shorts/kuU-6nMmR4Y', event: 'visitbusanpass_video_48h_yt', platform: 'YouTube' },
+  ],
+  routeArticles: [
+    { label: '24小時極限走法完整攻略', href: '/busan/visit-busan-pass-24h-route?from=visit-busan-pass', event: 'visitbusanpass_24h_article', platform: 'article', primary: true },
+    { label: '48小時走法完整攻略', href: '/busan/visit-busan-pass-48h-route?from=visit-busan-pass', event: 'visitbusanpass_48h_article', platform: 'article' },
   ],
   pass: [
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312', event: 'visitbusanpass_buy_kkday', platform: 'KKDAY', primary: true },
@@ -252,13 +264,16 @@ export default async function VisitBusanPassPage({ searchParams }: VisitBusanPas
           </div>
         </section>
 
-        <section className="seo-content" id="video-guide" aria-label="釜山通行證短影片">
-          <h2 className="seo-h2">先看 IG：通行證重點、24 小時、48 小時走法</h2>
+        <section className="seo-content" id="video-guide" aria-label="釜山通行證短影音">
+          <h2 className="seo-h2">先看短影音：通行證重點、24 小時、48 小時走法</h2>
           <div className="seo-prose">
             <p>
-              如果你想先用短影片抓感覺，先看釜山通行證重點，再看 24 小時和 48 小時走法。看完之後再回來用下面的 A/B 區和地圖排法，就會很快知道自己該買哪一種。
+              如果你想先用短影音抓感覺，先看釜山通行證重點，再看 24 小時和 48 小時走法。看完之後再回來用下面的 A/B 區和地圖排法，就會很快知道自己該買哪一種。
             </p>
-            <ActionLinks label="釜山通行證 IG 短影片" links={linkGroups.videos} />
+            <SeoVideoLinkMenu label="通行證重點" links={linkGroups.passOverviewVideos} />
+            <SeoVideoLinkMenu label="24小時走法" links={linkGroups.pass24hVideos} />
+            <SeoVideoLinkMenu label="48小時走法" links={linkGroups.pass48hVideos} />
+            <ActionLinks label="釜山通行證 24/48 小時路線文章" links={linkGroups.routeArticles} />
           </div>
         </section>
 

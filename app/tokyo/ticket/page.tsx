@@ -6,10 +6,22 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
 
 type TokyoTicketPageProps = {
   searchParams?: PageSearchParams
+}
+
+const observationVideos = {
+  shibuyaSky: [
+    { label: 'IG', href: 'https://www.instagram.com/reel/DWJbrmXFDuf/', event: 'tokyoticket_article_shibuya_sky_ig', platform: 'IG' },
+    { label: 'YouTube', href: 'https://www.youtube.com/shorts/Y0mGY55bSFs', event: 'tokyoticket_article_shibuya_sky_yt', platform: 'YouTube' },
+  ],
+  skytree: [
+    { label: 'IG', href: 'https://www.instagram.com/reel/DV3aGGdFNsc/', event: 'tokyoticket_article_skytree_ig', platform: 'IG' },
+    { label: 'YouTube', href: 'https://www.youtube.com/shorts/Q-zM2k47oVY', event: 'tokyoticket_article_skytree_yt', platform: 'YouTube' },
+  ],
 }
 
 export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageProps) {
@@ -55,28 +67,26 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
           <p>
             <strong>SHIBUYA SKY</strong> 是澀谷上方的戶外感展望台，適合想看十字路口、夕陽和夜景的人；<strong>晴空塔</strong> 高度更高，適合安排淺草、押上、晴空塔商場一起玩。東京鐵塔和六本木展望台則比較適合住銀座、六本木、東京車站一帶的人順路排。
           </p>
-          <div className="seo-buy-links" aria-label="東京展望台相關連結">
+          <div className="seo-buy-links tokyo-ticket-observation-links" aria-label="東京展望台相關連結">
+            <SeoVideoLinkMenu label="SHIBUYA SKY" links={observationVideos.shibuyaSky} />
             <a
-              className="seo-buy-link primary"
-              href="https://www.instagram.com/reel/DWJbrmXFDuf/"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="tokyoticket_article_shibuya_sky_ig"
-              data-platform="IG"
+              className="seo-buy-link seo-ticket-article-link"
+              href="/tokyo/shibuya-sky-guide?from=tokyo-ticket"
+              data-event="tokyoticket_article_shibuya_sky_guide"
+              data-platform="article"
               data-section="article"
             >
-              SHIBUYA SKY 影片
+              文章
             </a>
+            <SeoVideoLinkMenu label="晴空塔" links={observationVideos.skytree} />
             <a
-              className="seo-buy-link"
-              href="https://www.instagram.com/reel/DV3aGGdFNsc/"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="tokyoticket_article_skytree_ig"
-              data-platform="IG"
+              className="seo-buy-link seo-ticket-article-link"
+              href="/tokyo/skytree-guide?from=tokyo-ticket"
+              data-event="tokyoticket_article_skytree_guide"
+              data-platform="article"
               data-section="article"
             >
-              晴空塔影片
+              文章
             </a>
           </div>
 
@@ -104,7 +114,7 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
               data-platform="article"
               data-section="article"
             >
-              <strong> 東京地鐵券文章</strong>
+              <strong> 東京地鐵券完整攻略</strong>
             </a>
             。如果會跑鎌倉、日光、富士山或多段新幹線，再回頭算 JR Pass 或區域 Pass，不要看到 Pass 就先買。
           </p>

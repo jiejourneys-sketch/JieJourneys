@@ -50,7 +50,25 @@ export const tokyoFreeMapPlaces: TokyoMapPlace[] = [
   spotGoogleMapsUrl: 'https://maps.app.goo.gl/A1i5xhQt3ceED98n7',
   mapButtonMapEvent: 'tokyomap_asakusa_temple_map',
   spotActions: [
-],
+    {
+      label: '文章',
+      className: 'btn',
+      href: '/tokyo/sensoji-guide?from=tokyo-map',
+      mapEvent: 'tokyomap_asakusa_temple_article',
+    },
+    {
+      label: 'IG',
+      className: 'btn',
+      href: 'https://www.instagram.com/reel/DXRh-ucSyoW/',
+      mapEvent: 'tokyomap_asakusa_temple_ig',
+    },
+    {
+      label: 'YouTube',
+      className: 'btn',
+      href: 'https://www.youtube.com/shorts/l893qAnt7TI',
+      mapEvent: 'tokyomap_asakusa_temple_youtube',
+    },
+  ],
 },
 {
   id: 'tokyo-ImperialPalace',
@@ -99,10 +117,18 @@ export const tokyoFreeMapPlaces: TokyoMapPlace[] = [
   mapButtonMapEvent: 'tokyomap_roppongi_christmas_map',
   spotActions: [
   {
-    label: '路線',
-    className: "btn primary",
+    label: '短影音',
+    className: 'btn',
     href: 'https://www.instagram.com/reel/DSfemOTEqbL/',
     mapEvent: 'tokyomap_roppongi_christmas_ig',
+    platform: 'IG',
+  },
+  {
+    label: 'YouTube',
+    className: 'btn',
+    href: 'https://www.youtube.com/shorts/yZ8eH_jOKYM',
+    mapEvent: 'tokyomap_roppongi_christmas_yt',
+    platform: 'YouTube',
   },
 ],
 },
@@ -117,10 +143,18 @@ export const tokyoFreeMapPlaces: TokyoMapPlace[] = [
   mapButtonMapEvent: 'tokyomap_hibiya_garden_plaza_map',
   spotActions: [
   {
-    label: '路線',
-    className: "btn primary",
+    label: '短影音',
+    className: 'btn',
     href: 'https://www.instagram.com/reel/DShsI6gEa8u/',
     mapEvent: 'tokyomap_hibiya_garden_plaza_ig',
+    platform: 'IG',
+  },
+  {
+    label: 'YouTube',
+    className: 'btn',
+    href: 'https://www.youtube.com/shorts/I6VfBsc9YJE',
+    mapEvent: 'tokyomap_hibiya_garden_plaza_yt',
+    platform: 'YouTube',
   },
 ],
 },
@@ -170,6 +204,24 @@ export const tokyoFreeMapPlaces: TokyoMapPlace[] = [
   spotGoogleMapsUrl: 'https://maps.app.goo.gl/zSBnMgXBEBbeodeV9',
   mapButtonMapEvent: 'tokyomap_meiji_shrine_map',
   spotActions: [
+    {
+      label: '文章',
+      className: 'btn',
+      href: '/tokyo/meiji-jingu-guide?from=tokyo-map',
+      mapEvent: 'tokyomap_meiji_shrine_article',
+    },
+    {
+      label: 'IG',
+      className: 'btn',
+      href: 'https://www.instagram.com/reel/DWte3LWzhea/',
+      mapEvent: 'tokyomap_meiji_shrine_ig',
+    },
+    {
+      label: 'YouTube',
+      className: 'btn',
+      href: 'https://www.youtube.com/shorts/SPeJ3kugpu8',
+      mapEvent: 'tokyomap_meiji_shrine_youtube',
+    },
 ],
 },
 {
@@ -184,7 +236,7 @@ export const tokyoFreeMapPlaces: TokyoMapPlace[] = [
   spotActions: [
     {
       label: '官網',
-      className: "btn primary",
+      className: "btn",
       href: 'https://www.zaimu.metro.tokyo.lg.jp/tochousha/goannai/tenbou',
       mapEvent: 'tokyomap_tokyo_city_hall_official',
     },

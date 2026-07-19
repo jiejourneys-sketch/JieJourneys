@@ -13,6 +13,7 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, use
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import type { CityCardAction } from '@/components/CityTabbedList'
 import Footer from '@/components/Footer'
+import { useShortVideoMenuAutoClose } from '@/components/shortVideoMenu'
 import {
   CITY_MAP_CATEGORY_LABEL,
   CITY_MAP_CATEGORY_TOGGLE_ITEMS,
@@ -46,6 +47,8 @@ export type MapClientProps = {
   officialPassTierItems?: { key: NonNullable<MapPlace['officialPassTier']>; label: string }[]
   routeLayers?: MapRouteOverlay[]
   initialFitToPlaces?: boolean
+  /** Keep Google Maps and NaverMap together in one compact map menu. */
+  collapseLocationLinks?: boolean
   topActions?: {
     label: string
     href: string
@@ -531,6 +534,7 @@ type MapPlaceCardProps = {
   cardRef: (el: HTMLElement | null) => void
   gtagPrefix: string
   defaultMapButtonEvent: string
+  collapseLocationLinks: boolean
   categoryLabels: Record<CityMapPlaceCategory, string>
 }
 
@@ -538,7 +542,37 @@ function stopCardPick(e: ReactMouseEvent<HTMLAnchorElement> | ReactPointerEvent<
   e.stopPropagation()
 }
 
-function MapActionLink({ action, place }: { action: CityCardAction; place: MapPlace }) {
+function shortVideoPlatform(action: CityCardAction) {
+  const value = `${action.platform ?? ''} ${action.label} ${action.href}`
+  if (/youtube\.com\/shorts|youtu\.be/i.test(value)) return 'YouTube'
+  if (/instagram\.com\/reel/i.test(value)) return 'IG'
+  return null
+}
+
+function commercePlatform(action: CityCardAction) {
+  const value = `${action.platform ?? ''} ${action.label} ${action.href}`
+  if (/kkday/i.test(value)) return 'KKDAY'
+  if (/klook/i.test(value)) return 'KLOOK'
+  if (/agoda/i.test(value)) return 'Agoda'
+  if (/(?:trip\.com|\btrip\b)/i.test(value)) return 'Trip'
+  return null
+}
+
+function commerceMenuLabel(place: MapPlace) {
+  return place.category === 'hotel' ? '訂房' : '購票'
+}
+
+function MapActionLink({
+  action,
+  place,
+  label,
+  className,
+}: {
+  action: CityCardAction
+  place: MapPlace
+  label?: string
+  className?: string
+}) {
   return (
     <a
       href={action.href}
@@ -548,17 +582,218 @@ function MapActionLink({ action, place }: { action: CityCardAction; place: MapPl
       data-item={place.id}
       data-platform={action.platform}
       data-section={action.mapSection ?? 'map_bar'}
-      className={action.className ?? 'btn'}
+      className={className ?? action.className ?? 'btn'}
       onClick={(event) => {
         if (openNaverMapApp(event, place, action)) return
         stopCardPick(event)
       }}
       onPointerDown={stopCardPick}
     >
-      {action.label}
+      {label ?? action.label}
     </a>
   )
 }
+
+function MapGoogleLink({
+  place,
+  defaultMapButtonEvent,
+  className = 'btn',
+  label,
+}: {
+  place: MapPlace
+  defaultMapButtonEvent: string
+  className?: string
+  label?: string
+}) {
+  return (
+    <a
+      className={className}
+      href={spotMapButtonHref(place)}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-event={mapBarMapButtonEvent(place, defaultMapButtonEvent)}
+      data-item={place.id}
+      data-platform="GoogleMaps"
+      data-section="map_bar"
+      onClick={stopCardPick}
+      onPointerDown={stopCardPick}
+    >
+      {label ?? mapBarMapButtonLabel(place)}
+    </a>
+  )
+}
+
+function MapLocationLinks({
+  naverActions,
+  place,
+  defaultMapButtonEvent,
+  collapse,
+}: {
+  naverActions: CityCardAction[]
+  place: MapPlace
+  defaultMapButtonEvent: string
+  collapse: boolean
+}) {
+  if (!collapse || naverActions.length === 0) {
+    return (
+      <>
+        {naverActions.map((action) => (
+          <MapActionLink key={`${action.label}-${action.href}`} action={action} place={place} />
+        ))}
+        <MapGoogleLink place={place} defaultMapButtonEvent={defaultMapButtonEvent} />
+      </>
+    )
+  }
+
+  return (
+    <ExpandedMapLocationMenu
+      naverActions={naverActions}
+      place={place}
+      defaultMapButtonEvent={defaultMapButtonEvent}
+    />
+  )
+}
+
+function ExpandedMapLocationMenu({
+  naverActions,
+  place,
+  defaultMapButtonEvent,
+}: {
+  naverActions: CityCardAction[]
+  place: MapPlace
+  defaultMapButtonEvent: string
+}) {
+  const { detailsRef, onToggle } = useShortVideoMenuAutoClose({ revealOnOpen: true })
+
+  return (
+    <details
+      ref={detailsRef}
+      name="short-video-menu"
+      className={styles.mapLocationMenu}
+      onToggle={onToggle}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <summary>地圖</summary>
+      <div className={styles.mapLocationPlatforms}>
+        <MapGoogleLink
+          place={place}
+          defaultMapButtonEvent={defaultMapButtonEvent}
+          className="btn"
+          label="Google"
+        />
+        {naverActions.map((action) => (
+          <MapActionLink
+            key={`${action.label}-${action.href}`}
+            action={action}
+            place={place}
+            label="Naver"
+            className="btn"
+          />
+        ))}
+      </div>
+    </details>
+  )
+}
+
+function ExpandedMapCommerceMenu({ actions, place }: { actions: CityCardAction[]; place: MapPlace }) {
+  const { detailsRef, onToggle } = useShortVideoMenuAutoClose({ revealOnOpen: true })
+
+  return (
+    <details
+      ref={detailsRef}
+      name="short-video-menu"
+      className={styles.mapCommerceMenu}
+      onToggle={onToggle}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <summary>{commerceMenuLabel(place)}</summary>
+      <div className={styles.mapCommercePlatforms}>
+        {actions.map((action) => (
+          <MapActionLink
+            key={`${action.label}-${action.href}`}
+            action={action}
+            place={place}
+            label={commercePlatform(action) ?? action.label}
+            className="btn"
+          />
+        ))}
+      </div>
+    </details>
+  )
+}
+
+function MapCommerceMenu({ actions, place }: { actions: CityCardAction[]; place: MapPlace }) {
+  if (actions.length === 1) {
+    return <MapActionLink action={actions[0]} place={place} label={commerceMenuLabel(place)} className={styles.mapCommerceDirect} />
+  }
+
+  return <ExpandedMapCommerceMenu actions={actions} place={place} />
+}
+
+function MapVideoMenu({ actions, place }: { actions: CityCardAction[]; place: MapPlace }) {
+  const { detailsRef, onToggle } = useShortVideoMenuAutoClose({ revealOnOpen: true })
+
+  return (
+    <details
+      ref={detailsRef}
+      name="short-video-menu"
+      className={styles.mapVideoMenu}
+      onToggle={onToggle}
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <summary>短影音</summary>
+      <div className={styles.mapVideoPlatforms}>
+        {actions.map((action) => (
+          <MapActionLink
+            key={`${action.label}-${action.href}`}
+            action={action}
+            place={place}
+            label={shortVideoPlatform(action) ?? action.label}
+          />
+        ))}
+      </div>
+    </details>
+  )
+}
+
+function MapActionLinks({ actions, place }: { actions: CityCardAction[]; place: MapPlace }) {
+  const commerceActions = actions.filter((action) => commercePlatform(action))
+  const videoActions = actions.filter((action) => shortVideoPlatform(action))
+  const otherActions = actions.filter((action) => !commercePlatform(action) && !shortVideoPlatform(action))
+
+  return (
+    <>
+      {commerceActions.length > 0 ? <MapCommerceMenu actions={commerceActions} place={place} /> : null}
+      {videoActions.length >= 2 ? (
+        <MapVideoMenu actions={videoActions} place={place} />
+      ) : (
+        videoActions.map((action) => <MapActionLink key={`${action.label}-${action.href}`} action={action} place={place} />)
+      )}
+      {otherActions.map((action) => <MapActionLink key={`${action.label}-${action.href}`} action={action} place={place} />)}
+    </>
+  )
+}
+
+/**
+ * Older map data put every IG/YouTube pair on a new action row. Now that the
+ * pair is one compact short-video menu, keep it with the previous row and let
+ * the card's normal flex wrapping decide when a new line is actually needed.
+ */
+function mergeShortVideoRows(actionRows: CityCardAction[][]) {
+  return actionRows.reduce<CityCardAction[][]>((rows, row) => {
+    const isVideoOnlyRow = row.length > 0 && row.every((action) => shortVideoPlatform(action))
+    if (isVideoOnlyRow && rows.length > 0) {
+      rows[rows.length - 1] = [...rows[rows.length - 1], ...row]
+      return rows
+    }
+    rows.push(row)
+    return rows
+  }, [])
+}
+
 function MapPlaceCard({
   place,
   selected,
@@ -566,9 +801,12 @@ function MapPlaceCard({
   cardRef,
   gtagPrefix,
   defaultMapButtonEvent,
+  collapseLocationLinks,
   categoryLabels,
 }: MapPlaceCardProps) {
   const relatedTicketClassName = hasPrimarySpotAction(place) ? 'btn' : 'btn primary'
+  const spotActionRows = place.spotActionRows ? mergeShortVideoRows(place.spotActionRows) : undefined
+  const naverActions = (place.spotActionRows?.flat() ?? place.spotActions ?? place.hotelActions ?? []).filter(isNaverMapAction)
   const officialPassTierLabel =
     place.officialPassTier === 'purple'
       ? '紫色/A區景點'
@@ -617,47 +855,21 @@ function MapPlaceCard({
         <h3 className="title">{place.name}</h3>
         <p className="desc">{place.description}</p>
         {place.hotelActions && place.hotelActions.length > 0 ? (
-          <div className="actions">
-            {place.hotelActions.map((a) => (
-              <a
-                key={`${a.label}-${a.href}`}
-                href={a.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event={a.mapEvent ?? a.event}
-                data-item={place.id}
-                data-platform={a.platform}
-                data-section={a.mapSection ?? 'map_bar'}
-                className={a.className ?? 'btn'}
-                onClick={stopCardPick}
-                onPointerDown={stopCardPick}
-              >
-                {a.label}
-              </a>
-            ))}
-            <a
-              href={spotMapButtonHref(place)}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event={mapBarMapButtonEvent(place, defaultMapButtonEvent)}
-              data-item={place.id}
-              data-platform="Google Maps"
-              data-section="map_bar"
-              className="btn"
-              onClick={stopCardPick}
-              onPointerDown={stopCardPick}
-            >
-              {mapBarMapButtonLabel(place)}
-            </a>
+          <div className={styles.mapActionRow}>
+            <MapActionLinks actions={place.hotelActions.filter((action) => !isNaverMapAction(action))} place={place} />
+            <MapLocationLinks
+              naverActions={naverActions}
+              place={place}
+              defaultMapButtonEvent={defaultMapButtonEvent}
+              collapse={collapseLocationLinks}
+            />
           </div>
         ) : null}
-        {place.spotActionRows && place.spotActionRows.length > 0 ? (
+        {spotActionRows && spotActionRows.length > 0 ? (
           <div className={styles.mapActionsStacked}>
-            {place.spotActionRows.map((row, ri) => (
+            {spotActionRows.map((row, ri) => (
               <div key={`row-${ri}`} className={styles.mapActionRow}>
-                {row.filter((a) => !isNaverMapAction(a)).map((a) => (
-                  <MapActionLink key={`${a.label}-${a.href}`} action={a} place={place} />
-                ))}
+                <MapActionLinks actions={row.filter((a) => !isNaverMapAction(a))} place={place} />
                 {ri === 0 ? (
                   <>
                     {place.relatedTicketHref ? (
@@ -674,33 +886,20 @@ function MapPlaceCard({
                         {relatedTicketButtonLabel(place)}
                       </a>
                     ) : null}
-                    {row.filter(isNaverMapAction).map((a) => (
-                      <MapActionLink key={`${a.label}-${a.href}`} action={a} place={place} />
-                    ))}
-                    <a
-                      className="btn"
-                      href={spotMapButtonHref(place)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-event={mapBarMapButtonEvent(place, defaultMapButtonEvent)}
-                      data-item={place.id}
-                      data-platform="GoogleMaps"
-                      data-section="map_bar"
-                      onClick={stopCardPick}
-                      onPointerDown={stopCardPick}
-                    >
-                      {mapBarMapButtonLabel(place)}
-                    </a>
+                    <MapLocationLinks
+                      naverActions={naverActions}
+                      place={place}
+                      defaultMapButtonEvent={defaultMapButtonEvent}
+                      collapse={collapseLocationLinks}
+                    />
                   </>
                 ) : null}
               </div>
             ))}
           </div>
         ) : place.spotActions && place.spotActions.length > 0 ? (
-          <div className="actions">
-            {place.spotActions.filter((a) => !isNaverMapAction(a)).map((a) => (
-              <MapActionLink key={`${a.label}-${a.href}`} action={a} place={place} />
-            ))}
+          <div className={styles.mapActionRow}>
+            <MapActionLinks actions={place.spotActions.filter((a) => !isNaverMapAction(a))} place={place} />
             {place.relatedTicketHref ? (
               <a
                 className={relatedTicketClassName}
@@ -711,27 +910,16 @@ function MapPlaceCard({
                 data-section="map_bar"
                 onClick={stopCardPick}
                 onPointerDown={stopCardPick}
-              >
-                {relatedTicketButtonLabel(place)}
-              </a>
-            ) : null}
-            {place.spotActions.filter(isNaverMapAction).map((a) => (
-              <MapActionLink key={`${a.label}-${a.href}`} action={a} place={place} />
-            ))}
-            <a
-              className="btn"
-              href={spotMapButtonHref(place)}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event={mapBarMapButtonEvent(place, defaultMapButtonEvent)}
-              data-item={place.id}
-              data-platform="GoogleMaps"
-              data-section="map_bar"
-              onClick={stopCardPick}
-              onPointerDown={stopCardPick}
-            >
-              {mapBarMapButtonLabel(place)}
-            </a>
+                >
+                  {relatedTicketButtonLabel(place)}
+                </a>
+              ) : null}
+            <MapLocationLinks
+              naverActions={naverActions}
+              place={place}
+              defaultMapButtonEvent={defaultMapButtonEvent}
+              collapse={collapseLocationLinks}
+            />
           </div>
         ) : place.category !== 'hotel' &&
           !(place.spotActions && place.spotActions.length > 0) &&
@@ -747,24 +935,16 @@ function MapPlaceCard({
                 data-section="map_bar"
                 onClick={stopCardPick}
                 onPointerDown={stopCardPick}
-              >
-                {relatedTicketButtonLabel(place)}
-              </a>
-            ) : null}
-            <a
-              className="btn"
-              href={spotMapButtonHref(place)}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event={mapBarMapButtonEvent(place, defaultMapButtonEvent)}
-              data-item={place.id}
-              data-platform="GoogleMaps"
-              data-section="map_bar"
-              onClick={stopCardPick}
-              onPointerDown={stopCardPick}
-            >
-              {mapBarMapButtonLabel(place)}
-            </a>
+                >
+                  {relatedTicketButtonLabel(place)}
+                </a>
+              ) : null}
+            <MapLocationLinks
+              naverActions={naverActions}
+              place={place}
+              defaultMapButtonEvent={defaultMapButtonEvent}
+              collapse={collapseLocationLinks}
+            />
           </div>
         ) : null}
       </div>
@@ -815,6 +995,7 @@ export default function MapClient({
   officialPassTierItems,
   routeLayers,
   initialFitToPlaces = false,
+  collapseLocationLinks = false,
   topActions,
   belowContent,
 }: MapClientProps) {
@@ -2491,6 +2672,7 @@ export default function MapClient({
                           onPick={focusPlace}
                           gtagPrefix={gtagPrefix}
                           defaultMapButtonEvent={defaultMapButtonEvent}
+                          collapseLocationLinks={collapseLocationLinks}
                           categoryLabels={categoryLabelMap}
                           cardRef={(el) => {
                             desktopCardRefs.current[place.id] = el
@@ -2588,6 +2770,7 @@ export default function MapClient({
                     onPick={focusPlace}
                     gtagPrefix={gtagPrefix}
                     defaultMapButtonEvent={defaultMapButtonEvent}
+                    collapseLocationLinks={collapseLocationLinks}
                     categoryLabels={categoryLabelMap}
                     cardRef={(el) => {
                       mobileCardRefs.current[selectedPlace.id] = el
@@ -2633,6 +2816,7 @@ export default function MapClient({
                                 onPick={focusPlace}
                                 gtagPrefix={gtagPrefix}
                                 defaultMapButtonEvent={defaultMapButtonEvent}
+                                collapseLocationLinks={collapseLocationLinks}
                                 categoryLabels={categoryLabelMap}
                                 cardRef={(el) => {
                                   mobileCardRefs.current[place.id] = el

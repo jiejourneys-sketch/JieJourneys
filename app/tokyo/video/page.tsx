@@ -13,23 +13,23 @@ const tabs = [
   { value: '行前準備', label: '行前準備', dataArea: '行前準備' },
 ]
 const cards = [
-  { title: '淺草寺', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'AsakusaTemple', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DXRh-ucSyoW/', className: 'btn primary', event: 'tokyovideo_AsakusaTempleIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/l893qAnt7TI', className: 'btn', event: 'tokyovideo_AsakusaTempleYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/77PghY81hGR', className: 'btn', event: 'tokyovideo_AsakusaTempleXHS', platform: '小紅書', section: 'video' }] },
-  { title: '明治神宮', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'MeijiShrine', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DWte3LWzhea/', className: 'btn primary', event: 'tokyovideo_MeijiShrineIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/SPeJ3kugpu8', className: 'btn', event: 'tokyovideo_MeijiShrineYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/1lskehBH7UE', className: 'btn', event: 'tokyovideo_MeijiShrineXHS', platform: '小紅書', section: 'video' }] },
-  { title: 'SHIBUYA SKY', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'ShibuyaSky', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DWJbrmXFDuf/', className: 'btn primary', event: 'tokyovideo_ShibuyaSkyIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/Y0mGY55bSFs', className: 'btn', event: 'tokyovideo_ShibuyaSkyYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/8QZ9KU3S1sa', className: 'btn', event: 'tokyovideo_ShibuyaSkyXHS', platform: '小紅書', section: 'video' }] },
-  { title: '晴空塔', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'SkyTree', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DV3aGGdFNsc/', className: 'btn primary', event: 'tokyovideo_SkyTreeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/Q-zM2k47oVY', className: 'btn', event: 'tokyovideo_SkyTreeYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/29145lvSHW4', className: 'btn', event: 'tokyovideo_SkyTreeXHS', platform: '小紅書', section: 'video' }] },
-  { title: '東京市區｜9大區域', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'Tokyo9Areas', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DVlYnZjksc7/', className: 'btn primary', event: 'tokyovideo_Tokyo9AreasIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/ca2ny5UJb4k', className: 'btn', event: 'tokyovideo_Tokyo9AreasYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/4PfP2PJBkCE', className: 'btn', event: 'tokyovideo_Tokyo9AreasXHS', platform: '小紅書', section: 'video' }] },
-  { title: '六本木點燈｜最佳路線', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'RoppongiIllumination', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSfemOTEqbL/', className: 'btn primary', event: 'tokyovideo_RoppongiIlluminationIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/yZ8eH_jOKYM', className: 'btn', event: 'tokyovideo_RoppongiIlluminationYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/2DymZx52KpT', className: 'btn', event: 'tokyovideo_RoppongiIlluminationXHS', platform: '小紅書', section: 'video' }] },
-  { title: '惠比壽花園點燈｜最佳路線', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'HibiyaGardenIllumination', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DShsI6gEa8u/', className: 'btn primary', event: 'tokyovideo_HibiyaGardenIlluminationIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/I6VfBsc9YJE', className: 'btn', event: 'tokyovideo_HibiyaGardenIlluminationYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/9qXKYa7AxGZ', className: 'btn', event: 'tokyovideo_HibiyaGardenIlluminationXHS', platform: '小紅書', section: 'video' }] },
-  { title: '地鐵 vs JR｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'MetroVSJR', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTVMB2FkTt5/', className: 'btn primary', event: 'tokyovideo_MetroVSJRIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/xNN5iQLFGcU', className: 'btn', event: 'tokyovideo_MetroVSJRYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3MITM21zfli', className: 'btn', event: 'tokyovideo_MetroVSJRXHS', platform: '小紅書', section: 'video' }] },
-  { title: 'JR vs 新幹線｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'JRVSXinganxian', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DVBVYRckTUG/', className: 'btn primary', event: 'tokyovideo_JRVSXGXIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/j_Ws48TTzbE', className: 'btn', event: 'tokyovideo_JRVSXGXYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/2h8p1nd33PE', className: 'btn', event: 'tokyovideo_JRVSXGXXHS', platform: '小紅書', section: 'video' }] },
-  { title: '東京地鐵票券｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'TokyoSubwayTicket', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTnNqDgkZOm/', className: 'btn primary', event: 'tokyovideo_TokyoSubwayTicketIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/dz2aJtW3y9c', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3CIm2CzXmSI', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketXHS', platform: '小紅書', section: 'video' }, { label: '文章', href: '/tokyo/tokyo-subway-ticket?from=tokyo-video', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketArticle', platform: 'article', section: 'video' }] },
-  { title: '東京地鐵搭乘｜3個重點', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'TokyoSubwayTips', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DT5PNXdk4DM/', className: 'btn primary', event: 'tokyovideo_TokyoSubwayTipsIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/9KtpGIZE9wk', className: 'btn', event: 'tokyovideo_TokyoSubwayTipsYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/4nx9iQs8ukJ', className: 'btn', event: 'tokyovideo_TokyoSubwayTipsXHS', platform: '小紅書', section: 'video' }] },
-  { title: '成田機場到市區｜3種方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'NaritaAirportToCity', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DULQxKUkVR2/', className: 'btn primary', event: 'tokyovideo_NaritaAirportToCityIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/vdFwmQd8CLQ', className: 'btn', event: 'tokyovideo_NaritaAirportToCityYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/6SAdU1cGAHr', className: 'btn', event: 'tokyovideo_NaritaAirportToCityXHS', platform: '小紅書', section: 'video' }, { label: '文章', href: '/tokyo/narita-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_NaritaAirportToCityArticle', platform: 'article', section: 'video' }] },
-  { title: '成田機場到市區｜最便宜方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'NaritaAirportToCity2', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DUdSUu1kdXn/', className: 'btn primary', event: 'tokyovideo_NaritaAirportToCity2IG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/rKJejwOTIw0', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2YT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/AgcJoBlsdj8', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2XHS', platform: '小紅書', section: 'video' }, { label: '文章', href: '/tokyo/narita-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2Article', platform: 'article', section: 'video' }] },
-  { title: '羽田機場到市區｜3種方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'HNDToCity', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DUvT5Etkf4f/', className: 'btn primary', event: 'tokyovideo_HNDToCityIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/fTtfgB93DE4', className: 'btn', event: 'tokyovideo_HNDToCityYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/5Un3Rc5yHnU', className: 'btn', event: 'tokyovideo_HNDToCityXHS', platform: '小紅書', section: 'video' }, { label: '文章', href: '/tokyo/haneda-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_HNDToCityArticle', platform: 'article', section: 'video' }] },
-  { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'VisitJapanWeb', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'tokyovideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'tokyovideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/3g4dVW46U4I', className: 'btn', event: 'tokyovideo_visitjapanwebXHS', platform: '小紅書', section: 'video' }] },
-  { title: '日幣換匯攻略', meta: '行前準備', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'JPYExchange', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTDKcCoEZBS/', className: 'btn primary', event: 'tokyovideo_JPYExchangeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/FfMj7w2R7BA', className: 'btn', event: 'tokyovideo_JPYExchangeYT', platform: 'YouTube', section: 'video' }, { label: '小紅書', href: 'https://xhslink.com/o/83JoRvRQFSc', className: 'btn', event: 'tokyovideo_JPYExchangeXHS', platform: '小紅書', section: 'video' }] },
-  { title: '日本退稅新制｜2026懶人包', meta: '行前準備', note: '整理 2026/11/1 後日本免稅流程、新舊制度差異、機場退稅與完美行購物注意事項。', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'japan-tax-free-2026-article', actions: [{ label: '文章', href: '/japan/tax-free-2026?from=tokyo-video', className: 'btn primary', event: 'tokyovideo_taxfree2026_article', platform: 'article', section: 'video' }] },
+  { title: '淺草寺', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'AsakusaTemple', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DXRh-ucSyoW/', className: 'btn primary', event: 'tokyovideo_AsakusaTempleIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/l893qAnt7TI', className: 'btn', event: 'tokyovideo_AsakusaTempleYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/sensoji-guide?from=tokyo-video', className: 'btn', event: 'tokyovideo_AsakusaTempleArticle', platform: 'article', section: 'video' }] },
+  { title: '明治神宮', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'MeijiShrine', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DWte3LWzhea/', className: 'btn primary', event: 'tokyovideo_MeijiShrineIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/SPeJ3kugpu8', className: 'btn', event: 'tokyovideo_MeijiShrineYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/meiji-jingu-guide?from=tokyo-video', className: 'btn', event: 'tokyovideo_MeijiShrineArticle', platform: 'article', section: 'video' }] },
+  { title: 'SHIBUYA SKY', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'ShibuyaSky', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DWJbrmXFDuf/', className: 'btn primary', event: 'tokyovideo_ShibuyaSkyIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/Y0mGY55bSFs', className: 'btn', event: 'tokyovideo_ShibuyaSkyYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/shibuya-sky-guide?from=tokyo-video', className: 'btn', event: 'tokyovideo_ShibuyaSkyArticle', platform: 'article', section: 'video' }] },
+  { title: '晴空塔', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'SkyTree', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DV3aGGdFNsc/', className: 'btn primary', event: 'tokyovideo_SkyTreeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/Q-zM2k47oVY', className: 'btn', event: 'tokyovideo_SkyTreeYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/skytree-guide?from=tokyo-video', className: 'btn', event: 'tokyovideo_SkyTreeArticle', platform: 'article', section: 'video' }] },
+  { title: '東京市區｜9大區域', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'Tokyo9Areas', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DVlYnZjksc7/', className: 'btn primary', event: 'tokyovideo_Tokyo9AreasIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/ca2ny5UJb4k', className: 'btn', event: 'tokyovideo_Tokyo9AreasYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/tokyo-9-areas-guide?from=tokyo-video', className: 'btn', event: 'tokyovideo_Tokyo9AreasArticle', platform: 'article', section: 'video' }] },
+  { title: '六本木點燈｜最佳路線', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'RoppongiIllumination', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSfemOTEqbL/', className: 'btn primary', event: 'tokyovideo_RoppongiIlluminationIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/yZ8eH_jOKYM', className: 'btn', event: 'tokyovideo_RoppongiIlluminationYT', platform: 'YouTube', section: 'video' }] },
+  { title: '惠比壽花園點燈｜最佳路線', meta: '景點攻略', area: '景點攻略', datasetKey: 'video' as const, datasetValue: 'HibiyaGardenIllumination', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DShsI6gEa8u/', className: 'btn primary', event: 'tokyovideo_HibiyaGardenIlluminationIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/I6VfBsc9YJE', className: 'btn', event: 'tokyovideo_HibiyaGardenIlluminationYT', platform: 'YouTube', section: 'video' }] },
+  { title: '地鐵 vs JR｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'MetroVSJR', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTVMB2FkTt5/', className: 'btn primary', event: 'tokyovideo_MetroVSJRIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/xNN5iQLFGcU', className: 'btn', event: 'tokyovideo_MetroVSJRYT', platform: 'YouTube', section: 'video' }] },
+  { title: 'JR vs 新幹線｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'JRVSXinganxian', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DVBVYRckTUG/', className: 'btn primary', event: 'tokyovideo_JRVSXGXIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/j_Ws48TTzbE', className: 'btn', event: 'tokyovideo_JRVSXGXYT', platform: 'YouTube', section: 'video' }] },
+  { title: '東京地鐵票券｜攻略', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'TokyoSubwayTicket', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTnNqDgkZOm/', className: 'btn primary', event: 'tokyovideo_TokyoSubwayTicketIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/dz2aJtW3y9c', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/tokyo-subway-ticket?from=tokyo-video', className: 'btn', event: 'tokyovideo_TokyoSubwayTicketArticle', platform: 'article', section: 'video' }] },
+  { title: '東京地鐵搭乘｜3個重點', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'TokyoSubwayTips', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DT5PNXdk4DM/', className: 'btn primary', event: 'tokyovideo_TokyoSubwayTipsIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/9KtpGIZE9wk', className: 'btn', event: 'tokyovideo_TokyoSubwayTipsYT', platform: 'YouTube', section: 'video' }] },
+  { title: '成田機場到市區｜3種方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'NaritaAirportToCity', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DULQxKUkVR2/', className: 'btn primary', event: 'tokyovideo_NaritaAirportToCityIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/vdFwmQd8CLQ', className: 'btn', event: 'tokyovideo_NaritaAirportToCityYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/narita-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_NaritaAirportToCityArticle', platform: 'article', section: 'video' }] },
+  { title: '成田機場到市區｜最便宜方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'NaritaAirportToCity2', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DUdSUu1kdXn/', className: 'btn primary', event: 'tokyovideo_NaritaAirportToCity2IG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/rKJejwOTIw0', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2YT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/narita-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_NaritaAirportToCity2Article', platform: 'article', section: 'video' }] },
+  { title: '羽田機場到市區｜3種方式', meta: '交通', area: '交通', datasetKey: 'video' as const, datasetValue: 'HNDToCity', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DUvT5Etkf4f/', className: 'btn primary', event: 'tokyovideo_HNDToCityIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/fTtfgB93DE4', className: 'btn', event: 'tokyovideo_HNDToCityYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/tokyo/haneda-airport-to-tokyo?from=tokyo-video', className: 'btn', event: 'tokyovideo_HNDToCityArticle', platform: 'article', section: 'video' }] },
+  { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'VisitJapanWeb', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'tokyovideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'tokyovideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }] },
+  { title: '日幣換匯攻略', meta: '行前準備', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'JPYExchange', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTDKcCoEZBS/', className: 'btn primary', event: 'tokyovideo_JPYExchangeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/FfMj7w2R7BA', className: 'btn', event: 'tokyovideo_JPYExchangeYT', platform: 'YouTube', section: 'video' }] },
+  { title: '日本退稅新制｜2026懶人包', meta: '行前準備', note: '整理 2026/11/1 後日本免稅流程、新舊制度差異、機場退稅與完美行購物注意事項。', area: '行前準備', datasetKey: 'video' as const, datasetValue: 'japan-tax-free-2026-article', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/Da72R_yBXam/', className: 'btn primary', event: 'tokyovideo_taxfree2026_ig', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/ULH9oonQ7-I', className: 'btn', event: 'tokyovideo_taxfree2026_youtube', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/japan/tax-free-2026?from=tokyo-video', className: 'btn primary', event: 'tokyovideo_taxfree2026_article', platform: 'article', section: 'video' }] },
 ]
 
 export default function TokyoVideoPage() {
@@ -69,7 +69,7 @@ export default function TokyoVideoPage() {
           東京短影片合輯（依主題分類）
         </h2>
 
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="tokyo_video_tab" />
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="tokyo_video_tab" collapseVideoActions />
 
         <SeoCtaSection text="" href="/tokyo/map" linkText="熱門景點地圖" newTab dataEvent="tokyovideo_SEO_spotmap" />
 
@@ -80,7 +80,18 @@ export default function TokyoVideoPage() {
 
           <h3 className="seo-h3">第一次東京，先看這三類</h3>
           <ol>
-            <li>先看東京區域影片，理解上野淺草、東京車站銀座、新宿澀谷這幾個核心。</li>
+            <li>
+              先看東京區域影片，搭配
+              <a
+                href="/tokyo/tokyo-9-areas-guide?from=tokyo-video"
+                data-event="tokyovideo_article_tokyo_9_areas"
+                data-platform="article"
+                data-section="article"
+              >
+              <strong> 東京 9 大區域完整攻略</strong>
+              </a>
+              ，理解上野淺草、東京車站銀座、新宿澀谷這幾個核心。
+            </li>
             <li>再看地鐵 vs JR、東京地鐵券，避免一開始就亂買 Pass。</li>
             <li>最後看成田或羽田機場交通，決定住宿區域和進市區方式。</li>
           </ol>
@@ -98,6 +109,15 @@ export default function TokyoVideoPage() {
             >
               <strong> 淺草寺影片</strong>
             </a>
+            、
+            <a
+              href="/tokyo/sensoji-guide?from=tokyo-video"
+              data-event="tokyovideo_article_asakusa_guide"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 淺草寺完整攻略</strong>
+            </a>
             和
             <a
               href="https://www.instagram.com/reel/DV3aGGdFNsc/"
@@ -108,6 +128,15 @@ export default function TokyoVideoPage() {
               data-section="article"
             >
               <strong> 晴空塔影片</strong>
+            </a>
+            、
+            <a
+              href="/tokyo/skytree-guide?from=tokyo-video"
+              data-event="tokyovideo_article_skytree_guide"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 晴空塔完整攻略</strong>
             </a>
             。
           </p>
@@ -125,6 +154,15 @@ export default function TokyoVideoPage() {
             >
               <strong> 明治神宮影片</strong>
             </a>
+            、
+            <a
+              href="/tokyo/meiji-jingu-guide?from=tokyo-video"
+              data-event="tokyovideo_article_meiji_guide"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> 明治神宮完整攻略</strong>
+            </a>
             和
             <a
               href="https://www.instagram.com/reel/DWJbrmXFDuf/"
@@ -135,6 +173,15 @@ export default function TokyoVideoPage() {
               data-section="article"
             >
               <strong> SHIBUYA SKY 影片</strong>
+            </a>
+            、
+            <a
+              href="/tokyo/shibuya-sky-guide?from=tokyo-video"
+              data-event="tokyovideo_article_shibuya_sky_guide"
+              data-platform="article"
+              data-section="article"
+            >
+              <strong> SHIBUYA SKY 完整攻略</strong>
             </a>
             。
           </p>
@@ -148,7 +195,7 @@ export default function TokyoVideoPage() {
               data-platform="article"
               data-section="article"
             >
-              <strong> 東京地鐵券文章</strong>
+              <strong> 東京地鐵券完整攻略</strong>
             </a>
             。
           </p>
@@ -162,7 +209,7 @@ export default function TokyoVideoPage() {
               data-platform="article"
               data-section="article"
             >
-              <strong> 成田機場文章</strong>
+              <strong> 成田機場完整攻略</strong>
             </a>
             和
             <a
@@ -171,7 +218,7 @@ export default function TokyoVideoPage() {
               data-platform="article"
               data-section="article"
             >
-              <strong> 羽田機場文章</strong>
+              <strong> 羽田機場完整攻略</strong>
             </a>
             。
           </p>

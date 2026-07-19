@@ -1,5 +1,6 @@
 import type { CityCardAction } from '@/components/CityTabbedList'
 import type { MapPlace } from '@/lib/mapPlace'
+import { BUSAN_MAP_SPOT_VIDEO_ACTIONS } from '@/data/busan/map/spotVideoActions'
 import { busanTicketCards } from '@/data/busan/tickets'
 
 export const BUSAN_PASS_MAP_CENTER = { lat: 35.147, lng: 129.087 }
@@ -686,6 +687,7 @@ export const busanPassMapPlaces: MapPlace[] = basePlaces.map((place) => {
   const spotActions = [
     ...(actions ?? []),
     ...(place.spotActions ?? []),
+    ...(place.ticketTitle ? BUSAN_MAP_SPOT_VIDEO_ACTIONS[place.ticketTitle] ?? [] : []),
     ...naverActions(place),
   ]
   return {

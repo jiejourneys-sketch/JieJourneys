@@ -1,6 +1,7 @@
 'use client'
 
 import MapClient from '@/components/map/MapClient'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { FUJI_PASS_MAP_CENTER, fujiPassMapPlaces } from '@/data/fuji/pass-map/places'
 import { fujiPassMapRoutes } from '@/data/fuji/pass-map/routes'
 
@@ -10,6 +11,11 @@ const categoryLabels = {
   food: '\u98f2\u98df\u8cfc\u7269',
   hotel: '\u4f4f\u5bbf',
 }
+
+const passVideoLinks = [
+  { label: 'IG｜富士山周遊券', href: 'https://www.instagram.com/reel/DY9rYLxy_o7/', event: 'fujipassmap_video_ig', platform: 'IG' },
+  { label: 'YouTube｜富士山周遊券', href: 'https://www.youtube.com/shorts/4gnbR3VbNSs', event: 'fujipassmap_video_yt', platform: 'YouTube' },
+]
 
 export default function FujiPassMapPage() {
   return (
@@ -46,6 +52,20 @@ export default function FujiPassMapPage() {
           external: true,
         },
         {
+          label: 'IG',
+          href: 'https://www.instagram.com/reel/DY9rYLxy_o7/',
+          event: 'fujipassmap_top_video_ig',
+          platform: 'Instagram',
+          external: true,
+        },
+        {
+          label: 'YouTube',
+          href: 'https://www.youtube.com/shorts/4gnbR3VbNSs',
+          event: 'fujipassmap_top_video_yt',
+          platform: 'YouTube',
+          external: true,
+        },
+        {
           label: '文章',
           href: '/fuji/mt-fuji-pass?from=pass-map',
           event: 'fujipassmap_top_article',
@@ -71,7 +91,8 @@ export default function FujiPassMapPage() {
               <p>
                 上方可以切換「觀光/遊覽船」「溫泉優惠」「飲食購物」，也可以打開紅線、綠線、藍線與富士急行線，確認景點和車站、巴士站的相對位置。卡片裡如果有「含此景點的一日遊」，點進去會直接到富士票券頁，用該景點篩選相關行程。
               </p>
-              <div className="seo-buy-links" aria-label="查看富士山周遊券">
+              <SeoVideoLinkMenu label="富士山周遊券" links={passVideoLinks} />
+              <div className="seo-buy-links seo-action-links" aria-label="查看富士山周遊券">
                 <a
                   className="seo-buy-link primary"
                   href="https://www.kkday.com/zh-tw/product/20106-mt-fuji-pass-lake-kawaguchi-attraction-ticket-japan?cid=22312"

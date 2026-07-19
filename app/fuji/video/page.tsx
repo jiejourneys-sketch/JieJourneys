@@ -48,7 +48,6 @@ export default function FujiVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DYrpyjiS5-L/', className: 'btn primary', event: 'fujivideo_oishi_park_30s_ig', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/m67IlemzJNI', className: 'btn', event: 'fujivideo_oishi_park_30s_yt', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/1HEwdETh1zm', className: 'btn', event: 'fujivideo_oishi_park_30s_xhs', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -60,7 +59,6 @@ export default function FujiVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DYrpvj3yPso/', className: 'btn primary', event: 'fujivideo_kawaguchiko_hotel_ig', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/oyBnxGBgYDg', className: 'btn', event: 'fujivideo_kawaguchiko_hotel_yt', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/ACXKXbRVJCH', className: 'btn', event: 'fujivideo_kawaguchiko_hotel_xhs', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -72,7 +70,6 @@ export default function FujiVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DY9rYLxy_o7/', className: 'btn primary', event: 'fujivideo_mt_fuji_pass_ig', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/4gnbR3VbNSs', className: 'btn', event: 'fujivideo_mt_fuji_pass_yt', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/AimsPvqTE4I', className: 'btn', event: 'fujivideo_mt_fuji_pass_xhs', platform: '小紅書', section: 'video' },
         { label: '文章', href: '/fuji/mt-fuji-pass?from=video', className: 'btn', event: 'fujivideo_mt_fuji_pass_article', platform: 'article', section: 'video' },
       ],
     },
@@ -85,7 +82,6 @@ export default function FujiVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DYj7bS8SHmH/', className: 'btn primary', event: 'fujivideo_kawaguchiko_days_ig', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/WvUrzMfLyQA', className: 'btn', event: 'fujivideo_kawaguchiko_days_yt', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/267yhecUsAL', className: 'btn', event: 'fujivideo_kawaguchiko_days_xhs', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -97,7 +93,6 @@ export default function FujiVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DX1lCACSFYX/', className: 'btn primary', event: 'fujivideo_tokyo_to_kawaguchiko_ig', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/nj79P4JUujQ', className: 'btn', event: 'fujivideo_tokyo_to_kawaguchiko_yt', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/3O0UGvYCRaJ', className: 'btn', event: 'fujivideo_tokyo_to_kawaguchiko_xhs', platform: '小紅書', section: 'video' },
         { label: '文章', href: '/fuji/tokyo-to-kawaguchiko?from=video', className: 'btn', event: 'fujivideo_tokyo_to_kawaguchiko_article', platform: 'article', section: 'video' },
       ],
     },
@@ -110,7 +105,6 @@ export default function FujiVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DYHmqrcyvb_/', className: 'btn primary', event: 'fujivideo_fuji_excursion_tips_ig', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/qoDZE_2SiMQ', className: 'btn', event: 'fujivideo_fuji_excursion_tips_yt', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/9CmeqVhMQl0', className: 'btn', event: 'fujivideo_fuji_excursion_tips_xhs', platform: '小紅書', section: 'video' },
       ],
     },
   ]
@@ -151,7 +145,7 @@ export default function FujiVideoPage() {
           富士河口湖短影片合輯（依主題分類）
         </h2>
 
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="fujivideo_tab" />
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="fujivideo_tab" collapseVideoActions />
 
         <SeoCtaSection text="" href="/fuji/map" linkText="富士河口湖熱門景點地圖" newTab dataEvent="fujivideo_SEO_spotmap" />
 

@@ -1,6 +1,7 @@
 'use client'
 
 import MapClient from '@/components/map/MapClient'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { OSAKA_PASS_MAP_CENTER, osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 
 const categoryLabels = {
@@ -9,6 +10,11 @@ const categoryLabels = {
   food: '\u5e97\u5bb6\u512a\u60e0',
   hotel: '\u4f4f\u5bbf',
 }
+
+const passVideoLinks = [
+  { label: 'IG｜大阪周遊券', href: 'https://www.instagram.com/reel/Dap0xBSBbSI/', event: 'osakapassmap_video_ig', platform: 'IG' },
+  { label: 'YouTube｜大阪周遊券', href: 'https://www.youtube.com/shorts/u1g5J6SGZR4', event: 'osakapassmap_video_yt', platform: 'YouTube' },
+]
 
 export default function OsakaPassMapPage() {
   return (
@@ -55,6 +61,20 @@ export default function OsakaPassMapPage() {
           platform: 'internal',
         },
         {
+          label: 'IG',
+          href: 'https://www.instagram.com/reel/Dap0xBSBbSI/',
+          event: 'osakapassmap_top_video_ig',
+          platform: 'Instagram',
+          external: true,
+        },
+        {
+          label: 'YouTube',
+          href: 'https://www.youtube.com/shorts/u1g5J6SGZR4',
+          event: 'osakapassmap_top_video_yt',
+          platform: 'YouTube',
+          external: true,
+        },
+        {
           label: '排序',
           href: '/tools/planner?region=osaka&source=pass',
           event: 'osakapassmap_top_planner',
@@ -74,8 +94,9 @@ export default function OsakaPassMapPage() {
                 </a>
                 。
               </p>
+              <SeoVideoLinkMenu label="大阪周遊券" links={passVideoLinks} />
 
-              <div className="seo-buy-links" aria-label="大阪周遊券相關連結">
+              <div className="seo-buy-links seo-action-links" aria-label="大阪周遊券相關連結">
                 <a
                   className="seo-buy-link primary"
                   href="/osaka/osaka-amazing-pass?from=pass-map"

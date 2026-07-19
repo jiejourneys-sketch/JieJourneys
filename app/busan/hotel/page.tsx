@@ -69,12 +69,6 @@ export default function BusanHotelPage() {
               dataEvent: 'busanhotel_YTvideo',
               platform: 'YouTube',
             },
-            {
-              label: '小紅書',
-              href: 'https://xhslink.com/o/5qAuAKeAyZA',
-              dataEvent: 'busanhotel_XHSvideo',
-              platform: '小紅書',
-            },
           ]}
         />
 

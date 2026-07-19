@@ -25,7 +25,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DObDFXuEZFE/', className: 'btn primary', event: 'busanvideo_suitableIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/eYMppYSyIqE', className: 'btn', event: 'busanvideo_suitableYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/Afwwt6vbBcq', className: 'btn', event: 'busanvideo_suitableXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -37,7 +36,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DO_GKX3kY0F/', className: 'btn primary', event: 'busanvideo_goodvsbadIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/a0hXPor4PfI', className: 'btn', event: 'busanvideo_goodvsbadYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/8OJPt7iurEH', className: 'btn', event: 'busanvideo_goodvsbadXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -49,7 +47,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DPG0jR5ElNi/', className: 'btn primary', event: 'busanvideo_goodvsbadfoodIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/CZY0NzKSnOY', className: 'btn', event: 'busanvideo_goodvsbadfoodYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/2RYtrtA2yTU', className: 'btn', event: 'busanvideo_goodvsbadfoodXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -61,7 +58,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DK4dIqzzJBE/', className: 'btn primary', event: 'busanvideo_gonglue1IG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/r19k0otvGVE', className: 'btn', event: 'busanvideo_gonglue1YT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/5H7XNWErVN8', className: 'btn', event: 'busanvideo_gonglue1XHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/busan-fast-guide?from=busan-video', className: 'btn', event: 'busanvideo_gonglue1_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -73,7 +70,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DLCwV2yzbSv/', className: 'btn primary', event: 'busanvideo_gonglue2IG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/Mtn35FzOeis', className: 'btn', event: 'busanvideo_gonglue2YT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/4BhS0NKboYQ', className: 'btn', event: 'busanvideo_gonglue2XHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/busan-fast-guide?from=busan-video', className: 'btn', event: 'busanvideo_gonglue2_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -85,7 +82,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DLKer30zmDd/', className: 'btn primary', event: 'busanvideo_nanpu1IG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/wN0KHurau78', className: 'btn', event: 'busanvideo_nanpu1YT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/7tpySmrFK2M', className: 'btn', event: 'busanvideo_nanpu1XHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/nampo-dong-guide?from=busan-video', className: 'btn', event: 'busanvideo_nampo1_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -97,7 +94,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DLeby5yTVTm/', className: 'btn primary', event: 'busanvideo_nanpu2IG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/R8bRLgm5HEA', className: 'btn', event: 'busanvideo_nanpu2YT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/14X5o08d827', className: 'btn', event: 'busanvideo_nanpu2XHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/nampo-dong-guide?from=busan-video', className: 'btn', event: 'busanvideo_nampo2_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -109,7 +106,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DL408o_ze1X/', className: 'btn primary', event: 'busanvideo_xiaowangziIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/RZREPyNT-Fo', className: 'btn', event: 'busanvideo_xiaowangziYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/2aUewZPzJ9U', className: 'btn', event: 'busanvideo_xiaowangziXHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/gamcheon-culture-village-guide?from=busan-video', className: 'btn', event: 'busanvideo_gamcheon_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -121,7 +118,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DMKh_XmzOdG/', className: 'btn primary', event: 'busanvideo_towerIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/e3-R4YEj7Cw', className: 'btn', event: 'busanvideo_towerYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/9rE8N60xj96', className: 'btn', event: 'busanvideo_towerXHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/busan-tower-guide?from=busan-video', className: 'btn', event: 'busanvideo_tower_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -133,7 +130,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DLuh1WzzM0c/', className: 'btn primary', event: 'busanvideo_haiyuntaiIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/T0aTv6PPxMQ', className: 'btn', event: 'busanvideo_haiyuntaiYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/Bt9siwbllz', className: 'btn', event: 'busanvideo_haiyuntaiXHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/haeundae-guide?from=busan-video', className: 'btn', event: 'busanvideo_haeundae_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -145,7 +142,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DMu5uZxTdO8/', className: 'btn primary', event: 'busanvideo_SkycapIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/NojyZ8jfvD4', className: 'btn', event: 'busanvideo_SkycapYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/4JILJiyezmL', className: 'btn', event: 'busanvideo_SkycapXHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/capsule-train-guide?from=busan-video', className: 'btn', event: 'busanvideo_capsule_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -157,7 +154,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DVTW_MLkpj4/', className: 'btn primary', event: 'busanvideo_YachtIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/N56k5869RVw', className: 'btn', event: 'busanvideo_YachtYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/8B2iEV9P095', className: 'btn', event: 'busanvideo_YachtXHS', platform: '小紅書', section: 'video' },
         { label: '文章', href: '/busan/busan-yacht-suyeong-diamond-bay?from=video', className: 'btn', event: 'busanvideo_yacht_article', platform: 'article', section: 'video' },
       ],
     },
@@ -170,7 +166,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DOixfbBEaCL/', className: 'btn primary', event: 'busanvideo_5prepareIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/6K3yI0WrO9k', className: 'btn', event: 'busanvideo_5prepareYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/6GMt6r34xoA', className: 'btn', event: 'busanvideo_5prepareXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -182,7 +177,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DKMrn6dzS4G/', className: 'btn primary', event: 'busanvideo_earrivalIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/L_FmuAzoGzM', className: 'btn', event: 'busanvideo_earrivalYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/7C7nTIpO8gw', className: 'btn', event: 'busanvideo_earrivalXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -194,7 +188,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DKetNmXTW3E/', className: 'btn primary', event: 'busanvideo_ketaIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/AXevOEDDzB0', className: 'btn', event: 'busanvideo_ketaYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/Y3KqLBooSA', className: 'btn', event: 'busanvideo_ketaXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -206,7 +199,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DKetKpgTvd7/', className: 'btn primary', event: 'busanvideo_currencyIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/ROLLp6mm5p8', className: 'btn', event: 'busanvideo_currencyYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/2ZXIOZhpkUP', className: 'btn', event: 'busanvideo_currencyXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -218,7 +210,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DKmbjKIzsAT/', className: 'btn primary', event: 'busanvideo_powerbankIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/e_7nNXvRhzw', className: 'btn', event: 'busanvideo_powerbankYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/n23KDIzNFN', className: 'btn', event: 'busanvideo_powerbankXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -230,7 +221,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DKwurF0Te2B/', className: 'btn primary', event: 'busanvideo_lotteIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/-CMAajmCatg', className: 'btn', event: 'busanvideo_lotteYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/1RAg32kAWXa', className: 'btn', event: 'busanvideo_lotteXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -242,7 +232,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DOQv5njkT4I/', className: 'btn primary', event: 'busanvideo_PDFIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/jFq8fhtV4qg', className: 'btn', event: 'busanvideo_PDFYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/6pvpm14xKAn', className: 'btn', event: 'busanvideo_PDFXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -254,7 +243,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DUDiZzQkdUe/', className: 'btn primary', event: 'busanvideo_pass_ig', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/ppTGbWXDM0k', className: 'btn', event: 'busanvideo_pass_youtube', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/6QHeZo5sDIU', className: 'btn', event: 'busanvideo_pass_xhs', platform: '小紅書', section: 'video' },
         { label: '文章', href: '/busan/visit-busan-pass?from=video', className: 'btn', event: 'busanvideo_pass_article', platform: 'article', section: 'video' },
       ],
     },
@@ -267,7 +255,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DN-uWhB4gI2/', className: 'btn primary', event: 'busanvideo_shitikaIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/rdT-NNXjR-c', className: 'btn', event: 'busanvideo_shitikaYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/Acl0InJBYX', className: 'btn', event: 'busanvideo_shitikaXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -279,7 +266,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DOJBfeBEdwN/', className: 'btn primary', event: 'busanvideo_24hrIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/e2aeNYmKc38', className: 'btn', event: 'busanvideo_24hrYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/3FDCBVxXvBI', className: 'btn', event: 'busanvideo_24hrXHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/visit-busan-pass-24h-route?from=busan-video', className: 'btn', event: 'busanvideo_24hr_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -291,7 +278,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DO0y_wnEUa9/', className: 'btn primary', event: 'busanvideo_48hrIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/kuU-6nMmR4Y', className: 'btn', event: 'busanvideo_48hrYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/3F9AZrkzSsZ', className: 'btn', event: 'busanvideo_48hrXHS', platform: '小紅書', section: 'video' },
+        { label: '文章', href: '/busan/visit-busan-pass-48h-route?from=busan-video', className: 'btn', event: 'busanvideo_48hr_article', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -303,7 +290,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DNIpqn1TE0k/', className: 'btn primary', event: 'busanvideo_skycapKKdayIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/kSCoYLXAMUA', className: 'btn', event: 'busanvideo_skycapKKdayYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/360E8ch54PQ', className: 'btn', event: 'busanvideo_skycapKKdayXHS', platform: '小紅書', section: 'video' },
       ],
     },
     {
@@ -315,7 +301,6 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DNarLsDTe2F/', className: 'btn primary', event: 'busanvideo_skycapOffIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/yoQdWHM6rbY', className: 'btn', event: 'busanvideo_skycapOffYT', platform: 'YouTube', section: 'video' },
-        { label: '小紅書', href: 'https://xhslink.com/o/1oBgYLxzIKk', className: 'btn', event: 'busanvideo_skycapOffXHS', platform: '小紅書', section: 'video' },
       ],
     },
   ]
@@ -356,7 +341,7 @@ export default function BusanVideoPage() {
           釜山短影片合輯（依主題分類）
         </h2>
 
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="video_tab" />
+        <CityTabbedList tabs={tabs} cards={cards} tabEvent="video_tab" collapseVideoActions />
 
         <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanvideo_SEO_spotmap" />
         <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanvideo_SEO_passmap" />
@@ -407,6 +392,15 @@ export default function BusanVideoPage() {
                 >
                   <strong>最速攻略下集</strong>
                 </a>
+                ，再搭配
+                <a
+                  href="/busan/busan-fast-guide?from=busan-video"
+                  data-event="busanvideo_article_fastguide_article"
+                  data-platform="article"
+                  data-section="article"
+                >
+                  <strong>釜山最速攻略文字版</strong>
+                </a>
                 ，先把南浦洞、海雲台、西面、廣安里、松島、樂天世界這些位置關係抓起來。
               </li>
               <li>
@@ -449,6 +443,15 @@ export default function BusanVideoPage() {
                     >
                       <strong>南浦洞下集</strong>
                     </a>
+                    、
+                    <a
+                      href="/busan/nampo-dong-guide?from=busan-video"
+                      data-event="busanvideo_article_nampo_guide"
+                      data-platform="article"
+                      data-section="article"
+                    >
+                      <strong>南浦洞完整攻略</strong>
+                    </a>
                   </td>
                 </tr>
                 <tr>
@@ -464,6 +467,15 @@ export default function BusanVideoPage() {
                       data-section="article"
                     >
                       <strong>海雲台</strong>
+                    </a>
+                    、
+                    <a
+                      href="/busan/haeundae-guide?from=busan-video"
+                      data-event="busanvideo_article_haeundae_guide"
+                      data-platform="article"
+                      data-section="article"
+                    >
+                      <strong>海雲台完整攻略</strong>
                     </a>
                     、
                     <a
@@ -515,7 +527,7 @@ export default function BusanVideoPage() {
                       data-platform="article"
                       data-section="article"
                     >
-                      <strong>遊艇文章</strong>
+                      <strong>遊艇完整攻略</strong>
                     </a>
                   </td>
                 </tr>
@@ -658,7 +670,7 @@ export default function BusanVideoPage() {
                 data-platform="article"
                 data-section="article"
               >
-                <strong>通行證文章</strong>
+                <strong>通行證完整攻略</strong>
               </a>
               和
               <a
@@ -778,7 +790,7 @@ export default function BusanVideoPage() {
                     data-platform="article"
                     data-section="faq"
                   >
-                    <strong>通行證文章</strong>
+                    <strong>通行證完整攻略</strong>
                   </a>
                   和
                   <a

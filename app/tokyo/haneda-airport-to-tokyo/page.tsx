@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import {
   hanedaAirportToTokyoCanonical,
   hanedaAirportToTokyoDescription,
@@ -21,7 +22,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => (
         <a
           key={`${link.label}-${link.href}`}
@@ -43,6 +44,7 @@ function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
 const linkGroups = {
   videos: [
     { label: 'IG｜3種方式', href: 'https://www.instagram.com/reel/DUvT5Etkf4f/', event: 'tokyohaneda_video_3ways_ig', platform: 'IG', primary: true },
+    { label: 'YouTube', href: 'https://www.youtube.com/shorts/fTtfgB93DE4', event: 'tokyohaneda_video_3ways_yt', platform: 'YouTube' },
   ],
   keikyu: [
     { label: 'Suica', href: 'https://www.klook.com/zh-TW/activity/16917-suica-ic-card-tokyo/?aid=93798', event: 'tokyohaneda_keikyu_suica', platform: 'KLOOK', primary: true },
@@ -144,7 +146,7 @@ export default function HanedaAirportToTokyoPage() {
           ctaLinks={[
             { label: '快速結論', href: '#quick-answer', dataEvent: 'tokyohaneda_hero_quick', platform: 'article' },
             { label: '方式比較', href: '#comparison', dataEvent: 'tokyohaneda_hero_comparison', platform: 'article' },
-            { label: 'IG短影片', href: '#video-guide', dataEvent: 'tokyohaneda_hero_video', platform: 'IG' },
+            { label: 'IG短影音', href: '#video-guide', dataEvent: 'tokyohaneda_hero_video', platform: 'IG' },
           ]}
         />
 
@@ -173,11 +175,11 @@ export default function HanedaAirportToTokyoPage() {
           </div>
         </section>
 
-        <section className="seo-content" id="video-guide" aria-label="羽田機場交通短影片">
-          <h2 className="seo-h2">先看 IG 短影片：羽田機場進市區 3 種方式</h2>
+        <section className="seo-content" id="video-guide" aria-label="羽田機場交通短影音">
+          <h2 className="seo-h2">先看 IG 短影音：羽田機場進市區 3 種方式</h2>
           <div className="seo-prose">
-            <p>想先用一分鐘抓重點，可以先看這支羽田機場進東京市區短影片，再回來對照自己的住宿區域選路線。</p>
-            <ActionLinks label="羽田機場交通 IG 短影片" links={linkGroups.videos} />
+            <p>想先用一分鐘抓重點，可以先看這支羽田機場進東京市區短影音，再回來對照自己的住宿區域選路線。</p>
+            <SeoVideoLinkMenu label="羽田進市區｜3種方式" links={linkGroups.videos} />
           </div>
         </section>
 

@@ -66,7 +66,7 @@ export default function TokyoMapPage() {
                 這張東京景點地圖把票券景點、免費景點、商店美食和住宿放在同一張互動地圖上。第一次去東京時，可以先開「票券」「景點」「住宿」分類，看新宿、澀谷、淺草、上野、東京車站、銀座、台場的位置，再決定每天住哪裡、怎麼排路線。
               </p>
               <p>
-                每張卡片會盡量附上購票連結與 Google Map 導航，有些熱門景點也會放 IG、YouTube、小紅書短影片，方便你先看現場畫面再決定要不要排進行程。
+                每張卡片會盡量附上購票連結與 Google Map 導航，有些熱門景點也會放 IG、YouTube 短影音，方便你先看現場畫面再決定要不要排進行程。
               </p>
               <p>
                 如果你還在比較票券、住宿或交通，可以先看
@@ -81,6 +81,26 @@ export default function TokyoMapPage() {
                 <a href="/tokyo/transport" data-event="tokyomap_internal_transport" data-section="seo_content">
                   東京交通攻略
                 </a>
+                ；如果想先把東京市區分成東側、市中心、西側三條動線，可以看
+                <a href="/tokyo/tokyo-9-areas-guide?from=tokyo-map" data-event="tokyomap_internal_9areas" data-section="seo_content">
+                  東京 9 大區域景點攻略
+                </a>
+                ；如果想細排雷門、仲見世通、寶藏門到正殿的順序，可以看
+                <a href="/tokyo/sensoji-guide?from=tokyo-map" data-event="tokyomap_internal_sensoji" data-section="seo_content">
+                  淺草寺攻略
+                </a>
+                ；如果要從押上站 B3 出口進入、安排天望甲板與天望回廊，可以看
+                <a href="/tokyo/skytree-guide?from=tokyo-map" data-event="tokyomap_internal_skytree" data-section="seo_content">
+                  晴空塔攻略
+                </a>
+                ；如果要從原宿走南參道到本殿，可以看
+                <a href="/tokyo/meiji-jingu-guide?from=tokyo-map" data-event="tokyomap_internal_meiji" data-section="seo_content">
+                  明治神宮攻略
+                </a>
+                ；如果要卡澀谷日落夜景，可以看
+                <a href="/tokyo/shibuya-sky-guide?from=tokyo-map" data-event="tokyomap_internal_shibuya_sky" data-section="seo_content">
+                  SHIBUYA SKY 攻略
+                </a>
                 ；如果想少做功課、直接照順路動線走，也可以看
                 <a href="/tokyo/journeys" data-event="tokyomap_internal_journeys" data-section="seo_content">
                   東京五日行程 PDF
@@ -91,8 +111,24 @@ export default function TokyoMapPage() {
               <h3 className="seo-h3">第一次去東京先看哪些區域？</h3>
               <ul>
                 <li>新宿：交通線最多，適合第一次自由行、行程分散的人。</li>
-                <li>上野 / 淺草：成田機場進出方便，適合淺草、晴空塔、上野公園路線。</li>
-                <li>澀谷 / 原宿：適合逛街、拍照、明治神宮、SHIBUYA SKY。</li>
+                <li>
+                  上野 / 淺草：成田機場進出方便，適合淺草、
+                  <a href="/tokyo/skytree-guide?from=tokyo-map" data-event="tokyomap_internal_skytree_list" data-section="seo_content">
+                    晴空塔
+                  </a>
+                  、上野公園路線。
+                </li>
+                <li>
+                  澀谷 / 原宿：適合逛街、拍照、
+                  <a href="/tokyo/meiji-jingu-guide?from=tokyo-map" data-event="tokyomap_internal_meiji_list" data-section="seo_content">
+                    明治神宮
+                  </a>
+                  、
+                  <a href="/tokyo/shibuya-sky-guide?from=tokyo-map" data-event="tokyomap_internal_shibuya_sky_list" data-section="seo_content">
+                    SHIBUYA SKY
+                  </a>
+                  。
+                </li>
                 <li>東京車站 / 銀座：適合新幹線、皇居、銀座購物和高級飯店。</li>
                 <li>台場 / 豐洲：適合 teamLab、親子景點、室內備案和海景行程。</li>
               </ul>

@@ -125,7 +125,7 @@ export default function TokyoTransportPage() {
               data-platform="article"
               data-section="article"
             >
-              <strong> 成田機場交通文章</strong>
+              <strong> 成田機場交通完整攻略</strong>
             </a>
             。
           </p>
@@ -139,7 +139,7 @@ export default function TokyoTransportPage() {
               data-platform="article"
               data-section="article"
             >
-              <strong> 羽田機場交通文章</strong>
+              <strong> 羽田機場交通完整攻略</strong>
             </a>
             。
           </p>

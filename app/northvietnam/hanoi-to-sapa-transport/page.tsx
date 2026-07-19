@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   hanoiToSapaTransportCanonical,
@@ -21,7 +22,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => {
         const isExternal = /^https?:\/\//.test(link.href)
         return (
@@ -47,7 +48,6 @@ const linkGroups = {
   videos: [
     { label: 'IG Reels', href: 'https://www.instagram.com/reel/DSfHYvuEVEW/', event: 'northvietnam_sapa_transport_video_ig', platform: 'IG', primary: true },
     { label: 'YouTube', href: 'https://www.youtube.com/shorts/jvAutp4FnZY', event: 'northvietnam_sapa_transport_video_yt', platform: 'YouTube' },
-    { label: '小紅書', href: 'https://xhslink.com/o/1HgJc0fxIOA', event: 'northvietnam_sapa_transport_video_xhs', platform: '小紅書' },
   ],
   bus: [
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/153323-hanoi-sapa-sleeper-bus-ticket-vietnam?cid=22312', event: 'northvietnam_sapa_bus_kkday', platform: 'KKDAY', primary: true },
@@ -184,13 +184,13 @@ export default async function HanoiToSapaTransportPage({ searchParams }: HanoiTo
           </div>
         </section>
 
-        <section className="seo-content" id="video-guide" aria-label="沙壩交通短影片">
-          <h2 className="seo-h2">先看短影片：沙壩 3 種交通方式</h2>
+        <section className="seo-content" id="video-guide" aria-label="沙壩交通短影音">
+          <h2 className="seo-h2">先看短影音：沙壩 3 種交通方式</h2>
           <div className="seo-prose">
             <p>
-              想先用一分鐘抓方向，可以先看「沙壩 3 種交通方式」短影片，再回來對照這篇的表格和購票連結。
+              想先用一分鐘抓方向，可以先看「沙壩 3 種交通方式」短影音，再回來對照這篇的表格和購票連結。
             </p>
-            <ActionLinks label="沙壩交通短影片" links={linkGroups.videos} />
+            <SeoVideoLinkMenu label="沙壩交通" links={linkGroups.videos} />
           </div>
         </section>
 

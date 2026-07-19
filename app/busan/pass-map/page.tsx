@@ -1,6 +1,7 @@
 'use client'
 
 import MapClient from '@/components/map/MapClient'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { BUSAN_PASS_MAP_CENTER, busanPassMapPlaces } from '@/data/busan/pass-map/places'
 
 const categoryLabels = {
@@ -10,12 +11,28 @@ const categoryLabels = {
   hotel: '\u4f4f\u5bbf',
 }
 
+const passVideoLinks = {
+  overview: [
+    { label: 'IG｜通行證重點', href: 'https://www.instagram.com/reel/DUDiZzQkdUe/', event: 'busanpassmap_video_overview_ig', platform: 'IG' },
+    { label: 'YouTube｜通行證重點', href: 'https://www.youtube.com/shorts/ppTGbWXDM0k', event: 'busanpassmap_video_overview_yt', platform: 'YouTube' },
+  ],
+  route24h: [
+    { label: 'IG｜24小時走法', href: 'https://www.instagram.com/reel/DOJBfeBEdwN/', event: 'busanpassmap_video_24h_ig', platform: 'IG' },
+    { label: 'YouTube｜24小時走法', href: 'https://www.youtube.com/shorts/e2aeNYmKc38', event: 'busanpassmap_video_24h_yt', platform: 'YouTube' },
+  ],
+  route48h: [
+    { label: 'IG｜48小時走法', href: 'https://www.instagram.com/reel/DO0y_wnEUa9/', event: 'busanpassmap_video_48h_ig', platform: 'IG' },
+    { label: 'YouTube｜48小時走法', href: 'https://www.youtube.com/shorts/kuU-6nMmR4Y', event: 'busanpassmap_video_48h_yt', platform: 'YouTube' },
+  ],
+}
+
 export default function BusanPassMapPage() {
   return (
     <MapClient
       places={busanPassMapPlaces}
       mapCenter={BUSAN_PASS_MAP_CENTER}
       gtagPrefix="busanpassmap"
+      collapseLocationLinks
       title="釜山通行證地圖"
       backHref="/busan"
       defaultCategories={{ spot: true, free: true, food: true, hotel: false }}
@@ -52,10 +69,17 @@ export default function BusanPassMapPage() {
           external: true,
         },
         {
-          label: '介紹',
+          label: 'IG',
           href: 'https://www.instagram.com/reel/DUDiZzQkdUe/',
-          event: 'busanpassmap_top_reel',
+          event: 'busanpassmap_top_video_ig',
           platform: 'Instagram',
+          external: true,
+        },
+        {
+          label: 'YouTube',
+          href: 'https://www.youtube.com/shorts/ppTGbWXDM0k',
+          event: 'busanpassmap_top_video_yt',
+          platform: 'YouTube',
           external: true,
         },
         {
@@ -72,20 +96,10 @@ export default function BusanPassMapPage() {
             <h2 className="seo-h2">釜山Pass是什麼？先搞懂票種再看地圖</h2>
             <div className="seo-prose">
               <p>
-                先看我的釜山通行證重點整理：
-                <a
-                  href="https://www.instagram.com/reel/DUDiZzQkdUe/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-event="busanpassmap_ig_reel"
-                  data-platform="Instagram"
-                  data-section="seo_content"
-                >
-                  30秒看懂釜山Pass
-                </a>
-                。下面再用文字版快速補充票種、Big3/Big5規則，以及怎麼搭配上方地圖規劃路線。
+                先看我的釜山通行證重點整理，下面再用文字版快速補充票種、Big3/Big5規則，以及怎麼搭配上方地圖規劃路線。
               </p>
-              <div className="seo-buy-links" aria-label="購買釜山通行證">
+              <SeoVideoLinkMenu label="通行證重點" links={passVideoLinks.overview} />
+              <div className="seo-buy-links seo-action-links" aria-label="購買釜山通行證">
                 <a
                   className="seo-buy-link primary"
                   href="https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312"
@@ -161,36 +175,12 @@ export default function BusanPassMapPage() {
                   <tr>
                     <td>24小時</td>
                     <td>啟用後 24 小時內使用所有指定景點</td>
-                    <td>
-                      想把景點集中在同一天玩的人；
-                      <a
-                        href="https://www.instagram.com/reel/DOJBfeBEdwN/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        data-event="busanpassmap_24h_reel"
-                        data-platform="Instagram"
-                        data-section="seo_content"
-                      >
-                        24小時走法
-                      </a>
-                    </td>
+                    <td>想把景點集中在同一天玩的人</td>
                   </tr>
                   <tr>
                     <td>48小時</td>
                     <td>啟用後 48 小時內使用所有指定景點</td>
-                    <td>
-                      基本上大家都買這個，兩天可玩最多景點；
-                      <a
-                        href="https://www.instagram.com/reel/DO0y_wnEUa9/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        data-event="busanpassmap_48h_reel"
-                        data-platform="Instagram"
-                        data-section="seo_content"
-                      >
-                        48小時走法
-                      </a>
-                    </td>
+                    <td>基本上大家都買這個，兩天可玩最多景點</td>
                   </tr>
                   <tr>
                     <td>Big3</td>
@@ -208,6 +198,8 @@ export default function BusanPassMapPage() {
                   </tr>
                 </tbody>
               </table>
+              <SeoVideoLinkMenu label="24小時走法" links={passVideoLinks.route24h} />
+              <SeoVideoLinkMenu label="48小時走法" links={passVideoLinks.route48h} />
 
               <p>
                 簡單說：<strong>24/48小時</strong>是限時制，適合短時間衝景點；<strong>Big3/Big5</strong>

@@ -24,14 +24,6 @@ export const NORTH_VIETNAM_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCa
       platform: 'YouTube',
       section: 'video',
     },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/2QTHBsdTvo6',
-      className: 'btn',
-      event: 'northvietnamMap_SapaFansipanXHS',
-      platform: '小紅書',
-      section: 'video',
-    },
   ],
   '玻璃天空步道': [
     {
@@ -49,14 +41,6 @@ export const NORTH_VIETNAM_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCa
       className: 'btn',
       event: 'northvietnamMap_SapaRongmayYT',
       platform: 'YouTube',
-      section: 'video',
-    },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/5Ox1Pds78Ed',
-      className: 'btn',
-      event: 'northvietnamMap_SapaRongmayXHS',
-      platform: '小紅書',
       section: 'video',
     },
   ],
@@ -78,14 +62,6 @@ export const NORTH_VIETNAM_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCa
       platform: 'YouTube',
       section: 'video',
     },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/5lBnaI2LyQ',
-      className: 'btn',
-      event: 'northvietnamMap_GrandpioneersXHS',
-      platform: '小紅書',
-      section: 'video',
-    },
   ],
   'Athena Cruise｜2日遊、5星級': [
     {
@@ -105,14 +81,6 @@ export const NORTH_VIETNAM_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCa
       platform: 'YouTube',
       section: 'video',
     },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/6MkZi9DOOAU',
-      className: 'btn',
-      event: 'northvietnamMap_AthenaCruiseXHS',
-      platform: '小紅書',
-      section: 'video',
-    },
   ],
   '華閭古都': [
     {
@@ -130,14 +98,6 @@ export const NORTH_VIETNAM_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCa
       className: 'btn',
       event: 'northvietnamMap_NinhBìnhChooseYT',
       platform: 'YouTube',
-      section: 'video',
-    },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/A5SB4kcJ2QQ',
-      className: 'btn',
-      event: 'northvietnamMap_NinhBìnhChooseXHS',
-      platform: '小紅書',
       section: 'video',
     },
   ],

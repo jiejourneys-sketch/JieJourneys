@@ -19,11 +19,6 @@ export const TOKYO_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCardAction
       href: 'https://www.youtube.com/shorts/Q-zM2k47oVY',
       mapEvent: 'tokyomap_skytree_youtube',
     },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/29145lvSHW4',
-      mapEvent: 'tokyomap_skytree_xhs',
-    },
   ],
   'SHIBUYA SKY': [
     {
@@ -36,11 +31,6 @@ export const TOKYO_MAP_SPOT_EXTRA_ACTIONS: Partial<Record<string, CityCardAction
       label: 'YouTube',
       href: 'https://www.youtube.com/shorts/Y0mGY55bSFs',
       mapEvent: 'tokyomap_shibuya_sky_youtube',
-    },
-    {
-      label: '小紅書',
-      href: 'https://xhslink.com/o/8QZ9KU3S1sa',
-      mapEvent: 'tokyomap_shibuya_sky_xhs',
     },
   ],
 }

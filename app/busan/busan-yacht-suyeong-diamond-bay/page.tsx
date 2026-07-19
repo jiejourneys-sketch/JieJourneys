@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   busanYachtCanonical,
@@ -21,7 +22,7 @@ type ActionLink = {
 
 function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
   return (
-    <div className="seo-buy-links" aria-label={label}>
+    <div className="seo-buy-links seo-action-links" aria-label={label}>
       {links.map((link) => {
         const isExternal = /^https?:\/\//.test(link.href)
         return (
@@ -47,7 +48,6 @@ const linkGroups = {
   videos: [
     { label: 'IG｜遊艇比較', href: 'https://www.instagram.com/reel/DVTW_MLkpj4/', event: 'busanyacht_video_ig', platform: 'IG', primary: true },
     { label: 'YouTube', href: 'https://www.youtube.com/shorts/N56k5869RVw', event: 'busanyacht_video_youtube', platform: 'YouTube' },
-    { label: '小紅書', href: 'https://xhslink.com/o/8B2iEV9P095', event: 'busanyacht_video_xhs', platform: '小紅書' },
   ],
   suyeong: [
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/134684-yacht-holic-busan-yacht-public-tour-gwangan-ri-haeundae-south-korea?cid=22312', event: 'busanyacht_suyeong_kkday', platform: 'KKDAY', primary: true },
@@ -185,13 +185,13 @@ export default async function BusanYachtPage({ searchParams }: BusanYachtPagePro
           </div>
         </section>
 
-        <section className="seo-content" id="video-guide" aria-label="釜山遊艇短影片">
+        <section className="seo-content" id="video-guide" aria-label="釜山遊艇短影音">
           <h2 className="seo-h2">先看 IG：水營灣 VS 鑽石灣重點</h2>
           <div className="seo-prose">
             <p>
-              如果你想先用短影片建立概念，可以先看這支遊艇比較。看完再回來對照路線、船型和 Pass 規則，會比較快決定要買哪一種。
+              如果你想先用短影音建立概念，可以先看這支遊艇比較。看完再回來對照路線、船型和 Pass 規則，會比較快決定要買哪一種。
             </p>
-            <ActionLinks label="釜山遊艇短影片" links={linkGroups.videos} />
+            <SeoVideoLinkMenu label="遊艇比較" links={linkGroups.videos} />
           </div>
         </section>
 

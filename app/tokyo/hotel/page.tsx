@@ -31,12 +31,6 @@ export default function TokyoHotelPage() {
               dataEvent: 'tokyohotel_YTvideo',
               platform: 'YouTube',
             },
-            {
-              label: '小紅書',
-              href: 'https://xhslink.com/o/2qBEY9jZR0G',
-              dataEvent: 'tokyohotel_XHSvideo',
-              platform: '小紅書',
-            },
           ]}
 
           ctaLinks={[
@@ -103,7 +97,7 @@ export default function TokyoHotelPage() {
               data-platform="article"
               data-section="article"
             >
-              <strong> 成田機場到市區文章</strong>
+              <strong> 成田機場到市區完整攻略</strong>
             </a>
             。
           </p>
@@ -115,7 +109,7 @@ export default function TokyoHotelPage() {
               data-platform="article"
               data-section="article"
             >
-              <strong> 羽田機場到市區文章</strong>
+              <strong> 羽田機場到市區完整攻略</strong>
             </a>
             一起看。
           </p>

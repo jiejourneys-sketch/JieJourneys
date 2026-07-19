@@ -104,7 +104,6 @@ export default function RootLayout({
                 'https://instagram.com/jiejourneys',
                 'https://youtube.com/@jiejourneys',
                 'https://threads.net/@jiejourneys',
-                'https://xhslink.com/m/6OAjLumXIO1',
               ],
             }),
           }}
