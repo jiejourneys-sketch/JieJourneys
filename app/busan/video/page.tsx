@@ -166,6 +166,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DOixfbBEaCL/', className: 'btn primary', event: 'busanvideo_5prepareIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/6K3yI0WrO9k', className: 'btn', event: 'busanvideo_5prepareYT', platform: 'YouTube', section: 'video' },
+        { label: '文章', href: '/busan/busan-preparation-guide?from=busan-video', className: 'btn', event: 'busanvideo_5prepareArticle', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -177,6 +178,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DKMrn6dzS4G/', className: 'btn primary', event: 'busanvideo_earrivalIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/L_FmuAzoGzM', className: 'btn', event: 'busanvideo_earrivalYT', platform: 'YouTube', section: 'video' },
+        { label: '文章', href: '/busan/korea-e-arrival-card-guide?from=busan-video', className: 'btn', event: 'busanvideo_earrivalArticle', platform: 'article', section: 'video' },
       ],
     },
     {
@@ -188,6 +190,7 @@ export default function BusanVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DKetNmXTW3E/', className: 'btn primary', event: 'busanvideo_ketaIG', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/AXevOEDDzB0', className: 'btn', event: 'busanvideo_ketaYT', platform: 'YouTube', section: 'video' },
+        { label: '文章', href: '/busan/k-eta-guide?from=busan-video', className: 'btn', event: 'busanvideo_ketaArticle', platform: 'article', section: 'video' },
       ],
     },
     {

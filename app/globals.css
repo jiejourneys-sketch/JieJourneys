@@ -1089,6 +1089,18 @@ a.link-item {
   gap: 16px;
   margin: 16px 0 18px;
 }
+.seo-page .osaka-castle-fare-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+}
+.seo-page .osaka-castle-fare-grid .seo-figure {
+  margin: 0;
+}
+@media (max-width: 820px) {
+  .seo-page .osaka-castle-fare-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 
 .japan-tax-free-page .article-updated {
   margin: 0 0 18px;

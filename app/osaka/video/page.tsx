@@ -38,6 +38,16 @@ const cards: CityCard[] = [
     ],
   },
   {
+    title: '大阪城｜攻略',
+    meta: '大阪攻略',
+    area: '大阪攻略',
+    datasetKey: 'video',
+    datasetValue: 'osaka-castle-guide',
+    actions: [
+      { label: '文章', href: '/osaka/osaka-castle-guide?from=osaka-video', className: 'btn', event: 'osakavideo_osakacastleArticle', platform: 'article', section: 'video' },
+    ],
+  },
+  {
     title: '大阪5個區域｜攻略',
     meta: '大阪攻略',
     area: '大阪攻略',
@@ -46,6 +56,31 @@ const cards: CityCard[] = [
     actions: [
       { label: 'IG Reels', href: 'https://www.instagram.com/reel/DZPs30vhboN/', className: 'btn primary', event: 'osakavideo_5areasIG', platform: 'IG', section: 'video' },
       { label: 'YouTube', href: 'https://www.youtube.com/shorts/0DAV327wmN4', className: 'btn', event: 'osakavideo_5areasYT', platform: 'YouTube', section: 'video' },
+      { label: '文章', href: '/osaka/osaka-5-areas-guide?from=osaka-video', className: 'btn', event: 'osakavideo_5areasArticle', platform: 'article', section: 'video' },
+    ],
+  },
+  {
+    title: '地鐵 vs JR｜攻略',
+    meta: '交通',
+    area: '交通',
+    datasetKey: 'video',
+    datasetValue: 'metro-vs-jr',
+    actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DTVMB2FkTt5/', className: 'btn primary', event: 'osakavideo_metrovsjrIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/xNN5iQLFGcU', className: 'btn', event: 'osakavideo_metrovsjrYT', platform: 'YouTube', section: 'video' },
+      { label: '文章', href: '/tokyo/tokyo-subway-vs-jr-guide?from=osaka-video', className: 'btn', event: 'osakavideo_metrovsjrArticle', platform: 'article', section: 'video' },
+    ],
+  },
+  {
+    title: 'JR vs 新幹線｜攻略',
+    meta: '交通',
+    area: '交通',
+    datasetKey: 'video',
+    datasetValue: 'jr-vs-shinkansen',
+    actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DVBVYRckTUG/', className: 'btn primary', event: 'osakavideo_jrvsxgxIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/j_Ws48TTzbE', className: 'btn', event: 'osakavideo_jrvsxgxYT', platform: 'YouTube', section: 'video' },
+      { label: '文章', href: '/tokyo/jr-vs-shinkansen-guide?from=osaka-video', className: 'btn', event: 'osakavideo_jrvsxgxArticle', platform: 'article', section: 'video' },
     ],
   },
   {
@@ -60,9 +95,9 @@ const cards: CityCard[] = [
       { label: '文章', href: '/osaka/kansai-airport-to-osaka?from=video', className: 'btn', event: 'osakavideo_kix3waysArticle', platform: 'article', section: 'video' },
     ],
   },
-  { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'visit-japan-web', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'osakavideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'osakavideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }] },
+  { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'visit-japan-web', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'osakavideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'osakavideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/japan/visit-japan-web-guide?from=osaka-video', className: 'btn', event: 'osakavideo_visitjapanwebArticle', platform: 'article', section: 'video' }] },
   { title: '日幣換匯攻略', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'jpy-exchange', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTDKcCoEZBS/', className: 'btn primary', event: 'osakavideo_JPYExchangeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/FfMj7w2R7BA', className: 'btn', event: 'osakavideo_JPYExchangeYT', platform: 'YouTube', section: 'video' }] },
-  { title: '日本退稅新制｜2026懶人包', meta: '行前準備', note: '整理 2026/11/1 後日本免稅流程、新舊制度差異、機場退稅與完美行購物注意事項。', area: '行前準備', datasetKey: 'video', datasetValue: 'japan-tax-free-2026-article', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/Da72R_yBXam/', className: 'btn primary', event: 'osakavideo_taxfree2026_ig', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/ULH9oonQ7-I', className: 'btn', event: 'osakavideo_taxfree2026_youtube', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/japan/tax-free-2026?from=osaka-video', className: 'btn primary', event: 'osakavideo_taxfree2026_article', platform: 'article', section: 'video' }] },
+  { title: '日本退稅新制｜2026懶人包', meta: '行前準備', note: '整理 2026/11/1 後日本免稅流程、新舊制度差異、機場退稅與完美行購物注意事項。', area: '行前準備', datasetKey: 'video', datasetValue: 'japan-tax-free-2026-article', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/Da72R_yBXam/', className: 'btn primary', event: 'osakavideo_taxfree2026_ig', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/ULH9oonQ7-I', className: 'btn', event: 'osakavideo_taxfree2026_youtube', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/japan/tax-free-2026?from=osaka-video', className: 'btn', event: 'osakavideo_taxfree2026_article', platform: 'article', section: 'video' }] },
 ]
 
 export default function OsakaVideoPage() {

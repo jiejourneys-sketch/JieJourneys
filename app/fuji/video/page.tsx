@@ -59,6 +59,7 @@ export default function FujiVideoPage() {
       actions: [
         { label: 'IG Reels', href: 'https://www.instagram.com/reel/DYrpvj3yPso/', className: 'btn primary', event: 'fujivideo_kawaguchiko_hotel_ig', platform: 'IG', section: 'video' },
         { label: 'YouTube', href: 'https://www.youtube.com/shorts/oyBnxGBgYDg', className: 'btn', event: 'fujivideo_kawaguchiko_hotel_yt', platform: 'YouTube', section: 'video' },
+        { label: '文章', href: '/fuji/hotel?from=fuji-video', className: 'btn', event: 'fujivideo_kawaguchiko_hotel_article', platform: 'article', section: 'video' },
       ],
     },
     {
