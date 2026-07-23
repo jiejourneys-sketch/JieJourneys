@@ -1,5 +1,9 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import {
+  getApplicableVerifiedHotelAffiliateIdentity,
+  isUsableHotelAffiliateName,
+} from '@/lib/hotelAffiliateIdentity'
 
 const DEFAULT_AGODA_SITE_ID = '1945734'
 const DEFAULT_AGODA_ENDPOINT = 'http://affiliateapi7643.agoda.com/affiliateservice/lt_v1'
@@ -8,6 +12,9 @@ const DEFAULT_CURRENCY = 'TWD'
 const DEFAULT_LANGUAGE = 'zh-tw'
 const DEFAULT_MAX_RESULT = 30
 const REQUEST_TIMEOUT_MS = 10000
+const MAX_HOTEL_NAME_LENGTH = 160
+const MAX_ALTERNATE_HOTEL_NAMES = 8
+const MAX_NUMERIC_IDENTITY_CONFLICT_SCORE = 0.77
 
 export type AgodaAffiliateMatchStatus =
   | 'matched'
@@ -19,6 +26,8 @@ export type AgodaAffiliateMatchStatus =
 
 export type AgodaAffiliateSearchInput = {
   hotelName: string
+  alternateHotelNames?: string[]
+  googlePlaceId?: string
   cityId?: number
   city?: string
   countryCode?: string
@@ -40,7 +49,7 @@ export type AgodaAffiliateHotelCandidate = {
   hotelName: string
   score: number
   bookingUrl: string
-  source?: 'index' | 'api'
+  source?: 'verified' | 'index' | 'api'
   city?: string
   countryCode?: string
   cityId?: number
@@ -75,6 +84,8 @@ export type AgodaAffiliateSearchResponse = {
   endpoint: string
   query: {
     hotelName: string
+    alternateHotelNames: string[]
+    googlePlaceId?: string
     cityId?: number
     city?: string
     countryCode?: string
@@ -94,6 +105,7 @@ export type AgodaAffiliateSearchResponse = {
     maxResult: number
   }
   matchStatus: AgodaAffiliateMatchStatus
+  confidence?: 'verified' | 'high' | 'review' | 'none'
   bestMatch?: AgodaAffiliateHotelCandidate
   candidates: AgodaAffiliateHotelCandidate[]
   rawCount?: number
@@ -121,6 +133,10 @@ type AgodaHotelIndexRecord = {
 type RankedAgodaHotelCandidate = AgodaAffiliateHotelCandidate & {
   nameScore: number
   accommodationType?: string
+}
+
+type AgodaAffiliateApiHotelCandidate = AgodaAffiliateHotelCandidate & {
+  matchingHotelNames: string[]
 }
 
 let hotelIndexCache: { path: string; records: AgodaHotelIndexRecord[] } | null = null
@@ -166,10 +182,13 @@ export function buildAgodaPartnerUrl(
 
 export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInput): Promise<AgodaAffiliateSearchResponse> {
   const config = readAgodaAffiliateConfig()
-  const hotelName = input.hotelName.trim().slice(0, 160)
+  const hotelName = cleanHotelSearchName(input.hotelName)
+  const alternateHotelNames = cleanAgodaAlternateHotelNames(input.alternateHotelNames, hotelName)
   const dates = resolveDateRange(input.checkInDate, input.checkOutDate)
   const query = {
     hotelName,
+    alternateHotelNames,
+    googlePlaceId: cleanHotelSearchName(input.googlePlaceId),
     cityId: input.cityId,
     city: cleanCode(input.city, '', 80),
     countryCode: cleanCode(input.countryCode, '', 2).toUpperCase(),
@@ -189,6 +208,45 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
     maxResult: clampInteger(input.maxResult, DEFAULT_MAX_RESULT, 1, 50),
   }
 
+  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(query.googlePlaceId, {
+    latitude: query.latitude,
+    longitude: query.longitude,
+    countryCode: query.countryCode,
+  })
+  if (verifiedIdentity?.agoda) {
+    const bestMatch: AgodaAffiliateHotelCandidate = {
+      hotelId: verifiedIdentity.agoda.hotelId,
+      hotelName: verifiedIdentity.agoda.hotelName,
+      score: 1,
+      bookingUrl: buildAgodaPartnerUrl(verifiedIdentity.agoda.hotelId, {
+        cid: config.cid,
+        ...(query.datesExplicit ? { checkInDate: query.checkInDate, checkOutDate: query.checkOutDate } : {}),
+        adults: query.adults,
+        children: query.children,
+        rooms: query.rooms,
+        ...(query.currencyExplicit ? { currency: query.currency } : {}),
+        ...(query.languageExplicit ? { language: query.language } : {}),
+      }),
+      source: 'verified',
+      countryCode: verifiedIdentity.countryCode,
+      latitude: verifiedIdentity.latitude,
+      longitude: verifiedIdentity.longitude,
+      distanceKm: 0,
+    }
+    return {
+      configured: config.configured,
+      siteId: config.siteId,
+      cid: config.cid,
+      endpoint: config.endpoint,
+      query,
+      matchStatus: 'matched',
+      confidence: 'verified',
+      bestMatch,
+      candidates: [bestMatch],
+      rawCount: 1,
+    }
+  }
+
   const indexResult = await searchAgodaHotelIndex(config, query)
   if (indexResult.candidates.length > 0 && (indexResult.matchStatus !== 'no_match' || !query.cityId || !config.configured)) {
     return {
@@ -198,6 +256,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
       endpoint: config.endpoint,
       query,
       matchStatus: indexResult.matchStatus,
+      confidence: agodaMatchConfidence(indexResult.matchStatus),
       ...(indexResult.bestMatch ? { bestMatch: indexResult.bestMatch } : {}),
       candidates: indexResult.candidates,
       rawCount: indexResult.totalRecords,
@@ -212,6 +271,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
       endpoint: config.endpoint,
       query,
       matchStatus: 'not_configured',
+      confidence: 'none',
       candidates: [],
       error: 'agoda_env_missing',
     }
@@ -225,6 +285,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
       endpoint: config.endpoint,
       query,
       matchStatus: indexResult.loaded ? 'no_match' : 'needs_city_id',
+      confidence: 'none',
       candidates: indexResult.candidates,
       ...(indexResult.loaded ? {} : { error: 'agoda_city_id_required' }),
     }
@@ -256,6 +317,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
         endpoint: config.endpoint,
         query,
         matchStatus: 'api_error',
+        confidence: 'none',
         candidates: [],
         apiStatus: response.status,
         error: 'agoda_api_error',
@@ -264,10 +326,11 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
 
     const payload = (await response.json().catch(() => null)) as unknown
     const hotels = extractAgodaHotels(payload, config, query)
+    const queryHotelNames = [query.hotelName, ...query.alternateHotelNames]
     const candidates = hotels
-      .map((hotel) => ({
+      .map(({ matchingHotelNames, ...hotel }) => ({
         ...hotel,
-        score: scoreHotelName(query.hotelName, hotel.hotelName),
+        score: scoreAgodaHotelNameAliases(queryHotelNames, matchingHotelNames),
       }))
       .sort((a, b) => b.score - a.score)
       .slice(0, 8)
@@ -281,6 +344,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
       endpoint: config.endpoint,
       query,
       matchStatus,
+      confidence: agodaMatchConfidence(matchStatus),
       ...(bestMatch && bestMatch.score >= 0.78 ? { bestMatch } : {}),
       candidates,
       rawCount: hotels.length,
@@ -293,6 +357,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
       endpoint: config.endpoint,
       query,
       matchStatus: 'api_error',
+      confidence: 'none',
       candidates: [],
       error: error instanceof Error && error.name === 'AbortError' ? 'agoda_api_timeout' : 'agoda_api_network_error',
     }
@@ -372,13 +437,25 @@ function extractAgodaHotels(
   payload: unknown,
   config: AgodaAffiliateConfig,
   query: AgodaAffiliateSearchResponse['query'],
-): AgodaAffiliateHotelCandidate[] {
-  const hotels: AgodaAffiliateHotelCandidate[] = []
+): AgodaAffiliateApiHotelCandidate[] {
+  const hotels: AgodaAffiliateApiHotelCandidate[] = []
 
   for (const record of getAgodaResultRecords(payload)) {
     const hotelId = readHotelId(record)
     const hotelName = readString(record.hotelName ?? record.name ?? record.hotel_name)
     if (!hotelId || !hotelName) continue
+    const translatedName = readString(
+      record.translatedName ??
+      record.translatedHotelName ??
+      record.translated_name ??
+      record.translated_hotel_name,
+    )
+    const formerName = readString(
+      record.formerName ??
+      record.formerHotelName ??
+      record.former_name ??
+      record.former_hotel_name,
+    )
 
     const bookingUrl = normalizeAgodaLandingUrl(readString(record.landingURL ?? record.landingUrl), hotelId, config, query)
     const imageUrl = readString(record.imageURL ?? record.imageUrl)
@@ -393,6 +470,10 @@ function extractAgodaHotels(
       score: 0,
       bookingUrl,
       source: 'api',
+      matchingHotelNames: [
+        hotelName,
+        ...cleanAgodaAlternateHotelNames([translatedName, formerName], hotelName),
+      ],
       ...(imageUrl ? { imageUrl } : {}),
       ...(currency ? { currency } : {}),
       ...(dailyRate ? { dailyRate } : {}),
@@ -437,7 +518,13 @@ function normalizeAgodaLandingUrl(
 
   try {
     const url = new URL(landingUrl)
-    if (!url.hostname.toLowerCase().includes('agoda.com')) return fallback
+    const hostname = url.hostname.toLowerCase().replace(/\.$/, '')
+    if (
+      (url.protocol !== 'https:' && url.protocol !== 'http:') ||
+      (hostname !== 'agoda.com' && !hostname.endsWith('.agoda.com'))
+    ) {
+      return fallback
+    }
     url.searchParams.set('pcs', '1')
     url.searchParams.set('cid', config.cid)
     if (!url.searchParams.get('hid')) url.searchParams.set('hid', hotelId)
@@ -474,15 +561,15 @@ async function searchAgodaHotelIndex(
 
   const hasCoordinates = typeof query.latitude === 'number' && typeof query.longitude === 'number'
   const candidates: RankedAgodaHotelCandidate[] = []
+  const queryHotelNames = [query.hotelName, ...query.alternateHotelNames]
 
   index.records.forEach((hotel) => {
     if (query.countryCode && hotel.countryCode && hotel.countryCode.toUpperCase() !== query.countryCode) return
     if (query.cityId && hotel.cityId && hotel.cityId !== query.cityId) return
 
-    const nameScore = Math.max(
-      scoreHotelName(query.hotelName, hotel.hotelName),
-      hotel.translatedName ? scoreHotelName(query.hotelName, hotel.translatedName) : 0,
-      hotel.formerName ? scoreHotelName(query.hotelName, hotel.formerName) : 0,
+    const nameScore = scoreAgodaHotelNameAliases(
+      queryHotelNames,
+      [hotel.hotelName, hotel.translatedName, hotel.formerName],
     )
 
     const distanceKm =
@@ -583,16 +670,88 @@ function getMatchStatus(score: number): AgodaAffiliateMatchStatus {
   return 'no_match'
 }
 
-function scoreHotelName(query: string, candidate: string) {
-  const queryVariants = normalizeHotelNameVariants(query)
-  const candidateVariants = normalizeHotelNameVariants(candidate)
+function agodaMatchConfidence(status: AgodaAffiliateMatchStatus): 'high' | 'review' | 'none' {
+  if (status === 'matched') return 'high'
+  if (status === 'needs_review') return 'review'
+  return 'none'
+}
+
+export function cleanAgodaAlternateHotelNames(value: unknown, primaryHotelName = '') {
+  if (!Array.isArray(value)) return []
+  const primaryKey = hotelNameDedupeKey(primaryHotelName)
+  const seen = new Set(primaryKey ? [primaryKey] : [])
+  const names: string[] = []
+
+  for (const item of value) {
+    const name = cleanHotelSearchName(item)
+    const key = hotelNameDedupeKey(name)
+    if (!name || !key || seen.has(key)) continue
+    seen.add(key)
+    names.push(name)
+    if (names.length >= MAX_ALTERNATE_HOTEL_NAMES) break
+  }
+
+  return names
+}
+
+export function scoreAgodaHotelNameAliases(
+  queryAliases: readonly unknown[],
+  candidateAliases: readonly unknown[],
+) {
+  const queryVariants = normalizeHotelNameAliasVariants(queryAliases)
+  const candidateVariants = normalizeHotelNameAliasVariants(candidateAliases)
+  const queryNumberTokens = standaloneHotelNameNumberTokens(queryAliases)
+  const candidateNumberTokens = standaloneHotelNameNumberTokens(candidateAliases)
+  const numericIdentityMatches = sameHotelNameTokenSet(queryNumberTokens, candidateNumberTokens)
   let bestScore = 0
   queryVariants.forEach((normalizedQuery) => {
     candidateVariants.forEach((normalizedCandidate) => {
       bestScore = Math.max(bestScore, scoreNormalizedHotelName(normalizedQuery, normalizedCandidate))
     })
   })
+  if (!numericIdentityMatches) {
+    bestScore = Math.min(bestScore, MAX_NUMERIC_IDENTITY_CONFLICT_SCORE)
+  }
   return Number(bestScore.toFixed(4))
+}
+
+function standaloneHotelNameNumberTokens(values: readonly unknown[]) {
+  for (const value of values) {
+    const clean = cleanHotelSearchName(value)
+    if (!isUsableHotelAffiliateName(clean)) continue
+    const numbers = new Set<string>()
+    normalizeHotelNameVariants(clean).forEach((variant) => {
+      for (const match of variant.matchAll(/\d{1,6}/g)) {
+        if (match[0]) numbers.add(match[0])
+      }
+    })
+    if (numbers.size > 0) return [...numbers]
+  }
+  return []
+}
+
+function sameHotelNameTokenSet(left: string[], right: string[]) {
+  const leftSet = new Set(left)
+  const rightSet = new Set(right)
+  return leftSet.size === rightSet.size && [...leftSet].every((token) => rightSet.has(token))
+}
+
+function normalizeHotelNameAliasVariants(values: readonly unknown[]) {
+  const variants = new Set<string>()
+  values.forEach((value) => {
+    const clean = cleanHotelSearchName(value)
+    if (!clean) return
+    normalizeHotelNameVariants(clean).forEach((variant) => variants.add(variant))
+  })
+  return Array.from(variants)
+}
+
+function cleanHotelSearchName(value: unknown) {
+  return typeof value === 'string' ? value.trim().slice(0, MAX_HOTEL_NAME_LENGTH) : ''
+}
+
+function hotelNameDedupeKey(value: string) {
+  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
 function scoreNormalizedHotelName(normalizedQuery: string, normalizedCandidate: string) {
@@ -613,10 +772,22 @@ function scoreNormalizedHotelName(normalizedQuery: string, normalizedCandidate: 
 }
 
 function normalizeHotelNameVariants(value: string) {
+  const normalized = normalizeHotelName(value)
+  const expanded = normalizeHotelName(expandHotelNameAliases(value))
   return Array.from(new Set([
-    normalizeHotelName(value),
-    normalizeHotelName(expandHotelNameAliases(value)),
+    normalized,
+    splitHotelNameNumericBoundaries(normalized),
+    expanded,
+    splitHotelNameNumericBoundaries(expanded),
   ].filter(Boolean)))
+}
+
+function splitHotelNameNumericBoundaries(value: string) {
+  return value
+    .replace(/(\p{L})(\d)/gu, '$1 $2')
+    .replace(/(\d)(\p{L})/gu, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function expandHotelNameAliases(value: string) {

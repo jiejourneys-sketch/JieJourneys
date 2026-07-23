@@ -40,6 +40,12 @@ type GooglePlaceDetailsNewPayload = {
   }
 }
 
+type GooglePlaceDetailsNewFailure = {
+  error: string
+  httpStatus?: number
+  googleStatus?: string
+}
+
 export async function GET(request: NextRequest) {
   const placeId = cleanPlaceId(request.nextUrl.searchParams.get('placeId'))
   if (!placeId) return NextResponse.json({ error: 'invalid_place_id' }, { status: 400 })
@@ -50,7 +56,7 @@ export async function GET(request: NextRequest) {
   const language = cleanLanguage(request.nextUrl.searchParams.get('language')) || 'en'
   const mode = cleanDetailsMode(request.nextUrl.searchParams.get('mode'))
   const newApiResult = await fetchGooglePlaceDetailsNew(placeId, apiKey, language, mode)
-  if (newApiResult) return NextResponse.json(newApiResult)
+  if (newApiResult.details) return NextResponse.json(newApiResult.details)
 
   const url = new URL('https://maps.googleapis.com/maps/api/place/details/json')
   url.searchParams.set('place_id', placeId)
@@ -73,7 +79,14 @@ export async function GET(request: NextRequest) {
   }).catch(() => null)
 
   if (!response?.ok) {
-    return NextResponse.json({ configured: true, error: 'google_places_request_failed' }, { status: 502 })
+    return NextResponse.json(
+      {
+        configured: true,
+        error: 'google_places_request_failed',
+        placesApiNew: newApiResult.failure,
+      },
+      { status: 502 },
+    )
   }
 
   const payload = (await response.json().catch(() => null)) as GooglePlaceDetailsPayload | null
@@ -84,6 +97,7 @@ export async function GET(request: NextRequest) {
         configured: true,
         error: status === 'ZERO_RESULTS' ? 'not_found' : 'google_places_error',
         googleStatus: status,
+        placesApiNew: newApiResult.failure,
         ...(payload?.error_message ? { message: payload.error_message.slice(0, 160) } : {}),
       },
       { status: status === 'ZERO_RESULTS' ? 404 : 502 },
@@ -127,10 +141,24 @@ async function fetchGooglePlaceDetailsNew(placeId: string, apiKey: string, langu
     },
   }).catch(() => null)
 
-  if (!response?.ok) return null
+  if (!response) {
+    return {
+      failure: {
+        error: 'google_places_new_request_failed',
+      } satisfies GooglePlaceDetailsNewFailure,
+    }
+  }
 
   const payload = (await response.json().catch(() => null)) as GooglePlaceDetailsNewPayload | null
-  if (!payload || payload.error) return null
+  if (!response.ok || !payload || payload.error) {
+    return {
+      failure: {
+        error: 'google_places_new_error',
+        httpStatus: response.status,
+        ...(payload?.error?.status ? { googleStatus: payload.error.status.slice(0, 80) } : {}),
+      } satisfies GooglePlaceDetailsNewFailure,
+    }
+  }
 
   const lat = readCoordinate(payload.location?.latitude, -90, 90)
   const lng = readCoordinate(payload.location?.longitude, -180, 180)
@@ -139,14 +167,16 @@ async function fetchGooglePlaceDetailsNew(placeId: string, apiKey: string, langu
     : []
 
   return {
-    configured: true,
-    placeId: payload.id || placeId,
-    ...(payload.displayName?.text?.trim() ? { name: payload.displayName.text.trim().slice(0, 160) } : {}),
-    ...(payload.formattedAddress?.trim() ? { formattedAddress: payload.formattedAddress.trim().slice(0, 240) } : {}),
-    ...(lat != null && lng != null ? { lat, lng } : {}),
-    ...(types.length > 0 ? { types } : {}),
-    ...(payload.googleMapsUri?.trim() ? { googleMapsUrl: payload.googleMapsUri.trim().slice(0, 500) } : {}),
-    ...(payload.websiteUri?.trim() ? { website: payload.websiteUri.trim().slice(0, 500) } : {}),
+    details: {
+      configured: true,
+      placeId: payload.id || placeId,
+      ...(payload.displayName?.text?.trim() ? { name: payload.displayName.text.trim().slice(0, 160) } : {}),
+      ...(payload.formattedAddress?.trim() ? { formattedAddress: payload.formattedAddress.trim().slice(0, 240) } : {}),
+      ...(lat != null && lng != null ? { lat, lng } : {}),
+      ...(types.length > 0 ? { types } : {}),
+      ...(payload.googleMapsUri?.trim() ? { googleMapsUrl: payload.googleMapsUri.trim().slice(0, 500) } : {}),
+      ...(payload.websiteUri?.trim() ? { website: payload.websiteUri.trim().slice(0, 500) } : {}),
+    },
   }
 }
 
@@ -154,7 +184,6 @@ function readGooglePlacesApiKey() {
   return (
     process.env.GOOGLE_PLACES_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
-    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
     ''
   ).trim()
 }

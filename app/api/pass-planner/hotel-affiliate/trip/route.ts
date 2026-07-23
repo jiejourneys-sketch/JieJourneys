@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTripAffiliatePublicConfig, searchTripAffiliateHotels } from '@/lib/tripAffiliate'
-import { searchAgodaAffiliateHotels } from '@/lib/agodaAffiliate'
-import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
+import {
+  buildHotelAffiliateSearchNames,
+  getApplicableVerifiedHotelAffiliateIdentity,
+} from '@/lib/hotelAffiliateIdentity'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,35 +15,31 @@ export async function POST(req: NextRequest) {
   const input = (await req.json().catch(() => null)) as Record<string, unknown> | null
   if (!input) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
-  const hotelName = cleanString(input.hotelName ?? input.googlePlaceName ?? input.name, 160)
-  if (!hotelName) return NextResponse.json({ error: 'missing_hotel_name' }, { status: 400 })
+  const googlePlaceId = cleanString(input.googlePlaceId ?? input.placeId, 180)
   const city = cleanString(input.city, 80)
   const countryCode = cleanString(input.countryCode, 2)
   const latitude = cleanNumber(input.latitude ?? input.lat, -90, 90)
   const longitude = cleanNumber(input.longitude ?? input.lng, -180, 180)
-  const alternateHotelNames = cleanStringArray(input.alternateHotelNames ?? input.alternateNames, 4, 160)
-  const googlePlaceTypes = cleanHotelAffiliateGooglePlaceTypes(input.googlePlaceTypes ?? input.placeTypes, 12)
-  const placeTypeSignal = hotelAffiliateGooglePlaceTypeSignal(googlePlaceTypes)
-  const explicitLodgingHint = cleanBoolean(input.lodgingHint ?? input.isLodging ?? input.hotelAffiliateEligible)
-  const lodgingHint = placeTypeSignal === 'lodging' || (explicitLodgingHint && placeTypeSignal !== 'non_lodging')
-  const agodaMatch = await searchAgodaAffiliateHotels({
-    hotelName,
-    cityId: cleanInteger(input.cityId, 1, 9999999),
-    city,
-    countryCode,
+  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(googlePlaceId, {
     latitude,
     longitude,
-    lodgingHint,
-    language: 'zh-tw',
-  }).catch(() => null)
-  const agodaHotelName =
-    agodaMatch?.matchStatus === 'matched' && typeof agodaMatch.bestMatch?.hotelName === 'string'
-      ? agodaMatch.bestMatch.hotelName
-      : ''
+    countryCode,
+  })
+  const providedHotelNames = buildHotelAffiliateSearchNames({
+    verifiedNames: verifiedIdentity?.canonicalNames,
+    googlePlaceName: input.hotelName ?? input.googlePlaceName,
+    userName: input.name,
+    alternateNames: input.alternateHotelNames ?? input.alternateNames,
+    maxNames: 3,
+  })
+  const hotelName = providedHotelNames[0]
+  if (!hotelName) return NextResponse.json({ error: 'missing_hotel_name' }, { status: 400 })
+  const alternateHotelNames = cleanStringArray(providedHotelNames.slice(1), 4, 160)
 
   const result = await searchTripAffiliateHotels({
     hotelName,
-    alternateHotelNames: [agodaHotelName, ...alternateHotelNames],
+    alternateHotelNames,
+    googlePlaceId,
     city,
     countryCode,
     latitude,
@@ -70,12 +68,6 @@ function cleanStringArray(value: unknown, maxItems: number, maxLength: number) {
     .map((item) => (typeof item === 'string' ? item.trim().slice(0, maxLength) : ''))
     .filter(Boolean)
     .slice(0, maxItems)
-}
-
-function cleanBoolean(value: unknown) {
-  if (value === true) return true
-  if (typeof value === 'string') return value.trim().toLowerCase() === 'true'
-  return false
 }
 
 function cleanInteger(value: unknown, min: number, max: number) {

@@ -13,6 +13,8 @@ next-env.d.ts
 tmp_next_dev.log
 tmp_next_dev.err.log
 monitor-data/
+test-results/
+playwright-report/
 # local affiliate feeds and generated hotel indexes
 *.zip
 data/agoda/

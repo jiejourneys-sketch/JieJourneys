@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:hotel-affiliate": "playwright test hotelAffiliateIdentity.spec.ts hotelAffiliateRoutes.spec.ts agodaAffiliate.spec.ts tripAffiliate.spec.ts",
     "agoda:index": "node scripts/build-agoda-hotel-index.mjs",
     "agoda:planner-index": "node scripts/build-agoda-planner-index.mjs",
     "rwd:scan": "node scripts/rwd-scan.mjs",
