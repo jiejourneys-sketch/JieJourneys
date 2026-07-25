@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   cleanAgodaAlternateHotelNames,
+  findAgodaHotelIndexIdentity,
   searchAgodaAffiliateHotels,
   scoreAgodaHotelNameAliases,
 } from '../lib/agodaAffiliate'
@@ -47,6 +48,35 @@ test('keeps the dense-area coordinate guard while allowing a canonical alias to 
   expect(coordinateOnlyResult.matchStatus).toBe('no_match')
   expect(canonicalAliasResult.matchStatus).toBe('matched')
   expect(canonicalAliasResult.bestMatch?.hotelId).toBe('2232362')
+})
+
+test('finds the Okinawa Kenchomae Agoda identity from the local index without network access', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (() => {
+    throw new Error('findAgodaHotelIndexIdentity must not use the network')
+  }) as typeof fetch
+
+  try {
+    const identity = await findAgodaHotelIndexIdentity({
+      hotelName: '沖繩縣廳前大和ROYNET飯店',
+      countryCode: 'JP',
+      latitude: 26.2132974,
+      longitude: 127.6766983,
+      lodgingHint: true,
+    })
+
+    expect(identity).toEqual({
+      hotelId: '247692',
+      canonicalNames: ['Daiwa Roynet Hotel Okinawa Kenchomae'],
+      city: 'Okinawa Main island',
+      countryCode: 'JP',
+      cityId: 717899,
+      latitude: 26.213292,
+      longitude: 127.676727,
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
 
 test('requires numeric hotel branch identities to agree', async () => {

@@ -16,7 +16,14 @@ const correctHotelName =
 test('accepts only real Trip hostnames for generated affiliate links', () => {
   expect(buildTripAffiliateUrl('https://nottrip.com/hotels/tokyo-hotel-detail-123/example/')).toBe('')
   expect(buildTripAffiliateUrl('ftp://tw.trip.com/hotels/tokyo-hotel-detail-123/example/')).toBe('')
-  expect(buildTripAffiliateUrl('https://tw.trip.com/hotels/tokyo-hotel-detail-123/example/')).toContain('tw.trip.com')
+  const affiliateUrl = new URL(
+    buildTripAffiliateUrl('https://www.trip.com/hotels/tokyo-hotel-detail-123/example/?tid=another-partner'),
+  )
+  expect(affiliateUrl.hostname).toBe('tw.trip.com')
+  expect(affiliateUrl.pathname).toBe('/hotels/detail/')
+  expect(affiliateUrl.searchParams.get('hotelId')).toBe('123')
+  expect(affiliateUrl.searchParams.get('Allianceid')).toBeTruthy()
+  expect(affiliateUrl.searchParams.has('tid')).toBe(false)
 })
 
 test('does not turn postal, city, snippet, URL, or rank context into Trip identity evidence', () => {
@@ -357,6 +364,68 @@ test('keeps every curated site-index Trip hotel self-matchable', async () => {
   expect(checked).toBeGreaterThan(50)
 })
 
+test('recovers the Trip hotel from the Maps name with one no-city SerpAPI query', async () => {
+  const previousProvider = process.env.TRIP_SEARCH_PROVIDER
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousFetch = globalThis.fetch
+  const requestedUrls: string[] = []
+
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'okinawa-trip-regression'
+  globalThis.fetch = (async (input) => {
+    requestedUrls.push(String(input))
+    return {
+      ok: true,
+      json: async () => ({
+        search_metadata: { status: 'Success' },
+        organic_results: [
+          {
+            position: 1,
+            title:
+              'Daiwa Roynet Hotel Okinawa-Kenchomae (Naha) - 2026 Prices, Reviews & Deals | Trip.com',
+            link:
+              'https://www.trip.com/hotels/naha-hotel-detail-703607/daiwa-roynet-hotel-okinawa-kenchomae/?tid=another-partner',
+            snippet: 'Book this Naha hotel near Kokusai Dori.',
+          },
+        ],
+      }),
+    } as Response
+  }) as typeof fetch
+
+  try {
+    const result = await searchTripAffiliateHotels({
+      hotelName: '沖繩縣廳前大和ROYNET飯店',
+      city: 'Okinawa Main island',
+      countryCode: 'JP',
+      latitude: 26.2132974,
+      longitude: 127.6766983,
+      lodgingHint: true,
+    })
+
+    expect(requestedUrls).toHaveLength(1)
+    const searchQuery = new URL(requestedUrls[0]).searchParams.get('q') ?? ''
+    expect(searchQuery).toContain('沖繩縣廳前大和ROYNET飯店')
+    expect(searchQuery).not.toContain('Okinawa Main island')
+    expect(result.matchStatus).toBe('matched')
+    expect(result.bestMatch?.hotelId).toBe('703607')
+    expect(result.bestMatch?.source).toBe('serpapi')
+
+    const bookingUrl = new URL(result.bestMatch?.bookingUrl ?? '')
+    expect(bookingUrl.hostname).toBe('tw.trip.com')
+    expect(bookingUrl.pathname).toBe('/hotels/detail/')
+    expect(bookingUrl.searchParams.get('hotelId')).toBe('703607')
+    expect(bookingUrl.searchParams.get('Allianceid')).toBeTruthy()
+    expect(bookingUrl.searchParams.get('SID')).toBeTruthy()
+    expect(bookingUrl.searchParams.has('tid')).toBe(false)
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})
+
 test('bounds the external Trip search cache', async () => {
   const previousProvider = process.env.TRIP_SEARCH_PROVIDER
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
@@ -384,6 +453,39 @@ test('bounds the external Trip search cache', async () => {
     })
 
     expect(fetchCount).toBe(TRIP_SEARCH_CACHE_MAX_ENTRIES + 2)
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})
+
+test('lets a manual Trip retry bypass an empty server search cache', async () => {
+  const previousProvider = process.env.TRIP_SEARCH_PROVIDER
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousFetch = globalThis.fetch
+  let fetchCount = 0
+
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'manual-refresh-cache-test'
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    return {
+      ok: true,
+      json: async () => ({
+        search_metadata: { status: 'Success' },
+        organic_results: [],
+      }),
+    } as Response
+  }) as typeof fetch
+
+  try {
+    const query = { hotelName: 'Manual Refresh Cache Probe Lodge' }
+    await searchTripAffiliateHotels(query)
+    await searchTripAffiliateHotels({ ...query, forceRefresh: true })
+    expect(fetchCount).toBe(2)
   } finally {
     globalThis.fetch = previousFetch
     if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider

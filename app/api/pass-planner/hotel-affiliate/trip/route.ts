@@ -4,6 +4,7 @@ import {
   buildHotelAffiliateSearchNames,
   getApplicableVerifiedHotelAffiliateIdentity,
 } from '@/lib/hotelAffiliateIdentity'
+import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,10 @@ export async function POST(req: NextRequest) {
   const hotelName = providedHotelNames[0]
   if (!hotelName) return NextResponse.json({ error: 'missing_hotel_name' }, { status: 400 })
   const alternateHotelNames = cleanStringArray(providedHotelNames.slice(1), 4, 160)
+  const googlePlaceTypes = cleanHotelAffiliateGooglePlaceTypes(input.googlePlaceTypes ?? input.placeTypes, 12)
+  const placeTypeSignal = hotelAffiliateGooglePlaceTypeSignal(googlePlaceTypes)
+  const explicitLodgingHint = cleanBoolean(input.lodgingHint ?? input.isLodging ?? input.hotelAffiliateEligible)
+  const lodgingHint = placeTypeSignal === 'lodging' || (explicitLodgingHint && placeTypeSignal !== 'non_lodging')
 
   const result = await searchTripAffiliateHotels({
     hotelName,
@@ -44,6 +49,8 @@ export async function POST(req: NextRequest) {
     countryCode,
     latitude,
     longitude,
+    lodgingHint,
+    forceRefresh: cleanBoolean(input.forceRefresh ?? input.refresh),
     maxResult: cleanInteger(input.maxResult, 1, 10),
     tripSub1: cleanString(input.tripSub1, 120),
     tripSub3: cleanString(input.tripSub3, 80),
@@ -80,4 +87,10 @@ function cleanNumber(value: unknown, min: number, max: number) {
   const number = typeof value === 'number' ? value : typeof value === 'string' && value.trim() ? Number(value) : Number.NaN
   if (!Number.isFinite(number) || number < min || number > max) return undefined
   return number
+}
+
+function cleanBoolean(value: unknown) {
+  if (value === true) return true
+  if (typeof value === 'string') return value.trim().toLowerCase() === 'true'
+  return false
 }

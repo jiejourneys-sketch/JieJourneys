@@ -41,5 +41,5 @@ test('verified routes recover from a polluted Google name without fuzzy matching
   expect(trip.matchStatus).toBe('matched')
   expect(trip.confidence).toBe('verified')
   expect(trip.bestMatch?.hotelId).toBe('10748373')
-  expect(trip.bestMatch?.bookingUrl).toContain('hotel-detail-10748373')
+  expect(trip.bestMatch?.bookingUrl).toContain('hotelId=10748373')
 })

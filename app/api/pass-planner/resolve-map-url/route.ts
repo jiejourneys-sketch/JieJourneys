@@ -1,28 +1,114 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-function isAllowedGoogleMapsUrl(value: string) {
+const MAX_MAP_REDIRECTS = 4
+const MAP_REQUEST_TIMEOUT_MS = 10_000
+const GOOGLE_MAPS_HOSTS = new Set([
+  'google.com',
+  'www.google.com',
+  'maps.google.com',
+  'google.com.tw',
+  'www.google.com.tw',
+  'maps.google.com.tw',
+  'google.co.jp',
+  'www.google.co.jp',
+  'maps.google.co.jp',
+  'google.co.kr',
+  'www.google.co.kr',
+  'maps.google.co.kr',
+  'google.com.vn',
+  'www.google.com.vn',
+  'maps.google.com.vn',
+  'google.com.hk',
+  'www.google.com.hk',
+  'maps.google.com.hk',
+  'google.com.sg',
+  'www.google.com.sg',
+  'maps.google.com.sg',
+  'google.co.th',
+  'www.google.co.th',
+  'maps.google.co.th',
+])
+const NAVER_MAPS_HOSTS = new Set(['naver.me', 'map.naver.com'])
+const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308])
+
+type MapUrlProvider = 'google' | 'naver'
+
+function parseSafeHttpsUrl(value: string) {
   try {
     const url = new URL(value)
-    return (
-      url.protocol === 'https:' &&
-      (url.hostname === 'maps.app.goo.gl' ||
-        url.hostname === 'goo.gl' ||
-        url.hostname.startsWith('maps.google.') ||
-        ((url.hostname === 'google.com' || url.hostname.startsWith('google.') || url.hostname.startsWith('www.google.')) &&
-          url.pathname.startsWith('/maps')))
-    )
+    if (
+      url.protocol !== 'https:' ||
+      url.username ||
+      url.password ||
+      (url.port && url.port !== '443')
+    ) {
+      return null
+    }
+    return url
   } catch {
-    return false
+    return null
   }
 }
 
+function isAllowedGoogleMapsUrl(value: string) {
+  const url = parseSafeHttpsUrl(value)
+  if (!url) return false
+  const hostname = url.hostname.toLowerCase().replace(/\.$/, '')
+  if (hostname === 'maps.app.goo.gl') return true
+  if (hostname === 'goo.gl') return url.pathname === '/maps' || url.pathname.startsWith('/maps/')
+  if (!GOOGLE_MAPS_HOSTS.has(hostname)) return false
+  return hostname.startsWith('maps.') || url.pathname === '/maps' || url.pathname.startsWith('/maps/')
+}
+
 function isAllowedNaverMapsUrl(value: string) {
-  try {
-    const url = new URL(value)
-    return url.protocol === 'https:' && (url.hostname === 'naver.me' || url.hostname === 'map.naver.com')
-  } catch {
-    return false
+  const url = parseSafeHttpsUrl(value)
+  if (!url) return false
+  return NAVER_MAPS_HOSTS.has(url.hostname.toLowerCase().replace(/\.$/, ''))
+}
+
+function isAllowedMapUrl(value: string, provider: MapUrlProvider) {
+  return provider === 'google' ? isAllowedGoogleMapsUrl(value) : isAllowedNaverMapsUrl(value)
+}
+
+async function fetchMapUrlWithValidatedRedirects(
+  rawUrl: string,
+  provider: MapUrlProvider,
+  signal: AbortSignal,
+) {
+  let currentUrl = rawUrl
+
+  for (let redirectCount = 0; redirectCount <= MAX_MAP_REDIRECTS; redirectCount += 1) {
+    const response = await fetch(currentUrl, {
+      method: 'GET',
+      redirect: 'manual',
+      cache: 'no-store',
+      signal,
+      headers: {
+        'user-agent': 'Mozilla/5.0 JieJourneys planner link resolver',
+      },
+    })
+
+    if (!REDIRECT_STATUS_CODES.has(response.status)) {
+      if (!response.ok) throw new Error('map_request_failed')
+      return { response, resolvedUrl: currentUrl }
+    }
+
+    const location = response.headers.get('location')
+    if (!location || redirectCount >= MAX_MAP_REDIRECTS) {
+      throw new Error('map_redirect_failed')
+    }
+
+    let nextUrl = ''
+    try {
+      nextUrl = new URL(location, currentUrl).toString()
+    } catch {
+      throw new Error('map_redirect_invalid')
+    }
+    if (!isAllowedMapUrl(nextUrl, provider)) throw new Error('map_redirect_not_allowed')
+    currentUrl = nextUrl
   }
+
+  throw new Error('map_redirect_failed')
 }
 
 function decodeHtml(value: string) {
@@ -253,19 +339,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_url' }, { status: 400 })
   }
 
-  try {
-    const response = await fetch(rawUrl, {
-      method: 'GET',
-      redirect: 'follow',
-      cache: 'no-store',
-      headers: {
-        'user-agent': 'Mozilla/5.0 JieJourneys planner link resolver',
-      },
-    })
+  const provider: MapUrlProvider = isGoogleUrl ? 'google' : 'naver'
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), MAP_REQUEST_TIMEOUT_MS)
 
+  try {
+    const { response, resolvedUrl } = await fetchMapUrlWithValidatedRedirects(
+      rawUrl,
+      provider,
+      controller.signal,
+    )
     const html = await response.text()
 
-    const resolvedUrl = response.url || rawUrl
     if (isNaverUrl) {
       const naverPlaceId = extractNaverPlaceId(resolvedUrl) ?? extractNaverPlaceId(html)
       return NextResponse.json({
@@ -289,5 +374,7 @@ export async function GET(request: NextRequest) {
     })
   } catch {
     return NextResponse.json({ error: 'resolve_failed' }, { status: 502 })
+  } finally {
+    clearTimeout(timeout)
   }
 }

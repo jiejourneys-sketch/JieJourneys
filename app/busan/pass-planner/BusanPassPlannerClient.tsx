@@ -233,15 +233,18 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v3:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v11'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v12'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v4:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 const GOOGLE_PLACE_DETAILS_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_HIT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
-const HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
-const HOTEL_AFFILIATE_REVIEW_COOLDOWN_MS = 60 * 60 * 1000
-const HOTEL_AFFILIATE_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
+const AGODA_AFFILIATE_NO_MATCH_COOLDOWN_MS = 24 * 60 * 60 * 1000
+const AGODA_AFFILIATE_REVIEW_COOLDOWN_MS = 60 * 60 * 1000
+const TRIP_AFFILIATE_NO_MATCH_COOLDOWN_MS = 30 * 60 * 1000
+const TRIP_AFFILIATE_REVIEW_COOLDOWN_MS = 15 * 60 * 1000
+const HOTEL_AFFILIATE_TRANSIENT_ERROR_COOLDOWN_MS = 5 * 60 * 1000
+const HOTEL_AFFILIATE_NOT_CONFIGURED_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const NEARBY_KNOWN_PLACE_RADIUS_METERS = 25_000
 const DAY_ITEM_PREFIX = 'day:'
 const VISIT_ITEM_PREFIX = 'visit:'
@@ -971,6 +974,14 @@ function rememberHotelAffiliateLookupMiss(
     window.localStorage.setItem(cacheKey, JSON.stringify({ retryAfter: Date.now() + ttlMs, status }))
   } catch {
     // Lookup caching is best-effort only.
+  }
+}
+
+function clearHotelAffiliateLookupCache(cacheKey: string) {
+  try {
+    window.localStorage.removeItem(cacheKey)
+  } catch {
+    // A manual retry should still proceed when storage is unavailable.
   }
 }
 
@@ -7369,19 +7380,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       .then((data) => {
         if (!isCurrentRequest()) return
         if (data.matchStatus === 'not_configured') {
-          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_ERROR_COOLDOWN_MS, 'not_configured')
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NOT_CONFIGURED_COOLDOWN_MS, 'not_configured')
           setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'not_configured' }))
           return
         }
         if (data.matchStatus === 'needs_city_id') {
-          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS, 'needs_city_id')
+          rememberHotelAffiliateLookupMiss(cacheKey, AGODA_AFFILIATE_NO_MATCH_COOLDOWN_MS, 'needs_city_id')
           setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'needs_city_id' }))
           return
         }
         if (data.matchStatus === 'needs_review' || data.matchStatus === 'no_match') {
           rememberHotelAffiliateLookupMiss(
             cacheKey,
-            data.matchStatus === 'needs_review' ? HOTEL_AFFILIATE_REVIEW_COOLDOWN_MS : HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS,
+            data.matchStatus === 'needs_review'
+              ? AGODA_AFFILIATE_REVIEW_COOLDOWN_MS
+              : AGODA_AFFILIATE_NO_MATCH_COOLDOWN_MS,
           )
           setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
           return
@@ -7396,7 +7409,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       .catch(() => {
         if (!isCurrentRequest()) return
-        rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_ERROR_COOLDOWN_MS, 'error')
+        rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_TRANSIENT_ERROR_COOLDOWN_MS, 'error')
         setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'error' }))
         // Auto affiliate lookup is helpful but should never block saving the custom place.
       })
@@ -7407,7 +7420,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
   }, [appendHotelAffiliateLink, config, readOnlyPlan])
 
-  const resolveTripAffiliateLinkForCustomPlace = useCallback((place: CustomPlannerPlace) => {
+  const resolveTripAffiliateLinkForCustomPlace = useCallback((
+    place: CustomPlannerPlace,
+    options: { forceRefresh?: boolean } = {},
+  ) => {
     const provider = 'Trip' as const
     const requestKey = `${provider}:${place.id}`
     const eligibility = customPlaceHotelAffiliateEligibility(place)
@@ -7485,6 +7501,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         lng: longitude,
         lodgingHint,
         googlePlaceTypes,
+        forceRefresh: options.forceRefresh === true,
       }),
     })
       .then(async (res) => {
@@ -7497,14 +7514,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       .then((data) => {
         if (!isCurrentRequest()) return
         if (data.matchStatus === 'not_configured') {
-          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_ERROR_COOLDOWN_MS, 'not_configured')
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NOT_CONFIGURED_COOLDOWN_MS, 'not_configured')
           setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'not_configured' }))
           return
         }
         if (data.matchStatus === 'needs_review' || data.matchStatus === 'no_match') {
           rememberHotelAffiliateLookupMiss(
             cacheKey,
-            data.matchStatus === 'needs_review' ? HOTEL_AFFILIATE_REVIEW_COOLDOWN_MS : HOTEL_AFFILIATE_NO_MATCH_COOLDOWN_MS,
+            data.matchStatus === 'needs_review'
+              ? TRIP_AFFILIATE_REVIEW_COOLDOWN_MS
+              : TRIP_AFFILIATE_NO_MATCH_COOLDOWN_MS,
           )
           setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
           return
@@ -7519,7 +7538,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       .catch(() => {
         if (!isCurrentRequest()) return
-        rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_ERROR_COOLDOWN_MS, 'error')
+        rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_TRANSIENT_ERROR_COOLDOWN_MS, 'error')
         setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'error' }))
       })
       .finally(() => {
@@ -7537,10 +7556,28 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const links = [...(place.links ?? []), ...(placeUserLinks[placeId] ?? [])]
       hotelAffiliateAutoSavePendingRef.current = true
       setCustomPlaces((current) => ({ ...current, [placeId]: manualPlace }))
-      if (!hasHotelAffiliateProviderLink(links, 'Agoda')) resolveAgodaAffiliateLinkForCustomPlace(manualPlace)
-      if (!hasHotelAffiliateProviderLink(links, 'Trip')) resolveTripAffiliateLinkForCustomPlace(manualPlace)
+      if (!hasHotelAffiliateProviderLink(links, 'Agoda')) {
+        const lookupInput = customPlaceHotelAffiliateLookupInput('Agoda', manualPlace, config)
+        if (lookupInput) clearHotelAffiliateLookupCache(lookupInput.cacheKey)
+        cancelHotelAffiliateLookupForCustomPlace(placeId, 'Agoda')
+        resolveAgodaAffiliateLinkForCustomPlace(manualPlace)
+      }
+      if (!hasHotelAffiliateProviderLink(links, 'Trip')) {
+        const lookupInput = customPlaceHotelAffiliateLookupInput('Trip', manualPlace, config)
+        if (lookupInput) clearHotelAffiliateLookupCache(lookupInput.cacheKey)
+        cancelHotelAffiliateLookupForCustomPlace(placeId, 'Trip')
+        resolveTripAffiliateLinkForCustomPlace(manualPlace, { forceRefresh: true })
+      }
     },
-    [customPlaces, placeUserLinks, readOnlyPlan, resolveAgodaAffiliateLinkForCustomPlace, resolveTripAffiliateLinkForCustomPlace],
+    [
+      cancelHotelAffiliateLookupForCustomPlace,
+      config,
+      customPlaces,
+      placeUserLinks,
+      readOnlyPlan,
+      resolveAgodaAffiliateLinkForCustomPlace,
+      resolveTripAffiliateLinkForCustomPlace,
+    ],
   )
 
   useEffect(() => {
@@ -9240,13 +9277,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     const customHotelHasTripLink = hasHotelAffiliateProviderLink(customHotelLinks, 'Trip')
                     const customHotelHasAffiliateLink = customHotelHasAgodaLink || customHotelHasTripLink
                     const customHotelEligibility = customPlace ? customPlaceHotelAffiliateEligibility(customPlace) : 'skipped'
+                    const customHotelAffiliateLookupPending =
+                      customHotelEligibility === 'pending_place_type' ||
+                      (!customHotelHasAgodaLink && agodaAffiliateStatus[place.id] === 'searching') ||
+                      (!customHotelHasTripLink && tripAffiliateStatus[place.id] === 'searching')
                     const showManualHotelAffiliateLookup =
                       customPlace
                         ? !readOnlyPlan &&
                           plannerPlaceCategory(place, customCategoryItems) === 'hotel' &&
                           customPlaceHotelAffiliateManualLookupAllowed(customPlace) &&
-                          customHotelEligibility === 'skipped' &&
-                          (!customHotelHasAgodaLink || !customHotelHasTripLink)
+                          customHotelEligibility !== 'pending_place_type' &&
+                          (!customHotelHasAgodaLink || !customHotelHasTripLink) &&
+                          !customHotelAffiliateLookupPending
                         : false
                     const hotelAffiliateStatuses =
                       isCustomPlace && plannerPlaceCategory(place, customCategoryItems) === 'hotel'
@@ -9311,7 +9353,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               className={styles.affiliateLookupButton}
                               onClick={() => forceHotelAffiliateLookupForCustomPlace(place.id)}
                             >
-                              仍查住宿
+                              {customHotelEligibility === 'eligible' ? '重新查住宿' : '仍查住宿'}
                             </button>
                           ) : null}
                           {!customHotelHasAffiliateLink ? (

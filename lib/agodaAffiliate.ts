@@ -44,6 +44,21 @@ export type AgodaAffiliateSearchInput = {
   maxResult?: number
 }
 
+export type AgodaHotelIndexIdentityInput = Pick<
+  AgodaAffiliateSearchInput,
+  'hotelName' | 'alternateHotelNames' | 'countryCode' | 'latitude' | 'longitude' | 'lodgingHint'
+>
+
+export type AgodaHotelIndexIdentity = {
+  hotelId: string
+  canonicalNames: string[]
+  city?: string
+  countryCode?: string
+  cityId?: number
+  latitude?: number
+  longitude?: number
+}
+
 export type AgodaAffiliateHotelCandidate = {
   hotelId: string
   hotelName: string
@@ -149,6 +164,57 @@ export function getAgodaAffiliatePublicConfig() {
     siteId: config.siteId,
     cid: config.cid,
     endpoint: config.endpoint,
+  }
+}
+
+export async function findAgodaHotelIndexIdentity(
+  input: AgodaHotelIndexIdentityInput,
+): Promise<AgodaHotelIndexIdentity | null> {
+  const config = readAgodaAffiliateConfig()
+  const hotelName = cleanHotelSearchName(input.hotelName)
+  const alternateHotelNames = cleanAgodaAlternateHotelNames(input.alternateHotelNames, hotelName)
+  const query: AgodaAffiliateSearchResponse['query'] = {
+    hotelName,
+    alternateHotelNames,
+    googlePlaceId: '',
+    city: '',
+    countryCode: cleanCode(input.countryCode, '', 2).toUpperCase(),
+    latitude: readCoordinate(input.latitude, -90, 90),
+    longitude: readCoordinate(input.longitude, -180, 180),
+    lodgingHint: input.lodgingHint === true,
+    datesExplicit: false,
+    currencyExplicit: false,
+    languageExplicit: false,
+    checkInDate: '',
+    checkOutDate: '',
+    adults: 2,
+    children: 0,
+    rooms: 1,
+    currency: DEFAULT_CURRENCY,
+    language: DEFAULT_LANGUAGE,
+    maxResult: DEFAULT_MAX_RESULT,
+  }
+
+  const result = await searchAgodaHotelIndex(config, query)
+  if (result.matchStatus !== 'matched' || !result.bestIndexRecord) return null
+
+  const record = result.bestIndexRecord
+  const canonicalNames = [
+    record.hotelName,
+    ...cleanAgodaAlternateHotelNames(
+      [record.translatedName, record.formerName],
+      record.hotelName,
+    ),
+  ]
+
+  return {
+    hotelId: record.hotelId,
+    canonicalNames,
+    ...(record.city ? { city: record.city } : {}),
+    ...(record.countryCode ? { countryCode: record.countryCode } : {}),
+    ...(typeof record.cityId === 'number' ? { cityId: record.cityId } : {}),
+    ...(typeof record.latitude === 'number' ? { latitude: record.latitude } : {}),
+    ...(typeof record.longitude === 'number' ? { longitude: record.longitude } : {}),
   }
 }
 
@@ -627,11 +693,16 @@ async function searchAgodaHotelIndex(
       ? Math.max(bestRankedMatch.score, safeCoordinateMatch ? 0.92 : 0)
       : Math.min(bestRankedMatch?.score ?? 0, 0.77)
   const matchStatus = getMatchStatus(safeBestScore)
+  const bestIndexRecord =
+    matchStatus === 'matched' && bestRankedMatch
+      ? index.records.find((record) => record.hotelId === bestRankedMatch.hotelId)
+      : undefined
 
   return {
     loaded: true,
     matchStatus,
     ...(bestMatch && matchStatus === 'matched' ? { bestMatch } : {}),
+    ...(bestIndexRecord ? { bestIndexRecord } : {}),
     candidates: topCandidates,
     totalRecords: index.records.length,
   }

@@ -8,12 +8,14 @@ import {
   getApplicableVerifiedHotelAffiliateIdentity,
   isUsableHotelAffiliateName,
 } from '@/lib/hotelAffiliateIdentity'
+import { findAgodaHotelIndexIdentity } from '@/lib/agodaAffiliate'
 
 const DEFAULT_TRIP_ALLIANCE_ID = '6833709'
 const DEFAULT_TRIP_SID = '242535686'
 const DEFAULT_TRIP_SUB3 = 'D16730765'
 const REQUEST_TIMEOUT_MS = 10000
 const SEARCH_CACHE_TTL_MS = 1000 * 60 * 60 * 6
+const EMPTY_SEARCH_CACHE_TTL_MS = 1000 * 60 * 10
 export const TRIP_SEARCH_CACHE_MAX_ENTRIES = 128
 
 export type TripAffiliateMatchStatus =
@@ -31,6 +33,8 @@ export type TripAffiliateSearchInput = {
   countryCode?: string
   latitude?: number
   longitude?: number
+  lodgingHint?: boolean
+  forceRefresh?: boolean
   maxResult?: number
   tripSub1?: string
   tripSub3?: string
@@ -72,6 +76,7 @@ export type TripAffiliateHotelCandidate = {
   originalUrl: string
   title?: string
   snippet?: string
+  alternateHotelNames?: string[]
   city?: string
   countryCode?: string
   latitude?: number
@@ -130,17 +135,9 @@ type SearchResult = {
   url: string
   title: string
   snippet: string
+  position?: number
   source: 'serpapi' | 'google_cse'
 }
-
-type TripSearchBatch =
-  | {
-      searchQuery: TripAffiliateSearchResponse['query']
-      searchResults: SearchResult[]
-    }
-  | {
-      error: unknown
-    }
 
 let siteHotelRecordsCache: SiteHotelRecord[] | null = null
 const searchCache = new Map<string, { expiresAt: number; results: SearchResult[] }>()
@@ -169,13 +166,22 @@ export function buildTripAffiliateUrl(
   const parsed = parseTripUrl(sourceUrl)
   if (!parsed) return ''
 
-  parsed.hostname = 'tw.trip.com'
-  parsed.protocol = 'https:'
-  parsed.searchParams.set('Allianceid', cleanParam(options.allianceId, DEFAULT_TRIP_ALLIANCE_ID, 32))
-  parsed.searchParams.set('SID', cleanParam(options.sid, DEFAULT_TRIP_SID, 32))
-  parsed.searchParams.set('trip_sub1', cleanParam(options.tripSub1, '', 120))
-  parsed.searchParams.set('trip_sub3', cleanParam(options.tripSub3, DEFAULT_TRIP_SUB3, 80))
-  return parsed.toString()
+  const hotelId = tripHotelIdFromUrl(parsed)
+  // Trip city slugs, locale hosts, and review/photo paths change frequently.
+  // The numeric hotel ID is the stable property identity and avoids retaining
+  // another publisher's tracking parameters from a search result.
+  const affiliateUrl =
+    hotelId && isTripHotelDetailUrl(parsed)
+      ? new URL(`https://tw.trip.com/hotels/detail/?hotelId=${encodeURIComponent(hotelId)}`)
+      : parsed
+
+  affiliateUrl.hostname = 'tw.trip.com'
+  affiliateUrl.protocol = 'https:'
+  affiliateUrl.searchParams.set('Allianceid', cleanParam(options.allianceId, DEFAULT_TRIP_ALLIANCE_ID, 32))
+  affiliateUrl.searchParams.set('SID', cleanParam(options.sid, DEFAULT_TRIP_SID, 32))
+  affiliateUrl.searchParams.set('trip_sub1', cleanParam(options.tripSub1, '', 120))
+  affiliateUrl.searchParams.set('trip_sub3', cleanParam(options.tripSub3, DEFAULT_TRIP_SUB3, 80))
+  return affiliateUrl.toString()
 }
 
 export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput): Promise<TripAffiliateSearchResponse> {
@@ -185,7 +191,7 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
     alternateNames: input.alternateHotelNames,
     maxNames: 3,
   })
-  const query = {
+  let query: TripAffiliateSearchResponse['query'] = {
     hotelName: hotelNames[0] ?? input.hotelName.trim().slice(0, 160),
     alternateHotelNames: hotelNames.slice(1),
     googlePlaceId: cleanParam(input.googlePlaceId, '', 180),
@@ -196,14 +202,14 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
     maxResult: clampInteger(input.maxResult, 5, 1, 10),
   }
 
-  const configuredResponse = {
+  const configuredResponse = () => ({
     configured: config.configured,
     allianceId: config.allianceId,
     sid: config.sid,
     sub3: config.sub3,
     searchProvider: config.searchProvider,
     query,
-  }
+  })
 
   const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(query.googlePlaceId, {
     latitude: query.latitude,
@@ -230,7 +236,7 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
       distanceKm: 0,
     }
     return {
-      ...configuredResponse,
+      ...configuredResponse(),
       matchStatus: 'matched',
       confidence: 'verified',
       bestMatch,
@@ -246,7 +252,7 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
     !hasAmbiguousTripRunnerUp(siteIndexResult.bestMatch, siteIndexResult.candidates[1], query)
   ) {
     return {
-      ...configuredResponse,
+      ...configuredResponse(),
       matchStatus: 'matched',
       confidence: 'high',
       bestMatch: siteIndexResult.bestMatch,
@@ -258,82 +264,128 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
   if (!config.configured) {
     const matchStatus = siteIndexResult.candidates.length > 0 ? 'needs_review' : 'not_configured'
     return {
-      ...configuredResponse,
+      ...configuredResponse(),
       matchStatus,
       confidence: tripMatchConfidence(matchStatus),
       ...(siteIndexResult.bestMatch ? { bestMatch: siteIndexResult.bestMatch } : {}),
       candidates: siteIndexResult.candidates,
       rawCount: siteIndexResult.rawCount,
       error: 'trip_search_provider_missing',
-      searchUrl: buildTripSearchUrl(query.hotelName, query.city),
+      searchUrl: buildTripSearchUrl(query.hotelName),
     }
   }
 
   try {
-    const searchCandidates: TripAffiliateHotelCandidate[] = []
+    let currentSiteIndexResult = siteIndexResult
+    const searchResults: SearchResult[] = []
+    const searchedNames = new Set<string>()
     let searchRawCount = 0
-    const searchBatches = await Promise.all(
-      tripSearchNames(query).map(async (searchName): Promise<TripSearchBatch> => {
-        try {
-          const searchQuery: TripAffiliateSearchResponse['query'] = {
-            ...query,
-            hotelName: searchName,
-            alternateHotelNames: [],
-          }
-          const searchResults = await searchTripResults(config, searchQuery)
-          return { searchQuery, searchResults }
-        } catch (error) {
-          return { error }
-        }
-      }),
-    )
-    let successfulBatchCount = 0
+    let successfulSearchCount = 0
+    let attemptedSearchCount = 0
     let firstSearchError: unknown
-    for (const batch of searchBatches) {
-      if (!('searchResults' in batch)) {
-        firstSearchError ??= batch.error
-        continue
+
+    const runSearch = async (searchName: string) => {
+      const searchKey = normalizeTripText(searchName)
+      if (!searchKey || searchedNames.has(searchKey)) return
+      searchedNames.add(searchKey)
+      attemptedSearchCount += 1
+      try {
+        const searchQuery: TripAffiliateSearchResponse['query'] = {
+          ...query,
+          hotelName: searchName,
+          alternateHotelNames: [],
+        }
+        const results = await searchTripResults(config, searchQuery, input.forceRefresh === true)
+        successfulSearchCount += 1
+        searchRawCount += results.length
+        searchResults.push(...results)
+      } catch (error) {
+        firstSearchError ??= error
       }
-      successfulBatchCount += 1
-      const { searchQuery, searchResults } = batch
-      searchRawCount += searchResults.length
-      searchCandidates.push(
-        ...searchResults
-          .map((result, index) => searchResultToCandidate(config, searchQuery, input, result, index))
-          .filter((candidate): candidate is TripAffiliateHotelCandidate => Boolean(candidate)),
-      )
     }
-    if (successfulBatchCount === 0 && searchBatches.length > 0) {
+
+    const evaluateCurrentResults = () => {
+      const searchCandidates = searchResultsToCandidates(config, query, input, searchResults)
+      const candidates = mergeTripCandidates(
+        [...currentSiteIndexResult.candidates, ...searchCandidates],
+        query,
+      ).slice(0, query.maxResult)
+      const bestMatch = candidates[0]
+      const matchStatus = bestMatch ? getTripMatchStatus(bestMatch, query, candidates[1]) : 'no_match'
+      return { candidates, bestMatch, matchStatus }
+    }
+
+    const primarySearchName = tripSearchNames(query)[0]
+    if (primarySearchName) await runSearch(primarySearchName)
+    let outcome = evaluateCurrentResults()
+
+    if (
+      outcome.matchStatus !== 'matched' &&
+      typeof query.latitude === 'number' &&
+      typeof query.longitude === 'number'
+    ) {
+      // Agoda's feed gives us a free, coordinate-verified canonical name.
+      // Re-score the same SERP first; a Chinese Maps name often returns an
+      // English Trip title, so this usually avoids a second paid search.
+      const agodaIdentity = await findAgodaHotelIndexIdentity({
+        hotelName: query.hotelName,
+        alternateHotelNames: query.alternateHotelNames,
+        countryCode: query.countryCode,
+        latitude: query.latitude,
+        longitude: query.longitude,
+        lodgingHint: input.lodgingHint === true,
+      })
+      if (agodaIdentity) {
+        const augmentedNames = buildHotelAffiliateSearchNames({
+          googlePlaceName: query.hotelName,
+          alternateNames: [
+            ...agodaIdentity.canonicalNames,
+            ...query.alternateHotelNames,
+          ],
+          maxNames: 6,
+        })
+        query = {
+          ...query,
+          hotelName: augmentedNames[0] ?? query.hotelName,
+          alternateHotelNames: augmentedNames.slice(1),
+        }
+        currentSiteIndexResult = searchSiteHotelIndex(config, query, input)
+        outcome = evaluateCurrentResults()
+      }
+    }
+
+    if (outcome.matchStatus !== 'matched') {
+      for (const searchName of tripSearchNames(query)) {
+        await runSearch(searchName)
+        outcome = evaluateCurrentResults()
+        if (outcome.matchStatus === 'matched') break
+      }
+    }
+
+    if (successfulSearchCount === 0 && attemptedSearchCount > 0) {
       throw firstSearchError ?? new Error('trip_search_failed')
     }
-    const sortedSearchCandidates = mergeTripCandidates(searchCandidates, query).slice(0, query.maxResult)
 
-    const candidates = mergeTripCandidates(
-      [...siteIndexResult.candidates, ...sortedSearchCandidates],
-      query,
-    ).slice(0, query.maxResult)
-    const bestMatch = candidates[0]
-    const matchStatus = bestMatch ? getTripMatchStatus(bestMatch, query, candidates[1]) : 'no_match'
     return {
-      ...configuredResponse,
-      matchStatus,
-      confidence: tripMatchConfidence(matchStatus),
-      ...(bestMatch ? { bestMatch } : {}),
-      candidates,
-      rawCount: searchRawCount + siteIndexResult.rawCount,
-      searchUrl: buildTripSearchUrl(query.hotelName, query.city),
+      ...configuredResponse(),
+      matchStatus: outcome.matchStatus,
+      confidence: tripMatchConfidence(outcome.matchStatus),
+      ...(outcome.bestMatch ? { bestMatch: outcome.bestMatch } : {}),
+      candidates: outcome.candidates,
+      rawCount: searchRawCount + currentSiteIndexResult.rawCount,
+      searchUrl: buildTripSearchUrl(query.hotelName),
     }
   } catch (error) {
     const matchStatus = siteIndexResult.bestMatch ? 'needs_review' : 'search_error'
     return {
-      ...configuredResponse,
+      ...configuredResponse(),
       matchStatus,
       confidence: tripMatchConfidence(matchStatus),
       ...(siteIndexResult.bestMatch ? { bestMatch: siteIndexResult.bestMatch } : {}),
       candidates: siteIndexResult.candidates,
       rawCount: siteIndexResult.rawCount,
       error: error instanceof Error ? error.message.slice(0, 120) : 'trip_search_failed',
-      searchUrl: buildTripSearchUrl(query.hotelName, query.city),
+      searchUrl: buildTripSearchUrl(query.hotelName),
     }
   }
 }
@@ -446,17 +498,21 @@ function searchSiteHotelIndex(
   }
 }
 
-async function searchTripResults(config: TripAffiliateConfig, query: TripAffiliateSearchResponse['query']) {
+async function searchTripResults(
+  config: TripAffiliateConfig,
+  query: TripAffiliateSearchResponse['query'],
+  forceRefresh = false,
+) {
   const cacheKey = [
     config.searchProvider,
     normalizeTripText(query.hotelName),
-    normalizeTripText(query.city ?? ''),
-    query.countryCode,
   ].join('|')
-  const cached = readTripSearchCache(cacheKey)
-  if (cached) return cached
+  if (!forceRefresh) {
+    const cached = readTripSearchCache(cacheKey)
+    if (cached) return cached
+  }
 
-  const searchText = buildTripSearchQuery(query.hotelName, query.city)
+  const searchText = buildTripSearchQuery(query.hotelName)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
@@ -494,7 +550,7 @@ function writeTripSearchCache(cacheKey: string, results: SearchResult[]) {
 
   searchCache.delete(cacheKey)
   searchCache.set(cacheKey, {
-    expiresAt: now + SEARCH_CACHE_TTL_MS,
+    expiresAt: now + (results.length > 0 ? SEARCH_CACHE_TTL_MS : EMPTY_SEARCH_CACHE_TTL_MS),
     results,
   })
   while (searchCache.size > TRIP_SEARCH_CACHE_MAX_ENTRIES) {
@@ -516,13 +572,26 @@ async function searchWithSerpApi(config: TripAffiliateConfig, searchText: string
   const res = await fetch(url, { cache: 'no-store', signal })
   if (!res.ok) throw new Error(`serpapi_${res.status}`)
   const payload = await res.json() as {
-    organic_results?: Array<{ link?: unknown; title?: unknown; snippet?: unknown }>
+    error?: unknown
+    search_metadata?: { status?: unknown }
+    organic_results?: Array<{ link?: unknown; title?: unknown; snippet?: unknown; position?: unknown }>
   }
+  if (typeof payload.error === 'string' && payload.error.trim()) {
+    throw new Error(`serpapi_${payload.error.trim().slice(0, 80)}`)
+  }
+  const searchStatus =
+    typeof payload.search_metadata?.status === 'string'
+      ? payload.search_metadata.status.trim().toLowerCase()
+      : ''
+  if (searchStatus && searchStatus !== 'success') throw new Error(`serpapi_${searchStatus.slice(0, 40)}`)
   return (payload.organic_results ?? [])
     .map((item) => ({
       url: typeof item.link === 'string' ? item.link : '',
       title: typeof item.title === 'string' ? item.title : '',
       snippet: typeof item.snippet === 'string' ? item.snippet : '',
+      ...(typeof item.position === 'number' && Number.isFinite(item.position)
+        ? { position: Math.max(1, Math.round(item.position)) }
+        : {}),
       source: 'serpapi' as const,
     }))
     .filter((item) => item.url)
@@ -542,52 +611,108 @@ async function searchWithGoogleCse(config: TripAffiliateConfig, searchText: stri
     items?: Array<{ link?: unknown; title?: unknown; snippet?: unknown }>
   }
   return (payload.items ?? [])
-    .map((item) => ({
+    .map((item, index) => ({
       url: typeof item.link === 'string' ? item.link : '',
       title: typeof item.title === 'string' ? item.title : '',
       snippet: typeof item.snippet === 'string' ? item.snippet : '',
+      position: index + 1,
       source: 'google_cse' as const,
     }))
     .filter((item) => item.url)
 }
 
-function searchResultToCandidate(
+function searchResultsToCandidates(
   config: TripAffiliateConfig,
   query: TripAffiliateSearchResponse['query'],
   input: TripAffiliateSearchInput,
-  result: SearchResult,
-  rankIndex: number,
-): TripAffiliateHotelCandidate | null {
-  const parsed = parseTripUrl(result.url)
-  if (!parsed || !isTripHotelDetailUrl(parsed)) return null
-  const hotelId = tripHotelIdFromUrl(parsed)
-  if (!hotelId) return null
+  results: SearchResult[],
+) {
+  const groupedResults = new Map<
+    string,
+    Array<{ result: SearchResult; parsed: URL; rankIndex: number }>
+  >()
 
-  const score = scoreTripCandidate({
-    query,
-    title: result.title,
-    snippet: result.snippet,
-    url: parsed.toString(),
-    candidateName: result.title,
-    rankIndex,
+  results.forEach((result, index) => {
+    const parsed = parseTripUrl(result.url)
+    if (!parsed || !isTripHotelDetailUrl(parsed)) return
+    const hotelId = tripHotelIdFromUrl(parsed)
+    if (!hotelId) return
+    const rankIndex =
+      typeof result.position === 'number'
+        ? Math.max(0, result.position - 1)
+        : index
+    const existing = groupedResults.get(hotelId) ?? []
+    existing.push({ result, parsed, rankIndex })
+    groupedResults.set(hotelId, existing)
   })
-  if (score < 0.55) return null
 
-  return {
-    hotelId,
-    hotelName: cleanTripTitle(result.title) || query.hotelName,
-    score,
-    bookingUrl: buildTripAffiliateUrl(parsed.toString(), {
+  const queryNames = tripSearchNames(query)
+  const candidates: TripAffiliateHotelCandidate[] = []
+
+  groupedResults.forEach((group, hotelId) => {
+    const scoredResults = group
+      .map((entry) => {
+        const details = queryNames
+          .map((hotelName) =>
+            scoreTripCandidateDetails({
+              query: { ...query, hotelName, alternateHotelNames: [] },
+              title: entry.result.title,
+              snippet: entry.result.snippet,
+              url: entry.parsed.toString(),
+              candidateName: entry.result.title,
+              rankIndex: entry.rankIndex,
+            }),
+          )
+          .sort(compareTripCandidateScoreDetails)[0]
+        return { ...entry, details }
+      })
+      .filter((entry) => Boolean(entry.details))
+      .sort((a, b) => {
+        const detailOrder = compareTripCandidateScoreDetails(
+          a.details as TripCandidateScoreDetails,
+          b.details as TripCandidateScoreDetails,
+        )
+        if (detailOrder !== 0) return detailOrder
+        return a.rankIndex - b.rankIndex
+      })
+
+    const best = scoredResults[0]
+    if (!best?.details || best.details.score < 0.55) return
+
+    const candidateNames = cleanNameList(
+      group.flatMap(({ result, parsed }) =>
+        cleanTripSearchResultIdentities(result.title, parsed),
+      ),
+      '',
+      12,
+      160,
+    )
+    const hotelName = cleanTripTitle(best.result.title) || candidateNames[0] || query.hotelName
+    const alternateHotelNames = candidateNames.filter(
+      (name) => normalizeTripText(name) !== normalizeTripText(hotelName),
+    )
+    const bookingUrl = buildTripAffiliateUrl(best.parsed.toString(), {
       allianceId: config.allianceId,
       sid: config.sid,
       tripSub1: input.tripSub1 ?? config.sub1,
       tripSub3: input.tripSub3 ?? config.sub3,
-    }),
-    source: result.source,
-    originalUrl: parsed.toString(),
-    title: result.title,
-    snippet: result.snippet,
-  } satisfies TripAffiliateHotelCandidate
+    })
+    if (!bookingUrl) return
+
+    candidates.push({
+      hotelId,
+      hotelName,
+      score: best.details.score,
+      bookingUrl,
+      source: best.result.source,
+      originalUrl: best.parsed.toString(),
+      title: best.result.title,
+      snippet: best.result.snippet,
+      ...(alternateHotelNames.length > 0 ? { alternateHotelNames } : {}),
+    })
+  })
+
+  return mergeTripCandidates(candidates, query).slice(0, query.maxResult)
 }
 
 function getSiteHotelRecords() {
@@ -798,6 +923,23 @@ function cleanTripCandidateIdentities(candidateName: string, title: string) {
     identities.push(...parentheticalNames)
   })
   return cleanNameList(identities, '', 8, 160)
+}
+
+function cleanTripSearchResultIdentities(title: string, url: URL) {
+  const identities = cleanTripCandidateIdentities(title, title)
+  const cleanedTitle = cleanTripTitle(title)
+  const citySlug = url.pathname.match(/\/hotels\/([a-z0-9-]+)-hotel-detail-\d+/i)?.[1] ?? ''
+  if (cleanedTitle && citySlug) {
+    const suffixMatch = cleanedTitle.match(/^(.{2,140}?)\s*[（(]([^()（）]{2,50})[)）]\s*$/)
+    if (suffixMatch?.[1] && suffixMatch[2]) {
+      const suffixTokens = tokenizeTripText(suffixMatch[2])
+      const cityTokens = new Set(tokenizeTripText(citySlug.replace(/-/g, ' ')))
+      if (suffixTokens.length > 0 && suffixTokens.every((token) => cityTokens.has(token))) {
+        identities.push(suffixMatch[1].trim())
+      }
+    }
+  }
+  return cleanNameList(identities, '', 10, 160)
 }
 
 function bestTripNameEvidence(queryNames: string[], candidateNames: string[], city?: string) {
@@ -1098,6 +1240,7 @@ function normalizeTripText(value: string) {
 function cleanTripTitle(value: string) {
   return value
     .replace(/\s*[-|｜]\s*Trip\.com.*$/i, '')
+    .replace(/\s*[|｜]\s*20\d{2}(?:年)?\s*(?:最新)?訂房優惠.*$/i, '')
     .replace(/\s*[-|｜]\s*20\d{2}(?:年)?\s+(?=[^|｜]{0,120}\b(?:prices?|reviews?|deals?|photos?)\b)[^|｜]*$/i, '')
     .replace(/^\s*20\d{2}(?:年)?\s*(?:最新|latest)[^|｜]{0,80}[|｜]\s*/i, '')
     .replace(/\s*[-|｜]\s*20\d{2}(?:年)?\s*(?:最新|latest).*$/i, '')
@@ -1151,7 +1294,15 @@ function tripPrimaryNumericIdentityMatchesCandidate(
 ) {
   return tripPrimaryNumericIdentityMatchesNames(
     query.hotelName,
-    cleanTripCandidateIdentities(candidate.hotelName, candidate.title ?? ''),
+    cleanNameList(
+      [
+        ...cleanTripCandidateIdentities(candidate.hotelName, candidate.title ?? ''),
+        ...(candidate.alternateHotelNames ?? []),
+      ],
+      '',
+      16,
+      160,
+    ),
     query.city,
   )
 }
@@ -1186,9 +1337,14 @@ function bestTripCandidateNameEvidence(
   candidate: TripAffiliateHotelCandidate,
   query: TripAffiliateSearchResponse['query'],
 ) {
-  const candidateIdentities = cleanTripCandidateIdentities(
-    candidate.hotelName,
-    candidate.title ?? '',
+  const candidateIdentities = cleanNameList(
+    [
+      ...cleanTripCandidateIdentities(candidate.hotelName, candidate.title ?? ''),
+      ...(candidate.alternateHotelNames ?? []),
+    ],
+    '',
+    16,
+    160,
   )
   return bestTripNameEvidence(tripSearchNames(query), candidateIdentities, query.city)
 }
@@ -1244,20 +1400,25 @@ function mergeTripCandidates(
   return [...byHotelId.values()].sort((a, b) => compareTripCandidates(a, b, query))
 }
 
-function buildTripSearchQuery(hotelName: string, city?: string) {
+function buildTripSearchQuery(hotelName: string) {
+  const exactHotelName = hotelName
+    .replace(/["“”]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  // Planner city labels can be Agoda catalogue regions (for example
+  // "Okinawa Main island"), not the city used by Trip ("Naha").
   return [
     'site:trip.com/hotels',
-    hotelName,
-    city,
+    exactHotelName ? `"${exactHotelName}"` : '',
     'Trip.com',
   ]
     .filter(Boolean)
     .join(' ')
 }
 
-function buildTripSearchUrl(hotelName: string, city?: string) {
+function buildTripSearchUrl(hotelName: string) {
   const url = new URL('https://www.google.com/search')
-  url.searchParams.set('q', buildTripSearchQuery(hotelName, city))
+  url.searchParams.set('q', buildTripSearchQuery(hotelName))
   return url.toString()
 }
 
