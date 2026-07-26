@@ -2,12 +2,10 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import {
   buildHotelAffiliateSearchNames,
-  getApplicableVerifiedHotelAffiliateIdentity,
   isUsableHotelAffiliateName,
 } from '@/lib/hotelAffiliateIdentity'
 
 const DEFAULT_AGODA_SITE_ID = '1945734'
-const DEFAULT_AGODA_ENDPOINT = 'http://affiliateapi7643.agoda.com/affiliateservice/lt_v1'
 const DEFAULT_AGODA_INDEX_PATH = path.join('data', 'agoda-planner-hotels-index.jsonl')
 const DEFAULT_CURRENCY = 'TWD'
 const DEFAULT_LANGUAGE = 'zh-tw'
@@ -180,7 +178,7 @@ const agodaSearchCache = new Map<string, { expiresAt: number; results: AgodaWebS
 export function getAgodaAffiliatePublicConfig() {
   const config = readAgodaAffiliateConfig()
   return {
-    configured: config.configured || Boolean(config.searchProvider),
+    configured: config.configured,
     siteId: config.siteId,
     cid: config.cid,
     endpoint: config.endpoint,
@@ -272,7 +270,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
   const hotelName = cleanHotelSearchName(input.hotelName)
   const alternateHotelNames = cleanAgodaAlternateHotelNames(input.alternateHotelNames, hotelName)
   const dates = resolveDateRange(input.checkInDate, input.checkOutDate)
-  let query = {
+  const query = {
     hotelName,
     alternateHotelNames,
     googlePlaceId: cleanHotelSearchName(input.googlePlaceId),
@@ -295,230 +293,61 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
     maxResult: clampInteger(input.maxResult, DEFAULT_MAX_RESULT, 1, 50),
   }
 
-  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(query.googlePlaceId, {
-    latitude: query.latitude,
-    longitude: query.longitude,
-    countryCode: query.countryCode,
-  })
-  if (verifiedIdentity?.agoda) {
-    const bestMatch: AgodaAffiliateHotelCandidate = {
-      hotelId: verifiedIdentity.agoda.hotelId,
-      hotelName: verifiedIdentity.agoda.hotelName,
-      score: 1,
-      bookingUrl: buildAgodaPartnerUrl(verifiedIdentity.agoda.hotelId, {
-        cid: config.cid,
-        ...(query.datesExplicit ? { checkInDate: query.checkInDate, checkOutDate: query.checkOutDate } : {}),
-        adults: query.adults,
-        children: query.children,
-        rooms: query.rooms,
-        ...(query.currencyExplicit ? { currency: query.currency } : {}),
-        ...(query.languageExplicit ? { language: query.language } : {}),
-      }),
-      source: 'verified',
-      countryCode: verifiedIdentity.countryCode,
-      latitude: verifiedIdentity.latitude,
-      longitude: verifiedIdentity.longitude,
-      distanceKm: 0,
-    }
-    return {
-      configured: config.configured,
-      siteId: config.siteId,
-      cid: config.cid,
-      endpoint: config.endpoint,
-      searchProvider: config.searchProvider,
-      query,
-      matchStatus: 'matched',
-      confidence: 'verified',
-      bestMatch,
-      candidates: [bestMatch],
-      rawCount: 1,
-    }
-  }
-
-  // The primary path is intentionally simple: resolve a usable accommodation
-  // name, search Google for that exact name on Agoda, then validate the Agoda
-  // property page before adding our affiliate parameters.  The local index is
-  // only used to supply a canonical name and as an offline fallback; it no
-  // longer decides whether a web result may be found.
-  const indexIdentity = await findAgodaHotelIndexIdentity({
-    hotelName: query.hotelName,
-    alternateHotelNames: query.alternateHotelNames,
-    countryCode: query.countryCode,
-    latitude: query.latitude,
-    longitude: query.longitude,
-    lodgingHint: query.lodgingHint,
-  })
-  if (indexIdentity) {
-    const searchNames = buildAgodaSearchNames(
-      indexIdentity.canonicalNames,
-      query.hotelName,
-      query.alternateHotelNames,
-    )
-    query = {
-      ...query,
-      hotelName: searchNames[0] ?? query.hotelName,
-      alternateHotelNames: searchNames.slice(1),
-    }
-  }
-
+  // Agoda links are accepted only after a provider-specific web search and
+  // property-page validation.  Do not fall back to the old Agoda API, local
+  // hotel index, or a pre-saved hotel ID: those inventories can be stale and
+  // have previously produced links to a different property.
   if (config.searchProvider) {
     try {
       const webCandidates = await searchAgodaWebCandidates(config, query, input.forceRefresh === true)
       const bestMatch = webCandidates[0]
       const matchStatus = getAgodaWebMatchStatus(bestMatch, webCandidates[1])
-      if (matchStatus === 'matched' && bestMatch) {
-        return {
-          configured: config.configured || Boolean(config.searchProvider),
-          siteId: config.siteId,
-          cid: config.cid,
-          endpoint: config.endpoint,
-          searchProvider: config.searchProvider,
-          query,
-          matchStatus,
-          confidence: 'high',
-          bestMatch,
-          candidates: webCandidates,
-          rawCount: webCandidates.length,
-        }
-      }
-    } catch {
-      // A temporary search outage must not convert a known local/API match
-      // into a false negative. Continue with the existing safe fallbacks.
-    }
-  }
-
-  const indexResult = await searchAgodaHotelIndex(config, query)
-  if (indexResult.candidates.length > 0 && (indexResult.matchStatus !== 'no_match' || !query.cityId || !config.configured)) {
-    return {
-      configured: config.configured || Boolean(config.searchProvider),
-      siteId: config.siteId,
-      cid: config.cid,
-      endpoint: config.endpoint,
-      searchProvider: config.searchProvider,
-      query,
-      matchStatus: indexResult.matchStatus,
-      confidence: agodaMatchConfidence(indexResult.matchStatus),
-      ...(indexResult.bestMatch ? { bestMatch: indexResult.bestMatch } : {}),
-      candidates: indexResult.candidates,
-      rawCount: indexResult.totalRecords,
-    }
-  }
-
-  if (!config.configured) {
-    return {
-      configured: Boolean(config.searchProvider),
-      siteId: config.siteId,
-      cid: config.cid,
-      endpoint: config.endpoint,
-      searchProvider: config.searchProvider,
-      query,
-      matchStatus: config.searchProvider ? 'no_match' : 'not_configured',
-      confidence: 'none',
-      candidates: [],
-      error: config.searchProvider ? undefined : 'agoda_env_missing',
-    }
-  }
-
-  if (!query.cityId) {
-    return {
-      configured: true,
-      siteId: config.siteId,
-      cid: config.cid,
-      endpoint: config.endpoint,
-      searchProvider: config.searchProvider,
-      query,
-      matchStatus: indexResult.loaded ? 'no_match' : 'needs_city_id',
-      confidence: 'none',
-      candidates: indexResult.candidates,
-      ...(indexResult.loaded ? {} : { error: 'agoda_city_id_required' }),
-    }
-  }
-
-  const requestBody = buildCitySearchRequest(config, query)
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-
-  try {
-    const response = await fetch(config.endpoint, {
-      method: 'POST',
-      cache: 'no-store',
-      signal: controller.signal,
-      headers: {
-        'content-type': 'application/json',
-        accept: 'application/json',
-        'accept-encoding': 'gzip,deflate',
-        authorization: `${config.siteId}:${config.apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
-    })
-
-    if (!response.ok) {
       return {
         configured: true,
         siteId: config.siteId,
         cid: config.cid,
-        endpoint: config.endpoint,
+        endpoint: '',
         searchProvider: config.searchProvider,
         query,
-        matchStatus: 'api_error',
+        matchStatus,
+        confidence: matchStatus === 'matched' ? 'high' : 'none',
+        ...(matchStatus === 'matched' && bestMatch ? { bestMatch } : {}),
+        candidates: webCandidates,
+        rawCount: webCandidates.length,
+      }
+    } catch {
+      return {
+        configured: true,
+        siteId: config.siteId,
+        cid: config.cid,
+        endpoint: '',
+        searchProvider: config.searchProvider,
+        query,
+        matchStatus: 'no_match',
         confidence: 'none',
         candidates: [],
-        apiStatus: response.status,
-        error: 'agoda_api_error',
+        error: 'agoda_web_search_unavailable',
       }
     }
+  }
 
-    const payload = (await response.json().catch(() => null)) as unknown
-    const hotels = extractAgodaHotels(payload, config, query)
-    const queryHotelNames = [query.hotelName, ...query.alternateHotelNames]
-    const candidates = hotels
-      .map(({ matchingHotelNames, ...hotel }) => ({
-        ...hotel,
-        score: scoreAgodaHotelNameAliases(queryHotelNames, matchingHotelNames),
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8)
-
-    const bestMatch = candidates[0]
-    const matchStatus = getMatchStatus(bestMatch?.score ?? 0)
-    return {
-      configured: true,
-      siteId: config.siteId,
-      cid: config.cid,
-      endpoint: config.endpoint,
-      searchProvider: config.searchProvider,
-      query,
-      matchStatus,
-      confidence: agodaMatchConfidence(matchStatus),
-      ...(bestMatch && bestMatch.score >= 0.78 ? { bestMatch } : {}),
-      candidates,
-      rawCount: hotels.length,
-    }
-  } catch (error) {
-    return {
-      configured: true,
-      siteId: config.siteId,
-      cid: config.cid,
-      endpoint: config.endpoint,
-      searchProvider: config.searchProvider,
-      query,
-      matchStatus: 'api_error',
-      confidence: 'none',
-      candidates: [],
-      error: error instanceof Error && error.name === 'AbortError' ? 'agoda_api_timeout' : 'agoda_api_network_error',
-    }
-  } finally {
-    clearTimeout(timeout)
+  return {
+    configured: false,
+    siteId: config.siteId,
+    cid: config.cid,
+    endpoint: '',
+    searchProvider: '',
+    query,
+    matchStatus: 'not_configured',
+    confidence: 'none',
+    candidates: [],
+    error: 'agoda_web_search_not_configured',
   }
 }
 
 function readAgodaAffiliateConfig(): AgodaAffiliateConfig {
-  const configuredSiteId = cleanCode(process.env.AGODA_AFFILIATE_SITE_ID, DEFAULT_AGODA_SITE_ID, 32)
-  const credentials = readAgodaApiCredentials(configuredSiteId, process.env.AGODA_AFFILIATE_API_KEY)
-  const siteId = credentials.siteId
-  const apiKey = credentials.apiKey
+  const siteId = cleanCode(process.env.AGODA_AFFILIATE_SITE_ID, DEFAULT_AGODA_SITE_ID, 32)
   const cid = cleanCode(process.env.AGODA_AFFILIATE_CID, siteId, 32)
-  const endpoint = cleanEndpoint(process.env.AGODA_AFFILIATE_API_URL) || DEFAULT_AGODA_ENDPOINT
   const serpApiKey = process.env.SERPAPI_API_KEY?.trim() ?? ''
   const googleSearchApiKey = (
     process.env.GOOGLE_CUSTOM_SEARCH_API_KEY ?? process.env.GOOGLE_SEARCH_API_KEY ?? ''
@@ -540,10 +369,11 @@ function readAgodaAffiliateConfig(): AgodaAffiliateConfig {
 
   return {
     siteId,
-    apiKey,
+    // The legacy Agoda API is deliberately not used for planner matching.
+    apiKey: '',
     cid,
-    endpoint,
-    configured: Boolean(siteId && apiKey && endpoint),
+    endpoint: '',
+    configured: Boolean(searchProvider),
     searchProvider,
     serpApiKey,
     googleSearchApiKey,
