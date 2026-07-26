@@ -4433,8 +4433,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
   const googlePlaceTypeResolveRef = useRef<Set<string>>(new Set())
   const customPlaceGoogleIdentityResolveRef = useRef<Set<string>>(new Set())
-  const hotelAffiliateAutoSavePendingRef = useRef(false)
-  const hotelAffiliateAutoSaveTimerRef = useRef<number | null>(null)
 
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState<string | null>(() =>
@@ -5745,70 +5743,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [config.storageKey, placeUserLinks, readOnlyPlan, storageReady])
 
   useEffect(() => {
-    if (
-      !storageReady ||
-      readOnlyPlan ||
-      !plannerBookId ||
-      !hotelAffiliateAutoSavePendingRef.current ||
-      !hasSavablePlannerContent
-    ) {
-      return
-    }
-
-    if (hotelAffiliateAutoSaveTimerRef.current !== null) {
-      window.clearTimeout(hotelAffiliateAutoSaveTimerRef.current)
-    }
-
-    hotelAffiliateAutoSaveTimerRef.current = window.setTimeout(() => {
-      hotelAffiliateAutoSaveTimerRef.current = null
-      hotelAffiliateAutoSavePendingRef.current = false
-      const sharedNotes = Object.fromEntries(
-        validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note),
-      )
-      void savePlannerBook(
-        config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
-        plannerBookId,
-        validPlanItems,
-        sharedNotes,
-        customPlaces,
-        placeUserLinks,
-      ).then((book) => {
-        if (!book) return
-        const updatedAt = new Date().toISOString()
-        setPlannerBookReadToken(book.readToken ?? plannerBookReadToken)
-        setPlannerBookUpdatedAt(updatedAt)
-        removeJsonCache(`planner-book:id=${encodeURIComponent(book.id)}`)
-        const nextReadToken = book.readToken ?? plannerBookReadToken
-        if (nextReadToken) removeJsonCache(`planner-book:${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(nextReadToken)}`)
-        window.localStorage.setItem(`${config.storageKey}:book-updated-at`, updatedAt)
-        if (nextReadToken) window.localStorage.setItem(`${config.storageKey}:book-read-token`, nextReadToken)
-      })
-    }, 900)
-
-    return () => {
-      if (hotelAffiliateAutoSaveTimerRef.current !== null) {
-        window.clearTimeout(hotelAffiliateAutoSaveTimerRef.current)
-        hotelAffiliateAutoSaveTimerRef.current = null
-      }
-    }
-  }, [
-    config.plannerBookCityName,
-    config.recentCountryName,
-    config.shareTitle,
-    config.storageKey,
-    customPlaces,
-    placeNotes,
-    placeUserLinks,
-    plannerBookId,
-    plannerBookReadToken,
-    readOnlyPlan,
-    hasSavablePlannerContent,
-    storageReady,
-    validPlanIds,
-    validPlanItems,
-  ])
-
-  useEffect(() => {
     if (!storageReady || readOnlyPlan || !plannerBookId) return
     window.localStorage.setItem(`${config.storageKey}:book-id`, plannerBookId)
     if (plannerBookReadToken) {
@@ -6865,7 +6799,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPlaceUserLinks((links) => {
       const nextLinks = mergeCustomPlannerLinks(links[placeId], link)
       if (nextLinks === links[placeId]) return links
-      if (shouldPersist) hotelAffiliateAutoSavePendingRef.current = true
       return { ...links, [placeId]: nextLinks }
     })
     if (!shouldPersist) return
@@ -6904,7 +6837,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       if (types.length > 0) nextPlace.googlePlaceTypes = types
       else delete nextPlace.googlePlaceTypes
-      hotelAffiliateAutoSavePendingRef.current = true
       return { ...current, [placeId]: nextPlace }
     })
   }, [cancelHotelAffiliateLookupForCustomPlace])
@@ -6979,7 +6911,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         nextPlace.googlePlaceTypesResolved === place.googlePlaceTypesResolved
       if (unchanged) return current
 
-      hotelAffiliateAutoSavePendingRef.current = true
       return { ...current, [placeId]: nextPlace }
     })
   }, [cancelHotelAffiliateLookupForCustomPlace])
@@ -7032,7 +6963,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         nextPlace.googlePlaceTypesResolved === place.googlePlaceTypesResolved
       if (unchanged) return current
 
-      if (shouldPersist) hotelAffiliateAutoSavePendingRef.current = true
       return { ...current, [placeId]: nextPlace }
     })
   }, [cancelHotelAffiliateLookupForCustomPlace])
@@ -7557,7 +7487,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (!place || readOnlyPlan) return
       const manualPlace: CustomPlannerPlace = { ...place, hotelAffiliateManual: true }
       const links = [...(place.links ?? []), ...(placeUserLinks[placeId] ?? [])]
-      hotelAffiliateAutoSavePendingRef.current = true
       setCustomPlaces((current) => ({ ...current, [placeId]: manualPlace }))
       if (!hasHotelAffiliateProviderLink(links, 'Agoda')) {
         const lookupInput = customPlaceHotelAffiliateLookupInput('Agoda', manualPlace, config)
