@@ -135,3 +135,52 @@ test('uses a manually verified Google Place ID before fuzzy matching', async () 
   expect(result.bestMatch?.hotelId).toBe('2232362')
   expect(result.bestMatch?.source).toBe('verified')
 })
+
+test('uses one exact Agoda web search as the primary path and preserves only our affiliate parameters', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  const requests: URL[] = []
+  process.env.SERPAPI_API_KEY = 'agoda-web-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    requests.push(url)
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [{
+        position: 1,
+        link: 'https://www.agoda.com/en-us/daiwa-roynet-hotel-okinawa-kenchomae/?cid=another-publisher',
+        title: 'Daiwa Roynet Hotel Okinawa Kenchomae - Agoda.com',
+        snippet: 'Daiwa Roynet Hotel Okinawa Kenchomae, Naha',
+      }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: '沖繩縣廳前大和ROYNET飯店',
+      countryCode: 'JP',
+      latitude: 26.2132974,
+      longitude: 127.6766983,
+      lodgingHint: true,
+    })
+
+    expect(requests).toHaveLength(1)
+    expect(requests[0]?.searchParams.get('q')).toBe('site:agoda.com "Daiwa Roynet Hotel Okinawa Kenchomae" Agoda')
+    expect(result.matchStatus).toBe('matched')
+    expect(result.bestMatch?.source).toBe('serpapi')
+    const bookingUrl = new URL(result.bestMatch?.bookingUrl ?? '')
+    expect(bookingUrl.hostname).toBe('www.agoda.com')
+    expect(bookingUrl.pathname).toBe('/en-us/daiwa-roynet-hotel-okinawa-kenchomae/')
+    expect(bookingUrl.searchParams.get('cid')).not.toBe('another-publisher')
+    expect(bookingUrl.searchParams.get('pcs')).toBe('1')
+    expect(bookingUrl.searchParams.has('another-publisher')).toBe(false)
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})

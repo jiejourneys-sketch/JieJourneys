@@ -717,13 +717,12 @@ function shouldResolveCustomPlaceGoogleIdentityForAffiliate(
   const cachedPlaceId = cached?.googlePlaceId || googleMapsPlaceIdFromUrl(cached?.url)
   if (cached?.googlePlaceIdResolved && !cachedPlaceId) return false
 
-  const typeSignal = googlePlaceTypeSignal(cleanGooglePlaceTypes(place.googlePlaceTypes))
-  if (typeSignal === 'non_lodging') return false
-
-  const nameSignal = hotelAffiliateNameSignal(place)
-  const userMarkedHotel = cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual === true
-  if (nameSignal === 'non_lodging' && !userMarkedHotel) return false
-  return userMarkedHotel || nameSignal === 'lodging' || typeSignal === 'lodging' || Boolean(cachedPlaceId)
+  // A Maps URL is enough to classify the place once, even when the user put a
+  // hotel in the sightseeing category or used a vague name.  This is a Maps
+  // identity/type lookup only; Agoda and Trip are still called *after* Google
+  // identifies it as lodging.  The result (including a confirmed non-lodging
+  // place) is cached, so it does not repeatedly trigger provider searches.
+  return true
 }
 
 function googlePlaceTypesCacheKey(placeId: string) {
@@ -7287,7 +7286,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
   }, [setCustomPlaceGoogleIdentity])
 
-  const resolveAgodaAffiliateLinkForCustomPlace = useCallback((place: CustomPlannerPlace) => {
+  const resolveAgodaAffiliateLinkForCustomPlace = useCallback((
+    place: CustomPlannerPlace,
+    options: { forceRefresh?: boolean } = {},
+  ) => {
     const provider = 'Agoda' as const
     const requestKey = `${provider}:${place.id}`
     const eligibility = customPlaceHotelAffiliateEligibility(place)
@@ -7325,13 +7327,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (activeRequest) activeRequest.controller.abort()
     hotelAffiliateLookupRequestRef.current.delete(requestKey)
 
-    const cachedBookingUrl = readHotelAffiliateLookupHit(cacheKey, provider)
+    const cachedBookingUrl = options.forceRefresh ? null : readHotelAffiliateLookupHit(cacheKey, provider)
     if (cachedBookingUrl) {
       appendHotelAffiliateLink(place.id, provider, cachedBookingUrl, { persist: !readOnlyPlan })
       setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
       return
     }
-    const cooldownStatus = hotelAffiliateLookupCoolingDown(cacheKey)
+    const cooldownStatus = options.forceRefresh ? null : hotelAffiliateLookupCoolingDown(cacheKey)
     if (cooldownStatus) {
       setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: cooldownStatus }))
       return
@@ -7366,6 +7368,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         lodgingHint,
         googlePlaceTypes,
         language: 'zh-tw',
+        forceRefresh: options.forceRefresh === true,
       }),
     })
       .then(async (res) => {
@@ -7461,13 +7464,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (activeRequest) activeRequest.controller.abort()
     hotelAffiliateLookupRequestRef.current.delete(requestKey)
 
-    const cachedBookingUrl = readHotelAffiliateLookupHit(cacheKey, provider)
+    const cachedBookingUrl = options.forceRefresh ? null : readHotelAffiliateLookupHit(cacheKey, provider)
     if (cachedBookingUrl) {
       appendHotelAffiliateLink(place.id, provider, cachedBookingUrl, { persist: !readOnlyPlan })
       setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
       return
     }
-    const cooldownStatus = hotelAffiliateLookupCoolingDown(cacheKey)
+    const cooldownStatus = options.forceRefresh ? null : hotelAffiliateLookupCoolingDown(cacheKey)
     if (cooldownStatus) {
       setTripAffiliateStatus((status) => ({ ...status, [place.id]: cooldownStatus }))
       return
@@ -7560,7 +7563,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const lookupInput = customPlaceHotelAffiliateLookupInput('Agoda', manualPlace, config)
         if (lookupInput) clearHotelAffiliateLookupCache(lookupInput.cacheKey)
         cancelHotelAffiliateLookupForCustomPlace(placeId, 'Agoda')
-        resolveAgodaAffiliateLinkForCustomPlace(manualPlace)
+        resolveAgodaAffiliateLinkForCustomPlace(manualPlace, { forceRefresh: true })
       }
       if (!hasHotelAffiliateProviderLink(links, 'Trip')) {
         const lookupInput = customPlaceHotelAffiliateLookupInput('Trip', manualPlace, config)

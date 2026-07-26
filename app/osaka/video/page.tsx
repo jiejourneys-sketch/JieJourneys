@@ -44,6 +44,8 @@ const cards: CityCard[] = [
     datasetKey: 'video',
     datasetValue: 'osaka-castle-guide',
     actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DbN3zTshyea/', className: 'btn primary', event: 'osakavideo_osakacastleIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/fE5RF0eYysM', className: 'btn', event: 'osakavideo_osakacastleYT', platform: 'YouTube', section: 'video' },
       { label: '文章', href: '/osaka/osaka-castle-guide?from=osaka-video', className: 'btn', event: 'osakavideo_osakacastleArticle', platform: 'article', section: 'video' },
     ],
   },

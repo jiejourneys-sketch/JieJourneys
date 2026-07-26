@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     currency: cleanString(input.currency, 10),
     language: cleanString(input.language, 12),
     maxResult: cleanInteger(input.maxResult, 1, 50),
+    forceRefresh: cleanBoolean(input.forceRefresh ?? input.refresh),
   })
 
   const status =
