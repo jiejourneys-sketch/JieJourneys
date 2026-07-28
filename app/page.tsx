@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect } from 'react'
-import TopBanner from '@/components/TopBanner'
 import PopularGrid from '@/components/PopularGrid'
 import Footer from '@/components/Footer'
 import PromoLink from '@/components/PromoLink'
@@ -27,8 +26,6 @@ export default function HomePage() {
 
   return (
     <>
-      <TopBanner />
-
       <header>
         <nav className="nav">
           <Link href="/" className="brand" aria-label="回首頁" data-event="home_logo" data-item="brand">
@@ -68,16 +65,6 @@ export default function HomePage() {
           <p className="sub">自由行需要的工具、優惠與服務整理</p>
           <div className="tools-row">
             <a
-              href="/tools/bill"
-              className="tool-bill-link"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="sitetobill"
-              data-item="tool"
-            >
-              {'\u65c5\u6770\u5206\u5e33'}
-            </a>
-            <a
               href="/tools/planner"
               className="tool-bill-link"
               target="_blank"
@@ -87,6 +74,16 @@ export default function HomePage() {
             >
               {'\u65c5\u6770\u898f\u5283'}
             </a>
+            <a
+              href="/tools/bill"
+              className="tool-bill-link"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="sitetobill"
+              data-item="tool"
+            >
+              {'\u65c5\u6770\u5206\u5e33'}
+            </a>
             <PromoLink
               href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
               promoCode="GGGT6XAA"
@@ -95,8 +92,8 @@ export default function HomePage() {
             >
               {'\u5b8c\u7f8e\u884c\u8cfc\u7269(\u5408\u4f5c)'}
             </PromoLink>
-            <a href="/tools/resources" className="tool-bill-link" data-event="home_tools_resources" data-item="tool">
-              {'\u5176\u4ed6\u8cc7\u6e90'}
+            <a href="/tools/resources" className="tool-bill-link" data-event="home_tools_travel_promos" data-item="tool">
+              {'\u65c5\u904a\u512a\u60e0'}
             </a>
           </div>
         </section>
