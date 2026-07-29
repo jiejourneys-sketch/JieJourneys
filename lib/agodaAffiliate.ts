@@ -393,7 +393,7 @@ function buildAgodaSearchNames(
     verifiedNames: canonicalNames,
     googlePlaceName: hotelName,
     alternateNames,
-    maxNames: 4,
+    maxNames: 2,
   })
 }
 
@@ -412,7 +412,7 @@ async function searchAgodaWebCandidates(
       if (!parsed) continue
       const hotelName = cleanAgodaWebTitle(result.title) || searchName
       const score = scoreAgodaHotelNameAliases(
-        [query.hotelName, ...query.alternateHotelNames],
+        [searchName],
         [hotelName, result.title, result.snippet],
       )
       if (score < 0.78) continue

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTripAffiliatePublicConfig, searchTripAffiliateHotels } from '@/lib/tripAffiliate'
-import {
-  buildHotelAffiliateSearchNames,
-  getApplicableVerifiedHotelAffiliateIdentity,
-} from '@/lib/hotelAffiliateIdentity'
+import { buildPlannerHotelAffiliateSearchNames } from '@/lib/hotelAffiliateIdentity'
 import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
@@ -21,21 +18,13 @@ export async function POST(req: NextRequest) {
   const countryCode = cleanString(input.countryCode, 2)
   const latitude = cleanNumber(input.latitude ?? input.lat, -90, 90)
   const longitude = cleanNumber(input.longitude ?? input.lng, -180, 180)
-  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(googlePlaceId, {
-    latitude,
-    longitude,
-    countryCode,
-  })
-  const providedHotelNames = buildHotelAffiliateSearchNames({
-    verifiedNames: verifiedIdentity?.canonicalNames,
-    googlePlaceName: input.hotelName ?? input.googlePlaceName,
+  const providedHotelNames = buildPlannerHotelAffiliateSearchNames({
+    googlePlaceName: cleanString(input.googlePlaceName, 160) ?? cleanString(input.hotelName, 160),
     userName: input.name,
-    alternateNames: input.alternateHotelNames ?? input.alternateNames,
-    maxNames: 3,
   })
   const hotelName = providedHotelNames[0]
   if (!hotelName) return NextResponse.json({ error: 'missing_hotel_name' }, { status: 400 })
-  const alternateHotelNames = cleanStringArray(providedHotelNames.slice(1), 4, 160)
+  const alternateHotelNames = providedHotelNames.slice(1)
   const googlePlaceTypes = cleanHotelAffiliateGooglePlaceTypes(input.googlePlaceTypes ?? input.placeTypes, 12)
   const placeTypeSignal = hotelAffiliateGooglePlaceTypeSignal(googlePlaceTypes)
   const explicitLodgingHint = cleanBoolean(input.lodgingHint ?? input.isLodging ?? input.hotelAffiliateEligible)
@@ -67,14 +56,6 @@ export async function POST(req: NextRequest) {
 
 function cleanString(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : undefined
-}
-
-function cleanStringArray(value: unknown, maxItems: number, maxLength: number) {
-  if (!Array.isArray(value)) return []
-  return value
-    .map((item) => (typeof item === 'string' ? item.trim().slice(0, maxLength) : ''))
-    .filter(Boolean)
-    .slice(0, maxItems)
 }
 
 function cleanInteger(value: unknown, min: number, max: number) {

@@ -5,7 +5,9 @@ import { POST as postTripAffiliate } from '../app/api/pass-planner/hotel-affilia
 
 const centurionRequest = {
   hotelName: '日本〒110-',
+  googlePlaceName: 'Centurion Hotel & Spa Ueno Station',
   name: '上野车站世纪温泉酒店-人工镭温泉',
+  alternateHotelNames: ['This name must never be searched'],
   googlePlaceId: 'ChIJzfgJWQCPGGAR2_B6cNH4KIw',
   city: 'Tokyo',
   countryCode: 'JP',
@@ -23,16 +25,30 @@ function affiliateRequest(path: string) {
   })
 }
 
-test('verified routes recover from a polluted Google name without fuzzy matching', async () => {
+test('routes search the Maps English name before the user name', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  const previousTripSearchProvider = process.env.TRIP_SEARCH_PROVIDER
   const requestedQueries: string[] = []
   process.env.SERPAPI_API_KEY = 'agoda-route-regression'
   process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
   globalThis.fetch = (async (input) => {
     const url = new URL(String(input))
-    requestedQueries.push(url.searchParams.get('q') ?? '')
+    const searchQuery = url.searchParams.get('q') ?? ''
+    requestedQueries.push(searchQuery)
+    if (searchQuery.startsWith('site:trip.com/hotels')) {
+      return new Response(JSON.stringify({
+        search_metadata: { status: 'Success' },
+        organic_results: [{
+          position: 1,
+          title: 'Centurion Hotel & Spa Ueno Station - Trip.com',
+          link: 'https://www.trip.com/hotels/tokyo-hotel-detail-10748373/centurion-hotelandspa-ueno-station/',
+          snippet: 'Centurion Hotel & Spa Ueno Station, Tokyo',
+        }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
     return new Response(JSON.stringify({
       search_metadata: { status: 'Success' },
       organic_results: [{
@@ -52,7 +68,10 @@ test('verified routes recover from a polluted Google name without fuzzy matching
     const agoda = await agodaResponse.json()
     const trip = await tripResponse.json()
 
-    expect(requestedQueries).toEqual(['site:agoda.com Centurion Hotel & Spa Ueno Station Agoda'])
+    expect(requestedQueries.sort()).toEqual([
+      'site:agoda.com Centurion Hotel & Spa Ueno Station Agoda',
+      'site:trip.com/hotels Centurion Hotel & Spa Ueno Station Trip.com',
+    ])
     expect(agodaResponse.status).toBe(200)
     expect(agoda.matchStatus).toBe('matched')
     expect(agoda.confidence).toBe('high')
@@ -60,7 +79,7 @@ test('verified routes recover from a polluted Google name without fuzzy matching
 
     expect(tripResponse.status).toBe(200)
     expect(trip.matchStatus).toBe('matched')
-    expect(trip.confidence).toBe('verified')
+    expect(trip.confidence).toBe('high')
     expect(trip.bestMatch?.hotelId).toBe('10748373')
     expect(trip.bestMatch?.bookingUrl).toContain('hotelId=10748373')
   } finally {
@@ -69,5 +88,7 @@ test('verified routes recover from a polluted Google name without fuzzy matching
     else delete process.env.SERPAPI_API_KEY
     if (typeof previousAgodaSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousAgodaSearchProvider
     else delete process.env.AGODA_SEARCH_PROVIDER
+    if (typeof previousTripSearchProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousTripSearchProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
   }
 })

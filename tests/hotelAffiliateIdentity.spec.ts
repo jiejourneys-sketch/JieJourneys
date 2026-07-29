@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   buildHotelAffiliateSearchNames,
+  buildPlannerHotelAffiliateSearchNames,
   getApplicableVerifiedHotelAffiliateIdentity,
   getVerifiedHotelAffiliateIdentity,
   isUsableHotelAffiliateName,
@@ -39,6 +40,16 @@ test('keeps valid Google and user aliases without duplicates', () => {
   })).toEqual([
     'Centurion Hotel & Spa Ueno Station',
     '上野世紀SPA酒店-鐳溫泉',
+  ])
+})
+
+test('keeps planner lookup to the Maps name followed by the user name only', () => {
+  expect(buildPlannerHotelAffiliateSearchNames({
+    googlePlaceName: 'Daiwa Roynet Hotel Okinawa Kenchomae',
+    userName: '沖繩縣廳前大和ROYNET飯店',
+  })).toEqual([
+    'Daiwa Roynet Hotel Okinawa Kenchomae',
+    '沖繩縣廳前大和ROYNET飯店',
   ])
 })
 

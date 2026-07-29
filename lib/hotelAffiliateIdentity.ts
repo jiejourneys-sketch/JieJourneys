@@ -23,6 +23,11 @@ export type HotelAffiliateSearchNamesInput = {
   maxNames?: number
 }
 
+export type PlannerHotelAffiliateSearchNamesInput = Pick<
+  HotelAffiliateSearchNamesInput,
+  'googlePlaceName' | 'userName'
+>
+
 const MAX_HOTEL_NAME_LENGTH = 160
 
 const VERIFIED_HOTEL_AFFILIATE_IDENTITIES: Readonly<Record<string, VerifiedHotelAffiliateIdentity>> = Object.freeze({
@@ -149,6 +154,17 @@ export function buildHotelAffiliateSearchNames(input: HotelAffiliateSearchNamesI
   }
 
   return names
+}
+
+// Planner lookup deliberately has only two search rounds: Google's English
+// Place name first, then the name the user entered.  Keep aliases out of this
+// helper so a later caller cannot silently turn one hotel into many searches.
+export function buildPlannerHotelAffiliateSearchNames(input: PlannerHotelAffiliateSearchNamesInput) {
+  return buildHotelAffiliateSearchNames({
+    googlePlaceName: input.googlePlaceName,
+    userName: input.userName,
+    maxNames: 2,
+  })
 }
 
 export function getVerifiedHotelAffiliateIdentity(googlePlaceId: unknown) {

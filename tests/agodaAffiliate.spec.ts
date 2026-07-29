@@ -178,6 +178,52 @@ test('uses one Agoda web search as the primary path and preserves only our affil
   }
 })
 
+test('tries the user name only after the Maps English name has no Agoda result', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  const queries: string[] = []
+  process.env.SERPAPI_API_KEY = 'agoda-two-name-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async (input) => {
+    const query = new URL(String(input)).searchParams.get('q') ?? ''
+    queries.push(query)
+    const isUserNameSearch = query.includes('沖繩縣廳前大和ROYNET飯店')
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: isUserNameSearch
+        ? [{
+            position: 1,
+            link: 'https://www.agoda.com/daiwa-roynet-hotel-okinawa-kenchomae/hotel/okinawa-main-island-jp.html',
+            title: '沖繩縣廳前大和ROYNET飯店 - Agoda.com',
+            snippet: '沖繩縣廳前大和ROYNET飯店',
+          }]
+        : [],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: 'Daiwa Roynet Hotel Okinawa Kenchomae',
+      alternateHotelNames: ['沖繩縣廳前大和ROYNET飯店', 'This name must never be searched'],
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(queries).toEqual([
+      'site:agoda.com Daiwa Roynet Hotel Okinawa Kenchomae Agoda',
+      'site:agoda.com 沖繩縣廳前大和ROYNET飯店 Agoda',
+    ])
+    expect(result.matchStatus).toBe('matched')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})
+
 test('treats an unavailable Agoda web search as retryable instead of a no-match', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY

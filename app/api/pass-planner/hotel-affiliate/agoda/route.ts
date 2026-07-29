@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgodaAffiliatePublicConfig, searchAgodaAffiliateHotels } from '@/lib/agodaAffiliate'
-import {
-  buildHotelAffiliateSearchNames,
-  getApplicableVerifiedHotelAffiliateIdentity,
-} from '@/lib/hotelAffiliateIdentity'
+import { buildPlannerHotelAffiliateSearchNames } from '@/lib/hotelAffiliateIdentity'
 import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
@@ -20,17 +17,9 @@ export async function POST(req: NextRequest) {
   const countryCode = cleanString(input.countryCode, 2)
   const latitude = cleanNumber(input.latitude ?? input.lat, -90, 90)
   const longitude = cleanNumber(input.longitude ?? input.lng, -180, 180)
-  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(googlePlaceId, {
-    latitude,
-    longitude,
-    countryCode,
-  })
-  const hotelNames = buildHotelAffiliateSearchNames({
-    verifiedNames: verifiedIdentity?.canonicalNames,
-    googlePlaceName: input.hotelName ?? input.googlePlaceName,
+  const hotelNames = buildPlannerHotelAffiliateSearchNames({
+    googlePlaceName: cleanString(input.googlePlaceName, 160) ?? cleanString(input.hotelName, 160),
     userName: input.name,
-    alternateNames: input.alternateHotelNames,
-    maxNames: 6,
   })
   const hotelName = hotelNames[0]
   if (!hotelName) return NextResponse.json({ error: 'missing_hotel_name' }, { status: 400 })
@@ -41,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const result = await searchAgodaAffiliateHotels({
     hotelName,
-    alternateHotelNames: cleanStringArray(hotelNames.slice(1), 160, 8, hotelName),
+    alternateHotelNames: hotelNames.slice(1),
     googlePlaceId,
     cityId: cleanInteger(input.cityId, 1, 9999999),
     city: cleanString(input.city, 80),
@@ -71,28 +60,6 @@ export async function POST(req: NextRequest) {
 
 function cleanString(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : undefined
-}
-
-function cleanStringArray(value: unknown, maxLength: number, maxItems: number, excludedValue = '') {
-  if (!Array.isArray(value)) return []
-  const excludedKey = stringDedupeKey(excludedValue)
-  const seen = new Set(excludedKey ? [excludedKey] : [])
-  const result: string[] = []
-
-  for (const item of value) {
-    const clean = cleanString(item, maxLength)
-    const key = stringDedupeKey(clean || '')
-    if (!clean || !key || seen.has(key)) continue
-    seen.add(key)
-    result.push(clean)
-    if (result.length >= maxItems) break
-  }
-
-  return result
-}
-
-function stringDedupeKey(value: string) {
-  return value.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim()
 }
 
 function cleanBoolean(value: unknown) {

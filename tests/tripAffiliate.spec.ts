@@ -1,7 +1,4 @@
 import { expect, test } from '@playwright/test'
-import { busanHotelCards } from '../data/busan/hotels'
-import { fujiHotelCards } from '../data/fuji/hotels'
-import { northVietnamHotelCards } from '../data/northvietnam/hotels'
 import { tokyoHotelCards } from '../data/tokyo/hotels'
 import {
   buildTripAffiliateUrl,
@@ -136,20 +133,49 @@ test('keeps sufficiently specific CJK and Hangul exact names matchable', () => {
   }
 })
 
-test('uses a manually verified Google Place ID before external search', async () => {
-  const result = await searchTripAffiliateHotels({
-    hotelName: '上野世紀SPA酒店-鐳溫泉',
-    googlePlaceId: 'ChIJzfgJWQCPGGAR2_B6cNH4KIw',
-    city: 'Tokyo',
-    countryCode: 'JP',
-    latitude: 35.7098512,
-    longitude: 139.7756721,
-  })
+test('uses external search even when a Google Place ID has a historical mapping', async () => {
+  const previousProvider = process.env.TRIP_SEARCH_PROVIDER
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousFetch = globalThis.fetch
+  let fetchCount = 0
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'trip-place-id-regression'
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [{
+        position: 1,
+        title: 'Centurion Hotel & Spa Ueno Station - Trip.com',
+        link: 'https://www.trip.com/hotels/tokyo-hotel-detail-10748373/centurion-hotelandspa-ueno-station/',
+        snippet: 'Centurion Hotel & Spa Ueno Station, Tokyo',
+      }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
 
-  expect(result.matchStatus).toBe('matched')
-  expect(result.confidence).toBe('verified')
-  expect(result.bestMatch?.hotelId).toBe('10748373')
-  expect(result.bestMatch?.source).toBe('verified')
+  try {
+    const result = await searchTripAffiliateHotels({
+      hotelName: 'Centurion Hotel & Spa Ueno Station',
+      googlePlaceId: 'ChIJzfgJWQCPGGAR2_B6cNH4KIw',
+      city: 'Tokyo',
+      countryCode: 'JP',
+      latitude: 35.7098512,
+      longitude: 139.7756721,
+      forceRefresh: true,
+    })
+
+    expect(fetchCount).toBe(1)
+    expect(result.matchStatus).toBe('matched')
+    expect(result.confidence).toBe('high')
+    expect(result.bestMatch?.hotelId).toBe('10748373')
+    expect(result.bestMatch?.source).toBe('serpapi')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+  }
 })
 
 test('accepts a localized Trip title with its canonical alias and ignores marketing wrappers', () => {
@@ -333,38 +359,46 @@ test('removes Trip annual price/review wrappers without removing numeric hotel b
   }
 })
 
-test('keeps every curated site-index Trip hotel self-matchable', async () => {
-  const groups = [
-    { cards: busanHotelCards, countryCode: 'KR' },
-    { cards: tokyoHotelCards, countryCode: 'JP' },
-    { cards: fujiHotelCards, countryCode: 'JP' },
-    { cards: northVietnamHotelCards, countryCode: 'VN' },
-  ]
-  let checked = 0
+test('does not bypass provider search with a curated site card', async () => {
+  const previousProvider = process.env.TRIP_SEARCH_PROVIDER
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousFetch = globalThis.fetch
+  const knownCard = tokyoHotelCards.find((card) =>
+    card.actions?.some((action) => action.label.toLowerCase() === 'trip' && action.href.includes('trip.com')),
+  )
+  let fetchCount = 0
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'trip-site-card-regression'
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
 
-  for (const { cards, countryCode } of groups) {
-    for (const card of cards) {
-      const tripAction = card.actions?.find(
-        (action) => action.label.toLowerCase() === 'trip' && action.href.includes('trip.com'),
-      )
-      if (!tripAction) continue
-      checked += 1
-      const result = await searchTripAffiliateHotels({
-        hotelName: card.title,
-        city: card.area || card.meta,
-        countryCode,
-        latitude: card.lat,
-        longitude: card.lng,
-      })
-      expect(result.matchStatus, card.title).toBe('matched')
-      expect(result.bestMatch?.source, card.title).toBe('site_index')
-    }
+  try {
+    expect(knownCard).toBeTruthy()
+    const result = await searchTripAffiliateHotels({
+      hotelName: knownCard?.title ?? '',
+      city: knownCard?.area || knownCard?.meta,
+      countryCode: 'JP',
+      latitude: knownCard?.lat,
+      longitude: knownCard?.lng,
+    })
+
+    expect(fetchCount).toBe(1)
+    expect(result.matchStatus).toBe('no_match')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
   }
-
-  expect(checked).toBeGreaterThan(50)
 })
 
-test('recovers the Trip hotel from the Maps name with one no-city SerpAPI query', async () => {
+test('recovers the Trip hotel from the Maps English name with one no-city SerpAPI query', async () => {
   const previousProvider = process.env.TRIP_SEARCH_PROVIDER
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousFetch = globalThis.fetch
@@ -394,7 +428,7 @@ test('recovers the Trip hotel from the Maps name with one no-city SerpAPI query'
 
   try {
     const result = await searchTripAffiliateHotels({
-      hotelName: '沖繩縣廳前大和ROYNET飯店',
+      hotelName: 'Daiwa Roynet Hotel Okinawa Kenchomae',
       city: 'Okinawa Main island',
       countryCode: 'JP',
       latitude: 26.2132974,
@@ -404,7 +438,7 @@ test('recovers the Trip hotel from the Maps name with one no-city SerpAPI query'
 
     expect(requestedUrls).toHaveLength(1)
     const searchQuery = new URL(requestedUrls[0]).searchParams.get('q') ?? ''
-    expect(searchQuery).toContain('沖繩縣廳前大和ROYNET飯店')
+    expect(searchQuery).toContain('Daiwa Roynet Hotel Okinawa Kenchomae')
     expect(searchQuery).not.toContain('Okinawa Main island')
     expect(result.matchStatus).toBe('matched')
     expect(result.bestMatch?.hotelId).toBe('703607')
@@ -417,6 +451,52 @@ test('recovers the Trip hotel from the Maps name with one no-city SerpAPI query'
     expect(bookingUrl.searchParams.get('Allianceid')).toBeTruthy()
     expect(bookingUrl.searchParams.get('SID')).toBeTruthy()
     expect(bookingUrl.searchParams.has('tid')).toBe(false)
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})
+
+test('tries the user name only after the Maps English name has no Trip result', async () => {
+  const previousProvider = process.env.TRIP_SEARCH_PROVIDER
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousFetch = globalThis.fetch
+  const queries: string[] = []
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'trip-two-name-regression'
+  globalThis.fetch = (async (input) => {
+    const query = new URL(String(input)).searchParams.get('q') ?? ''
+    queries.push(query)
+    const isUserNameSearch = query.includes('沖繩縣廳前大和ROYNET飯店')
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: isUserNameSearch
+        ? [{
+            position: 1,
+            title: '沖繩縣廳前大和ROYNET飯店 - Trip.com',
+            link: 'https://www.trip.com/hotels/naha-hotel-detail-703607/daiwa-roynet-hotel-okinawa-kenchomae/',
+            snippet: '沖繩縣廳前大和ROYNET飯店',
+          }]
+        : [],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const result = await searchTripAffiliateHotels({
+      hotelName: 'Daiwa Roynet Hotel Okinawa Kenchomae',
+      alternateHotelNames: ['沖繩縣廳前大和ROYNET飯店', 'This name must never be searched'],
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(queries).toEqual([
+      'site:trip.com/hotels Daiwa Roynet Hotel Okinawa Kenchomae Trip.com',
+      'site:trip.com/hotels 沖繩縣廳前大和ROYNET飯店 Trip.com',
+    ])
+    expect(result.matchStatus).toBe('matched')
   } finally {
     globalThis.fetch = previousFetch
     if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider

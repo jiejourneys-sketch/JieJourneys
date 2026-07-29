@@ -45,7 +45,7 @@ import {
 import { cityMapMarkerZIndex, selectedMarkerArrowIcon } from '@/lib/cityMapMarkers'
 import { getGtag } from '@/lib/gtag'
 import {
-  buildHotelAffiliateSearchNames,
+  buildPlannerHotelAffiliateSearchNames,
   getApplicableVerifiedHotelAffiliateIdentity,
 } from '@/lib/hotelAffiliateIdentity'
 import { hotelAffiliateGooglePlaceTypeSignal, hotelAffiliatePlaceNameSignal } from '@/lib/hotelAffiliatePlaceSignals'
@@ -233,7 +233,7 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v3:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v13'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v14'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v4:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
@@ -579,15 +579,18 @@ function customPlaceHotelAffiliateSearchNames(
     'googlePlaceId' | 'googlePlaceName' | 'googlePlaceLat' | 'googlePlaceLng' | 'name' | 'lat' | 'lng'
   >,
 ) {
-  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(place.googlePlaceId, {
-    latitude: place.googlePlaceLat ?? place.lat,
-    longitude: place.googlePlaceLng ?? place.lng,
-  })
-  return buildHotelAffiliateSearchNames({
-    verifiedNames: verifiedIdentity?.canonicalNames,
-    googlePlaceName: place.googlePlaceName,
+  const googlePlaceName = place.googlePlaceName?.trim() ?? ''
+  const googlePlaceId = place.googlePlaceId?.trim() ?? ''
+  // If the English Details lookup failed and the Maps label is still a
+  // translated/non-English string, skip it and use the user's entered name
+  // as the explicit second-round fallback.
+  const mapsName =
+    googlePlaceDetailsCoolingDown(googlePlaceId) && /[^\x00-\x7F]/.test(googlePlaceName)
+      ? ''
+      : googlePlaceName
+  return buildPlannerHotelAffiliateSearchNames({
+    googlePlaceName: mapsName,
     userName: place.name,
-    maxNames: 3,
   })
 }
 
@@ -7278,7 +7281,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const {
       cacheKey,
       hotelName,
-      alternateHotelNames,
       latitude,
       longitude,
       googlePlaceTypes,
@@ -7325,7 +7327,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         hotelName,
-        alternateHotelNames,
+        googlePlaceName: place.googlePlaceName,
+        name: place.name,
         googlePlaceId: place.googlePlaceId,
         city,
         cityId,
@@ -7421,7 +7424,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const {
       cacheKey,
       hotelName,
-      alternateHotelNames,
       latitude,
       longitude,
       googlePlaceTypes,
@@ -7468,7 +7470,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         hotelName,
-        alternateHotelNames,
+        googlePlaceName: place.googlePlaceName,
+        name: place.name,
         googlePlaceId: place.googlePlaceId,
         city,
         cityId,
@@ -7608,9 +7611,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       // Do not search Agoda/Trip with a translated Maps label while the
       // Place Details request is still obtaining Google's canonical English
-      // accommodation name.  It avoids spending a search on a name that an
-      // overseas booking site cannot reliably compare.
-      if (shouldWaitForGooglePlaceAffiliateDetails(place)) {
+      // accommodation name. If that request has already failed, fall back to
+      // the user's name instead of waiting forever.
+      const googlePlaceId = place.googlePlaceId?.trim() ?? ''
+      const isWaitingForGooglePlaceDetails =
+        shouldWaitForGooglePlaceAffiliateDetails(place) &&
+        !getCachedGooglePlaceDetails(googlePlaceId) &&
+        !googlePlaceDetailsCoolingDown(googlePlaceId)
+      if (isWaitingForGooglePlaceDetails) {
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         return
       }
