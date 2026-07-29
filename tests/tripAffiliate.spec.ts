@@ -494,3 +494,40 @@ test('lets a manual Trip retry bypass an empty server search cache', async () =>
     else delete process.env.SERPAPI_API_KEY
   }
 })
+
+test('treats a partial Trip search outage as retryable instead of a no-match', async () => {
+  const previousProvider = process.env.TRIP_SEARCH_PROVIDER
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousFetch = globalThis.fetch
+  let fetchCount = 0
+
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'trip-partial-error-regression'
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    if (fetchCount === 1) {
+      return new Response(JSON.stringify({
+        search_metadata: { status: 'Success' },
+        organic_results: [],
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
+    throw new Error('temporary SerpAPI outage')
+  }) as typeof fetch
+
+  try {
+    const result = await searchTripAffiliateHotels({
+      hotelName: 'Trip Partial Outage Primary Lodge',
+      alternateHotelNames: ['Trip Partial Outage Alternate Lodge'],
+      lodgingHint: true,
+    })
+
+    expect(fetchCount).toBe(2)
+    expect(result.matchStatus).toBe('search_error')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})

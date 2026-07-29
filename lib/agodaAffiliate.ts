@@ -323,7 +323,10 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
         endpoint: '',
         searchProvider: config.searchProvider,
         query,
-        matchStatus: 'no_match',
+        // A search-provider outage is not evidence that the hotel does not
+        // exist.  Returning api_error makes the planner retry shortly instead
+        // of caching this as a 24-hour no-match.
+        matchStatus: 'api_error',
         confidence: 'none',
         candidates: [],
         error: 'agoda_web_search_unavailable',
@@ -454,7 +457,7 @@ async function searchAgodaWebResults(
   hotelName: string,
   forceRefresh: boolean,
 ) {
-  const cacheKey = `${config.searchProvider}|${normalizeHotelName(hotelName)}`
+  const cacheKey = `web-v2|${config.searchProvider}|${normalizeHotelName(hotelName)}`
   if (!forceRefresh) {
     const cached = readAgodaSearchCache(cacheKey)
     if (cached) return cached
@@ -463,7 +466,12 @@ async function searchAgodaWebResults(
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   try {
-    const searchText = `site:agoda.com "${hotelName.replaceAll('"', ' ')}" Agoda`
+    // Keep the provider query as natural words rather than an exact phrase.
+    // Maps and Agoda often differ slightly in punctuation, word order, or a
+    // city suffix; candidate scoring below still prevents a loose result from
+    // becoming an affiliate link.
+    const searchName = hotelName.replace(/["“”]+/g, ' ').replace(/\s+/g, ' ').trim()
+    const searchText = ['site:agoda.com', searchName, 'Agoda'].filter(Boolean).join(' ')
     const results =
       config.searchProvider === 'serpapi'
         ? await searchAgodaWithSerpApi(config, searchText, controller.signal)

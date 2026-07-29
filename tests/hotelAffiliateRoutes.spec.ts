@@ -24,22 +24,50 @@ function affiliateRequest(path: string) {
 }
 
 test('verified routes recover from a polluted Google name without fuzzy matching', async () => {
-  const [agodaResponse, tripResponse] = await Promise.all([
-    postAgodaAffiliate(affiliateRequest('/api/pass-planner/hotel-affiliate/agoda')),
-    postTripAffiliate(affiliateRequest('/api/pass-planner/hotel-affiliate/trip')),
-  ])
-  const agoda = await agodaResponse.json()
-  const trip = await tripResponse.json()
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  const requestedQueries: string[] = []
+  process.env.SERPAPI_API_KEY = 'agoda-route-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    requestedQueries.push(url.searchParams.get('q') ?? '')
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [{
+        position: 1,
+        title: 'Centurion Hotel & Spa Ueno Station - Agoda.com',
+        link: 'https://www.agoda.com/centurion-hotel-spa-ueno-station/hotel/tokyo-jp.html',
+        snippet: 'Centurion Hotel & Spa Ueno Station, Tokyo',
+      }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
 
-  expect(agodaResponse.status).toBe(200)
-  expect(agoda.matchStatus).toBe('matched')
-  expect(agoda.confidence).toBe('verified')
-  expect(agoda.bestMatch?.hotelId).toBe('2232362')
-  expect(agoda.bestMatch?.bookingUrl).toContain('hid=2232362')
+  try {
+    const [agodaResponse, tripResponse] = await Promise.all([
+      postAgodaAffiliate(affiliateRequest('/api/pass-planner/hotel-affiliate/agoda')),
+      postTripAffiliate(affiliateRequest('/api/pass-planner/hotel-affiliate/trip')),
+    ])
+    const agoda = await agodaResponse.json()
+    const trip = await tripResponse.json()
 
-  expect(tripResponse.status).toBe(200)
-  expect(trip.matchStatus).toBe('matched')
-  expect(trip.confidence).toBe('verified')
-  expect(trip.bestMatch?.hotelId).toBe('10748373')
-  expect(trip.bestMatch?.bookingUrl).toContain('hotelId=10748373')
+    expect(requestedQueries).toEqual(['site:agoda.com Centurion Hotel & Spa Ueno Station Agoda'])
+    expect(agodaResponse.status).toBe(200)
+    expect(agoda.matchStatus).toBe('matched')
+    expect(agoda.confidence).toBe('high')
+    expect(agoda.bestMatch?.bookingUrl).toContain('/centurion-hotel-spa-ueno-station/hotel/tokyo-jp.html')
+
+    expect(tripResponse.status).toBe(200)
+    expect(trip.matchStatus).toBe('matched')
+    expect(trip.confidence).toBe('verified')
+    expect(trip.bestMatch?.hotelId).toBe('10748373')
+    expect(trip.bestMatch?.bookingUrl).toContain('hotelId=10748373')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousAgodaSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousAgodaSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
 })

@@ -233,7 +233,7 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v3:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v12'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v13'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v4:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
@@ -5458,6 +5458,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customDraftCategoryLabel =
     customCategoryItems.find((item) => item.key === customDraft.category)?.label ?? '景點'
   const customDraftLinks = customDraft.id ? (placeUserLinks[customDraft.id] ?? customPlaces[customDraft.id]?.links ?? []) : []
+  const customDraftSavedPlace = customDraft.id ? customPlaces[customDraft.id] : undefined
+  const customDraftHasAgodaLink = hasHotelAffiliateProviderLink(customDraftLinks, 'Agoda')
+  const customDraftHasTripLink = hasHotelAffiliateProviderLink(customDraftLinks, 'Trip')
+  const customDraftAffiliateLookupPending =
+    customDraftSavedPlace != null &&
+    (agodaAffiliateStatus[customDraftSavedPlace.id] === 'searching' || tripAffiliateStatus[customDraftSavedPlace.id] === 'searching')
+  const showCustomDraftHotelAffiliateRecheck =
+    customDraftSavedPlace != null &&
+    cleanCustomPlaceCategory(customDraftSavedPlace.category) === 'hotel' &&
+    customPlaceHotelAffiliateManualLookupAllowed(customDraftSavedPlace) &&
+    customPlaceHotelAffiliateEligibility(customDraftSavedPlace) !== 'pending_place_type' &&
+    customDraftHasAgodaLink &&
+    customDraftHasTripLink
   const customGoogleUrlNotice =
     customDraft.googleUrl.trim() && !googleMapsUrlFromInput(customDraft.googleUrl)
       ? googleMapsInputNotice(customDraft.googleUrl)
@@ -6824,7 +6837,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setCustomPlaces((current) => {
       const place = current[placeId]
       if (!place) return current
-      const nextLinks = mergeCustomPlannerLinks(place.links, link)
+      const nextLinks = mergeCustomPlannerLinks(place.links, link, {
+        replaceProvider: options?.replaceProvider === true,
+      })
       if (nextLinks === place.links) return current
       return {
         ...current,
@@ -9227,6 +9242,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       >
                         {'\u5132\u5b58\u5230\u6e05\u55ae'}
                       </button>
+                      {showCustomDraftHotelAffiliateRecheck ? (
+                        <button
+                          type="button"
+                          className={styles.customPlaceAffiliateRecheck}
+                          onClick={() => {
+                            if (customDraftSavedPlace) forceHotelAffiliateLookupForCustomPlace(customDraftSavedPlace.id)
+                          }}
+                          disabled={customDraftAffiliateLookupPending}
+                          title="會以目前已儲存的住宿資料重新查詢；若剛修改名稱或 Google Maps 連結，請先儲存後再按。"
+                        >
+                          {customDraftAffiliateLookupPending ? '正在重新驗證 Agoda／Trip…' : '重新驗證 Agoda／Trip'}
+                        </button>
+                      ) : null}
                     </div>
                   ) : (
                     <button type="button" className={styles.customPlaceOpen} onClick={startCustomPlaceDraft}>
@@ -9259,6 +9287,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           plannerPlaceCategory(place, customCategoryItems) === 'hotel' &&
                           customPlaceHotelAffiliateManualLookupAllowed(customPlace) &&
                           customHotelEligibility !== 'pending_place_type' &&
+                          (!customHotelHasAgodaLink || !customHotelHasTripLink) &&
                           !customHotelAffiliateLookupPending
                         : false
                     const hotelAffiliateStatuses =

@@ -5,6 +5,7 @@ import {
   searchAgodaAffiliateHotels,
   scoreAgodaHotelNameAliases,
 } from '../lib/agodaAffiliate'
+import { getApplicableVerifiedHotelAffiliateIdentity } from '../lib/hotelAffiliateIdentity'
 
 test('cleans, deduplicates, and bounds Agoda alternate hotel names', () => {
   const aliases = cleanAgodaAlternateHotelNames([
@@ -32,22 +33,21 @@ test('uses the highest score across every query and candidate alias', () => {
   expect(aliasScore).toBe(1)
 })
 
-test('keeps the dense-area coordinate guard while allowing a canonical alias to match', async () => {
+test('keeps the dense-area coordinate guard while allowing a canonical alias in the identity lookup', async () => {
   const baseQuery = {
     hotelName: '日本〒110-',
     latitude: 35.7098512,
     longitude: 139.7756721,
     lodgingHint: true,
   }
-  const coordinateOnlyResult = await searchAgodaAffiliateHotels(baseQuery)
-  const canonicalAliasResult = await searchAgodaAffiliateHotels({
+  const coordinateOnlyIdentity = await findAgodaHotelIndexIdentity(baseQuery)
+  const canonicalAliasIdentity = await findAgodaHotelIndexIdentity({
     ...baseQuery,
     alternateHotelNames: ['Centurion Hotel & Spa Ueno Station -Artificial Radium Hot Spring'],
   })
 
-  expect(coordinateOnlyResult.matchStatus).toBe('no_match')
-  expect(canonicalAliasResult.matchStatus).toBe('matched')
-  expect(canonicalAliasResult.bestMatch?.hotelId).toBe('2232362')
+  expect(coordinateOnlyIdentity).toBeNull()
+  expect(canonicalAliasIdentity?.hotelId).toBe('2232362')
 })
 
 test('finds the Okinawa Kenchomae Agoda identity from the local index without network access', async () => {
@@ -101,10 +101,8 @@ test('requires numeric hotel branch identities to agree', async () => {
     scoreAgodaHotelNameAliases(['24 Guesthouse Seoul'], ['24Guesthouse Seoul']),
     scoreAgodaHotelNameAliases(['Hotel No. 25 Busan'], ['Hotel No25 Busan']),
   ]
-  const result = await searchAgodaAffiliateHotels({
+  const identity = await findAgodaHotelIndexIdentity({
     hotelName: 'Toyoko Inn Seoul Dongdaemun No.2',
-    cityId: 14690,
-    city: 'Seoul',
     countryCode: 'KR',
     latitude: 37.564529,
     longitude: 127.007813,
@@ -116,27 +114,22 @@ test('requires numeric hotel branch identities to agree', async () => {
   expect(correctBranchScore).toBeGreaterThan(0.78)
   expect(currentNameWithFormerBranchScore).toBe(1)
   compactNumberScores.forEach((score) => expect(score).toBeGreaterThan(0.77))
-  expect(result.matchStatus).toBe('matched')
-  expect(result.bestMatch?.hotelId).toBe('86690097')
-  expect(result.bestMatch?.hotelName).toContain('2')
+  expect(identity?.hotelId).toBe('86690097')
+  expect(identity?.canonicalNames[0]).toContain('2')
 })
 
-test('uses a manually verified Google Place ID before fuzzy matching', async () => {
-  const result = await searchAgodaAffiliateHotels({
-    hotelName: '日本〒110-',
-    googlePlaceId: 'ChIJzfgJWQCPGGAR2_B6cNH4KIw',
+test('exposes a manually verified Google Place ID before fuzzy matching', () => {
+  const identity = getApplicableVerifiedHotelAffiliateIdentity('ChIJzfgJWQCPGGAR2_B6cNH4KIw', {
     latitude: 35.7098512,
     longitude: 139.7756721,
-    lodgingHint: true,
+    countryCode: 'JP',
   })
 
-  expect(result.matchStatus).toBe('matched')
-  expect(result.confidence).toBe('verified')
-  expect(result.bestMatch?.hotelId).toBe('2232362')
-  expect(result.bestMatch?.source).toBe('verified')
+  expect(identity?.agoda?.hotelId).toBe('2232362')
+  expect(identity?.agoda?.hotelName).toContain('Centurion')
 })
 
-test('uses one exact Agoda web search as the primary path and preserves only our affiliate parameters', async () => {
+test('uses one Agoda web search as the primary path and preserves only our affiliate parameters', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
@@ -159,7 +152,7 @@ test('uses one exact Agoda web search as the primary path and preserves only our
 
   try {
     const result = await searchAgodaAffiliateHotels({
-      hotelName: '沖繩縣廳前大和ROYNET飯店',
+      hotelName: 'Daiwa Roynet Hotel Okinawa Kenchomae',
       countryCode: 'JP',
       latitude: 26.2132974,
       longitude: 127.6766983,
@@ -167,7 +160,7 @@ test('uses one exact Agoda web search as the primary path and preserves only our
     })
 
     expect(requests).toHaveLength(1)
-    expect(requests[0]?.searchParams.get('q')).toBe('site:agoda.com "Daiwa Roynet Hotel Okinawa Kenchomae" Agoda')
+    expect(requests[0]?.searchParams.get('q')).toBe('site:agoda.com Daiwa Roynet Hotel Okinawa Kenchomae Agoda')
     expect(result.matchStatus).toBe('matched')
     expect(result.bestMatch?.source).toBe('serpapi')
     const bookingUrl = new URL(result.bestMatch?.bookingUrl ?? '')
@@ -176,6 +169,33 @@ test('uses one exact Agoda web search as the primary path and preserves only our
     expect(bookingUrl.searchParams.get('cid')).not.toBe('another-publisher')
     expect(bookingUrl.searchParams.get('pcs')).toBe('1')
     expect(bookingUrl.searchParams.has('another-publisher')).toBe(false)
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})
+
+test('treats an unavailable Agoda web search as retryable instead of a no-match', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  process.env.SERPAPI_API_KEY = 'agoda-transient-error-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async () => {
+    throw new Error('temporary SerpAPI outage')
+  }) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: 'Transient Agoda Retry Lodge',
+      lodgingHint: true,
+    })
+
+    expect(result.matchStatus).toBe('api_error')
+    expect(result.error).toBe('agoda_web_search_unavailable')
   } finally {
     globalThis.fetch = previousFetch
     if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey

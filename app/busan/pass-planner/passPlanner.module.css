@@ -678,6 +678,28 @@
   margin-top: auto;
 }
 
+.customPlaceAffiliateRecheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid rgba(31, 122, 140, 0.26);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #ffffff;
+  color: var(--brand);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.customPlaceAffiliateRecheck:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
 .customPlaceSave:disabled {
   cursor: default;
   opacity: 0.5;

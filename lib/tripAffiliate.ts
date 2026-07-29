@@ -366,10 +366,15 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
       throw firstSearchError ?? new Error('trip_search_failed')
     }
 
+    const matchStatus =
+      outcome.matchStatus === 'no_match' && firstSearchError
+        ? 'search_error'
+        : outcome.matchStatus
+
     return {
       ...configuredResponse(),
-      matchStatus: outcome.matchStatus,
-      confidence: tripMatchConfidence(outcome.matchStatus),
+      matchStatus,
+      confidence: tripMatchConfidence(matchStatus),
       ...(outcome.bestMatch ? { bestMatch: outcome.bestMatch } : {}),
       candidates: outcome.candidates,
       rawCount: searchRawCount + currentSiteIndexResult.rawCount,
@@ -504,6 +509,7 @@ async function searchTripResults(
   forceRefresh = false,
 ) {
   const cacheKey = [
+    'web-v2',
     config.searchProvider,
     normalizeTripText(query.hotelName),
   ].join('|')
@@ -1416,7 +1422,7 @@ function mergeTripCandidates(
 }
 
 function buildTripSearchQuery(hotelName: string) {
-  const exactHotelName = hotelName
+  const searchHotelName = hotelName
     .replace(/["“”]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -1424,7 +1430,7 @@ function buildTripSearchQuery(hotelName: string) {
   // "Okinawa Main island"), not the city used by Trip ("Naha").
   return [
     'site:trip.com/hotels',
-    exactHotelName ? `"${exactHotelName}"` : '',
+    searchHotelName,
     'Trip.com',
   ]
     .filter(Boolean)
