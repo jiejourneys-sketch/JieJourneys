@@ -92,3 +92,94 @@ test('routes search the Maps English name before the user name', async () => {
     else delete process.env.TRIP_SEARCH_PROVIDER
   }
 })
+
+test('routes keep Maps English, Maps Traditional Chinese, and user-name searches separate and ordered', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  const previousTripSearchProvider = process.env.TRIP_SEARCH_PROVIDER
+  const mapsEnglishName = 'Planner Harbor View Hotel'
+  const mapsTraditionalChineseName = '地圖繁中港景飯店'
+  const userName = '使用者輸入海灣飯店'
+  const agodaQueries: string[] = []
+  const tripQueries: string[] = []
+  process.env.SERPAPI_API_KEY = 'route-three-name-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async (input) => {
+    const query = new URL(String(input)).searchParams.get('q') ?? ''
+    const isTrip = query.startsWith('site:trip.com/hotels')
+    if (isTrip) tripQueries.push(query)
+    else agodaQueries.push(query)
+    const candidateName =
+      query.includes(mapsEnglishName)
+        ? mapsTraditionalChineseName
+        : query.includes(mapsTraditionalChineseName)
+          ? userName
+          : userName
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [{
+        position: 1,
+        title: `${candidateName} - ${isTrip ? 'Trip.com' : 'Agoda.com'}`,
+        link: isTrip
+          ? 'https://www.trip.com/hotels/naha-hotel-detail-703607/planner-harbor-view-hotel/'
+          : 'https://www.agoda.com/planner-harbor-view-hotel/hotel/okinawa-main-island-jp.html',
+        snippet: candidateName,
+      }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  const requestBody = {
+    hotelName: mapsEnglishName,
+    googlePlaceName: mapsEnglishName,
+    googlePlaceNameZhTw: mapsTraditionalChineseName,
+    name: userName,
+    alternateHotelNames: ['This name must never be searched'],
+    googlePlaceId: 'planner-route-three-name-regression',
+    city: 'Naha',
+    countryCode: 'JP',
+    lat: 26.2132974,
+    lng: 127.6766983,
+    lodgingHint: true,
+    googlePlaceTypes: ['lodging'],
+    forceRefresh: true,
+  }
+  const makeRequest = (path: string) => new NextRequest(`http://localhost${path}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  })
+
+  try {
+    const [agodaResponse, tripResponse] = await Promise.all([
+      postAgodaAffiliate(makeRequest('/api/pass-planner/hotel-affiliate/agoda')),
+      postTripAffiliate(makeRequest('/api/pass-planner/hotel-affiliate/trip')),
+    ])
+    const [agoda, trip] = await Promise.all([agodaResponse.json(), tripResponse.json()])
+
+    expect(agodaQueries).toEqual([
+      `site:agoda.com ${mapsEnglishName} Agoda`,
+      `site:agoda.com ${mapsTraditionalChineseName} Agoda`,
+      `site:agoda.com ${userName} Agoda`,
+    ])
+    expect(tripQueries).toEqual([
+      `site:trip.com/hotels ${mapsEnglishName} Trip.com`,
+      `site:trip.com/hotels ${mapsTraditionalChineseName} Trip.com`,
+      `site:trip.com/hotels ${userName} Trip.com`,
+    ])
+    expect([...agodaQueries, ...tripQueries].join(' ')).not.toContain('This name must never be searched')
+    expect(agodaResponse.status).toBe(200)
+    expect(agoda.matchStatus).toBe('matched')
+    expect(tripResponse.status).toBe(200)
+    expect(trip.matchStatus).toBe('matched')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousAgodaSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousAgodaSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+    if (typeof previousTripSearchProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousTripSearchProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+  }
+})

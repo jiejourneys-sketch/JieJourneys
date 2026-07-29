@@ -393,7 +393,7 @@ function buildAgodaSearchNames(
     verifiedNames: canonicalNames,
     googlePlaceName: hotelName,
     alternateNames,
-    maxNames: 2,
+    maxNames: 3,
   })
 }
 

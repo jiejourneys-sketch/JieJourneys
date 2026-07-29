@@ -170,7 +170,7 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
   const hotelNames = buildHotelAffiliateSearchNames({
     googlePlaceName: input.hotelName,
     alternateNames: input.alternateHotelNames,
-    maxNames: 2,
+    maxNames: 3,
   })
   const query: TripAffiliateSearchResponse['query'] = {
     hotelName: hotelNames[0] ?? input.hotelName.trim().slice(0, 160),
@@ -605,7 +605,7 @@ export function evaluateTripAffiliateCandidateMatch(
   const hotelNames = buildHotelAffiliateSearchNames({
     googlePlaceName: input.hotelName,
     alternateNames: input.alternateHotelNames,
-    maxNames: 2,
+    maxNames: 3,
   })
   const query: TripAffiliateSearchResponse['query'] = {
     hotelName: hotelNames[0] ?? input.hotelName.trim().slice(0, 160),
@@ -1244,7 +1244,7 @@ function buildTripSearchUrl(hotelName: string) {
 function tripSearchNames(query: TripAffiliateSearchResponse['query']) {
   return cleanNameList([query.hotelName, ...query.alternateHotelNames], '', 5, 160)
     .filter((hotelName) => isUsableTripSearchName(hotelName, query.city))
-    .slice(0, 2)
+    .slice(0, 3)
 }
 
 function isUsableTripSearchName(hotelName: string, city?: string) {

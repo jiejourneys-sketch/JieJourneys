@@ -26,7 +26,9 @@ export type HotelAffiliateSearchNamesInput = {
 export type PlannerHotelAffiliateSearchNamesInput = Pick<
   HotelAffiliateSearchNamesInput,
   'googlePlaceName' | 'userName'
->
+> & {
+  googlePlaceNameZhTw?: unknown
+}
 
 const MAX_HOTEL_NAME_LENGTH = 160
 
@@ -156,15 +158,24 @@ export function buildHotelAffiliateSearchNames(input: HotelAffiliateSearchNamesI
   return names
 }
 
-// Planner lookup deliberately has only two search rounds: Google's English
-// Place name first, then the name the user entered.  Keep aliases out of this
-// helper so a later caller cannot silently turn one hotel into many searches.
+// Planner lookup deliberately has only three search rounds: Google's English
+// Place name, Google's Traditional-Chinese Place name, then the name the user
+// entered. Keep aliases out of this helper so a later caller cannot silently
+// turn one hotel into many searches.
 export function buildPlannerHotelAffiliateSearchNames(input: PlannerHotelAffiliateSearchNamesInput) {
-  return buildHotelAffiliateSearchNames({
-    googlePlaceName: input.googlePlaceName,
-    userName: input.userName,
-    maxNames: 2,
-  })
+  const seen = new Set<string>()
+  const names: string[] = []
+
+  for (const value of [input.googlePlaceName, input.googlePlaceNameZhTw, input.userName]) {
+    const name = normalizeHotelAffiliateIdentityName(value)
+    if (!isUsableHotelAffiliateName(name)) continue
+    const key = name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '')
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    names.push(name)
+  }
+
+  return names
 }
 
 export function getVerifiedHotelAffiliateIdentity(googlePlaceId: unknown) {

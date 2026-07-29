@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
   const longitude = cleanNumber(input.longitude ?? input.lng, -180, 180)
   const providedHotelNames = buildPlannerHotelAffiliateSearchNames({
     googlePlaceName: cleanString(input.googlePlaceName, 160) ?? cleanString(input.hotelName, 160),
+    googlePlaceNameZhTw: cleanString(input.googlePlaceNameZhTw, 160),
     userName: input.name,
   })
   const hotelName = providedHotelNames[0]

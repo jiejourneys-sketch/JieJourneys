@@ -506,6 +506,64 @@ test('tries the user name only after the Maps English name has no Trip result', 
   }
 })
 
+test('searches Maps English, Maps Traditional Chinese, then the user name as separate Trip rounds', async () => {
+  const previousProvider = process.env.TRIP_SEARCH_PROVIDER
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousFetch = globalThis.fetch
+  const mapsEnglishName = 'Planner Harbor View Hotel'
+  const mapsTraditionalChineseName = '地圖繁中港景飯店'
+  const userName = '使用者輸入海灣飯店'
+  const queries: string[] = []
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'trip-three-name-regression'
+  globalThis.fetch = (async (input) => {
+    const query = new URL(String(input)).searchParams.get('q') ?? ''
+    queries.push(query)
+    const candidateName =
+      query.includes(mapsEnglishName)
+        ? mapsTraditionalChineseName
+        : query.includes(mapsTraditionalChineseName)
+          ? userName
+          : userName
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [{
+        position: 1,
+        title: `${candidateName} - Trip.com`,
+        link: 'https://www.trip.com/hotels/naha-hotel-detail-703607/planner-harbor-view-hotel/',
+        snippet: candidateName,
+      }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const result = await searchTripAffiliateHotels({
+      hotelName: mapsEnglishName,
+      alternateHotelNames: [
+        mapsTraditionalChineseName,
+        userName,
+        'This name must never be searched',
+      ],
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(queries).toEqual([
+      `site:trip.com/hotels ${mapsEnglishName} Trip.com`,
+      `site:trip.com/hotels ${mapsTraditionalChineseName} Trip.com`,
+      `site:trip.com/hotels ${userName} Trip.com`,
+    ])
+    expect(queries.join(' ')).not.toContain('This name must never be searched')
+    expect(result.matchStatus).toBe('matched')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})
+
 test('bounds the external Trip search cache', async () => {
   const previousProvider = process.env.TRIP_SEARCH_PROVIDER
   const previousSerpApiKey = process.env.SERPAPI_API_KEY

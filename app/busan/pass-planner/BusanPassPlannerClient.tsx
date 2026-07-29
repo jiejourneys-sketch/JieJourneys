@@ -86,6 +86,7 @@ type HotelAffiliateCooldownStatus = Extract<
 type PlannerCountryCode = 'JP' | 'KR' | 'VN' | 'TW' | ''
 type HotelAffiliateEligibility = 'eligible' | 'pending_place_type' | 'skipped'
 type HotelAffiliateNameSignal = 'lodging' | 'non_lodging' | 'unknown'
+type GooglePlaceDetailsLocale = 'en' | 'zh-TW'
 type GooglePlaceDetailsData = {
   name?: string
   formattedAddress?: string
@@ -233,9 +234,9 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v3:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v14'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v15'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
-const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v4:'
+const GOOGLE_PLACE_DETAILS_CACHE_PREFIX = 'jiejourneys:planner:google-place-details:v5:'
 const GOOGLE_PLACE_DETAILS_CACHE_TTL_MS = 90 * 24 * 60 * 60 * 1000
 const GOOGLE_PLACE_DETAILS_ERROR_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const HOTEL_AFFILIATE_HIT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
@@ -573,24 +574,41 @@ function hasHotelAffiliateProviderLink(links: CustomPlannerLink[] | undefined, p
   })
 }
 
+function customPlaceHotelAffiliateSearchNameSources(
+  place: Pick<
+    CustomPlannerPlace,
+    'googlePlaceId' | 'googlePlaceName' | 'googlePlaceLat' | 'googlePlaceLng' | 'name' | 'lat' | 'lng'
+  >,
+) {
+  const googlePlaceId = place.googlePlaceId?.trim() ?? ''
+  const englishDetails = getCachedGooglePlaceDetails(googlePlaceId, 'en')
+  const chineseDetails = getCachedGooglePlaceDetails(googlePlaceId, 'zh-TW')
+  const googlePlaceName = englishDetails?.name?.trim() || place.googlePlaceName?.trim() || ''
+  // If the English Details lookup failed and the Maps label is still a
+  // translated/non-English string, do not mislabel it as an English result.
+  // The official zh-TW result and user-entered name remain valid fallbacks.
+  const mapsName =
+    !englishDetails && googlePlaceDetailsCoolingDown(googlePlaceId, 'en') && /[^\x00-\x7F]/.test(googlePlaceName)
+      ? ''
+      : googlePlaceName
+  return {
+    googlePlaceName: mapsName,
+    googlePlaceNameZhTw: chineseDetails?.name?.trim() ?? '',
+    userName: place.name,
+  }
+}
+
 function customPlaceHotelAffiliateSearchNames(
   place: Pick<
     CustomPlannerPlace,
     'googlePlaceId' | 'googlePlaceName' | 'googlePlaceLat' | 'googlePlaceLng' | 'name' | 'lat' | 'lng'
   >,
 ) {
-  const googlePlaceName = place.googlePlaceName?.trim() ?? ''
-  const googlePlaceId = place.googlePlaceId?.trim() ?? ''
-  // If the English Details lookup failed and the Maps label is still a
-  // translated/non-English string, skip it and use the user's entered name
-  // as the explicit second-round fallback.
-  const mapsName =
-    googlePlaceDetailsCoolingDown(googlePlaceId) && /[^\x00-\x7F]/.test(googlePlaceName)
-      ? ''
-      : googlePlaceName
+  const names = customPlaceHotelAffiliateSearchNameSources(place)
   return buildPlannerHotelAffiliateSearchNames({
-    googlePlaceName: mapsName,
-    userName: place.name,
+    googlePlaceName: names.googlePlaceName,
+    googlePlaceNameZhTw: names.googlePlaceNameZhTw,
+    userName: names.userName,
   })
 }
 
@@ -680,7 +698,8 @@ function shouldResolveCustomPlaceGoogleTypes(place: CustomPlannerPlace) {
 }
 
 function shouldResolveCustomPlaceGoogleAffiliateName(place: CustomPlannerPlace) {
-  if (!place.googlePlaceId?.trim()) return false
+  const googlePlaceId = place.googlePlaceId?.trim() ?? ''
+  if (!googlePlaceId) return false
 
   const typeSignal = googlePlaceTypeSignal(cleanGooglePlaceTypes(place.googlePlaceTypes))
   if (typeSignal === 'non_lodging') return false
@@ -690,9 +709,10 @@ function shouldResolveCustomPlaceGoogleAffiliateName(place: CustomPlannerPlace) 
   if (nameSignal === 'non_lodging' && !userMarkedHotel) return false
   if (typeSignal !== 'lodging' && nameSignal !== 'lodging' && !userMarkedHotel) return false
 
-  const googlePlaceName = place.googlePlaceName?.trim() ?? ''
-  if (!googlePlaceName) return true
-  return /[^\x00-\x7F]/.test(googlePlaceName)
+  return (
+    (!getCachedGooglePlaceDetails(googlePlaceId, 'en') && !googlePlaceDetailsCoolingDown(googlePlaceId, 'en')) ||
+    (!getCachedGooglePlaceDetails(googlePlaceId, 'zh-TW') && !googlePlaceDetailsCoolingDown(googlePlaceId, 'zh-TW'))
+  )
 }
 
 function shouldResolveCustomPlaceGoogleDetails(place: CustomPlannerPlace) {
@@ -705,14 +725,21 @@ function shouldResolveCustomPlaceGoogleDetails(place: CustomPlannerPlace) {
 
   const hasTypes = place.googlePlaceTypesResolved || cleanGooglePlaceTypes(place.googlePlaceTypes).length > 0
   const hasCoordinates = Number.isFinite(place.googlePlaceLat) && Number.isFinite(place.googlePlaceLng)
-  return !hasTypes || !hasCoordinates || shouldResolveCustomPlaceGoogleAffiliateName(place)
+  if (shouldResolveCustomPlaceGoogleAffiliateName(place)) return true
+  const googlePlaceId = place.googlePlaceId.trim()
+  const hasCachedDetails = Boolean(
+    getCachedGooglePlaceDetails(googlePlaceId, 'en') || getCachedGooglePlaceDetails(googlePlaceId, 'zh-TW'),
+  )
+  return hasCachedDetails && (!hasTypes || !hasCoordinates)
 }
 
 function shouldWaitForGooglePlaceAffiliateDetails(place: CustomPlannerPlace) {
-  if (!place.googlePlaceId?.trim()) return false
-  const hasTypes = place.googlePlaceTypesResolved || cleanGooglePlaceTypes(place.googlePlaceTypes).length > 0
-  const googlePlaceName = place.googlePlaceName?.trim() ?? ''
-  return !hasTypes || !googlePlaceName || /[^\x00-\x7F]/.test(googlePlaceName)
+  const googlePlaceId = place.googlePlaceId?.trim() ?? ''
+  if (!googlePlaceId) return false
+  return (
+    (!getCachedGooglePlaceDetails(googlePlaceId, 'en') && !googlePlaceDetailsCoolingDown(googlePlaceId, 'en')) ||
+    (!getCachedGooglePlaceDetails(googlePlaceId, 'zh-TW') && !googlePlaceDetailsCoolingDown(googlePlaceId, 'zh-TW'))
+  )
 }
 
 function hasEveryHotelAffiliateProviderLink(links: CustomPlannerLink[] | undefined) {
@@ -744,8 +771,8 @@ function googlePlaceTypesCacheKey(placeId: string) {
   return `${GOOGLE_PLACE_TYPES_CACHE_PREFIX}${encodeURIComponent(placeId.trim())}`
 }
 
-function googlePlaceDetailsCacheKey(placeId: string) {
-  return `${GOOGLE_PLACE_DETAILS_CACHE_PREFIX}${encodeURIComponent(placeId.trim())}`
+function googlePlaceDetailsCacheKey(placeId: string, locale: GooglePlaceDetailsLocale) {
+  return `${GOOGLE_PLACE_DETAILS_CACHE_PREFIX}${locale}:${encodeURIComponent(placeId.trim())}`
 }
 
 function getCachedGooglePlaceTypes(placeId: string) {
@@ -770,17 +797,17 @@ function rememberGooglePlaceTypes(placeId: string, types: string[], resolved = t
   }
 }
 
-function getCachedGooglePlaceDetails(placeId: string): GooglePlaceDetailsData | null {
+function getCachedGooglePlaceDetails(placeId: string, locale: GooglePlaceDetailsLocale = 'en'): GooglePlaceDetailsData | null {
   if (typeof window === 'undefined' || !placeId.trim()) return null
   try {
-    const raw = window.localStorage.getItem(googlePlaceDetailsCacheKey(placeId))
+    const raw = window.localStorage.getItem(googlePlaceDetailsCacheKey(placeId, locale))
     if (!raw) return null
     const parsed = JSON.parse(raw) as { details?: unknown; expiresAt?: unknown; retryAfter?: unknown }
     const retryAfter = typeof parsed.retryAfter === 'number' ? parsed.retryAfter : 0
     if (retryAfter > Date.now()) return null
     const expiresAt = typeof parsed.expiresAt === 'number' ? parsed.expiresAt : 0
     if (expiresAt <= Date.now()) {
-      window.localStorage.removeItem(googlePlaceDetailsCacheKey(placeId))
+      window.localStorage.removeItem(googlePlaceDetailsCacheKey(placeId, locale))
       return null
     }
     return cleanGooglePlaceDetails(parsed.details)
@@ -789,26 +816,30 @@ function getCachedGooglePlaceDetails(placeId: string): GooglePlaceDetailsData | 
   }
 }
 
-function googlePlaceDetailsCoolingDown(placeId: string) {
+function googlePlaceDetailsCoolingDown(placeId: string, locale: GooglePlaceDetailsLocale = 'en') {
   if (typeof window === 'undefined' || !placeId.trim()) return false
   try {
-    const raw = window.localStorage.getItem(googlePlaceDetailsCacheKey(placeId))
+    const raw = window.localStorage.getItem(googlePlaceDetailsCacheKey(placeId, locale))
     if (!raw) return false
     const parsed = JSON.parse(raw) as { retryAfter?: unknown }
     const retryAfter = typeof parsed.retryAfter === 'number' ? parsed.retryAfter : 0
     if (retryAfter > Date.now()) return true
-    if (retryAfter > 0) window.localStorage.removeItem(googlePlaceDetailsCacheKey(placeId))
+    if (retryAfter > 0) window.localStorage.removeItem(googlePlaceDetailsCacheKey(placeId, locale))
     return false
   } catch {
     return false
   }
 }
 
-function rememberGooglePlaceDetails(placeId: string, details: GooglePlaceDetailsData) {
+function rememberGooglePlaceDetails(
+  placeId: string,
+  locale: GooglePlaceDetailsLocale,
+  details: GooglePlaceDetailsData,
+) {
   if (typeof window === 'undefined' || !placeId.trim()) return
   try {
     window.localStorage.setItem(
-      googlePlaceDetailsCacheKey(placeId),
+      googlePlaceDetailsCacheKey(placeId, locale),
       JSON.stringify({ details, expiresAt: Date.now() + GOOGLE_PLACE_DETAILS_CACHE_TTL_MS }),
     )
   } catch {
@@ -816,11 +847,11 @@ function rememberGooglePlaceDetails(placeId: string, details: GooglePlaceDetails
   }
 }
 
-function rememberGooglePlaceDetailsMiss(placeId: string) {
+function rememberGooglePlaceDetailsMiss(placeId: string, locale: GooglePlaceDetailsLocale) {
   if (typeof window === 'undefined' || !placeId.trim()) return
   try {
     window.localStorage.setItem(
-      googlePlaceDetailsCacheKey(placeId),
+      googlePlaceDetailsCacheKey(placeId, locale),
       JSON.stringify({ retryAfter: Date.now() + GOOGLE_PLACE_DETAILS_ERROR_COOLDOWN_MS }),
     )
   } catch {
@@ -893,7 +924,8 @@ function customPlaceHotelAffiliateLookupInput(
   place: CustomPlannerPlace,
   config: PlannerConfig,
 ) {
-  const hotelNames = customPlaceHotelAffiliateSearchNames(place)
+  const nameSources = customPlaceHotelAffiliateSearchNameSources(place)
+  const hotelNames = buildPlannerHotelAffiliateSearchNames(nameSources)
   const hotelName = hotelNames[0] ?? ''
   const latitude = place.googlePlaceLat ?? place.lat
   const longitude = place.googlePlaceLng ?? place.lng
@@ -923,7 +955,9 @@ function customPlaceHotelAffiliateLookupInput(
   return {
     cacheKey,
     hotelName,
-    alternateHotelNames: hotelNames.slice(1),
+    googlePlaceName: nameSources.googlePlaceName,
+    googlePlaceNameZhTw: nameSources.googlePlaceNameZhTw,
+    userName: nameSources.userName,
     latitude,
     longitude,
     googlePlaceTypes,
@@ -988,14 +1022,6 @@ function rememberHotelAffiliateLookupMiss(
     window.localStorage.setItem(cacheKey, JSON.stringify({ retryAfter: Date.now() + ttlMs, status }))
   } catch {
     // Lookup caching is best-effort only.
-  }
-}
-
-function clearHotelAffiliateLookupCache(cacheKey: string) {
-  try {
-    window.localStorage.removeItem(cacheKey)
-  } catch {
-    // A manual retry should still proceed when storage is unavailable.
   }
 }
 
@@ -4445,6 +4471,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
   const hotelAffiliateLookupRequestRef = useRef<Map<string, ActiveHotelAffiliateLookup>>(new Map())
+  const hotelAffiliateForceRefreshRef = useRef<Set<string>>(new Set())
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
   const googlePlaceTypeResolveRef = useRef<Set<string>>(new Set())
   const customPlaceGoogleIdentityResolveRef = useRef<Set<string>>(new Set())
@@ -4463,6 +4490,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [placeNotes, setPlaceNotes] = useState<Record<string, string>>({})
   const [placeUserLinks, setPlaceUserLinks] = useState<Record<string, PlannerUserLink[]>>({})
   const [customPlaces, setCustomPlaces] = useState<Record<string, CustomPlannerPlace>>({})
+  const [googlePlaceDetailsRevision, setGooglePlaceDetailsRevision] = useState(0)
   const [nearbyKnownPlaces, setNearbyKnownPlaces] = useState<MapPlace[]>([])
   const [nearbyKnownPlacesPrompt, setNearbyKnownPlacesPrompt] = useState<NearbyKnownPlacesSuggestion | null>(null)
   const [customDraft, setCustomDraft] = useState<CustomPlaceDraft>(emptyCustomPlaceDraft)
@@ -7004,7 +7032,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }, [cancelHotelAffiliateLookupForCustomPlace])
 
-  const resolveGooglePlaceDetailsInBrowser = useCallback(async (googlePlaceId: string) => {
+  const resolveGooglePlaceDetailsInBrowser = useCallback(async (
+    googlePlaceId: string,
+    locale: GooglePlaceDetailsLocale,
+  ) => {
     const placesReady = await loadGooglePlacesLibrary()
     if (!placesReady || !window.google?.maps?.places?.PlacesService) return null
     const serviceHost = mapRef.current ?? document.createElement('div')
@@ -7014,6 +7045,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         {
           placeId: googlePlaceId,
           fields: ['place_id', 'name', 'geometry', 'types'],
+          language: locale,
         },
         (result, status) => {
           if (status !== google.maps.places.PlacesServiceStatus.OK) {
@@ -7031,40 +7063,75 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const googlePlaceId = place.googlePlaceId?.trim() ?? ''
     if (!googlePlaceId) return
 
-    const cached = getCachedGooglePlaceDetails(googlePlaceId)
-    if (cached) {
-      setCustomPlaceGoogleDetails(place.id, googlePlaceId, cached, { persist: !readOnlyPlan })
-      return
-    }
-    if (googlePlaceDetailsCoolingDown(googlePlaceId)) return
-
     const resolveKey = `${place.id}:${googlePlaceId}`
     if (googlePlaceDetailsResolveRef.current.has(resolveKey)) return
     googlePlaceDetailsResolveRef.current.add(resolveKey)
 
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 10000)
-    const loadDetails = async () => {
-      const res = await fetch(`/api/pass-planner/google-place-details?placeId=${encodeURIComponent(googlePlaceId)}&language=en&mode=affiliate`, {
-        cache: 'no-store',
-        signal: controller.signal,
-      }).catch(() => null)
+    const loadDetails = async (locale: GooglePlaceDetailsLocale) => {
+      const cached = getCachedGooglePlaceDetails(googlePlaceId, locale)
+      if (cached || googlePlaceDetailsCoolingDown(googlePlaceId, locale)) return cached
+      const res = await fetch(
+        `/api/pass-planner/google-place-details?placeId=${encodeURIComponent(googlePlaceId)}&language=${encodeURIComponent(locale)}&mode=affiliate`,
+        {
+          cache: 'no-store',
+          signal: controller.signal,
+        },
+      ).catch(() => null)
       const data = res?.ok ? await res.json().catch(() => null) : null
-      return cleanGooglePlaceDetails(data) ?? await resolveGooglePlaceDetailsInBrowser(googlePlaceId)
+      const details = cleanGooglePlaceDetails(data)
+      if (details) rememberGooglePlaceDetails(googlePlaceId, locale, details)
+      return details
     }
-    loadDetails()
-      .then((details) => {
-        if (!details) {
-          rememberGooglePlaceDetailsMiss(googlePlaceId)
+    const englishCached = getCachedGooglePlaceDetails(googlePlaceId, 'en')
+    const chineseCached = getCachedGooglePlaceDetails(googlePlaceId, 'zh-TW')
+    const englishCoolingDown = googlePlaceDetailsCoolingDown(googlePlaceId, 'en')
+    const chineseCoolingDown = googlePlaceDetailsCoolingDown(googlePlaceId, 'zh-TW')
+
+    Promise.all([loadDetails('en'), loadDetails('zh-TW')])
+      .then(async ([englishDetails, chineseDetails]) => {
+        let resolvedEnglishDetails = englishDetails
+        let resolvedChineseDetails = chineseDetails
+        const [englishFallback, chineseFallback] = await Promise.all([
+          !resolvedEnglishDetails && !englishCached && !englishCoolingDown
+            ? resolveGooglePlaceDetailsInBrowser(googlePlaceId, 'en')
+            : Promise.resolve(null),
+          !resolvedChineseDetails && !chineseCached && !chineseCoolingDown
+            ? resolveGooglePlaceDetailsInBrowser(googlePlaceId, 'zh-TW')
+            : Promise.resolve(null),
+        ])
+        if (!resolvedEnglishDetails && englishFallback) {
+          resolvedEnglishDetails = englishFallback
+          rememberGooglePlaceDetails(googlePlaceId, 'en', resolvedEnglishDetails)
+        } else if (!resolvedEnglishDetails && !englishCached && !englishCoolingDown) {
+          rememberGooglePlaceDetailsMiss(googlePlaceId, 'en')
+        }
+        if (!resolvedChineseDetails && chineseFallback) {
+          resolvedChineseDetails = chineseFallback
+          rememberGooglePlaceDetails(googlePlaceId, 'zh-TW', resolvedChineseDetails)
+        } else if (!resolvedChineseDetails && !chineseCached && !chineseCoolingDown) {
+          rememberGooglePlaceDetailsMiss(googlePlaceId, 'zh-TW')
+        }
+
+        const detailsToApply = resolvedEnglishDetails ?? resolvedChineseDetails
+        if (!detailsToApply) return
+        if (resolvedEnglishDetails) {
+          setCustomPlaceGoogleDetails(place.id, googlePlaceId, resolvedEnglishDetails, { persist: !readOnlyPlan })
           return
         }
-        rememberGooglePlaceDetails(googlePlaceId, details)
-        setCustomPlaceGoogleDetails(place.id, googlePlaceId, details, { persist: !readOnlyPlan })
+        const { name: _localizedName, ...metadata } = detailsToApply
+        setCustomPlaceGoogleDetails(place.id, googlePlaceId, metadata, { persist: !readOnlyPlan })
       })
       .catch(() => {
-        rememberGooglePlaceDetailsMiss(googlePlaceId)
+        if (!englishCached && !englishCoolingDown) rememberGooglePlaceDetailsMiss(googlePlaceId, 'en')
+        if (!chineseCached && !chineseCoolingDown) rememberGooglePlaceDetailsMiss(googlePlaceId, 'zh-TW')
       })
-      .finally(() => window.clearTimeout(timeout))
+      .finally(() => {
+        window.clearTimeout(timeout)
+        googlePlaceDetailsResolveRef.current.delete(resolveKey)
+        setGooglePlaceDetailsRevision((revision) => revision + 1)
+      })
   }, [readOnlyPlan, resolveGooglePlaceDetailsInBrowser, setCustomPlaceGoogleDetails])
 
   const resolveGooglePlaceTypesForCustomPlace = useCallback((place: CustomPlannerPlace) => {
@@ -7281,6 +7348,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const {
       cacheKey,
       hotelName,
+      googlePlaceName,
+      googlePlaceNameZhTw,
+      userName,
       latitude,
       longitude,
       googlePlaceTypes,
@@ -7327,8 +7397,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         hotelName,
-        googlePlaceName: place.googlePlaceName,
-        name: place.name,
+        googlePlaceName,
+        googlePlaceNameZhTw,
+        name: userName,
         googlePlaceId: place.googlePlaceId,
         city,
         cityId,
@@ -7424,6 +7495,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const {
       cacheKey,
       hotelName,
+      googlePlaceName,
+      googlePlaceNameZhTw,
+      userName,
       latitude,
       longitude,
       googlePlaceTypes,
@@ -7470,8 +7544,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         hotelName,
-        googlePlaceName: place.googlePlaceName,
-        name: place.name,
+        googlePlaceName,
+        googlePlaceNameZhTw,
+        name: userName,
         googlePlaceId: place.googlePlaceId,
         city,
         cityId,
@@ -7535,30 +7610,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const place = customPlaces[placeId]
       if (!place || readOnlyPlan) return
       const manualPlace: CustomPlannerPlace = { ...place, hotelAffiliateManual: true }
+      hotelAffiliateForceRefreshRef.current.add(placeId)
       setCustomPlaces((current) => ({ ...current, [placeId]: manualPlace }))
-      const agodaLookupInput = customPlaceHotelAffiliateLookupInput('Agoda', manualPlace, config)
-      if (agodaLookupInput) clearHotelAffiliateLookupCache(agodaLookupInput.cacheKey)
       cancelHotelAffiliateLookupForCustomPlace(placeId, 'Agoda')
-      resolveAgodaAffiliateLinkForCustomPlace(manualPlace, {
-        forceRefresh: true,
-        replaceExisting: true,
-      })
-
-      const tripLookupInput = customPlaceHotelAffiliateLookupInput('Trip', manualPlace, config)
-      if (tripLookupInput) clearHotelAffiliateLookupCache(tripLookupInput.cacheKey)
       cancelHotelAffiliateLookupForCustomPlace(placeId, 'Trip')
-      resolveTripAffiliateLinkForCustomPlace(manualPlace, {
-        forceRefresh: true,
-        replaceExisting: true,
-      })
+      if (shouldResolveCustomPlaceGoogleDetails(manualPlace)) {
+        resolveGooglePlaceDetailsForCustomPlace(manualPlace)
+      }
     },
     [
       cancelHotelAffiliateLookupForCustomPlace,
-      config,
       customPlaces,
       readOnlyPlan,
-      resolveAgodaAffiliateLinkForCustomPlace,
-      resolveTripAffiliateLinkForCustomPlace,
+      resolveGooglePlaceDetailsForCustomPlace,
     ],
   )
 
@@ -7575,6 +7639,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }, [
     customPlaces,
+    googlePlaceDetailsRevision,
     mapReady,
     placeUserLinks,
     readOnlyPlan,
@@ -7609,15 +7674,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         return
       }
-      // Do not search Agoda/Trip with a translated Maps label while the
-      // Place Details request is still obtaining Google's canonical English
-      // accommodation name. If that request has already failed, fall back to
-      // the user's name instead of waiting forever.
-      const googlePlaceId = place.googlePlaceId?.trim() ?? ''
-      const isWaitingForGooglePlaceDetails =
-        shouldWaitForGooglePlaceAffiliateDetails(place) &&
-        !getCachedGooglePlaceDetails(googlePlaceId) &&
-        !googlePlaceDetailsCoolingDown(googlePlaceId)
+      // Wait for Google's English and zh-TW Place Details names before
+      // querying providers. A locale that has already failed its request is
+      // skipped after its short cooldown, so a failure never blocks the
+      // user-name fallback forever.
+      const isWaitingForGooglePlaceDetails = shouldWaitForGooglePlaceAffiliateDetails(place)
       if (isWaitingForGooglePlaceDetails) {
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         return
@@ -7627,17 +7688,25 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         return
       }
 
-      if (!hasHotelAffiliateProviderLink(links, 'Agoda')) {
-        resolveAgodaAffiliateLinkForCustomPlace(place)
+      const forceRefresh = hotelAffiliateForceRefreshRef.current.delete(place.id)
+      if (forceRefresh || !hasHotelAffiliateProviderLink(links, 'Agoda')) {
+        resolveAgodaAffiliateLinkForCustomPlace(place, {
+          forceRefresh,
+          replaceExisting: forceRefresh,
+        })
       } else cancelHotelAffiliateLookupForCustomPlace(place.id, 'Agoda')
 
-      if (!hasHotelAffiliateProviderLink(links, 'Trip')) {
-        resolveTripAffiliateLinkForCustomPlace(place)
+      if (forceRefresh || !hasHotelAffiliateProviderLink(links, 'Trip')) {
+        resolveTripAffiliateLinkForCustomPlace(place, {
+          forceRefresh,
+          replaceExisting: forceRefresh,
+        })
       } else cancelHotelAffiliateLookupForCustomPlace(place.id, 'Trip')
     })
   }, [
     cancelHotelAffiliateLookupForCustomPlace,
     customPlaces,
+    googlePlaceDetailsRevision,
     placeUserLinks,
     readOnlyPlan,
     resolveAgodaAffiliateLinkForCustomPlace,

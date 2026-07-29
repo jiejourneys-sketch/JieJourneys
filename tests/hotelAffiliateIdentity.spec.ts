@@ -43,12 +43,14 @@ test('keeps valid Google and user aliases without duplicates', () => {
   ])
 })
 
-test('keeps planner lookup to the Maps name followed by the user name only', () => {
+test('keeps planner lookup to Maps English, Maps Traditional Chinese, then the user name only', () => {
   expect(buildPlannerHotelAffiliateSearchNames({
     googlePlaceName: 'Daiwa Roynet Hotel Okinawa Kenchomae',
+    googlePlaceNameZhTw: '大和ROYNET酒店那霸國際通',
     userName: '沖繩縣廳前大和ROYNET飯店',
   })).toEqual([
     'Daiwa Roynet Hotel Okinawa Kenchomae',
+    '大和ROYNET酒店那霸國際通',
     '沖繩縣廳前大和ROYNET飯店',
   ])
 })
