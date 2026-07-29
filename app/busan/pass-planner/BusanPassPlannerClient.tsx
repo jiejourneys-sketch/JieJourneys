@@ -705,6 +705,13 @@ function shouldResolveCustomPlaceGoogleDetails(place: CustomPlannerPlace) {
   return !hasTypes || !hasCoordinates || shouldResolveCustomPlaceGoogleAffiliateName(place)
 }
 
+function shouldWaitForGooglePlaceAffiliateDetails(place: CustomPlannerPlace) {
+  if (!place.googlePlaceId?.trim()) return false
+  const hasTypes = place.googlePlaceTypesResolved || cleanGooglePlaceTypes(place.googlePlaceTypes).length > 0
+  const googlePlaceName = place.googlePlaceName?.trim() ?? ''
+  return !hasTypes || !googlePlaceName || /[^\x00-\x7F]/.test(googlePlaceName)
+}
+
 function hasEveryHotelAffiliateProviderLink(links: CustomPlannerLink[] | undefined) {
   return hasHotelAffiliateProviderLink(links, 'Agoda') && hasHotelAffiliateProviderLink(links, 'Trip')
 }
@@ -7584,6 +7591,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         return
       }
+      // Do not search Agoda/Trip with a translated Maps label while the
+      // Place Details request is still obtaining Google's canonical English
+      // accommodation name.  It avoids spending a search on a name that an
+      // overseas booking site cannot reliably compare.
+      if (shouldWaitForGooglePlaceAffiliateDetails(place)) {
+        cancelHotelAffiliateLookupForCustomPlace(place.id)
+        return
+      }
       if (customPlaceHotelAffiliateSearchNames(place).length === 0) {
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         return
@@ -9244,7 +9259,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           plannerPlaceCategory(place, customCategoryItems) === 'hotel' &&
                           customPlaceHotelAffiliateManualLookupAllowed(customPlace) &&
                           customHotelEligibility !== 'pending_place_type' &&
-                          (!customHotelHasAgodaLink || !customHotelHasTripLink) &&
                           !customHotelAffiliateLookupPending
                         : false
                     const hotelAffiliateStatuses =

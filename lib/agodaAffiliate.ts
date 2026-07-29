@@ -987,6 +987,13 @@ function scoreNormalizedHotelName(normalizedQuery: string, normalizedCandidate: 
   const shorter = normalizedQuery.length < normalizedCandidate.length ? normalizedQuery : normalizedCandidate
   const longer = normalizedQuery.length < normalizedCandidate.length ? normalizedCandidate : normalizedQuery
   if (longer.includes(shorter) && shorter.length >= 6) {
+    // Search-result titles commonly append a city, year, price or review
+    // wording after the full Agoda property name.  A long, complete hotel
+    // name contained in that title is strong evidence; keeping it below the
+    // auto-match threshold made exact properties impossible to save.
+    if (shorter.length >= 16) {
+      return Math.min(0.99, 0.88 + shorter.length / longer.length * 0.14)
+    }
     return Math.min(0.91, 0.72 + shorter.length / longer.length * 0.2)
   }
 
