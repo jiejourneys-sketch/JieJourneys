@@ -85,6 +85,7 @@ async function fetchMapUrlWithValidatedRedirects(
       signal,
       headers: {
         'user-agent': 'Mozilla/5.0 JieJourneys planner link resolver',
+        ...(provider === 'google' ? { 'accept-language': 'zh-TW,zh;q=0.9,en;q=0.8' } : {}),
       },
     })
 
@@ -174,6 +175,14 @@ function extractGoogleMapsPlaceId(value: string) {
   if (paramMatch?.[1]) return decodeURIComponent(paramMatch[1]).trim()
   const dataMatch = value.match(/!1s(ChI[A-Za-z0-9_-]{12,})/)
   return dataMatch?.[1] ?? null
+}
+
+// Google Maps often embeds a feature data ID (`0x...:0x...`) instead of a
+// reusable ChIJ Place ID. It is not itself a Place Details ID, but SerpAPI's
+// exact Maps-place endpoint can resolve it without a name-based guess.
+function extractGoogleMapsDataId(value: string) {
+  const match = value.match(/!1s(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
+  return match?.[1]?.toLowerCase() ?? null
 }
 
 function extractNaverPlaceId(value: string) {
@@ -362,8 +371,16 @@ export async function GET(request: NextRequest) {
     const coordinates = extractGoogleMapsCoordinates(resolvedUrl) ?? extractGoogleMapsCoordinates(html)
     const pathPlaceName = decodeGoogleMapsPathPlaceName(resolvedUrl)
     const query = decodeGoogleMapsQuery(resolvedUrl) ?? pathPlaceName
-    const title = cleanGoogleMapsQueryTitle(query) ?? pathPlaceName ?? extractGoogleMapsTitle(html)
+    const queryTitle = cleanGoogleMapsQueryTitle(query) ?? pathPlaceName
+    const localizedHtmlTitle = extractGoogleMapsTitle(html)
+    // Prefer a localized HTML title when Google supplies one; the URL query
+    // is frequently just the English or abbreviated form used for navigation.
+    const title =
+      (localizedHtmlTitle && /[^\x00-\x7F]/.test(localizedHtmlTitle) ? localizedHtmlTitle : '') ||
+      queryTitle ||
+      localizedHtmlTitle
     const googlePlaceId = extractGoogleMapsPlaceId(resolvedUrl) ?? extractGoogleMapsPlaceId(html)
+    const googleMapsDataId = extractGoogleMapsDataId(resolvedUrl) ?? extractGoogleMapsDataId(html)
 
     return NextResponse.json({
       url: resolvedUrl,
@@ -371,6 +388,7 @@ export async function GET(request: NextRequest) {
       ...(query ? { query } : {}),
       ...(coordinates ? coordinates : {}),
       ...(googlePlaceId ? { googlePlaceId } : {}),
+      ...(googleMapsDataId ? { googleMapsDataId } : {}),
     })
   } catch {
     return NextResponse.json({ error: 'resolve_failed' }, { status: 502 })

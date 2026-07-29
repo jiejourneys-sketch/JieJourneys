@@ -23,6 +23,7 @@ test('follows a Google Maps short link and preserves the resolved hotel identity
     const url = String(input)
     requestedUrls.push(url)
     expect(init?.redirect).toBe('manual')
+    expect(new Headers(init?.headers).get('accept-language')).toContain('zh-TW')
 
     if (url === shortGoogleMapsUrl) {
       return new Response(null, {
@@ -51,6 +52,45 @@ test('follows a Google Maps short link and preserves the resolved hotel identity
     lat: 26.2132974,
     lng: 127.6766983,
   })
+})
+
+test('prefers the localized Google Maps HTML title over an English URL query', async () => {
+  const url = 'https://www.google.com/maps/search/Localized+Planner+Hotel/@35.7,139.7,17z'
+  globalThis.fetch = (async () => new Response(
+    '<meta property="og:title" content="在地規劃飯店 - Google 地圖">',
+    { status: 200, headers: { 'content-type': 'text/html' } },
+  )) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(url))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload.query).toBe('Localized Planner Hotel')
+  expect(payload.title).toBe('在地規劃飯店')
+})
+
+test('keeps a Google Maps feature data ID separate from a ChIJ Place ID', async () => {
+  const shortUrl = 'https://maps.app.goo.gl/art-hotel-short'
+  const expandedUrl =
+    'https://www.google.com/maps/place/ART+Hotel/@35.7281102,139.7729396,17z/data=!3m1!4b1!4m5!3m4!1s0x60188e7f7e6987df:0xf6037235b21f34d8!8m2!3d35.7281102!4d139.7729396!16s%2Fg%2F11ckrc52nd'
+  globalThis.fetch = (async (input) => {
+    const url = String(input)
+    if (url === shortUrl) return new Response(null, { status: 302, headers: { location: expandedUrl } })
+    if (url === expandedUrl) return new Response('<title>ART Hotel - Google Maps</title>', { status: 200 })
+    throw new Error(`unexpected_url:${url}`)
+  }) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(shortUrl))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload).toMatchObject({
+    url: expandedUrl,
+    lat: 35.7281102,
+    lng: 139.7729396,
+    googleMapsDataId: '0x60188e7f7e6987df:0xf6037235b21f34d8',
+  })
+  expect(payload.googlePlaceId).toBeUndefined()
 })
 
 test('rejects Google and Naver lookalike hosts before making a request', async () => {

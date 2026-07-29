@@ -349,8 +349,9 @@ async function searchTripResults(
   forceRefresh = false,
 ) {
   const cacheKey = [
-    'web-v2',
+    'web-v3',
     config.searchProvider,
+    googleSearchCountryCode(query.countryCode),
     normalizeTripText(query.hotelName),
   ].join('|')
   if (!forceRefresh) {
@@ -365,7 +366,7 @@ async function searchTripResults(
   try {
     const results =
       config.searchProvider === 'serpapi'
-        ? await searchWithSerpApi(config, searchText, controller.signal)
+        ? await searchWithSerpApi(config, searchText, controller.signal, query.countryCode)
         : await searchWithGoogleCse(config, searchText, controller.signal)
     writeTripSearchCache(cacheKey, results)
     return results
@@ -406,12 +407,17 @@ function writeTripSearchCache(cacheKey: string, results: SearchResult[]) {
   }
 }
 
-async function searchWithSerpApi(config: TripAffiliateConfig, searchText: string, signal: AbortSignal): Promise<SearchResult[]> {
+async function searchWithSerpApi(
+  config: TripAffiliateConfig,
+  searchText: string,
+  signal: AbortSignal,
+  countryCode: string | undefined,
+): Promise<SearchResult[]> {
   const url = new URL('https://serpapi.com/search.json')
   url.searchParams.set('engine', 'google')
   url.searchParams.set('q', searchText)
-  url.searchParams.set('hl', 'zh-tw')
-  url.searchParams.set('gl', 'tw')
+  url.searchParams.set('hl', 'en')
+  url.searchParams.set('gl', googleSearchCountryCode(countryCode))
   url.searchParams.set('num', '10')
   url.searchParams.set('api_key', config.serpApiKey)
 
@@ -441,6 +447,11 @@ async function searchWithSerpApi(config: TripAffiliateConfig, searchText: string
       source: 'serpapi' as const,
     }))
     .filter((item) => item.url)
+}
+
+function googleSearchCountryCode(countryCode: string | undefined) {
+  const normalized = countryCode?.trim().toLowerCase() ?? ''
+  return /^[a-z]{2}$/.test(normalized) ? normalized : 'tw'
 }
 
 async function searchWithGoogleCse(config: TripAffiliateConfig, searchText: string, signal: AbortSignal): Promise<SearchResult[]> {

@@ -161,6 +161,8 @@ test('uses one Agoda web search as the primary path and preserves only our affil
 
     expect(requests).toHaveLength(1)
     expect(requests[0]?.searchParams.get('q')).toBe('site:agoda.com Daiwa Roynet Hotel Okinawa Kenchomae Agoda')
+    expect(requests[0]?.searchParams.get('hl')).toBe('en')
+    expect(requests[0]?.searchParams.get('gl')).toBe('jp')
     expect(result.matchStatus).toBe('matched')
     expect(result.bestMatch?.source).toBe('serpapi')
     const bookingUrl = new URL(result.bestMatch?.bookingUrl ?? '')
@@ -169,6 +171,264 @@ test('uses one Agoda web search as the primary path and preserves only our affil
     expect(bookingUrl.searchParams.get('cid')).not.toBe('another-publisher')
     expect(bookingUrl.searchParams.get('pcs')).toBe('1')
     expect(bookingUrl.searchParams.has('another-publisher')).toBe(false)
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})
+
+test('never treats Agoda attraction or nearby-hotel listing pages as one hotel', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  process.env.SERPAPI_API_KEY = 'agoda-listing-page-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [{
+      position: 1,
+      link: 'https://www.agoda.com/en-sg/hotels-near-genki-na-sakanayasan/attractions/tokyo-jp.html',
+      title: 'Hotels near ART HOTEL Nippori Lungwood, Tokyo - Agoda.com',
+      snippet: 'Hotels near ART HOTEL Nippori Lungwood, Tokyo',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: 'ART HOTEL Nippori Lungwood',
+      countryCode: 'JP',
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(result.matchStatus).toBe('no_match')
+    expect(result.bestMatch).toBeUndefined()
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})
+
+test('chooses ART HOTEL Nippori Lungwood property page over nearby-hotel listings', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  process.env.SERPAPI_API_KEY = 'agoda-art-property-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [
+      {
+        position: 1,
+        link: 'https://www.agoda.com/hotels-near-nippori-train-station/attractions/tokyo-jp.html',
+        title: 'Hotels near ART HOTEL Nippori Lungwood, Tokyo - Agoda.com',
+        snippet: 'ART HOTEL Nippori Lungwood',
+      },
+      {
+        position: 2,
+        link: 'https://www.agoda.com/hotel-lungwood/hotel/tokyo-jp.html',
+        title: 'ART HOTEL Nippori Lungwood, Tokyo',
+        snippet: 'Built in 1990 and renovated in 2021, ART HOTEL Nippori Lungwood is in Tokyo.',
+      },
+    ],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: 'ART HOTEL Nippori Lungwood',
+      countryCode: 'JP',
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(result.matchStatus).toBe('matched')
+    expect(new URL(result.bestMatch?.bookingUrl ?? '').pathname).toBe('/hotel-lungwood/hotel/tokyo-jp.html')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})
+
+test('treats a compact Agoda property spelling as the exact Fresa Inn hotel and ignores review pages', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  process.env.SERPAPI_API_KEY = 'agoda-fresa-compact-name-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [
+      {
+        position: 1,
+        link: 'https://www.agoda.com/sotetsu-fresa-inn-kyoto-shijokarasuma/hotel/kyoto-jp.html',
+        title: 'Sotetsu Fresa Inn Kyoto-Shijokarasuma',
+        snippet: 'Sotetsu Fresa Inn Kyoto-Shijokarasuma',
+      },
+      {
+        position: 2,
+        link: 'https://www.agoda.com/es-es/sotetsu-fresa-inn-kyoto-shijokarasuma/reviews/kyoto-jp.html',
+        title: 'Sotetsu Fresa Inn Kyoto-Shijokarasuma reviews',
+        snippet: 'Sotetsu Fresa Inn Kyoto-Shijokarasuma reviews',
+      },
+    ],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: 'Sotetsu Fresa Inn Kyoto-Shijo Karasuma',
+      countryCode: 'JP',
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(result.matchStatus).toBe('matched')
+    expect(result.candidates).toHaveLength(1)
+    expect(new URL(result.bestMatch?.bookingUrl ?? '').pathname).toBe('/sotetsu-fresa-inn-kyoto-shijokarasuma/hotel/kyoto-jp.html')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})
+
+test('uses the Agoda property slug to resolve a Grand Bach same-title tie safely', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  process.env.SERPAPI_API_KEY = 'agoda-grand-bach-slug-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [
+      {
+        position: 1,
+        link: 'https://www.agoda.com/hotel-grand-bach-kyoto/hotel/hatasho-cho-jp.html',
+        title: 'Hotel Grand Bach Kyoto Select',
+        snippet: 'Hotel Grand Bach Kyoto Select',
+      },
+      {
+        position: 2,
+        link: 'https://www.agoda.com/hotel-grand-bach-kyoto-select/hotel/kyoto-jp.html',
+        title: 'Hotel Grand Bach Kyoto Select',
+        snippet: 'Hotel Grand Bach Kyoto Select',
+      },
+      {
+        position: 3,
+        link: 'https://www.agoda.com/pt-br/hotel-grand-bach-kyoto-select-h9074738/hotel/kyoto-jp.html',
+        title: 'Hotel Grand Bach Kyoto Select (Quioto)',
+        snippet: 'Hotel Grand Bach Kyoto Select',
+      },
+    ],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: 'Hotel Grand Bach Kyoto Select',
+      countryCode: 'JP',
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(result.matchStatus).toBe('matched')
+    expect(result.candidates).toHaveLength(2)
+    expect(new URL(result.bestMatch?.bookingUrl ?? '').pathname).toBe('/hotel-grand-bach-kyoto-select/hotel/kyoto-jp.html')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})
+
+test('does not auto-match a single Agoda family-property prefix or annex URL', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  process.env.SERPAPI_API_KEY = 'agoda-branch-url-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  let searchCount = 0
+  globalThis.fetch = (async () => {
+    searchCount += 1
+    const result = searchCount === 1
+      ? {
+          link: 'https://www.agoda.com/hotel-grand-bach-kyoto/hotel/hatasho-cho-jp.html',
+          title: 'Hotel Grand Bach Kyoto',
+        }
+      : {
+          link: 'https://www.agoda.com/hotel-grand-bach-kyoto-select-annex/hotel/kyoto-jp.html',
+          title: 'Hotel Grand Bach Kyoto Select',
+        }
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [{ position: 1, ...result, snippet: 'Hotel Grand Bach Kyoto Select' }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const baseProperty = await searchAgodaAffiliateHotels({
+      hotelName: 'Hotel Grand Bach Kyoto Select',
+      countryCode: 'JP',
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+    const annexProperty = await searchAgodaAffiliateHotels({
+      hotelName: 'Hotel Grand Bach Kyoto Select',
+      countryCode: 'JP',
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(baseProperty.matchStatus).toBe('needs_review')
+    expect(baseProperty.bestMatch).toBeUndefined()
+    expect(annexProperty.matchStatus).toBe('needs_review')
+    expect(annexProperty.bestMatch).toBeUndefined()
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousSearchProvider
+    else delete process.env.AGODA_SEARCH_PROVIDER
+  }
+})
+
+test('rejects an Agoda listing title even when its URL looks like a property page', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousSearchProvider = process.env.AGODA_SEARCH_PROVIDER
+  process.env.SERPAPI_API_KEY = 'agoda-listing-title-regression'
+  process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [{
+      position: 1,
+      link: 'https://www.agoda.com/unrelated-property/hotel/tokyo-jp.html',
+      title: 'Hotels near ART HOTEL Nippori Lungwood, Tokyo',
+      snippet: 'ART HOTEL Nippori Lungwood',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: 'ART HOTEL Nippori Lungwood',
+      countryCode: 'JP',
+      lodgingHint: true,
+      forceRefresh: true,
+    })
+
+    expect(result.matchStatus).toBe('no_match')
+    expect(result.candidates).toHaveLength(0)
   } finally {
     globalThis.fetch = previousFetch
     if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey

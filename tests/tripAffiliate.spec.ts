@@ -440,6 +440,8 @@ test('recovers the Trip hotel from the Maps English name with one no-city SerpAP
     const searchQuery = new URL(requestedUrls[0]).searchParams.get('q') ?? ''
     expect(searchQuery).toContain('Daiwa Roynet Hotel Okinawa Kenchomae')
     expect(searchQuery).not.toContain('Okinawa Main island')
+    expect(new URL(requestedUrls[0]).searchParams.get('hl')).toBe('en')
+    expect(new URL(requestedUrls[0]).searchParams.get('gl')).toBe('jp')
     expect(result.matchStatus).toBe('matched')
     expect(result.bestMatch?.hotelId).toBe('703607')
     expect(result.bestMatch?.source).toBe('serpapi')
