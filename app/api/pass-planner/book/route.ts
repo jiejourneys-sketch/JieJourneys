@@ -12,6 +12,14 @@ const MAX_USER_LINK_PLACES = 120
 const MAX_USER_LINKS_PER_PLACE = 8
 const PLANNER_RETENTION_DAYS = 365
 const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel'])
+const INVALID_TEXT_ENCODING_PATTERN = /[\u0080-\u009F\uFFFD]/
+
+function hasInvalidTextEncoding(value: unknown): boolean {
+  if (typeof value === 'string') return INVALID_TEXT_ENCODING_PATTERN.test(value)
+  if (Array.isArray(value)) return value.some(hasInvalidTextEncoding)
+  if (!value || typeof value !== 'object') return false
+  return Object.values(value as Record<string, unknown>).some(hasInvalidTextEncoding)
+}
 
 function cleanGooglePlaceTypes(value: unknown) {
   if (!Array.isArray(value)) return []
@@ -176,7 +184,13 @@ export async function POST(req: NextRequest) {
   const supabase = getTripSupabase()
   if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
 
-  const payload = cleanPayload(await req.json().catch(() => null))
+  const input = await req.json().catch(() => null)
+  // Reject replacement/control characters instead of overwriting an entire
+  // shared plan with mojibake from a misconfigured external client.
+  if (hasInvalidTextEncoding(input)) {
+    return NextResponse.json({ error: 'invalid_text_encoding' }, { status: 422 })
+  }
+  const payload = cleanPayload(input)
   if (!payload) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
   const expiresAt = new Date(Date.now() + PLANNER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()

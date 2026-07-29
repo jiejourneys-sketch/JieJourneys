@@ -927,6 +927,8 @@ function cleanTripCandidateIdentities(candidateName: string, title: string) {
 
 function cleanTripSearchResultIdentities(title: string, url: URL) {
   const identities = cleanTripCandidateIdentities(title, title)
+  const propertySlug = tripPropertySlugFromUrl(url)
+  if (propertySlug) identities.push(propertySlug)
   const cleanedTitle = cleanTripTitle(title)
   const citySlug = url.pathname.match(/\/hotels\/([a-z0-9-]+)-hotel-detail-\d+/i)?.[1] ?? ''
   if (cleanedTitle && citySlug) {
@@ -940,6 +942,19 @@ function cleanTripSearchResultIdentities(title: string, url: URL) {
     }
   }
   return cleanNameList(identities, '', 10, 160)
+}
+
+function tripPropertySlugFromUrl(url: URL) {
+  const segment = url.pathname.match(/\/hotels\/[^/]+-hotel-detail-\d+\/([^/]+)/i)?.[1] ?? ''
+  const clean = segment
+    .replace(/\.(?:html?|aspx)$/i, '')
+    .trim()
+  // A Trip hotel-detail URL has the canonical property slug immediately
+  // after its numeric hotel ID.  It is reliable identity evidence even when
+  // Google chooses a localized "photos" title for the search result.
+  return clean && !/^(?:photo|review|rooms?|amenities)$/i.test(clean)
+    ? clean.replace(/[-_]+/g, ' ')
+    : ''
 }
 
 function bestTripNameEvidence(queryNames: string[], candidateNames: string[], city?: string) {
