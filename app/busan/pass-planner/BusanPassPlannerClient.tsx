@@ -4606,9 +4606,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       providers.forEach((item) => {
         const requestKey = `${item}:${placeId}`
         const activeRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
-        if (!activeRequest) return
-        activeRequest.controller.abort()
-        hotelAffiliateLookupRequestRef.current.delete(requestKey)
+        if (activeRequest) {
+          activeRequest.controller.abort()
+          hotelAffiliateLookupRequestRef.current.delete(requestKey)
+        }
+
+        const setProviderStatus = item === 'Agoda' ? setAgodaAffiliateStatus : setTripAffiliateStatus
+        setProviderStatus((status) => {
+          if (status[placeId] !== 'searching') return status
+          const nextStatus = { ...status }
+          delete nextStatus[placeId]
+          return nextStatus
+        })
       })
     },
     [],
@@ -7848,8 +7857,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   )
 
   useEffect(() => {
-    // Maps identity is resolved server-side first. Do not let a blocked map
-    // renderer prevent hotel lookup for an otherwise valid shared Maps link.
+    // Resolve the Maps identity first; the provider effect below starts each
+    // lookup exactly once after the required name and coordinate data is ready.
     if (!storageReady || readOnlyPlan) return
     Object.values(customPlaces).forEach((place) => {
       const links = [...(place.links ?? []), ...(placeUserLinks[place.id] ?? [])]
@@ -8424,8 +8433,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       return { ...links, [id]: nextLinks }
     })
-    resolveAgodaAffiliateLinkForCustomPlace(customPlace)
-    resolveTripAffiliateLinkForCustomPlace(customPlace)
     setSelectedId(id)
     const returnMode = customDraftReturnMode
     const returnItem = customDraftReturnItem && planItemPlaceId(customDraftReturnItem) === id ? customDraftReturnItem : null
