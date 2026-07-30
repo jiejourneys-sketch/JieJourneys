@@ -247,7 +247,7 @@ const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v4:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
 // Agoda now resolves against the local catalogue and browser Places API (New).
 // Discard older misses that may have come from SerpAPI or the legacy Places API.
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v17'
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v18'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 // v6 discards place-name entries created before Maps data-ID resolution. Those
 // old values can be incomplete URL labels and must not suppress the canonical

@@ -179,3 +179,56 @@ test('Agoda makes no web searches while Trip keeps localized names separate and 
     else delete process.env.TRIP_SEARCH_PROVIDER
   }
 })
+
+test('Trip searches the Agoda catalogue identity before a translated user name', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousTripSearchProvider = process.env.TRIP_SEARCH_PROVIDER
+  const queries: string[] = []
+  process.env.SERPAPI_API_KEY = 'trip-agoda-identity-regression'
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async (input) => {
+    const query = new URL(String(input)).searchParams.get('q') ?? ''
+    queries.push(query)
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [{
+        position: 1,
+        title: 'ART HOTEL Nippori Lungwood - Trip.com',
+        link: 'https://www.trip.com/hotels/tokyo-hotel-detail-1234567/art-hotel-nippori-lungwood/',
+        snippet: 'ART HOTEL Nippori Lungwood, Tokyo',
+      }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const response = await postTripAffiliate(new NextRequest(
+      'http://localhost/api/pass-planner/hotel-affiliate/trip',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          hotelName: 'ART 日暮里郎伍德酒店',
+          name: 'ART 日暮里郎伍德酒店',
+          countryCode: 'JP',
+          lat: 35.7281102,
+          lng: 139.7729396,
+          lodgingHint: true,
+          googlePlaceTypes: ['lodging'],
+          forceRefresh: true,
+        }),
+      },
+    ))
+    const result = await response.json()
+
+    expect(queries[0]).toBe('site:trip.com/hotels ART HOTEL Nippori Lungwood Trip.com')
+    expect(result.matchStatus).toBe('matched')
+    expect(result.bestMatch?.hotelId).toBe('1234567')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousTripSearchProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousTripSearchProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+  }
+})

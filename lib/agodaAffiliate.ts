@@ -677,6 +677,11 @@ function classifyAgodaIndexMatch(
   const hasTrustedCoordinates = typeof distanceKm === 'number' && distanceKm <= MAX_AUTO_MATCH_DISTANCE_KM
   const likelyAccommodation = isLikelyAccommodationCandidate(candidate)
   const coordinateOnlyMatch = isSafeCoordinateOnlyMatch(candidate, runnerUp, query.lodgingHint)
+  const veryClosePartialNameMatch = isSafeVeryClosePartialNameMatch(
+    candidate,
+    runnerUp,
+    query.lodgingHint,
+  )
   const nameAndDistanceMatch =
     hasTrustedCoordinates &&
     (
@@ -684,7 +689,10 @@ function classifyAgodaIndexMatch(
       (candidate.nameScore >= 0.9 && (distanceKm as number) <= 0.3) ||
       (candidate.nameScore >= 0.78 && (distanceKm as number) <= 0.08)
     )
-  const evidenceScore = Math.max(candidate.score, coordinateOnlyMatch || nameAndDistanceMatch ? AUTO_MATCH_MIN_SCORE : 0)
+  const evidenceScore = Math.max(
+    candidate.score,
+    coordinateOnlyMatch || veryClosePartialNameMatch || nameAndDistanceMatch ? AUTO_MATCH_MIN_SCORE : 0,
+  )
   const runnerUpCompetes =
     Boolean(runnerUp) &&
     runnerUp?.hotelId !== candidate.hotelId &&
@@ -698,7 +706,7 @@ function classifyAgodaIndexMatch(
     query.lodgingHint &&
     likelyAccommodation &&
     hasTrustedCoordinates &&
-    (coordinateOnlyMatch || nameAndDistanceMatch) &&
+    (coordinateOnlyMatch || veryClosePartialNameMatch || nameAndDistanceMatch) &&
     evidenceScore >= AUTO_MATCH_MIN_SCORE &&
     !runnerUpCompetes
   ) {
@@ -979,6 +987,29 @@ function isSafeCoordinateOnlyMatch(candidate?: RankedAgodaHotelCandidate, nextCa
   if (distanceKm <= 0.03 && nearestIsClearlySeparated) return true
   if (lodgingHint && distanceKm <= 0.08 && candidate.nameScore >= 0.28 && nearestIsClearlySeparated) return true
   return false
+}
+
+function isSafeVeryClosePartialNameMatch(
+  candidate?: RankedAgodaHotelCandidate,
+  nextCandidate?: RankedAgodaHotelCandidate,
+  lodgingHint = false,
+) {
+  if (!candidate || !lodgingHint || !isLikelyAccommodationCandidate(candidate)) return false
+  const distanceKm = candidate.distanceKm
+  if (
+    typeof distanceKm !== 'number' ||
+    distanceKm > 0.02 ||
+    candidate.nameScore < 0.2 ||
+    candidate.nameScore >= REVIEW_MATCH_MIN_SCORE
+  ) {
+    return false
+  }
+
+  const nextDistanceKm = nextCandidate?.distanceKm
+  if (typeof nextDistanceKm !== 'number') return true
+  const distanceGapKm = nextDistanceKm - distanceKm
+  const distanceRatio = nextDistanceKm / Math.max(distanceKm, 0.005)
+  return distanceGapKm >= 0.04 && distanceRatio >= 3
 }
 
 function isLikelyAccommodationCandidate(candidate: RankedAgodaHotelCandidate) {

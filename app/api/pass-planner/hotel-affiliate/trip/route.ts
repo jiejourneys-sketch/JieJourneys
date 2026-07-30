@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTripAffiliatePublicConfig, searchTripAffiliateHotels } from '@/lib/tripAffiliate'
-import { buildPlannerHotelAffiliateSearchNames } from '@/lib/hotelAffiliateIdentity'
+import { findAgodaHotelIndexIdentity } from '@/lib/agodaAffiliate'
+import {
+  buildHotelAffiliateSearchNames,
+  buildPlannerHotelAffiliateSearchNames,
+} from '@/lib/hotelAffiliateIdentity'
 import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
@@ -23,13 +27,28 @@ export async function POST(req: NextRequest) {
     googlePlaceNameZhTw: cleanString(input.googlePlaceNameZhTw, 160),
     userName: input.name,
   })
-  const hotelName = providedHotelNames[0]
-  if (!hotelName) return NextResponse.json({ error: 'missing_hotel_name' }, { status: 400 })
-  const alternateHotelNames = providedHotelNames.slice(1)
+  const providedHotelName = providedHotelNames[0]
+  if (!providedHotelName) return NextResponse.json({ error: 'missing_hotel_name' }, { status: 400 })
   const googlePlaceTypes = cleanHotelAffiliateGooglePlaceTypes(input.googlePlaceTypes ?? input.placeTypes, 12)
   const placeTypeSignal = hotelAffiliateGooglePlaceTypeSignal(googlePlaceTypes)
   const explicitLodgingHint = cleanBoolean(input.lodgingHint ?? input.isLodging ?? input.hotelAffiliateEligible)
   const lodgingHint = placeTypeSignal === 'lodging' || (explicitLodgingHint && placeTypeSignal !== 'non_lodging')
+  const agodaIdentity = await findAgodaHotelIndexIdentity({
+    hotelName: providedHotelName,
+    alternateHotelNames: providedHotelNames.slice(1),
+    countryCode,
+    latitude,
+    longitude,
+    lodgingHint,
+  })
+  const hotelNames = buildHotelAffiliateSearchNames({
+    verifiedNames: agodaIdentity?.canonicalNames,
+    googlePlaceName: providedHotelName,
+    alternateNames: providedHotelNames.slice(1),
+    maxNames: 3,
+  })
+  const hotelName = hotelNames[0] ?? providedHotelName
+  const alternateHotelNames = hotelNames.slice(1)
 
   const result = await searchTripAffiliateHotels({
     hotelName,

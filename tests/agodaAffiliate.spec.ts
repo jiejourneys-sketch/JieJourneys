@@ -100,6 +100,14 @@ test('uses the local Agoda catalogue without spending SerpAPI quota', async () =
       lodgingHint: true,
       forceRefresh: true,
     })
+    const translatedNameResult = await searchAgodaAffiliateHotels({
+      hotelName: 'ART 日暮里郎伍德酒店',
+      countryCode: 'JP',
+      latitude: 35.7281102,
+      longitude: 139.7729396,
+      lodgingHint: true,
+      forceRefresh: true,
+    })
 
     expect(fetchCount).toBe(0)
     expect(result.searchProvider).toBe('index')
@@ -113,6 +121,8 @@ test('uses the local Agoda catalogue without spending SerpAPI quota', async () =
     expect(bookingUrl.hostname).toBe('www.agoda.com')
     expect(bookingUrl.searchParams.get('hid')).toBe('99066')
     expect(bookingUrl.searchParams.get('cid')).toBeTruthy()
+    expect(translatedNameResult.matchStatus).toBe('matched')
+    expect(translatedNameResult.bestMatch?.hotelId).toBe('99066')
   } finally {
     globalThis.fetch = previousFetch
     if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
