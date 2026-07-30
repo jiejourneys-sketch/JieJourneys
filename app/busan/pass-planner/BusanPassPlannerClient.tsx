@@ -245,10 +245,9 @@ const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 // so an intermittent lookup failure must be retried instead of cached forever.
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v4:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
-// Identity resolution now reliably derives the canonical Maps Place ID before
-// lookup, so stale no-match entries from the earlier name-only flow must not
-// suppress a corrected search.
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v16'
+// Agoda now resolves against the local catalogue and browser Places API (New).
+// Discard older misses that may have come from SerpAPI or the legacy Places API.
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v17'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 // v6 discards place-name entries created before Maps data-ID resolution. Those
 // old values can be incomplete URL labels and must not suppress the canonical
@@ -1366,26 +1365,26 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
 
 async function loadGooglePlacesLibrary() {
   if (typeof window === 'undefined') return false
-  if (window.google?.maps?.places?.PlacesService) return true
+  if (window.google?.maps?.places?.Place) return true
   const importer = (window.google?.maps as (typeof google.maps & { importLibrary?: (name: string) => Promise<unknown> }) | undefined)?.importLibrary
   if (typeof importer !== 'function') return false
   await importer('places').catch(() => null)
-  return Boolean(window.google?.maps?.places?.PlacesService)
+  return Boolean(window.google?.maps?.places?.Place)
 }
 
-function googlePlaceDetailsFromPlaceResult(result: google.maps.places.PlaceResult | null | undefined): GooglePlaceDetailsData | null {
+function googlePlaceDetailsFromPlace(result: google.maps.places.Place | null | undefined): GooglePlaceDetailsData | null {
   if (!result) return null
-  const location = result.geometry?.location
+  const location = result.location
   const lat = location ? location.lat() : undefined
   const lng = location ? location.lng() : undefined
   const details: GooglePlaceDetailsData = {
-    ...(result.name?.trim() ? { name: result.name.trim().slice(0, 160) } : {}),
-    ...(result.formatted_address?.trim() ? { formattedAddress: result.formatted_address.trim().slice(0, 240) } : {}),
+    ...(result.displayName?.trim() ? { name: result.displayName.trim().slice(0, 160) } : {}),
+    ...(result.formattedAddress?.trim() ? { formattedAddress: result.formattedAddress.trim().slice(0, 240) } : {}),
     ...(typeof lat === 'number' && Number.isFinite(lat) ? { lat } : {}),
     ...(typeof lng === 'number' && Number.isFinite(lng) ? { lng } : {}),
     ...(cleanGooglePlaceTypes(result.types).length > 0 ? { types: cleanGooglePlaceTypes(result.types) } : {}),
-    ...(result.url?.trim() ? { googleMapsUrl: result.url.trim().slice(0, 500) } : {}),
-    ...(result.website?.trim() ? { website: result.website.trim().slice(0, 500) } : {}),
+    ...(result.googleMapsURI?.trim() ? { googleMapsUrl: result.googleMapsURI.trim().slice(0, 500) } : {}),
+    ...(result.websiteURI?.trim() ? { website: result.websiteURI.trim().slice(0, 500) } : {}),
   }
   return Object.keys(details).length > 0 ? details : null
 }
@@ -7088,33 +7087,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const resolveGooglePlaceDetailsInBrowser = useCallback(async (
     googlePlaceId: string,
-    locale: GooglePlaceDetailsLocale,
+    _locale: GooglePlaceDetailsLocale,
   ) => {
     const placesReady = await loadGooglePlacesLibrary()
-    if (!placesReady || !window.google?.maps?.places?.PlacesService) return null
-    const serviceHost = mapRef.current ?? document.createElement('div')
-    const service = new google.maps.places.PlacesService(serviceHost)
-    return new Promise<GooglePlaceDetailsData | null>((resolve) => {
-      service.getDetails(
-        {
-          placeId: googlePlaceId,
-          fields: ['place_id', 'name', 'geometry', 'types'],
-          language: locale,
-        },
-        (result, status) => {
-          if (status !== google.maps.places.PlacesServiceStatus.OK) {
-            resolve(null)
-            return
-          }
-          resolve(googlePlaceDetailsFromPlaceResult(result))
-        },
-      )
-    })
+    const Place = window.google?.maps?.places?.Place
+    if (!placesReady || !Place) return null
+    const place = new Place({ id: googlePlaceId })
+    const response = await place
+      .fetchFields({ fields: ['displayName', 'formattedAddress', 'location', 'types', 'googleMapsURI', 'websiteURI'] })
+      .then(() => place)
+      .catch(() => null)
+    return googlePlaceDetailsFromPlace(response)
   }, [])
 
-  // Browser Find Place remains a best-effort fallback. The deployed Maps key
-  // can render a map without having Places Find Place permission, so the
-  // server-side SerpAPI Maps lookup below is the primary identity source.
+  // Use Places API (New) for the canonical identity. PlacesService is a legacy
+  // API and is intentionally not enabled for this project.
   const findGooglePlaceIdentityInBrowser = useCallback(async (
     query: string,
     referenceCoordinates: { lat: number; lng: number },
@@ -7123,116 +7110,59 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (!cleanQuery) return null
 
     const placesReady = await loadGooglePlacesLibrary()
-    if (!placesReady || !window.google?.maps?.places?.PlacesService) return null
-    const serviceHost = mapRef.current ?? document.createElement('div')
-    const service = new google.maps.places.PlacesService(serviceHost)
+    const Place = window.google?.maps?.places?.Place
+    if (!placesReady || !Place) return null
 
-    return new Promise<GooglePlaceIdentityData | null>((resolve) => {
-      service.findPlaceFromQuery(
-        {
-          query: cleanQuery,
-          fields: ['place_id', 'name', 'geometry', 'types'],
-          language: 'en',
-          locationBias: {
-            center: referenceCoordinates,
-            radius: TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS,
-          },
-        },
-        (results, status) => {
-          if (status !== google.maps.places.PlacesServiceStatus.OK) {
-            resolve(null)
-            return
-          }
+    const response = await Place.searchByText({
+      textQuery: cleanQuery,
+      fields: ['id', 'displayName', 'location', 'types'],
+      language: 'en',
+      locationBias: {
+        center: referenceCoordinates,
+        radius: TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS * 3,
+      },
+      maxResultCount: 10,
+    }).catch(() => null)
+    if (!response?.places) return null
 
-          const matches = (results ?? [])
-            .map((result) => {
-              const googlePlaceId = result.place_id?.trim() ?? ''
-              const location = result.geometry?.location
-              if (!googlePlaceId || !location) return null
-              const lat = location.lat()
-              const lng = location.lng()
-              if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
-              const distance = distanceMeters(referenceCoordinates, { lat, lng })
-              if (distance > TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS) return null
-              return {
-                googlePlaceId,
-                ...(result.name?.trim() ? { name: result.name.trim().slice(0, 160) } : {}),
-                lat,
-                lng,
-                types: cleanGooglePlaceTypes(result.types),
-                distance,
-              }
-            })
-            .filter((result): result is GooglePlaceIdentityData & { distance: number } => result !== null)
-            .sort((left, right) => left.distance - right.distance)
+    const matches = response.places
+      .map((place) => {
+        const googlePlaceId = place.id.trim()
+        const details = googlePlaceDetailsFromPlace(place)
+        const lat = details?.lat
+        const lng = details?.lng
+        if (!googlePlaceId || !details || lat == null || lng == null) return null
+        const distance = distanceMeters(referenceCoordinates, { lat, lng })
+        if (distance > TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS) return null
+        return {
+          googlePlaceId,
+          ...(details.name ? { name: details.name } : {}),
+          lat,
+          lng,
+          types: cleanGooglePlaceTypes(details.types),
+          distance,
+        }
+      })
+      .filter((result): result is GooglePlaceIdentityData & { distance: number } => result !== null)
+      .sort((left, right) => left.distance - right.distance)
 
-          const match = matches[0]
-          if (!match) {
-            resolve(null)
-            return
-          }
-          const { distance: _distance, ...identity } = match
-          resolve(identity)
-        },
-      )
-    })
+    const match = matches[0]
+    if (!match) return null
+    const { distance: _distance, ...identity } = match
+    return identity
   }, [])
 
-  // Google Maps shared URLs are not guaranteed to contain a reusable
-  // `ChIJ...` Place ID. In particular, many short URLs expand to a `g/...`
-  // feature ID. Resolve the canonical identity server-side first, then retain
-  // the browser API only as a fallback for installations without SerpAPI.
+  // A Maps feature ID (`0x...` or `g/...`) is not a reusable Place ID. Resolve
+  // from the title and coordinates in the browser without spending SerpAPI;
+  // the provider-specific Trip lookup remains the only SerpAPI consumer.
   const findGooglePlaceIdentityFromQuery = useCallback(async (
     query: string,
     referenceCoordinates: { lat: number; lng: number },
-    googleMapsDataId = '',
+    _googleMapsDataId = '',
   ): Promise<GooglePlaceIdentityData | null> => {
     const cleanQuery = query.trim()
-    const cleanDataId = googleMapsDataId.trim()
-    if (!cleanQuery && !cleanDataId) return null
-
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 10000)
-    const response = await fetch('/api/pass-planner/google-maps-identity', {
-      method: 'POST',
-      cache: 'no-store',
-      signal: controller.signal,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        ...(cleanQuery ? { query: cleanQuery } : {}),
-        lat: referenceCoordinates.lat,
-        lng: referenceCoordinates.lng,
-        ...(cleanDataId ? { dataId: cleanDataId } : {}),
-      }),
-    })
-      .then(async (res) => (res.ok ? res.json().catch(() => null) : null))
-      .catch(() => null)
-      .finally(() => window.clearTimeout(timeout))
-
-    const identityResponse = response && typeof response === 'object' && !Array.isArray(response)
-      ? response as { identity?: unknown; identitySource?: unknown }
-      : null
-    const identityValue = identityResponse?.identity
-    if (identityValue && typeof identityValue === 'object' && !Array.isArray(identityValue)) {
-      const identity = identityValue as Record<string, unknown>
-      const googlePlaceId = typeof identity.placeId === 'string' ? identity.placeId.trim() : ''
-      const name = typeof identity.name === 'string' ? identity.name.trim() : ''
-      const lat = typeof identity.lat === 'number' && Number.isFinite(identity.lat) ? identity.lat : null
-      const lng = typeof identity.lng === 'number' && Number.isFinite(identity.lng) ? identity.lng : null
-      const types = cleanGooglePlaceTypes(identity.types)
-      const exactMapsDataId = identityResponse?.identitySource === 'data_id'
-      if (
-        googlePlaceId &&
-        name &&
-        lat != null &&
-        lng != null &&
-        (exactMapsDataId || distanceMeters(referenceCoordinates, { lat, lng }) <= TRUSTED_PROVIDER_PLACE_MAX_DISTANCE_METERS)
-      ) {
-        return { googlePlaceId, name: name.slice(0, 160), lat, lng, types, ...(exactMapsDataId ? { exactMapsDataId: true } : {}) }
-      }
-    }
-
-    return cleanQuery ? findGooglePlaceIdentityInBrowser(cleanQuery, referenceCoordinates) : null
+    if (!cleanQuery) return null
+    return findGooglePlaceIdentityInBrowser(cleanQuery, referenceCoordinates)
   }, [findGooglePlaceIdentityInBrowser])
 
   const resolveGooglePlaceDetailsForCustomPlace = useCallback((place: CustomPlannerPlace) => {

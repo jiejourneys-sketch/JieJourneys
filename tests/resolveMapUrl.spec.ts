@@ -5,6 +5,9 @@ import { GET as resolveMapUrl } from '../app/api/pass-planner/resolve-map-url/ro
 const shortGoogleMapsUrl = 'https://maps.app.goo.gl/GCPepUUGQ75cQiUs5'
 const expandedGoogleMapsUrl =
   'https://www.google.com/maps/place/%E6%B2%96%E7%B9%A9%E7%B8%A3%E5%BB%B3%E5%89%8D%E5%A4%A7%E5%92%8CROYNET%E9%A3%AF%E5%BA%97/@26.2133022,127.6741234,17z/data=!4m2!3d26.2132974!4d127.6766983'
+const artHotelShortGoogleMapsUrl = 'https://maps.app.goo.gl/2zyF2azhMWrQdhpR7'
+const artHotelExpandedGoogleMapsUrl =
+  'https://www.google.com/maps/place/ART+%E6%97%A5%E6%9A%AE%E9%87%8C%E9%83%8E%E4%BC%8D%E5%BE%B7%E9%85%92%E5%BA%97/@35.7281102,139.7729396,17z/data=!3m1!4b1!4m11!3m10!1s0x60188e7f7e6987df:0xf6037235b21f34d8!5m4!1s2026-09-06!2i2!4m1!1i2!8m2!3d35.7281102!4d139.7729396!16s%2Fg%2F11ckrc52nd?entry=tts'
 const originalFetch = globalThis.fetch
 
 function resolverRequest(url: string) {
@@ -86,6 +89,36 @@ test('keeps a Google Maps feature data ID separate from a ChIJ Place ID', async 
   expect(response.status).toBe(200)
   expect(payload).toMatchObject({
     url: expandedUrl,
+    lat: 35.7281102,
+    lng: 139.7729396,
+    googleMapsDataId: '0x60188e7f7e6987df:0xf6037235b21f34d8',
+  })
+  expect(payload.googlePlaceId).toBeUndefined()
+})
+
+test('preserves the reported ART Hotel Maps short-link identity', async () => {
+  globalThis.fetch = (async (input) => {
+    const url = String(input)
+    if (url === artHotelShortGoogleMapsUrl) {
+      return new Response(null, {
+        status: 302,
+        headers: { location: artHotelExpandedGoogleMapsUrl },
+      })
+    }
+    if (url === artHotelExpandedGoogleMapsUrl) {
+      return new Response('<title>Google Maps</title>', { status: 200 })
+    }
+    throw new Error(`unexpected_url:${url}`)
+  }) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(artHotelShortGoogleMapsUrl))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload).toMatchObject({
+    url: artHotelExpandedGoogleMapsUrl,
+    title: 'ART 日暮里郎伍德酒店',
+    query: 'ART 日暮里郎伍德酒店',
     lat: 35.7281102,
     lng: 139.7729396,
     googleMapsDataId: '0x60188e7f7e6987df:0xf6037235b21f34d8',

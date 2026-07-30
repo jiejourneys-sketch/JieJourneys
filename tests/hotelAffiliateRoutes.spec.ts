@@ -25,7 +25,7 @@ function affiliateRequest(path: string) {
   })
 }
 
-test('routes search the Maps English name before the user name', async () => {
+test('Agoda stays local while Trip searches the Maps English name first', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
@@ -68,14 +68,14 @@ test('routes search the Maps English name before the user name', async () => {
     const agoda = await agodaResponse.json()
     const trip = await tripResponse.json()
 
-    expect(requestedQueries.sort()).toEqual([
-      'site:agoda.com Centurion Hotel & Spa Ueno Station Agoda',
+    expect(requestedQueries).toEqual([
       'site:trip.com/hotels Centurion Hotel & Spa Ueno Station Trip.com',
     ])
     expect(agodaResponse.status).toBe(200)
     expect(agoda.matchStatus).toBe('matched')
-    expect(agoda.confidence).toBe('high')
-    expect(agoda.bestMatch?.bookingUrl).toContain('/centurion-hotel-spa-ueno-station/hotel/tokyo-jp.html')
+    expect(agoda.confidence).toBe('verified')
+    expect(agoda.bestMatch?.hotelId).toBe('2232362')
+    expect(new URL(agoda.bestMatch?.bookingUrl).searchParams.get('hid')).toBe('2232362')
 
     expect(tripResponse.status).toBe(200)
     expect(trip.matchStatus).toBe('matched')
@@ -93,7 +93,7 @@ test('routes search the Maps English name before the user name', async () => {
   }
 })
 
-test('routes keep Maps English, Maps Traditional Chinese, and user-name searches separate and ordered', async () => {
+test('Agoda makes no web searches while Trip keeps localized names separate and ordered', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
@@ -158,11 +158,7 @@ test('routes keep Maps English, Maps Traditional Chinese, and user-name searches
     ])
     const [agoda, trip] = await Promise.all([agodaResponse.json(), tripResponse.json()])
 
-    expect(agodaQueries).toEqual([
-      `site:agoda.com ${mapsEnglishName} Agoda`,
-      `site:agoda.com ${mapsTraditionalChineseName} Agoda`,
-      `site:agoda.com ${userName} Agoda`,
-    ])
+    expect(agodaQueries).toEqual([])
     expect(tripQueries).toEqual([
       `site:trip.com/hotels ${mapsEnglishName} Trip.com`,
       `site:trip.com/hotels ${mapsTraditionalChineseName} Trip.com`,
@@ -170,7 +166,7 @@ test('routes keep Maps English, Maps Traditional Chinese, and user-name searches
     ])
     expect([...agodaQueries, ...tripQueries].join(' ')).not.toContain('This name must never be searched')
     expect(agodaResponse.status).toBe(200)
-    expect(agoda.matchStatus).toBe('matched')
+    expect(agoda.matchStatus).toBe('needs_review')
     expect(tripResponse.status).toBe(200)
     expect(trip.matchStatus).toBe('matched')
   } finally {
