@@ -56,6 +56,8 @@ const cards: CityCard[] = [
     datasetKey: 'video',
     datasetValue: 'tsutenkaku-guide',
     actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/Dbf5awqhIng/', className: 'btn primary', event: 'osakavideo_tsutenkakuIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/x9SRUpRWRSg', className: 'btn', event: 'osakavideo_tsutenkakuYT', platform: 'YouTube', section: 'video' },
       { label: '文章', href: '/osaka/tsutenkaku-guide?from=osaka-video', className: 'btn', event: 'osakavideo_tsutenkakuArticle', platform: 'article', section: 'video' },
     ],
   },

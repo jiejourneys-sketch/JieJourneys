@@ -3,6 +3,7 @@ import Footer from '@/components/Footer'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import Image from 'next/image'
 import {
@@ -13,6 +14,11 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const DIVE_WALK_SATELLITE_MAP = 'https://maps.app.goo.gl/Ei8FCfvrm3765XyV6'
+
+const videoLinks = [
+  { label: '通天閣 IG', href: 'https://www.instagram.com/reel/Dbf5awqhIng/', event: 'tsutenkaku_video_ig', platform: 'IG', primary: true },
+  { label: '通天閣 YouTube', href: 'https://www.youtube.com/shorts/x9SRUpRWRSg', event: 'tsutenkaku_video_yt', platform: 'YouTube' },
+]
 
 const accessRoutes = [
   {
@@ -178,6 +184,14 @@ export default async function TsutenkakuGuidePage({ searchParams }: TsutenkakuGu
               <strong>R5F 天望樂園</strong>
               <p>在一般展望台上方的戶外景觀；這次現場加購為成人 ¥300、兒童 ¥200。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="通天閣短影音">
+          <h2 className="seo-h2">先看短影音：通天閣現場動線</h2>
+          <div className="seo-prose">
+            <p>先用短影音看通天閣、新世界商店街與現場動線，再回來依這篇安排展望台、Tower Slider 與 Dive &amp; Walk，逛起來更順。</p>
+            <SeoVideoLinkMenu label="通天閣" links={videoLinks} />
           </div>
         </section>
 
