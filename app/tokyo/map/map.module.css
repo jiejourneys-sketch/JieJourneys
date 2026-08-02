@@ -1319,9 +1319,9 @@
     max-height: calc(100dvh - 8px);
   }
 
-  /* 地標點選後：僅一張卡片，高度依內容（不超過螢幕比例） */
+  /* 地標點選後：卡片維持半高，長內容可在面板內捲動，不會截掉按鈕。 */
   .mobileSheetExpandedSingle {
-    height: auto;
+    height: 55vh;
     max-height: 55vh;
   }
 
@@ -1346,7 +1346,8 @@
   }
 
   .mobileSheetExpandedSingle .mobileSheetBody {
-    flex: none;
+    flex: 1;
+    min-height: 0;
     padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   }
 
@@ -1370,25 +1371,18 @@
     scrollbar-color: rgba(31, 122, 140, 0.35) transparent;
   }
 
-  /* 子元素預設 touch-action:auto 會搶手勢；一律 none，連結仍可用點擊開啟 */
+  /* 單一卡片可捲動，避免長文案把下方的短影音、攻略與地圖按鈕截掉。 */
   .mobileSheetSingleWrap {
     flex: 1;
     min-height: 0;
-    overflow: hidden;
-    touch-action: none;
-  }
-
-  .mobileSheetSingleWrap:has(details[open]) {
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
   }
 
   .mobileSheetSingleWrap * {
-    touch-action: none;
-  }
-
-  .mobileSheetSingleWrap:has(details[open]) * {
     touch-action: pan-y;
   }
 

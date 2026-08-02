@@ -91,11 +91,18 @@ function mapActionPlatform(action: CityCardAction): string {
   return platform === 'maps' ? 'map' : platform
 }
 
+function mapArticleHref(href: string): string {
+  const url = new URL(href, 'https://www.jiejourneys.com')
+  url.searchParams.set('from', 'map')
+  return `${url.pathname}${url.search}${url.hash}`
+}
+
 function busanMapTicketAction(action: CityCardAction, placeId: string): CityCardAction {
   const platform = mapActionPlatform(action)
   const ticketSlug = action.event?.match(new RegExp(`^busanticket_(.+)_${platform}$`))?.[1] ?? eventSlug(placeId).replace(/^busan_/, '')
   return {
     ...action,
+    ...(platform === 'article' ? { label: '攻略', href: mapArticleHref(action.href) } : {}),
     mapEvent: `busanmap_ticket_${ticketSlug}_${platform}`,
     mapSection: 'map_bar',
   }

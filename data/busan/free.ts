@@ -24,12 +24,20 @@ export const busanFreeMapPlaces: BusanMapPlace[] = [
     lng: 129.1603842,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/ZUHjykERqibiiedU8',
     mapButtonMapEvent: 'busanmap_haeundae',
+    relatedArticleHref: '/busan/haeundae-guide?from=map',
+    relatedArticleEvent: 'busanmap_haeundae_article',
     spotActions: [
       {
         label: '介紹',
         className: "btn primary",
         href: 'https://www.instagram.com/reel/DLuh1WzzM0c/',
         mapEvent: 'busanmap_haeundae_ig',
+      },
+      {
+        label: 'YouTube',
+        href: 'https://www.youtube.com/shorts/T0aTv6PPxMQ',
+        mapEvent: 'busanmap_haeundae_youtube',
+        platform: 'YouTube',
       },
       {
         label: 'NaverMap',
@@ -81,12 +89,20 @@ export const busanFreeMapPlaces: BusanMapPlace[] = [
     lng: 129.1918625,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/8FoxiUM5L5sdHUi37',
     mapButtonMapEvent: 'busanmap_haeundae_crossing',
+    relatedArticleHref: '/busan/capsule-train-guide?from=map',
+    relatedArticleEvent: 'busanmap_haeundae_crossing_article',
     spotActions: [
       {
         label: '介紹',
         className: "btn primary",
         href: 'https://www.instagram.com/reel/DMu5uZxTdO8/',
         mapEvent: 'busanmap_haeundae_crossing_ig',
+      },
+      {
+        label: 'YouTube',
+        href: 'https://www.youtube.com/shorts/NojyZ8jfvD4',
+        mapEvent: 'busanmap_haeundae_crossing_youtube',
+        platform: 'YouTube',
       },
       {
         label: 'NaverMap',
@@ -310,12 +326,20 @@ export const busanFreeMapPlaces: BusanMapPlace[] = [
     mapButtonMapEvent: 'busanmap_biff_square',
     relatedTicketHref: busanRelatedTicketHref('南浦洞', 'BIFF-square'),
     relatedTicketEvent: 'busanmap_biff_square_ticket',
+    relatedArticleHref: '/busan/nampo-dong-guide?from=map',
+    relatedArticleEvent: 'busanmap_biff_square_article',
     spotActions: [
       {
         label: '介紹',
         className: "btn primary",
         href: 'https://www.instagram.com/reel/DLKer30zmDd/',
         mapEvent: 'busanmap_biff_square_ig',
+      },
+      {
+        label: 'YouTube',
+        href: 'https://www.youtube.com/shorts/wN0KHurau78',
+        mapEvent: 'busanmap_biff_square_youtube',
+        platform: 'YouTube',
       },
       {
         label: 'NaverMap',
@@ -369,12 +393,20 @@ export const busanFreeMapPlaces: BusanMapPlace[] = [
     mapButtonMapEvent: 'busanmap_cultural_village',
     relatedTicketHref: busanRelatedTicketHref('甘川文化村', 'Cultural-village'),
     relatedTicketEvent: 'busanmap_cultural_village_ticket',
+    relatedArticleHref: '/busan/gamcheon-culture-village-guide?from=map',
+    relatedArticleEvent: 'busanmap_cultural_village_article',
     spotActions: [
       {
         label: '介紹',
         className: "btn primary",
         href: 'https://www.instagram.com/reel/DL408o_ze1X/',
         mapEvent: 'busanmap_cultural_village_ig',
+      },
+      {
+        label: 'YouTube',
+        href: 'https://www.youtube.com/shorts/RZREPyNT-Fo',
+        mapEvent: 'busanmap_cultural_village_youtube',
+        platform: 'YouTube',
       },
       {
         label: 'NaverMap',

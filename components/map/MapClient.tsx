@@ -417,6 +417,15 @@ function relatedTicketButtonEvent(place: MapPlace, gtagPrefix: string): string {
   return e || `${gtagPrefix}_${place.id.replace(/-/g, '_').toLowerCase()}_ticket`
 }
 
+function relatedArticleButtonLabel(place: MapPlace): string {
+  return place.relatedArticleLabel?.trim() || '攻略'
+}
+
+function relatedArticleButtonEvent(place: MapPlace, gtagPrefix: string): string {
+  const e = place.relatedArticleEvent?.trim()
+  return e || `${gtagPrefix}_${place.id.replace(/-/g, '_').toLowerCase()}_article`
+}
+
 function hasPrimarySpotAction(place: MapPlace): boolean {
   const actions = place.spotActionRows?.flat() ?? place.spotActions ?? []
   return actions.some((a) => a.className?.split(/\s+/).includes('primary'))
@@ -619,6 +628,27 @@ function MapGoogleLink({
       onPointerDown={stopCardPick}
     >
       {label ?? mapBarMapButtonLabel(place)}
+    </a>
+  )
+}
+
+function MapArticleLink({ place, gtagPrefix }: { place: MapPlace; gtagPrefix: string }) {
+  if (!place.relatedArticleHref) return null
+
+  return (
+    <a
+      className="btn"
+      href={place.relatedArticleHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-event={relatedArticleButtonEvent(place, gtagPrefix)}
+      data-item={place.id}
+      data-platform="article"
+      data-section="map_bar"
+      onClick={stopCardPick}
+      onPointerDown={stopCardPick}
+    >
+      {relatedArticleButtonLabel(place)}
     </a>
   )
 }
@@ -886,6 +916,7 @@ function MapPlaceCard({
                         {relatedTicketButtonLabel(place)}
                       </a>
                     ) : null}
+                    <MapArticleLink place={place} gtagPrefix={gtagPrefix} />
                     <MapLocationLinks
                       naverActions={naverActions}
                       place={place}
@@ -914,6 +945,7 @@ function MapPlaceCard({
                   {relatedTicketButtonLabel(place)}
                 </a>
               ) : null}
+            <MapArticleLink place={place} gtagPrefix={gtagPrefix} />
             <MapLocationLinks
               naverActions={naverActions}
               place={place}
@@ -939,6 +971,7 @@ function MapPlaceCard({
                   {relatedTicketButtonLabel(place)}
                 </a>
               ) : null}
+            <MapArticleLink place={place} gtagPrefix={gtagPrefix} />
             <MapLocationLinks
               naverActions={naverActions}
               place={place}
@@ -1230,6 +1263,11 @@ export default function MapClient({
     mobileSheetState === 'half' && !!selectedPlace && !mobileSheetBrowseDual && hasAnyListPlaces
 
   showSingleMobileCardRef.current = showSingleMobileCard
+
+  const mobileSingleCardCanScroll = useCallback(() => {
+    const el = singleSwipeWrapRef.current
+    return Boolean(el && el.scrollHeight > el.clientHeight + 1)
+  }, [])
 
   useEffect(() => {
     if (mobileSheetState === 'full' && !mobileSheetBrowseDual) setMobileSheetBrowseDual(true)
@@ -1914,6 +1952,10 @@ export default function MapClient({
     }
     const onMove = (ev: TouchEvent) => {
       if (startY == null || ev.touches.length !== 1) return
+      if (mobileSingleCardCanScroll()) {
+        startY = null
+        return
+      }
       const y = ev.touches[0].clientY
       if (startY - y > 18) {
         setMobileSheetBrowseDual(true)
@@ -1941,7 +1983,7 @@ export default function MapClient({
       el.removeEventListener('touchend', onEnd)
       el.removeEventListener('touchcancel', onEnd)
     }
-  }, [isMobileMapLayout, showSingleMobileCard, selectedPlace?.id, setMobileSheetExpanded])
+  }, [isMobileMapLayout, mobileSingleCardCanScroll, showSingleMobileCard, selectedPlace?.id, setMobileSheetExpanded])
 
   const onMobileSheetDragPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return
@@ -2047,7 +2089,7 @@ export default function MapClient({
 
   const onMobileSinglePointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
-      if (mobileSheetBrowseDual || singleSwipeStartRef.current == null) return
+      if (mobileSheetBrowseDual || singleSwipeStartRef.current == null || mobileSingleCardCanScroll()) return
       if (singleSwipeStartRef.current - e.clientY > 20) {
         setMobileSheetBrowseDual(true)
         singleSwipeStartRef.current = null
@@ -2056,7 +2098,7 @@ export default function MapClient({
         singleSwipeStartRef.current = null
       }
     },
-    [mobileSheetBrowseDual, setMobileSheetExpanded],
+    [mobileSheetBrowseDual, mobileSingleCardCanScroll, setMobileSheetExpanded],
   )
 
   const onMobileSinglePointerUp = useCallback(() => {
@@ -2070,7 +2112,7 @@ export default function MapClient({
 
   const onMobileSingleTouchMove = useCallback(
     (e: ReactTouchEvent<HTMLDivElement>) => {
-      if (mobileSheetBrowseDual || singleSwipeStartRef.current == null) return
+      if (mobileSheetBrowseDual || singleSwipeStartRef.current == null || mobileSingleCardCanScroll()) return
       if (e.touches.length !== 1) return
       const y = e.touches[0].clientY
       if (singleSwipeStartRef.current - y > 20) {
@@ -2081,7 +2123,7 @@ export default function MapClient({
         singleSwipeStartRef.current = null
       }
     },
-    [mobileSheetBrowseDual, setMobileSheetExpanded],
+    [mobileSheetBrowseDual, mobileSingleCardCanScroll, setMobileSheetExpanded],
   )
 
   const onMobileSingleTouchEnd = useCallback(() => {
@@ -2116,10 +2158,10 @@ export default function MapClient({
 
   const onMobileSingleWheel = useCallback(
     (e: ReactWheelEvent<HTMLDivElement>) => {
-      if (mobileSheetBrowseDual || !selectedPlace) return
+      if (mobileSheetBrowseDual || !selectedPlace || mobileSingleCardCanScroll()) return
       if (e.deltaY > 12) setMobileSheetBrowseDual(true)
     },
-    [mobileSheetBrowseDual, selectedPlace],
+    [mobileSheetBrowseDual, mobileSingleCardCanScroll, selectedPlace],
   )
 
   const scrollToBelowContent = useCallback(() => {
@@ -2783,7 +2825,7 @@ export default function MapClient({
                     data-item="single_hint"
                     onClick={() => setMobileSheetBrowseDual(true)}
                   >
-                    向上滑可看更多，或點此瀏覽完整列表
+                    向上滑可查看完整卡片內容，或點此瀏覽完整列表
                   </button>
                 </div>
               ) : (

@@ -201,6 +201,9 @@ const osakaPassTicketPlaces: MapPlace[] = osakaPassMapPlaces
     spotActions: place.spotActions,
     mapButtonMapEvent: place.mapButtonMapEvent,
     mapButtonLabel: place.mapButtonLabel,
+    relatedArticleHref: place.relatedArticleHref?.replace('from=pass-map', 'from=map'),
+    relatedArticleLabel: place.relatedArticleLabel,
+    relatedArticleEvent: place.relatedArticleEvent?.replace('osakapassmap_', 'osakamap_'),
   }))
 
 const osakaTicketPlaces: TicketPlaceInput[] = [

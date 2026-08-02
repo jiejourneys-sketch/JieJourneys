@@ -22,5 +22,8 @@ export type BusanMapPlace = {
   relatedTicketHref?: string
   relatedTicketLabel?: string
   relatedTicketEvent?: string
+  relatedArticleHref?: string
+  relatedArticleLabel?: string
+  relatedArticleEvent?: string
   hotelActions?: CityCardAction[]
 }
