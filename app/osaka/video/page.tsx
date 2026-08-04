@@ -62,6 +62,16 @@ const cards: CityCard[] = [
     ],
   },
   {
+    title: '道頓堀遊船｜攻略',
+    meta: '大阪攻略',
+    area: '大阪攻略',
+    datasetKey: 'video',
+    datasetValue: 'dotonbori-cruise-guide',
+    actions: [
+      { label: '文章', href: '/osaka/dotonbori-cruise-guide?from=osaka-video', className: 'btn', event: 'osakavideo_dotonboricruiseArticle', platform: 'article', section: 'video' },
+    ],
+  },
+  {
     title: '大阪5個區域｜攻略',
     meta: '大阪攻略',
     area: '大阪攻略',

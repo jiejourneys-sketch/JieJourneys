@@ -89,11 +89,11 @@ export const osakaPassMapPlaces: MapPlace[] = [
     id: 'osaka-pass-free-dotonbori-sightseeing-boat',
     category: 'spot',
     plannerCategory: 'ticket',
-    name: '道頓堀水上觀光船 400元',
-    description: '傍晚以後的航班可能提前售完，可白天前去兌換，限換當日票，乘船時間20分鐘。',
+    name: '道頓堀水上觀光船 Tombori River Cruise 400元',
+    description: 'Tombori River Cruise｜只能現場換票，傍晚班可能提前售完；建議白天先換當日指定時段票。',
     lat: 34.6691432,
     lng: 135.502709,
-    spotGoogleMapsUrl: 'https://maps.app.goo.gl/VYUMF5hQN7p5mKMTA',
+    spotGoogleMapsUrl: 'https://maps.app.goo.gl/yqAUk77ncQw63DSd7',
     spotActions: [
       {
         label: 'Trip',
@@ -104,6 +104,9 @@ export const osakaPassMapPlaces: MapPlace[] = [
         section: 'map_bar',
       },
     ],
+    relatedArticleHref: '/osaka/dotonbori-cruise-guide?from=pass-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakapassmap_pass_free_dotonbori_sightseeing_boat_article',
     mapButtonMapEvent: 'osakapassmap_pass_free_dotonbori_sightseeing_boat_map',
     mapButtonLabel: '地圖',
     markerColor: '#FF5252',
@@ -118,7 +121,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
     description: '可先線上預約，現場換票，乘船時間20分鐘。',
     lat: 34.6689201,
     lng: 135.5054825,
-    spotGoogleMapsUrl: 'https://maps.app.goo.gl/Dw2BJBjygNXHEMHR9',
+    spotGoogleMapsUrl: 'https://maps.app.goo.gl/SU32q9zctBbo7ohj6',
     spotActions: [
       {
         label: 'Trip',
@@ -129,7 +132,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
         section: 'map_bar',
       },
       {
-        label: '官網預約',
+        label: '預約',
         href: 'https://select-type.com/rsv/?id=oHYe7QVcsto&c_id=242746',
         className: 'btn',
         event: 'osakapassmap_pass_free_wonder_cruise_reserve',
@@ -137,6 +140,9 @@ export const osakaPassMapPlaces: MapPlace[] = [
         section: 'map_bar',
       },
     ],
+    relatedArticleHref: '/osaka/dotonbori-cruise-guide?from=pass-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakapassmap_pass_free_wonder_cruise_article',
     mapButtonMapEvent: 'osakapassmap_pass_free_wonder_cruise_map',
     mapButtonLabel: '地圖',
     markerColor: '#FF5252',
