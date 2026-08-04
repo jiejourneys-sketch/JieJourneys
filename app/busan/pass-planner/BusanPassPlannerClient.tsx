@@ -6,6 +6,7 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   type RefObject,
   type TouchEvent as ReactTouchEvent,
   type UIEvent as ReactUIEvent,
@@ -65,6 +66,9 @@ type PlannerFocusTarget =
   | { mode: 'transport'; itemId: PlannerItem }
 type TransportMode = 'walk' | 'subway' | 'bus' | 'train' | 'taxi' | 'car' | 'custom'
 type TransportInfo = { id: string; mode: TransportMode; customLabel: string; duration: string; note: string; href: string }
+type PlannerListDisplayItem =
+  | { type: 'item'; item: PlannerItem }
+  | { type: 'transport-group'; key: string; items: PlannerItem[] }
 type TransportNavigationPlaces = { from: MapPlace; to: MapPlace }
 type TransportNavigationPlaceIds = {
   fromGooglePlaceId?: string
@@ -2738,6 +2742,44 @@ function hasSavedTransportDetails(info: TransportInfo) {
   return Boolean(info.customLabel.trim() || info.duration.trim() || info.note.trim() || info.mode !== 'walk')
 }
 
+function groupConsecutiveTransportItems(items: PlannerItem[]): PlannerListDisplayItem[] {
+  const groups: PlannerListDisplayItem[] = []
+  let transportItems: PlannerItem[] = []
+
+  const flushTransportItems = () => {
+    if (transportItems.length === 0) return
+    if (transportItems.length === 1) {
+      groups.push({ type: 'item', item: transportItems[0] })
+    } else {
+      const key = `transport-group:${transportItems
+        .map((item) => parseTransportItem(item)?.id ?? item)
+        .join(':')}`
+      groups.push({ type: 'transport-group', key, items: transportItems })
+    }
+    transportItems = []
+  }
+
+  items.forEach((item) => {
+    if (isTransportItem(item)) {
+      transportItems.push(item)
+      return
+    }
+    flushTransportItems()
+    groups.push({ type: 'item', item })
+  })
+  flushTransportItems()
+  return groups
+}
+
+function transportGroupPreview(items: PlannerItem[]) {
+  return items
+    .map(parseTransportItem)
+    .filter((info): info is TransportInfo => info !== null)
+    .map((info) => [transportLabel(info), info.duration.trim()].filter(Boolean).join(' · '))
+    .filter(Boolean)
+    .join(' → ')
+}
+
 function planItemPlaceId(item: PlannerItem) {
   if (isDayItem(item) || isTransportItem(item)) return null
   if (!isVisitItem(item)) return item
@@ -4327,6 +4369,41 @@ function SortableTransportItem({
   )
 }
 
+function TransportItemGroup({
+  items,
+  expanded,
+  onExpand,
+  groupRef,
+  children,
+}: {
+  items: PlannerItem[]
+  expanded: boolean
+  onExpand: () => void
+  groupRef?: (el: HTMLElement | null) => void
+  children: ReactNode
+}) {
+  const preview = transportGroupPreview(items)
+  const summary = (
+    <>
+      <span className={styles.transportGroupBadge}>{items.length} 段交通</span>
+      <span className={styles.transportGroupPreview}>{preview || '查看每一段交通安排'}</span>
+      <span className={styles.transportGroupAction}>{expanded ? '逐段顯示' : '展開'}</span>
+    </>
+  )
+  return (
+    <section ref={groupRef} className={`${styles.transportGroup} ${expanded ? styles.transportGroupExpanded : ''}`}>
+      {expanded ? (
+        <div className={styles.transportGroupToggle}>{summary}</div>
+      ) : (
+        <button type="button" className={styles.transportGroupToggle} onClick={onExpand} aria-expanded={false}>
+          {summary}
+        </button>
+      )}
+      {expanded ? <div className={styles.transportGroupItems}>{children}</div> : null}
+    </section>
+  )
+}
+
 function SortableDayDivider({
   id,
   dayNumber,
@@ -4492,6 +4569,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const planCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const dayDividerRefs = useRef<Record<string, HTMLElement | null>>({})
   const transportCardRefs = useRef<Record<string, HTMLElement | null>>({})
+  const transportGroupRefs = useRef<Record<string, HTMLElement | null>>({})
   const pendingDayDividerScrollRef = useRef<string | null>(null)
   const panelBodyRef = useRef<HTMLDivElement | null>(null)
   const panelRef = useRef<HTMLElement | null>(null)
@@ -4523,6 +4601,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const initialPlannerLoadRef = useRef(false)
   const expandedPlanScrollCollapseTimerRef = useRef<number | null>(null)
   const expandedPlanScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
+  const transportGroupScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
   const hotelAffiliateLookupRequestRef = useRef<Map<string, ActiveHotelAffiliateLookup>>(new Map())
   const hotelAffiliateForceRefreshRef = useRef<Set<string>>(new Set())
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
@@ -4568,6 +4647,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   >(null)
   const [recentlyAddedPlaceId, setRecentlyAddedPlaceId] = useState<string | null>(null)
   const [expandedPlanItem, setExpandedPlanItem] = useState<PlannerItem | null>(null)
+  const [expandedTransportGroups, setExpandedTransportGroups] = useState<Record<string, true>>({})
   const [pdfDownloadStatus, setPdfDownloadStatus] = useState<PdfDownloadStatus>('idle')
   const [shareSaving, setShareSaving] = useState(false)
   const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
@@ -5346,6 +5426,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (!day) return validPlanItems
     return day.divider ? [day.divider, ...day.items] : day.items
   }, [dayView, plannedDays, validPlanItems])
+  const visiblePlanItemGroups = useMemo(
+    () => groupConsecutiveTransportItems(visiblePlanItems),
+    [visiblePlanItems],
+  )
   const visiblePlannedPlaces = useMemo(() => {
     if (dayView === 'all') return plannedPlaces
     return plannedDays[dayView - 1]?.places ?? plannedPlaces
@@ -5623,6 +5707,20 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (expandedPlanItem && !validPlanItems.includes(expandedPlanItem)) setExpandedPlanItem(null)
   }, [expandedPlanItem, validPlanItems])
 
+  useEffect(() => {
+    if (!expandedPlanItem) return
+    const isExpandedInsideTransportGroup = visiblePlanItemGroups.some(
+      (item) => item.type === 'transport-group' && item.items.includes(expandedPlanItem),
+    )
+    if (!isExpandedInsideTransportGroup) {
+      setExpandedTransportGroups((current) => (Object.keys(current).length > 0 ? {} : current))
+    }
+  }, [expandedPlanItem, visiblePlanItemGroups])
+
+  useEffect(() => {
+    setExpandedTransportGroups((current) => (Object.keys(current).length > 0 ? {} : current))
+  }, [dayView])
+
   useLayoutEffect(() => {
     const anchor = expandedPlanScrollAnchorRef.current
     if (!anchor) return
@@ -5631,6 +5729,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const offset = nextTop - anchor.top
     if (Math.abs(offset) > 1) anchor.container.scrollTop += offset
   }, [expandedPlanItem])
+
+  useLayoutEffect(() => {
+    const anchor = transportGroupScrollAnchorRef.current
+    if (!anchor) return
+    transportGroupScrollAnchorRef.current = null
+    const nextTop = anchor.element.getBoundingClientRect().top
+    const offset = nextTop - anchor.top
+    if (Math.abs(offset) > 1) anchor.container.scrollTop += offset
+  }, [expandedTransportGroups])
 
   useEffect(() => {
     return () => {
@@ -6076,20 +6183,63 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     applyExpandedPlanItem(nextItem)
   }, [expandedPlanItem, scheduleFocusTargetCenter, syncExpandedPlanItemSelection])
 
+  const rememberTransportGroupScrollAnchor = useCallback((container: HTMLElement | null) => {
+    if (!container) return
+    const anchorCard = findStableVisiblePlanCard(container)
+    if (!anchorCard) return
+    transportGroupScrollAnchorRef.current = {
+      element: anchorCard,
+      top: anchorCard.getBoundingClientRect().top,
+      container,
+    }
+  }, [])
+
+  const collapseOpenTransportGroups = useCallback(() => {
+    if (Object.keys(expandedTransportGroups).length === 0) return
+    rememberTransportGroupScrollAnchor(planListRef.current)
+    setExpandedTransportGroups((current) => (Object.keys(current).length > 0 ? {} : current))
+  }, [expandedTransportGroups, rememberTransportGroupScrollAnchor])
+
   const scheduleExpandedPlanItemCollapseIfNearlyOutside = useCallback((event: ReactUIEvent<HTMLDivElement>) => {
-    if (!expandedPlanItem) return
     const container = event.currentTarget
     if (expandedPlanScrollCollapseTimerRef.current != null) {
       window.clearTimeout(expandedPlanScrollCollapseTimerRef.current)
     }
     expandedPlanScrollCollapseTimerRef.current = window.setTimeout(() => {
-      const card = planCardRefs.current[expandedPlanItem] ?? transportCardRefs.current[expandedPlanItem]
-      if (card && cardIsNearlyOutsideScrollArea(card, container)) {
-        setExpandedPlanItemWithScrollCompensation(null, findStableVisiblePlanCard(container, expandedPlanItem))
+      let activeCardCollapsed = false
+      if (expandedPlanItem) {
+        const card = planCardRefs.current[expandedPlanItem] ?? transportCardRefs.current[expandedPlanItem]
+        if (card && cardIsNearlyOutsideScrollArea(card, container)) {
+          activeCardCollapsed = true
+          setExpandedPlanItemWithScrollCompensation(null, findStableVisiblePlanCard(container, expandedPlanItem))
+        }
+      }
+
+      const groupKeysToCollapse = Object.keys(expandedTransportGroups).filter((key) => {
+        const group = transportGroupRefs.current[key]
+        return group && cardIsNearlyOutsideScrollArea(group, container)
+      })
+      if (groupKeysToCollapse.length > 0) {
+        rememberTransportGroupScrollAnchor(container)
+        setExpandedTransportGroups((current) => {
+          const next = { ...current }
+          groupKeysToCollapse.forEach((key) => delete next[key])
+          return next
+        })
+        const activeItemIsInCollapsedGroup = visiblePlanItemGroups.some(
+          (item) =>
+            item.type === 'transport-group' &&
+            groupKeysToCollapse.includes(item.key) &&
+            expandedPlanItem !== null &&
+            item.items.includes(expandedPlanItem),
+        )
+        if (activeItemIsInCollapsedGroup && !activeCardCollapsed) {
+          setExpandedPlanItemWithScrollCompensation(null, findStableVisiblePlanCard(container, expandedPlanItem))
+        }
       }
       expandedPlanScrollCollapseTimerRef.current = null
     }, 140)
-  }, [expandedPlanItem, setExpandedPlanItemWithScrollCompensation])
+  }, [expandedPlanItem, expandedTransportGroups, rememberTransportGroupScrollAnchor, setExpandedPlanItemWithScrollCompensation, visiblePlanItemGroups])
 
   const fitMapToPlaces = useCallback((force = false) => {
     const map = mapRef.current
@@ -9193,6 +9343,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       />
       <main
         className={styles.plannerPage}
+        onClickCapture={(event) => {
+          const target = event.target as HTMLElement
+          if (!target.closest(`.${styles.transportGroup}`)) collapseOpenTransportGroups()
+        }}
         style={
           mobilePageHeight
             ? ({ '--planner-mobile-height': `${mobilePageHeight}px` } as CSSProperties)
@@ -9834,10 +9988,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           ref={planListRef}
                           className={styles.planList}
                           data-planner-scroll-list="true"
+                          onScroll={scheduleExpandedPlanItemCollapseIfNearlyOutside}
                           onTouchMove={scheduleExpandedPlanItemCollapseIfNearlyOutside}
                           onWheel={scheduleExpandedPlanItemCollapseIfNearlyOutside}
                         >
-                          {visiblePlanItems.map((item) => {
+                          {visiblePlanItemGroups.map((displayItem) => {
+                            const renderPlanListItem = (item: PlannerItem) => {
                             if (isDayItem(item)) {
                               const dayNumber =
                                 validPlanItems.slice(0, validPlanItems.indexOf(item)).filter(isDayItem).length +
@@ -9915,6 +10071,29 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   readOnly={readOnlyPlan}
                                 />
                               </Fragment>
+                            )
+                            }
+
+                            if (displayItem.type === 'item') return renderPlanListItem(displayItem.item)
+
+                            const expanded =
+                              expandedTransportGroups[displayItem.key] === true ||
+                              (expandedPlanItem !== null && displayItem.items.includes(expandedPlanItem))
+                            return (
+                              <TransportItemGroup
+                                key={displayItem.key}
+                                items={displayItem.items}
+                                expanded={expanded}
+                                groupRef={(el) => {
+                                  transportGroupRefs.current[displayItem.key] = el
+                                }}
+                                onExpand={() => {
+                                  setExpandedPlanItemWithScrollCompensation(null)
+                                  setExpandedTransportGroups((current) => ({ ...current, [displayItem.key]: true }))
+                                }}
+                              >
+                                {displayItem.items.map(renderPlanListItem)}
+                              </TransportItemGroup>
                             )
                           })}
                         </div>

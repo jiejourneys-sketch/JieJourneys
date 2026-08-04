@@ -3816,6 +3816,70 @@
   width: 100%;
 }
 
+.transportGroup {
+  display: grid;
+  width: 100%;
+  gap: 5px;
+}
+
+.transportGroupExpanded {
+  gap: 7px;
+}
+
+.transportGroupExpanded .transportGroupToggle {
+  cursor: default;
+}
+
+.transportGroupToggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 30px;
+  gap: 5px;
+  margin: -5px 34px;
+  border: 1px solid rgba(31, 122, 140, 0.13);
+  border-radius: 999px;
+  padding: 2px 5px;
+  background: rgba(248, 252, 253, 0.62);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.transportGroupBadge {
+  border-radius: 999px;
+  padding: 2px 5px;
+  background: rgba(31, 122, 140, 0.11);
+  color: var(--cta);
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.transportGroupPreview {
+  min-width: 0;
+  overflow: hidden;
+  color: #3d6570;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transportGroupAction {
+  color: var(--cta);
+  font-size: 10.5px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.transportGroupItems {
+  display: grid;
+  gap: 5px;
+  padding: 1px 0;
+}
+
 .transportCard {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) 38px;
@@ -4399,6 +4463,10 @@
 }
 
 @media (max-width: 720px) {
+  .transportGroupToggle {
+    margin: -5px 24px;
+  }
+
   .transportCardCompact {
     grid-template-columns: 24px minmax(0, 1fr) 24px;
     min-height: 32px;
