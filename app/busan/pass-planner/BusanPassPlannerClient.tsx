@@ -3310,13 +3310,13 @@ function scrollPlannerCardToFocusPosition(
   scrollCardToContainerCenter(card, behavior)
 }
 
-function cardIsNearlyOutsideScrollArea(card: HTMLElement, container: HTMLElement) {
+function cardIsNearlyOutsideScrollArea(card: HTMLElement, container: HTMLElement, visibleTolerance = 4) {
   const cRect = container.getBoundingClientRect()
   const eRect = card.getBoundingClientRect()
   const visibleTop = Math.max(eRect.top, cRect.top)
   const visibleBottom = Math.min(eRect.bottom, cRect.bottom)
   const visibleHeight = Math.max(0, visibleBottom - visibleTop)
-  return visibleHeight <= 4
+  return visibleHeight <= visibleTolerance
 }
 
 function findStableVisiblePlanCard(container: HTMLElement, excludingItem?: PlannerItem | null) {
@@ -4369,11 +4369,13 @@ function PreDeparturePanelV2({
   }, [expandedDetailItemId])
 
   const scheduleExpandedResourceCollapseIfNearlyOutside = useCallback((container: HTMLDivElement) => {
-    if (resourceCollapseTimerRef.current != null) window.clearTimeout(resourceCollapseTimerRef.current)
+    // Throttle instead of debounce: keep checking during an active swipe so
+    // an off-screen resource closes promptly without waiting for scrolling to stop.
+    if (resourceCollapseTimerRef.current != null) return
     resourceCollapseTimerRef.current = window.setTimeout(() => {
       if (expandedDetailItemId) {
         const item = resourceItemRefs.current[expandedDetailItemId]
-        if (item && cardIsNearlyOutsideScrollArea(item, container)) {
+        if (item && cardIsNearlyOutsideScrollArea(item, container, 18)) {
           const containerRect = container.getBoundingClientRect()
           const visibleAnchor = Array.from(
             container.querySelectorAll<HTMLElement>('[data-pre-departure-item-id]'),
@@ -4393,7 +4395,7 @@ function PreDeparturePanelV2({
         }
       }
       resourceCollapseTimerRef.current = null
-    }, 140)
+    }, 80)
   }, [expandedDetailItemId])
 
   const copyPromoCode = async (event: string, promoCode: string) => {
