@@ -2471,6 +2471,19 @@
   font-style: normal;
 }
 
+.preDepartureGeneralNoteAction.preDepartureGeneralNoteClose {
+  width: 30px;
+  height: 30px;
+  justify-content: center;
+  border-color: #dbe4ea;
+  padding: 0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+}
+
 .preDepartureGeneralNote > button:hover .preDepartureGeneralNoteAction {
   border-color: rgba(2, 132, 199, 0.36);
   background: #e0f2fe;
@@ -2592,8 +2605,20 @@
   cursor: pointer;
 }
 
+.preDepartureSaveBar {
+  flex: 0 0 auto;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+  background: #ffffff;
+}
+
 .preDepartureDoneButton:hover {
   background: #0b665f;
+}
+
+.preDepartureDoneButton:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .preDepartureCategoryHeader h3 span,
@@ -2766,6 +2791,19 @@
 
 .preDepartureResourceToggle span {
   font-size: 10px;
+}
+
+.preDepartureResourceToggle.preDepartureResourceClose {
+  width: 30px;
+  min-width: 30px;
+  justify-content: center;
+  padding: 0;
+  border-color: #dbe4ea;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .preDepartureResourcePanel {
@@ -3153,6 +3191,13 @@
   .linksModal .userLinkForm input,
   .linksModal .userLinkForm button {
     font-size: 15px;
+  }
+
+  .preDepartureGeneralNoteField textarea,
+  .preDepartureAddForm input,
+  .preDepartureTravelerForm input,
+  .preDepartureTravelerManage input {
+    font-size: 16px;
   }
 }
 

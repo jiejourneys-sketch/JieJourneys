@@ -4258,8 +4258,6 @@ function preDepartureItemTravelerIds(item: PreDepartureChecklistItem, travelers:
 
 function PreDeparturePanelV2({
   categories,
-  hiddenCategories,
-  removedItems,
   travelers,
   activeTargetId,
   checkedItems,
@@ -4272,19 +4270,13 @@ function PreDeparturePanelV2({
   onAdd,
   onRemove,
   onHideCategory,
-  onRestoreCategory,
-  onRestoreItem,
   onAddTraveler,
   onRenameTraveler,
   onRemoveTraveler,
-  undoAction,
-  onUndo,
-  onFinish,
+  onSave,
   onClose,
 }: {
   categories: PreDepartureChecklistCategory[]
-  hiddenCategories: PreDepartureChecklistCategory[]
-  removedItems: PreDepartureChecklistItem[]
   travelers: PreDepartureTraveler[]
   activeTargetId: string
   checkedItems: Record<string, Record<string, true>>
@@ -4297,14 +4289,10 @@ function PreDeparturePanelV2({
   onAdd: (categoryId: string, label: string) => void
   onRemove: (id: string) => void
   onHideCategory: (categoryId: string, label: string) => void
-  onRestoreCategory: (categoryId: string) => void
-  onRestoreItem: (id: string) => void
   onAddTraveler: (name: string) => void
   onRenameTraveler: (id: string, name: string) => void
   onRemoveTraveler: (id: string) => void
-  undoAction: PreDepartureUndoAction | null
-  onUndo: () => void
-  onFinish: () => void
+  onSave: () => Promise<boolean> | boolean
   onClose: () => void
 }) {
   const [customItemDraft, setCustomItemDraft] = useState('')
@@ -4319,6 +4307,7 @@ function PreDeparturePanelV2({
   const [pendingRemoveItem, setPendingRemoveItem] = useState<PreDepartureChecklistItem | null>(null)
   const [pendingRemoveCategory, setPendingRemoveCategory] = useState<PreDepartureChecklistCategory | null>(null)
   const [copiedPromoEvent, setCopiedPromoEvent] = useState<string | null>(null)
+  const [manualSaveStatus, setManualSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const resourceItemRefs = useRef<Record<string, HTMLLIElement | null>>({})
   const resourceCollapseTimerRef = useRef<number | null>(null)
   usePlannerBodyScrollLock(true)
@@ -4351,6 +4340,12 @@ function PreDeparturePanelV2({
     const timeout = window.setTimeout(() => setCopiedPromoEvent(null), 1800)
     return () => window.clearTimeout(timeout)
   }, [copiedPromoEvent])
+
+  useEffect(() => {
+    if (manualSaveStatus !== 'saved' && manualSaveStatus !== 'error') return
+    const timeout = window.setTimeout(() => setManualSaveStatus('idle'), 1800)
+    return () => window.clearTimeout(timeout)
+  }, [manualSaveStatus])
 
   useEffect(() => () => {
     if (resourceCollapseTimerRef.current != null) window.clearTimeout(resourceCollapseTimerRef.current)
@@ -4430,7 +4425,7 @@ function PreDeparturePanelV2({
                   <div className={styles.preDepartureTravelerManage}>
                     {renamingTravelerId === activeTraveler.id ? (
                       <form onSubmit={(event) => { event.preventDefault(); const name = renameTravelerDraft.trim(); if (!name) return; onRenameTraveler(activeTraveler.id, name); setRenamingTravelerId(null) }}>
-                        <input value={renameTravelerDraft} maxLength={16} onChange={(event) => setRenameTravelerDraft(event.target.value)} autoFocus />
+                        <input value={renameTravelerDraft} maxLength={16} onChange={(event) => setRenameTravelerDraft(event.target.value)} />
                         <button type="submit" disabled={!renameTravelerDraft.trim()}>儲存</button>
                         <button type="button" onClick={() => setRenamingTravelerId(null)}>取消</button>
                       </form>
@@ -4441,7 +4436,7 @@ function PreDeparturePanelV2({
                 ) : null}
                 {!readOnly && travelerFormOpen ? (
                   <form className={styles.preDepartureTravelerForm} onSubmit={(event) => { event.preventDefault(); const name = travelerDraft.trim(); if (!name) return; onAddTraveler(name); setTravelerDraft(''); setTravelerFormOpen(false) }}>
-                    <input value={travelerDraft} maxLength={16} placeholder="旅伴名稱，例如：小明" onChange={(event) => setTravelerDraft(event.target.value)} autoFocus />
+                    <input value={travelerDraft} maxLength={16} placeholder="旅伴名稱，例如：小明" onChange={(event) => setTravelerDraft(event.target.value)} />
                     <button type="submit" disabled={!travelerDraft.trim()}>加入</button>
                     <button type="button" onClick={() => setTravelerFormOpen(false)}>取消</button>
                   </form>
@@ -4452,7 +4447,7 @@ function PreDeparturePanelV2({
               <section className={styles.preDepartureGeneralNote}>
                 <button type="button" aria-expanded={generalNoteOpen} aria-controls="pre-departure-general-note" onClick={() => setGeneralNoteOpen((open) => !open)}>
                   <span><strong>行前備忘</strong><small>{notes.general ? '已填寫，點擊查看或編輯' : '航班、訂房編號與其他提醒'}</small></span>
-                  <span className={styles.preDepartureGeneralNoteAction} aria-hidden="true">{generalNoteOpen ? '收合' : notes.general ? '查看' : '＋ 新增'}<i>{generalNoteOpen ? '▴' : '▾'}</i></span>
+                  <span className={`${styles.preDepartureGeneralNoteAction} ${generalNoteOpen ? styles.preDepartureGeneralNoteClose : ''}`} aria-hidden="true">{generalNoteOpen ? '×' : notes.general ? '查看 ▾' : '＋ 新增 ▾'}</span>
                 </button>
                 {generalNoteOpen ? (
                   <div id="pre-departure-general-note" className={styles.preDepartureGeneralNoteField}>
@@ -4490,7 +4485,7 @@ function PreDeparturePanelV2({
                             <li key={item.id} ref={(element) => { resourceItemRefs.current[item.id] = element }} className={resource ? styles.preDepartureResourceItem : undefined}>
                               <div className={styles.preDepartureItemRow}>
                                 <label><input type="checkbox" disabled={readOnly} checked={Boolean(checkedItems[activeTargetId]?.[item.id])} onChange={() => onToggle(activeTargetId, item.id)} /><span>{item.label}</span></label>
-                                {resource ? <button className={styles.preDepartureResourceToggle} type="button" aria-expanded={detailsExpanded} aria-controls={`pre-departure-resource-${item.id}`} onClick={() => setExpandedDetailItemId((current) => current === item.id ? null : item.id)}>{resource.toggleLabel}<span aria-hidden="true">{detailsExpanded ? '▴' : '▾'}</span></button> : null}
+                                {resource ? <button className={`${styles.preDepartureResourceToggle} ${detailsExpanded ? styles.preDepartureResourceClose : ''}`} type="button" aria-label={detailsExpanded ? `收合${item.label}詳細資料` : undefined} aria-expanded={detailsExpanded} aria-controls={`pre-departure-resource-${item.id}`} onClick={() => setExpandedDetailItemId((current) => current === item.id ? null : item.id)}>{detailsExpanded ? '×' : <>{resource.toggleLabel}<span aria-hidden="true">▾</span></>}</button> : null}
                                 {!readOnly ? <button className={styles.preDepartureRemove} type="button" onClick={() => setPendingRemoveItem(item)} aria-label={`刪除${item.label}`}>×</button> : null}
                               </div>
                               {detailsExpanded ? (
@@ -4511,7 +4506,7 @@ function PreDeparturePanelV2({
                       </ul>
                       {addingItem ? (
                         <form className={styles.preDepartureAddForm} onSubmit={(event) => { event.preventDefault(); const label = customItemDraft.trim(); if (!label) return; onAdd(category.id, label); setCustomItemDraft(''); setAddingCategoryId(null) }}>
-                          <input value={customItemDraft} maxLength={30} placeholder="要準備什麼？" onChange={(event) => setCustomItemDraft(event.target.value)} autoFocus />
+                          <input value={customItemDraft} maxLength={30} placeholder="要準備什麼？" onChange={(event) => setCustomItemDraft(event.target.value)} />
                           <button type="submit" disabled={!customItemDraft.trim()}>新增</button><button className={styles.preDepartureCancelButton} type="button" onClick={() => setAddingCategoryId(null)}>取消</button>
                         </form>
                       ) : null}
@@ -4520,17 +4515,39 @@ function PreDeparturePanelV2({
                 })}
               </div>
 
-              {!readOnly && hiddenCategories.length > 0 ? <details className={styles.preDepartureRestoreGroup}><summary>已刪除分類（{hiddenCategories.length}）</summary><div>{hiddenCategories.map((category) => <button key={category.id} type="button" onClick={() => onRestoreCategory(category.id)}>恢復「{category.label}」</button>)}</div></details> : null}
-              {!readOnly && removedItems.length > 0 ? <details className={styles.preDepartureRestoreGroup}><summary>已刪除項目（{removedItems.length}）</summary><div>{removedItems.map((item) => <button key={item.id} type="button" onClick={() => onRestoreItem(item.id)}>恢復「{item.label}」</button>)}</div></details> : null}
-              {!readOnly && undoAction ? <div className={styles.preDepartureUndo} role="status"><span>{undoAction.type === 'category' ? `已刪除「${undoAction.label}」分類` : `已刪除「${undoAction.label}」`}</span><button type="button" onClick={onUndo}>復原</button></div> : null}
-              <button className={styles.preDepartureDoneButton} type="button" onClick={onFinish}>{readOnly ? '關閉' : cloudEnabled ? '完成' : '完成並儲存景點行程'}</button>
             </section>
+          </div>
+          <div className={styles.preDepartureSaveBar}>
+            {readOnly ? (
+              <button className={styles.preDepartureDoneButton} type="button" onClick={onClose}>關閉</button>
+            ) : (
+              <button
+                className={styles.preDepartureDoneButton}
+                type="button"
+                disabled={manualSaveStatus === 'saving'}
+                onClick={() => {
+                  if (manualSaveStatus === 'saving') return
+                  setManualSaveStatus('saving')
+                  void Promise.resolve(onSave())
+                    .then((saved) => setManualSaveStatus(saved ? 'saved' : 'error'))
+                    .catch(() => setManualSaveStatus('error'))
+                }}
+              >
+                {manualSaveStatus === 'saving'
+                  ? '儲存中…'
+                  : manualSaveStatus === 'saved'
+                    ? '已儲存'
+                    : manualSaveStatus === 'error'
+                      ? '儲存失敗，請再試一次'
+                      : cloudEnabled ? '儲存' : '儲存景點行程與清單'}
+              </button>
+            )}
           </div>
         </section>
       </div>
 
-      {pendingRemoveItem ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveItem(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-item-v2-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-item-v2-title">刪除「{pendingRemoveItem.label}」？</h2><p>會從所有人的行前清單移除，之後仍可恢復。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveItem(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onRemove(pendingRemoveItem.id); setExpandedDetailItemId(null); setPendingRemoveItem(null) }}>確認刪除</button></div></section></div> : null}
-      {pendingRemoveCategory ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveCategory(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-category-v2-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-category-v2-title">刪除「{pendingRemoveCategory.label}」整個分類？</h2><p>分類會從所有人的清單移除，之後仍可恢復。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveCategory(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onHideCategory(pendingRemoveCategory.id, pendingRemoveCategory.label); setExpandedDetailItemId(null); setAddingCategoryId(null); setPendingRemoveCategory(null) }}>全部刪除</button></div></section></div> : null}
+      {pendingRemoveItem ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveItem(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-item-v2-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-item-v2-title">刪除「{pendingRemoveItem.label}」？</h2><p>會直接從所有人的行前清單刪除。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveItem(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onRemove(pendingRemoveItem.id); setExpandedDetailItemId(null); setPendingRemoveItem(null) }}>確認刪除</button></div></section></div> : null}
+      {pendingRemoveCategory ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveCategory(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-category-v2-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-category-v2-title">刪除「{pendingRemoveCategory.label}」整個分類？</h2><p>分類會直接從所有人的清單刪除。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveCategory(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onHideCategory(pendingRemoveCategory.id, pendingRemoveCategory.label); setExpandedDetailItemId(null); setAddingCategoryId(null); setPendingRemoveCategory(null) }}>全部刪除</button></div></section></div> : null}
       {pendingRemoveTraveler ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveTraveler(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-traveler-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-traveler-title">刪除旅伴「{pendingRemoveTraveler.name}」？</h2><p>這位旅伴的勾選進度會一起刪除；其他人的清單不受影響。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveTraveler(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onRemoveTraveler(pendingRemoveTraveler.id); setPendingRemoveTraveler(null) }}>確認刪除</button></div></section></div> : null}
     </>
   )
@@ -5814,7 +5831,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [preDepartureRemovedItemIds, setPreDepartureRemovedItemIds] = useState<Record<string, true>>({})
   const [preDepartureHiddenCategoryIds, setPreDepartureHiddenCategoryIds] = useState<Record<string, true>>({})
   const [preDepartureStorageReadyKey, setPreDepartureStorageReadyKey] = useState('')
-  const [preDepartureUndoAction, setPreDepartureUndoAction] = useState<PreDepartureUndoAction | null>(null)
   const [preDepartureTransferStatus, setPreDepartureTransferStatus] = useState<PreDepartureTransferStatus>('idle')
   const [preDepartureCloudStatus, setPreDepartureCloudStatus] = useState<PreDepartureCloudStatus>('local')
   const plannerPdfModuleRef = useRef<Promise<typeof import('./plannerPdf')> | null>(null)
@@ -6564,14 +6580,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           items: category.items.filter((item) => !preDepartureRemovedItemIds[item.id]),
         })),
     [preDepartureAllCategories, preDepartureHiddenCategoryIds, preDepartureRemovedItemIds],
-  )
-  const preDepartureHiddenCategories = useMemo(
-    () => preDepartureAllCategories.filter((category) => preDepartureHiddenCategoryIds[category.id]),
-    [preDepartureAllCategories, preDepartureHiddenCategoryIds],
-  )
-  const preDepartureRemovedItems = useMemo(
-    () => preDepartureAllCategories.flatMap((category) => category.items).filter((item) => preDepartureRemovedItemIds[item.id]),
-    [preDepartureAllCategories, preDepartureRemovedItemIds],
   )
   const preDepartureChecklist = useMemo<PreDepartureChecklistStorage>(() => ({
     version: 2,
@@ -7430,12 +7438,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     preDepartureCloudStatus,
     preDepartureOpen,
   ])
-
-  useEffect(() => {
-    if (!preDepartureUndoAction) return
-    const timeout = window.setTimeout(() => setPreDepartureUndoAction(null), 6000)
-    return () => window.clearTimeout(timeout)
-  }, [preDepartureUndoAction])
 
   useEffect(() => {
     if (preDepartureTransferStatus === 'idle') return
@@ -11738,8 +11740,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         {preDepartureOpen ? (
           <PreDeparturePanelV2
             categories={preDepartureCategories}
-            hiddenCategories={preDepartureHiddenCategories}
-            removedItems={preDepartureRemovedItems}
             travelers={preDepartureTravelers}
             activeTargetId={preDepartureActiveTargetId}
             checkedItems={preDepartureChecked}
@@ -11783,7 +11783,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             onRemove={(id) => {
               const item = preDepartureAllCategories.flatMap((category) => category.items).find((entry) => entry.id === id)
               if (!item) return
-              setPreDepartureRemovedItemIds((items) => ({ ...items, [id]: true }))
+              if (item.custom) {
+                setPreDepartureCustomItems((items) => items.filter((entry) => entry.id !== id))
+              } else {
+                setPreDepartureRemovedItemIds((items) => ({ ...items, [id]: true }))
+              }
               setPreDepartureChecked((items) => {
                 let changed = false
                 const next = Object.fromEntries(Object.entries(items).map(([targetId, targetItems]) => {
@@ -11796,29 +11800,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 if (!changed) return items
                 return next
               })
-              setPreDepartureUndoAction({ type: 'item', id, label: item.label })
             }}
-            onHideCategory={(categoryId, label) => {
+            onHideCategory={(categoryId) => {
               setPreDepartureHiddenCategoryIds((items) => ({ ...items, [categoryId]: true }))
-              setPreDepartureUndoAction({ type: 'category', id: categoryId, label })
-            }}
-            onRestoreCategory={(categoryId) => {
-              setPreDepartureHiddenCategoryIds((items) => {
-                if (!items[categoryId]) return items
-                const next = { ...items }
-                delete next[categoryId]
-                return next
-              })
-              setPreDepartureUndoAction(null)
-            }}
-            onRestoreItem={(id) => {
-              setPreDepartureRemovedItemIds((items) => {
-                if (!items[id]) return items
-                const next = { ...items }
-                delete next[id]
-                return next
-              })
-              setPreDepartureUndoAction(null)
             }}
             onAddTraveler={(name) => {
               const id = `traveler-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
@@ -11845,27 +11829,33 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               }))
               setPreDepartureActiveTargetId(PRE_DEPARTURE_OWNER.id)
             }}
-            undoAction={preDepartureUndoAction}
-            onUndo={() => {
-              if (!preDepartureUndoAction) return
-              if (preDepartureUndoAction.type === 'category') {
-                setPreDepartureHiddenCategoryIds((items) => {
-                  const next = { ...items }
-                  delete next[preDepartureUndoAction.id]
-                  return next
-                })
-              } else {
-                setPreDepartureRemovedItemIds((items) => {
-                  const next = { ...items }
-                  delete next[preDepartureUndoAction.id]
-                  return next
-                })
+            onSave={async () => {
+              if (readOnlyPlan) return false
+              if (!plannerBookId) {
+                setPreDepartureOpen(false)
+                handleShare()
+                return true
               }
-              setPreDepartureUndoAction(null)
-            }}
-            onFinish={() => {
-              setPreDepartureOpen(false)
-              if (!readOnlyPlan && !plannerBookId) handleShare()
+              if (preDepartureCloudSaveTimerRef.current != null) {
+                window.clearTimeout(preDepartureCloudSaveTimerRef.current)
+                preDepartureCloudSaveTimerRef.current = null
+              }
+              if (preDepartureChecklistSignature === preDepartureLastCloudSignatureRef.current) {
+                setPreDepartureCloudStatus('saved')
+                return true
+              }
+              setPreDepartureCloudStatus('saving')
+              const result = await savePreDepartureChecklistCloud(plannerBookId, preDepartureChecklist).catch(() => null)
+              if (!result) {
+                setPreDepartureCloudStatus('error')
+                return false
+              }
+              preDepartureLastCloudSignatureRef.current = JSON.stringify(
+                serializePreDepartureChecklistStorage(result.checklist),
+              )
+              setPreDepartureCloudStatus('saved')
+              if (result.updatedAt) setPlannerBookUpdatedAt(result.updatedAt)
+              return true
             }}
             onClose={() => setPreDepartureOpen(false)}
           />
