@@ -53,6 +53,8 @@ export default function BusanPassMapPage() {
           event: 'busanpassmap_top_buy_kkday',
           platform: 'KKDAY',
           external: true,
+          group: 'commerce',
+          groupLabel: '購票',
         },
         {
           label: 'KLOOK',
@@ -60,6 +62,8 @@ export default function BusanPassMapPage() {
           event: 'busanpassmap_top_buy_klook',
           platform: 'KLOOK',
           external: true,
+          group: 'commerce',
+          groupLabel: '購票',
         },
         {
           label: 'Trip',
@@ -67,6 +71,8 @@ export default function BusanPassMapPage() {
           event: 'busanpassmap_top_buy_trip',
           platform: 'Trip',
           external: true,
+          group: 'commerce',
+          groupLabel: '購票',
         },
         {
           label: 'IG',
@@ -74,6 +80,8 @@ export default function BusanPassMapPage() {
           event: 'busanpassmap_top_video_ig',
           platform: 'Instagram',
           external: true,
+          group: 'video',
+          groupLabel: '影片',
         },
         {
           label: 'YouTube',
@@ -81,9 +89,17 @@ export default function BusanPassMapPage() {
           event: 'busanpassmap_top_video_yt',
           platform: 'YouTube',
           external: true,
+          group: 'video',
+          groupLabel: '影片',
         },
         {
-          label: '排序',
+          label: '攻略',
+          href: '/busan/visit-busan-pass?from=pass-map',
+          event: 'busanpassmap_top_article',
+          platform: 'internal',
+        },
+        {
+          label: '規劃',
           href: '/tools/planner?region=busan&source=pass',
           event: 'busanpassmap_top_planner',
           platform: 'internal',

@@ -265,6 +265,9 @@ function clearPlannerLocalDraft(regionKey: string, source: PlannerSource) {
   window.localStorage.removeItem(`${key}:book-read-token`)
   window.localStorage.removeItem(`${key}:book-updated-at`)
   window.localStorage.removeItem(`${key}:day-view:draft`)
+  window.localStorage.removeItem(`${key}:pre-departure:draft`)
+  // Legacy key used before personal checklists were scoped per itinerary.
+  window.localStorage.removeItem(`${key}:pre-departure`)
 }
 
 function upsertRecentPlanner(planner: RecentPlanner) {
@@ -292,6 +295,7 @@ function removeRecentPlanner(planner: Pick<RecentPlanner, 'id' | 'readToken' | '
 
   const storageKey = plannerStorageKey(planner.regionKey, planner.source ?? 'map')
   window.localStorage.removeItem(`${storageKey}:day-view:${planner.id}`)
+  window.localStorage.removeItem(`${storageKey}:pre-departure:${planner.id}`)
   if (window.localStorage.getItem(`${storageKey}:book-id`) === planner.id) {
     window.localStorage.removeItem(`${storageKey}:book-id`)
     window.localStorage.removeItem(`${storageKey}:book-read-token`)
@@ -842,12 +846,6 @@ export default function ToolsPlannerPage() {
     const { region, countryName, source } = started
     const sourcePlaces = source === 'pass' && region.matchPlaces?.length ? region.matchPlaces : region.places
     const places = started.loadKnownPlaces ? sourcePlaces : []
-    const matchPlaces =
-      source === 'pass'
-        ? uniquePlaces([...region.places, ...(region.matchPlaces ?? [])])
-        : started.loadKnownPlaces
-          ? region.matchPlaces
-          : uniquePlaces([...region.places, ...(region.matchPlaces ?? [])])
     const config: Partial<PlannerConfig> = {
       storageKey: plannerStorageKey(region.key, source),
       headerBackHref: '/tools/planner',
@@ -863,6 +861,11 @@ export default function ToolsPlannerPage() {
       shareActionLabel: '分享/保存',
       saveReminderEnabled: true,
       backLinkLabel: '',
+      guideLink: {
+        label: '教學',
+        href: 'https://www.instagram.com/reel/Dap0wcrBB6_/',
+        event: 'plannerIG_workspace',
+      },
       shareSearchParams: { region: region.key, ...(source === 'pass' ? { source: 'pass' } : {}) },
       initialSearchParams: {
         region: region.key,
@@ -878,7 +881,9 @@ export default function ToolsPlannerPage() {
       categoryLabels: semanticCategoryLabels,
       categoryItems: semanticCategories,
       customCategoryItems: semanticCategories.filter((item) => item.key !== 'ticket'),
-      matchPlaces,
+      // 地圖仍只顯示本次選擇的地區；自訂景點則可比對旅杰所有已整理景點，
+      // 讓跨城市行程（例如大阪行程加入晴空塔）也能繼承正確的既有連結。
+      matchPlaces: allKnownPlannerPlaces,
       tierItems: [],
     }
 

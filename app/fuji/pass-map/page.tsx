@@ -43,6 +43,8 @@ export default function FujiPassMapPage() {
           platform: 'KKDAY',
           primary: true,
           external: true,
+          group: 'commerce',
+          groupLabel: '購票',
         },
         {
           label: 'KLOOK',
@@ -50,6 +52,8 @@ export default function FujiPassMapPage() {
           event: 'fujipassmap_top_buy_klook',
           platform: 'KLOOK',
           external: true,
+          group: 'commerce',
+          groupLabel: '購票',
         },
         {
           label: 'IG',
@@ -57,6 +61,8 @@ export default function FujiPassMapPage() {
           event: 'fujipassmap_top_video_ig',
           platform: 'Instagram',
           external: true,
+          group: 'video',
+          groupLabel: '影片',
         },
         {
           label: 'YouTube',
@@ -64,16 +70,17 @@ export default function FujiPassMapPage() {
           event: 'fujipassmap_top_video_yt',
           platform: 'YouTube',
           external: true,
+          group: 'video',
+          groupLabel: '影片',
         },
         {
-          label: '文章',
+          label: '攻略',
           href: '/fuji/mt-fuji-pass?from=pass-map',
           event: 'fujipassmap_top_article',
           platform: 'article',
-          placement: 'afterBelowContent',
         },
         {
-          label: '排序',
+          label: '規劃',
           href: '/tools/planner?region=fuji&source=pass',
           event: 'fujipassmap_top_planner',
           platform: 'planner',

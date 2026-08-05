@@ -10,7 +10,12 @@ const MAX_CUSTOM_PLACES = 80
 const MAX_LINKS_PER_CUSTOM_PLACE = 8
 const MAX_USER_LINK_PLACES = 120
 const MAX_USER_LINKS_PER_PLACE = 8
+const MAX_PRE_DEPARTURE_TRAVELERS = 12
+const MAX_PRE_DEPARTURE_CUSTOM_ITEMS = 80
+const MAX_PRE_DEPARTURE_CHECKED_ITEMS = 300
 const PLANNER_RETENTION_DAYS = 365
+const PRE_DEPARTURE_NOTE_KEY = '__pre_departure_v2'
+const PRE_DEPARTURE_OWNER = { id: 'traveler-owner', name: '我' }
 const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel'])
 const INVALID_TEXT_ENCODING_PATTERN = /[\u0080-\u009F\uFFFD]/
 
@@ -42,6 +47,96 @@ type PlannerBookPayload = {
   notes?: Record<string, string>
   custom_places?: Record<string, unknown>
   user_links?: Record<string, unknown>
+  pre_departure?: Record<string, unknown>
+}
+
+function cleanPreDeparture(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const input = value as Record<string, unknown>
+  const travelers: { id: string; name: string }[] = []
+  const travelerIds = new Set<string>()
+  if (Array.isArray(input.travelers)) {
+    input.travelers.slice(0, MAX_PRE_DEPARTURE_TRAVELERS).forEach((traveler) => {
+      if (!traveler || typeof traveler !== 'object' || Array.isArray(traveler)) return
+      const source = traveler as Record<string, unknown>
+      const id = typeof source.id === 'string' ? source.id.trim().slice(0, 80) : ''
+      const name = typeof source.name === 'string' ? source.name.trim().slice(0, 16) : ''
+      if (!id.startsWith('traveler-') || !name || travelerIds.has(id)) return
+      travelerIds.add(id)
+      travelers.push({ id, name })
+    })
+  }
+  if (travelers.length === 0) {
+    travelerIds.add(PRE_DEPARTURE_OWNER.id)
+    travelers.push({ ...PRE_DEPARTURE_OWNER })
+  }
+
+  const customItems: Record<string, unknown>[] = []
+  const customItemIds = new Set<string>()
+  if (Array.isArray(input.customItems)) {
+    input.customItems.slice(0, MAX_PRE_DEPARTURE_CUSTOM_ITEMS).forEach((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return
+      const source = item as Record<string, unknown>
+      const id = typeof source.id === 'string' ? source.id.trim().slice(0, 80) : ''
+      const label = typeof source.label === 'string' ? source.label.trim().slice(0, 30) : ''
+      const categoryId = typeof source.categoryId === 'string' ? source.categoryId.trim().slice(0, 40) : 'essentials'
+      if (!id.startsWith('custom-') || !label || customItemIds.has(id)) return
+      customItemIds.add(id)
+      const scope = 'personal'
+      const assignedTravelerIds = Array.isArray(source.travelerIds)
+        ? [...new Set(source.travelerIds.filter((travelerId): travelerId is string => typeof travelerId === 'string' && travelerIds.has(travelerId)))].slice(0, MAX_PRE_DEPARTURE_TRAVELERS)
+        : []
+      customItems.push({
+        id,
+        label,
+        custom: true,
+        categoryId,
+        scope,
+        ...(scope === 'personal' && assignedTravelerIds.length > 0 ? { travelerIds: assignedTravelerIds } : {}),
+      })
+    })
+  }
+
+  const checked: Record<string, Record<string, true>> = {}
+  const validTargetIds = new Set(['shared', ...travelerIds])
+  if (input.checked && typeof input.checked === 'object' && !Array.isArray(input.checked)) {
+    Object.entries(input.checked as Record<string, unknown>).forEach(([targetId, rawItems]) => {
+      if (!validTargetIds.has(targetId) || !rawItems || typeof rawItems !== 'object' || Array.isArray(rawItems)) return
+      const targetItems = Object.fromEntries(
+        Object.entries(rawItems as Record<string, unknown>)
+          .filter(([itemId, isChecked]) => itemId.length <= 80 && isChecked === true)
+          .slice(0, MAX_PRE_DEPARTURE_CHECKED_ITEMS)
+          .map(([itemId]) => [itemId, true] as const),
+      )
+      if (Object.keys(targetItems).length > 0) checked[targetId] = targetItems
+    })
+  }
+  const formerlySharedItems = checked.shared
+  if (formerlySharedItems) {
+    travelers.forEach((traveler) => {
+      checked[traveler.id] = { ...formerlySharedItems, ...(checked[traveler.id] ?? {}) }
+    })
+    delete checked.shared
+  }
+
+  const rawNotes = input.notes && typeof input.notes === 'object' && !Array.isArray(input.notes)
+    ? (input.notes as Record<string, unknown>)
+    : {}
+  const generalNote = typeof rawNotes.general === 'string' ? rawNotes.general.trim().slice(0, 500) : ''
+  const cleanIdList = (rawValue: unknown, max: number) =>
+    Array.isArray(rawValue)
+      ? [...new Set(rawValue.filter((id): id is string => typeof id === 'string').map((id) => id.trim().slice(0, 80)).filter(Boolean))].slice(0, max)
+      : []
+
+  return {
+    version: 2,
+    travelers,
+    checked,
+    notes: generalNote ? { general: generalNote } : {},
+    customItems,
+    removedItemIds: cleanIdList(input.removedItemIds, 200),
+    hiddenCategoryIds: cleanIdList(input.hiddenCategoryIds, 20),
+  }
 }
 
 function getTripSupabase() {
@@ -177,6 +272,7 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
     notes: Object.keys(notes).length > 0 ? notes : undefined,
     custom_places: Object.keys(customPlaces).length > 0 ? customPlaces : undefined,
     user_links: Object.keys(userLinks).length > 0 ? userLinks : undefined,
+    pre_departure: cleanPreDeparture(input.pre_departure),
   }
 }
 
@@ -194,10 +290,9 @@ export async function POST(req: NextRequest) {
   if (!payload) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
   const expiresAt = new Date(Date.now() + PLANNER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
-  const row = {
+  const baseRow = {
     city: payload.city,
     items: payload.items,
-    notes: payload.notes ?? {},
     custom_places: payload.custom_places ?? {},
     user_links: payload.user_links ?? {},
     expires_at: expiresAt,
@@ -207,14 +302,22 @@ export async function POST(req: NextRequest) {
   if (payload.id) {
     const { data: existing } = await supabase
       .from(TABLE)
-      .select('read_token')
+      .select('read_token, notes')
       .eq('id', payload.id)
       .maybeSingle()
+    const existingNotes = existing?.notes && typeof existing.notes === 'object' && !Array.isArray(existing.notes)
+      ? (existing.notes as Record<string, unknown>)
+      : {}
+    const nextPreDeparture = payload.pre_departure ?? cleanPreDeparture(existingNotes[PRE_DEPARTURE_NOTE_KEY])
+    const nextNotes = {
+      ...(payload.notes ?? {}),
+      ...(nextPreDeparture ? { [PRE_DEPARTURE_NOTE_KEY]: nextPreDeparture } : {}),
+    }
     const nextReadToken =
       typeof existing?.read_token === 'string' && existing.read_token ? existing.read_token : readToken()
     const { data, error } = await supabase
       .from(TABLE)
-      .update({ ...row, read_token: nextReadToken })
+      .update({ ...baseRow, notes: nextNotes, read_token: nextReadToken })
       .eq('id', payload.id)
       .select('id, read_token')
       .maybeSingle()
@@ -228,7 +331,11 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from(TABLE).insert({
       id,
       read_token: token,
-      ...row,
+      ...baseRow,
+      notes: {
+        ...(payload.notes ?? {}),
+        ...(payload.pre_departure ? { [PRE_DEPARTURE_NOTE_KEY]: payload.pre_departure } : {}),
+      },
     })
 
     if (!error) return NextResponse.json({ id, read_token: token, created: true })
@@ -260,13 +367,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'expired' }, { status: 410 })
   }
 
+  const storedNotes = data.notes && typeof data.notes === 'object' && !Array.isArray(data.notes)
+    ? (data.notes as Record<string, unknown>)
+    : {}
+  const { [PRE_DEPARTURE_NOTE_KEY]: storedPreDeparture, ...placeNotes } = storedNotes
+
   return NextResponse.json({
     id: data.id,
     read_token: data.read_token,
     readonly: Boolean(viewToken),
     city: data.city,
     items: Array.isArray(data.items) ? data.items : [],
-    notes: data.notes && typeof data.notes === 'object' ? data.notes : {},
+    notes: placeNotes,
+    pre_departure: cleanPreDeparture(storedPreDeparture),
     custom_places: data.custom_places && typeof data.custom_places === 'object' ? data.custom_places : {},
     user_links: data.user_links && typeof data.user_links === 'object' ? data.user_links : {},
     updated_at: data.updated_at,
@@ -281,6 +394,32 @@ export async function PATCH(req: NextRequest) {
   const id = typeof input?.id === 'string' ? input.id.trim().slice(0, 32) : ''
   const readToken = typeof input?.read_token === 'string' ? input.read_token.trim().slice(0, 32) : ''
   const city = typeof input?.city === 'string' ? input.city.trim().slice(0, 32) : ''
+  if (id && Object.prototype.hasOwnProperty.call(input ?? {}, 'pre_departure')) {
+    const preDeparture = cleanPreDeparture(input?.pre_departure)
+    if (!preDeparture) return NextResponse.json({ error: 'invalid_pre_departure' }, { status: 400 })
+    const { data: existing, error: loadError } = await supabase
+      .from(TABLE)
+      .select('notes')
+      .eq('id', id)
+      .maybeSingle()
+    if (loadError) return NextResponse.json({ error: 'load_failed' }, { status: 503 })
+    if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    const existingNotes = existing.notes && typeof existing.notes === 'object' && !Array.isArray(existing.notes)
+      ? (existing.notes as Record<string, unknown>)
+      : {}
+    const updatedAt = new Date().toISOString()
+    const expiresAt = new Date(Date.now() + PLANNER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
+    const { error } = await supabase
+      .from(TABLE)
+      .update({
+        notes: { ...existingNotes, [PRE_DEPARTURE_NOTE_KEY]: preDeparture },
+        updated_at: updatedAt,
+        expires_at: expiresAt,
+      })
+      .eq('id', id)
+    if (error) return NextResponse.json({ error: 'update_failed', code: error.code }, { status: 503 })
+    return NextResponse.json({ id, pre_departure: preDeparture, updated_at: updatedAt })
+  }
   if (!id || !city) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
   let updateQuery = supabase

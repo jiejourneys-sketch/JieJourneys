@@ -61,6 +61,7 @@
 
 .primaryAction,
 .shareAction,
+.guideAction,
 .secondaryAction,
 .orderTools button,
 .emptyState button {
@@ -85,6 +86,7 @@
 
 .secondaryAction,
 .shareAction,
+.guideAction,
 .orderTools button,
 .emptyState button {
   border: 1px solid rgba(31, 122, 140, 0.26);
@@ -95,6 +97,18 @@
 
 .shareAction {
   min-width: 58px;
+}
+
+.guideAction {
+  gap: 5px;
+  border-color: rgba(2, 132, 199, 0.22);
+  background: #f0f9ff;
+  color: #0369a1;
+  text-decoration: none;
+}
+
+.guideAction span {
+  font-size: 10px;
 }
 
 .shareAction:disabled,
@@ -925,31 +939,11 @@
   writing-mode: horizontal-tb;
 }
 
-.customPlaceMatches {
-  display: grid;
-  gap: 6px;
-  border: 1px solid rgba(37, 99, 235, 0.16);
-  border-radius: 8px;
-  padding: 8px;
-  background: #eff6ff;
-}
-
-.customPlaceMatches span {
-  color: #1e3a8a;
+.customPlaceMatchedHint {
+  margin: 8px 0 0;
+  color: #0f766e;
   font-size: 12px;
-  font-weight: 900;
-}
-
-.customPlaceMatches button {
-  min-height: 32px;
-  border: 1px solid rgba(37, 99, 235, 0.22);
-  border-radius: 8px;
-  background: #ffffff;
-  color: #1d4ed8;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 900;
-  cursor: pointer;
+  font-weight: 850;
 }
 
 .filterTabs {
@@ -2204,6 +2198,839 @@
   max-height: min(700px, calc(100dvh - 36px));
 }
 
+.preDepartureModal {
+  max-height: min(760px, calc(100dvh - 28px));
+}
+
+.preDepartureSection {
+  display: grid;
+  gap: 8px;
+}
+
+.preDepartureHint,
+.preDepartureEmpty {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.preDepartureStorageCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: #f0fdfa;
+}
+
+.preDepartureCloudDot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #14b8a6;
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+}
+
+.preDepartureCloudDotError {
+  background: #e11d48;
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.1);
+}
+
+.preDepartureStorageCard > div {
+  display: grid;
+  gap: 3px;
+}
+
+.preDepartureStorageCard strong {
+  color: #0f766e;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.preDepartureStorageCard span,
+.preDepartureStorageCard small {
+  color: #526071;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.preDepartureStorageCard small {
+  max-width: 132px;
+  flex: 0 0 auto;
+}
+
+.preDepartureTransferButton {
+  flex: 0 0 auto;
+  min-height: 31px;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 8px;
+  padding: 5px 9px;
+  background: #f0fdfa;
+  color: #0f766e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.preDepartureTransferHint {
+  margin: -3px 0 1px;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.preDepartureTravelers {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #dbe4ea;
+  border-radius: 12px;
+  padding: 9px;
+  background: #ffffff;
+}
+
+.preDepartureTravelerTabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 1px;
+  scrollbar-width: thin;
+}
+
+.preDepartureTravelerTabs button {
+  min-height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid #dbe4ea;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: #ffffff;
+  color: #475569;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.preDepartureTravelerTabs .preDepartureTravelerTabActive {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.preDepartureTravelerTabs .preDepartureAddTravelerButton {
+  border-style: dashed;
+  border-color: rgba(2, 132, 199, 0.34);
+  background: #f0f9ff;
+  color: #0369a1;
+}
+
+.preDepartureTravelerHint {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.preDepartureTravelerManage {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  border-radius: 9px;
+  padding: 6px 8px;
+  background: #f8fafc;
+  color: #526071;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.preDepartureTravelerManage > span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preDepartureTravelerManage > button,
+.preDepartureTravelerManage form button,
+.preDepartureTravelerForm button {
+  min-height: 30px;
+  flex: 0 0 auto;
+  border: 1px solid #dbe4ea;
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #ffffff;
+  color: #475569;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.preDepartureTravelerManage .preDepartureTravelerDelete {
+  color: #be123c;
+}
+
+.preDepartureTravelerManage form,
+.preDepartureTravelerForm {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  gap: 6px;
+}
+
+.preDepartureTravelerManage input,
+.preDepartureTravelerForm input {
+  min-width: 90px;
+  height: 34px;
+  flex: 1;
+  border: 1px solid rgba(31, 122, 140, 0.24);
+  border-radius: 8px;
+  padding: 0 9px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.preDepartureTravelerForm {
+  border-radius: 9px;
+  padding: 7px;
+  background: #f0f9ff;
+}
+
+.preDepartureGeneralNote {
+  overflow: hidden;
+  border: 1px solid #dbe4ea;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.preDepartureGeneralNote > button {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  padding: 8px 12px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.preDepartureGeneralNote > button > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.preDepartureGeneralNote strong {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.preDepartureGeneralNote small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.preDepartureGeneralNoteAction {
+  display: inline-flex;
+  min-height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(2, 132, 199, 0.22);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #f0f9ff;
+  color: #0369a1;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.preDepartureGeneralNoteAction i {
+  font-size: 10px;
+  font-style: normal;
+}
+
+.preDepartureGeneralNote > button:hover .preDepartureGeneralNoteAction {
+  border-color: rgba(2, 132, 199, 0.36);
+  background: #e0f2fe;
+}
+
+.preDepartureGeneralNoteField {
+  display: grid;
+  gap: 5px;
+  padding: 0 10px 10px;
+}
+
+.preDepartureGeneralNoteField textarea {
+  width: 100%;
+  min-height: 92px;
+  max-height: 180px;
+  resize: vertical;
+  border: 1px solid rgba(31, 122, 140, 0.2);
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: #fbfdfe;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.preDepartureGeneralNoteField > small {
+  text-align: right;
+}
+
+.preDepartureCategoryList {
+  display: grid;
+  gap: 10px;
+}
+
+.preDepartureCategory {
+  overflow: hidden;
+  border: 1px solid rgba(31, 122, 140, 0.16);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.preDepartureCategoryHeader {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 9px 13px;
+  border-bottom: 1px solid #edf1f4;
+  background: #fbfdfe;
+}
+
+.preDepartureCategoryHeader h3 {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.preDepartureCategoryActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.preDepartureCategoryAdd {
+  min-height: 30px;
+  border: 1px solid rgba(2, 132, 199, 0.24);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #f0f9ff;
+  color: #0369a1;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.preDepartureCategoryAdd:hover {
+  border-color: rgba(2, 132, 199, 0.4);
+  background: #e0f2fe;
+}
+
+.preDepartureCategoryRemove {
+  border: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  color: #94a3b8;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.preDepartureCategoryRemove:hover {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.preDepartureDoneButton {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(15, 118, 110, 0.24);
+  border-radius: 11px;
+  padding: 8px 12px;
+  background: #0f766e;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.preDepartureDoneButton:hover {
+  background: #0b665f;
+}
+
+.preDepartureCategoryHeader h3 span,
+.preDepartureModal h2 em {
+  color: #94a3b8;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.preDepartureChecklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.preDepartureChecklist li {
+  border-bottom: 1px solid #edf1f4;
+}
+
+.preDepartureItemRow {
+  position: relative;
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+}
+
+.preDepartureChecklist label {
+  display: flex;
+  min-width: 0;
+  min-height: 46px;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 44px 8px 13px;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.preDepartureResourceItem .preDepartureItemRow > label {
+  padding-right: 8px;
+}
+
+.preDepartureChecklist input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: #0f766e;
+}
+
+.preDepartureChecklist input:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.preDepartureEmptyCategory {
+  margin: 0;
+  padding: 12px 13px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.preDepartureAllItem {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 6px;
+  padding: 9px 8px 9px 13px;
+}
+
+.preDepartureAllItemLabel {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.preDepartureTargetChecks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.preDepartureTargetChecks button {
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #dbe4ea;
+  border-radius: 999px;
+  padding: 3px 8px 3px 5px;
+  background: #ffffff;
+  color: #64748b;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.preDepartureTargetChecks button:disabled {
+  cursor: default;
+}
+
+.preDepartureTargetChecks button i {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 10px;
+  font-style: normal;
+}
+
+.preDepartureTargetChecks .preDepartureTargetCheckDone {
+  border-color: rgba(15, 118, 110, 0.28);
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.preDepartureTargetChecks .preDepartureTargetCheckDone i {
+  border-color: #0f766e;
+  background: #0f766e;
+}
+
+.preDepartureRemove {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #a3acb9;
+  font: inherit;
+  font-size: 23px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.preDepartureRemove:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.preDepartureResourceToggle {
+  display: inline-flex;
+  min-height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  margin-right: 43px;
+  border: 1px solid rgba(2, 132, 199, 0.18);
+  border-radius: 8px;
+  padding: 4px 7px;
+  background: #f0f9ff;
+  color: #0369a1;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.preDepartureResourceToggle span {
+  font-size: 10px;
+}
+
+.preDepartureResourcePanel {
+  display: grid;
+  gap: 8px;
+  margin: 0 10px 10px;
+  border: 1px solid rgba(14, 116, 144, 0.2);
+  border-radius: 12px;
+  padding: 8px;
+  background: #f8fcfd;
+  color: #0f172a;
+}
+
+.preDepartureResourceLinks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+}
+
+.preDepartureResourceEntry {
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.preDepartureResourceLink {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 8px 10px;
+  color: #0f766e;
+  font-size: 13px;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.preDepartureResourceLink strong {
+  min-width: 0;
+  font-weight: 850;
+}
+
+.preDepartureResourceLink span {
+  flex: 0 0 auto;
+  color: #0284c7;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.preDepartureResourcePromo {
+  display: flex;
+  min-height: 37px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid rgba(15, 118, 110, 0.12);
+  padding: 6px 7px 6px 10px;
+  background: #f0fdfa;
+}
+
+.preDepartureResourcePromo > span {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.preDepartureResourcePromo small {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.preDepartureResourcePromo code {
+  overflow: hidden;
+  color: #0f766e;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preDeparturePromoCopy {
+  flex: 0 0 auto;
+  min-width: 48px;
+  min-height: 27px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 7px;
+  padding: 4px 7px;
+  background: #ffffff;
+  color: #0f766e;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.preDepartureAddForm {
+  display: flex;
+  gap: 7px;
+  padding: 9px 10px;
+  border-top: 1px solid #edf1f4;
+}
+
+.preDepartureAddForm input {
+  min-width: 0;
+  flex: 1;
+  height: 38px;
+  border: 1px solid rgba(31, 122, 140, 0.2);
+  border-radius: 9px;
+  padding: 0 10px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.preDepartureAddForm button {
+  min-width: 52px;
+  border: 0;
+  border-radius: 9px;
+  background: #0f766e;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.preDepartureCancelButton {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.preDepartureAddForm button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.preDepartureAddFormV2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.42fr);
+  gap: 7px;
+  border-top: 1px solid #edf1f4;
+  padding: 9px 10px;
+  background: #fbfdfe;
+}
+
+.preDepartureAddFormV2 input,
+.preDepartureAddFormV2 select {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  border: 1px solid rgba(31, 122, 140, 0.22);
+  border-radius: 9px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.preDepartureAddFormV2 > div {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.preDepartureAddFormV2 button {
+  min-width: 58px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  padding: 5px 10px;
+  background: #0f766e;
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.preDepartureAddFormV2 .preDepartureCancelButton {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.preDepartureAddFormV2 button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.preDepartureRestoreGroup {
+  border: 1px solid #e2e8f0;
+  border-radius: 11px;
+  padding: 0 11px;
+  background: #f8fafc;
+}
+
+.preDepartureRestoreGroup summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.preDepartureRestoreGroup > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 0 0 10px;
+}
+
+.preDepartureRestoreGroup button {
+  min-height: 30px;
+  border: 1px solid #dbe4ea;
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #ffffff;
+  color: #475569;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.preDepartureUndo {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.preDepartureUndo button {
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 8px;
+  background: #ffffff;
+  color: #0f766e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
 .mapModal {
   max-height: min(520px, calc(100dvh - 36px));
 }
@@ -3167,6 +3994,16 @@
     min-height: 30px;
     padding: 5px 10px;
     font-size: 12px;
+  }
+
+  .guideAction {
+    min-height: 30px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .preDepartureStorageCard small {
+    max-width: none;
   }
 
   .workspace {

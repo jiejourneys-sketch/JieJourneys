@@ -30,6 +30,22 @@ import styles from '@/app/tokyo/map/map.module.css'
 import type { MapPlace } from '@/lib/mapPlace'
 import type { MapRouteOverlay } from '@/lib/mapRoute'
 
+type MapTopAction = {
+  label: string
+  href: string
+  event: string
+  platform: string
+  primary?: boolean
+  external?: boolean
+  placement?: 'afterBelowContent'
+  group?: string
+  groupLabel?: string
+}
+
+type MapTopActionMenuEntry =
+  | { kind: 'action'; action: MapTopAction }
+  | { kind: 'group'; key: string; label: string; actions: MapTopAction[] }
+
 export type MapClientProps = {
   places: MapPlace[]
   mapCenter: { lat: number; lng: number }
@@ -49,15 +65,7 @@ export type MapClientProps = {
   initialFitToPlaces?: boolean
   /** Keep Google Maps and NaverMap together in one compact map menu. */
   collapseLocationLinks?: boolean
-  topActions?: {
-    label: string
-    href: string
-    event: string
-    platform: string
-    primary?: boolean
-    external?: boolean
-    placement?: 'afterBelowContent'
-  }[]
+  topActions?: MapTopAction[]
   /** Static content rendered below the interactive map, before the footer. */
   belowContent?: ReactNode
 }
@@ -1036,6 +1044,25 @@ export default function MapClient({
     () => topActions?.filter((action) => action.placement !== 'afterBelowContent') ?? [],
     [topActions],
   )
+  const topMenuEntries = useMemo(() => {
+    const entries: MapTopActionMenuEntry[] = []
+    const seenGroups = new Set<string>()
+    topMenuActions.forEach((action) => {
+      if (!action.group) {
+        entries.push({ kind: 'action', action })
+        return
+      }
+      if (seenGroups.has(action.group)) return
+      seenGroups.add(action.group)
+      entries.push({
+        kind: 'group',
+        key: action.group,
+        label: action.groupLabel ?? action.group,
+        actions: topMenuActions.filter((candidate) => candidate.group === action.group),
+      })
+    })
+    return entries
+  }, [topMenuActions])
   const afterBelowContentActions = useMemo(
     () => topActions?.filter((action) => action.placement === 'afterBelowContent') ?? [],
     [topActions],
@@ -1091,6 +1118,7 @@ export default function MapClient({
   const mapClickSuppressUntilRef = useRef(0)
   const mobileSheetRef = useRef<HTMLDivElement>(null)
   const belowContentRef = useRef<HTMLDivElement>(null)
+  const topActionsRef = useRef<HTMLDivElement>(null)
   const sheetDragSessionRef = useRef<{
     pointerId: number
     startY: number
@@ -1142,6 +1170,7 @@ export default function MapClient({
   const [mapError, setMapError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [topActionsOpen, setTopActionsOpen] = useState(false)
+  const [openTopActionGroup, setOpenTopActionGroup] = useState<string | null>(null)
   const [locationPromptOpen, setLocationPromptOpen] = useState(false)
   const [locationPromptMessage, setLocationPromptMessage] = useState('')
   const [locationRequesting, setLocationRequesting] = useState(false)
@@ -1150,6 +1179,39 @@ export default function MapClient({
   const [routeLayerOn, setRouteLayerOn] = useState<Record<string, boolean>>(() =>
     Object.fromEntries((routeLayers ?? []).map((layer) => [layer.id, layer.defaultVisible ?? true])),
   )
+
+  const closeTopActions = useCallback(() => {
+    setOpenTopActionGroup(null)
+    setTopActionsOpen(false)
+  }, [])
+
+  useEffect(() => {
+    if (!topActionsOpen) return
+    const closeFromOutside = (event: PointerEvent) => {
+      if (topActionsRef.current?.contains(event.target as Node)) return
+      closeTopActions()
+    }
+    const closeFromEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeTopActions()
+    }
+    document.addEventListener('pointerdown', closeFromOutside)
+    document.addEventListener('keydown', closeFromEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeFromOutside)
+      document.removeEventListener('keydown', closeFromEscape)
+    }
+  }, [closeTopActions, topActionsOpen])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!topActionsOpen || !mapReady || !map || !window.google?.maps) return
+    const dragListener = map.addListener('dragstart', closeTopActions)
+    const zoomListener = map.addListener('zoom_changed', closeTopActions)
+    return () => {
+      dragListener.remove()
+      zoomListener.remove()
+    }
+  }, [closeTopActions, mapReady, topActionsOpen])
 
   const syncLocateButtonState = useCallback(() => {
     const pausedMode = locationPausedFollowModeRef.current
@@ -2550,7 +2612,7 @@ export default function MapClient({
               ) : null}
             </div>
             {topActions && topActions.length > 0 ? (
-              <div className={styles.mapTopActions} aria-label="快速連結">
+              <div ref={topActionsRef} className={styles.mapTopActions} aria-label="快速連結">
                 <button
                   type="button"
                   className={styles.mapTopActionTrigger}
@@ -2559,26 +2621,69 @@ export default function MapClient({
                   data-event={`${gtagPrefix}_top_buy_toggle`}
                   data-platform="buy-menu"
                   data-section="map_top"
-                  onClick={() => setTopActionsOpen((open) => !open)}
+                  onClick={() => {
+                    if (topActionsOpen) closeTopActions()
+                    else setTopActionsOpen(true)
+                  }}
                 >
                   連結
                   <span aria-hidden>{topActionsOpen ? '▴' : '▾'}</span>
                 </button>
                 {topActionsOpen ? (
                   <div id={`${gtagPrefix}TopActionsMenu`} className={styles.mapTopActionMenu}>
-                    {topMenuActions.map((action) => (
-                      <a
-                        key={`${action.label}-${action.href}`}
-                        className={`${styles.mapTopAction} ${action.primary ? styles.mapTopActionPrimary : ''}`}
-                        href={action.href}
-                        {...(action.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                        data-event={action.event}
-                        data-platform={action.platform}
-                        data-section="map_top"
-                      >
-                        {action.label}
-                      </a>
-                    ))}
+                    {topMenuEntries.map((entry) =>
+                      entry.kind === 'action' ? (
+                        <a
+                          key={`${entry.action.label}-${entry.action.href}`}
+                          className={`${styles.mapTopAction} ${entry.action.primary ? styles.mapTopActionPrimary : ''}`}
+                          href={entry.action.href}
+                          {...(entry.action.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                          data-event={entry.action.event}
+                          data-platform={entry.action.platform}
+                          data-section="map_top"
+                        >
+                          {entry.action.label}
+                        </a>
+                      ) : (
+                        <div
+                          key={entry.key}
+                          className={`${styles.mapTopActionGroup} ${openTopActionGroup === entry.key ? styles.mapTopActionGroupOpen : ''}`}
+                        >
+                          <button
+                            type="button"
+                            className={`${styles.mapTopAction} ${entry.actions.some((action) => action.primary) ? styles.mapTopActionPrimary : ''}`}
+                            aria-expanded={openTopActionGroup === entry.key}
+                            data-event={`${gtagPrefix}_top_${entry.key}_toggle`}
+                            data-platform={`${entry.key}-menu`}
+                            data-section="map_top"
+                            onClick={() =>
+                              setOpenTopActionGroup((current) => (current === entry.key ? null : entry.key))
+                            }
+                          >
+                            <span aria-hidden>◂</span>
+                            {entry.label}
+                          </button>
+                          {openTopActionGroup === entry.key ? (
+                            <div className={styles.mapTopActionGroupMenu}>
+                              {entry.actions.map((action) => (
+                                <a
+                                  key={`${action.label}-${action.href}`}
+                                  className={styles.mapTopActionGroupLink}
+                                  href={action.href}
+                                  {...(action.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                  data-event={action.event}
+                                  data-platform={action.platform}
+                                  data-section="map_top"
+                                  onClick={closeTopActions}
+                                >
+                                  {action.label}
+                                </a>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ),
+                    )}
                     {belowContent && !hasManualBelowContentAction ? (
                       <button
                         type="button"
@@ -2586,7 +2691,7 @@ export default function MapClient({
                         data-event={`${gtagPrefix}_scroll_below`}
                         data-section="map_top"
                         onClick={() => {
-                          setTopActionsOpen(false)
+                          closeTopActions()
                           scrollToBelowContent()
                         }}
                       >

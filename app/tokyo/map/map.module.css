@@ -147,6 +147,67 @@
   cursor: pointer;
 }
 
+.mapTopActionGroup {
+  position: relative;
+}
+
+.mapTopActionGroup > button {
+  gap: 5px;
+  font-family: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+
+.mapTopActionGroupOpen > button {
+  box-shadow: 0 0 0 3px rgba(31, 122, 140, 0.14);
+}
+
+.mapTopActionGroupMenu {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 8px);
+  z-index: 82;
+  display: grid;
+  min-width: 92px;
+  gap: 5px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  padding: 6px;
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+}
+
+.mapTopActionGroupMenu::after {
+  position: absolute;
+  top: 12px;
+  right: -5px;
+  width: 9px;
+  height: 9px;
+  transform: rotate(45deg);
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  border-right: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  content: '';
+}
+
+.mapTopActionGroupLink {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 6px 9px;
+  color: #0000ee;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mapTopActionGroupLink:hover {
+  background: #f1f5f9;
+}
+
 .mobileOnlyTopAction {
   display: none;
 }
@@ -1053,6 +1114,21 @@
     padding: 5px 0;
     font-size: 12px;
     white-space: nowrap;
+  }
+
+  .mapTopActionGroupMenu {
+    top: 0;
+    right: calc(100% + 6px);
+    min-width: 84px;
+  }
+
+  .mapTopActionGroupLink {
+    width: auto;
+    min-height: 30px;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 5px 8px;
+    font-size: 12px;
   }
 
   .mobileOnlyTopAction {
