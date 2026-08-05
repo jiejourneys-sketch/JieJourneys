@@ -4299,6 +4299,8 @@ function PreDeparturePanelV2({
   const [addingCategoryId, setAddingCategoryId] = useState<string | null>(null)
   const [expandedDetailItemId, setExpandedDetailItemId] = useState<string | null>(null)
   const [generalNoteOpen, setGeneralNoteOpen] = useState(false)
+  const [generalNoteInitialValue, setGeneralNoteInitialValue] = useState('')
+  const [generalNoteSaveStatus, setGeneralNoteSaveStatus] = useState<'idle' | 'saving' | 'error'>('idle')
   const [travelerFormOpen, setTravelerFormOpen] = useState(false)
   const [travelerDraft, setTravelerDraft] = useState('')
   const [renamingTravelerId, setRenamingTravelerId] = useState<string | null>(null)
@@ -4334,6 +4336,7 @@ function PreDeparturePanelV2({
     [activeTargetId, itemTargets, visibleCategories],
   )
   const checkedItemCount = visibleSlots.filter(({ itemId, targetId }) => checkedItems[targetId]?.[itemId]).length
+  const generalNoteDirty = generalNoteOpen && (notes.general ?? '') !== generalNoteInitialValue
 
   useEffect(() => {
     if (!copiedPromoEvent) return
@@ -4377,6 +4380,34 @@ function PreDeparturePanelV2({
     setCustomItemDraft('')
     setExpandedDetailItemId(null)
     setAddingCategoryId(categoryId)
+  }
+
+  const toggleOrSaveGeneralNote = async () => {
+    if (!generalNoteOpen) {
+      setGeneralNoteInitialValue(notes.general ?? '')
+      setGeneralNoteSaveStatus('idle')
+      setGeneralNoteOpen(true)
+      return
+    }
+    if (!generalNoteDirty) {
+      setGeneralNoteOpen(false)
+      return
+    }
+    if (!cloudEnabled) {
+      setGeneralNoteInitialValue(notes.general ?? '')
+      setGeneralNoteOpen(false)
+      return
+    }
+    if (generalNoteSaveStatus === 'saving') return
+    setGeneralNoteSaveStatus('saving')
+    const saved = await Promise.resolve(onSave()).catch(() => false)
+    if (!saved) {
+      setGeneralNoteSaveStatus('error')
+      return
+    }
+    setGeneralNoteInitialValue(notes.general ?? '')
+    setGeneralNoteSaveStatus('idle')
+    setGeneralNoteOpen(false)
   }
 
   return (
@@ -4445,9 +4476,21 @@ function PreDeparturePanelV2({
               </section>
 
               <section className={styles.preDepartureGeneralNote}>
-                <button type="button" aria-expanded={generalNoteOpen} aria-controls="pre-departure-general-note" onClick={() => setGeneralNoteOpen((open) => !open)}>
+                <button
+                  type="button"
+                  aria-label={generalNoteOpen ? generalNoteDirty ? '儲存行前備忘' : '收合行前備忘' : '開啟行前備忘'}
+                  aria-expanded={generalNoteOpen}
+                  aria-controls="pre-departure-general-note"
+                  onClick={() => void toggleOrSaveGeneralNote()}
+                >
                   <span><strong>行前備忘</strong><small>{notes.general ? '已填寫，點擊查看或編輯' : '航班、訂房編號與其他提醒'}</small></span>
-                  <span className={`${styles.preDepartureGeneralNoteAction} ${generalNoteOpen ? styles.preDepartureGeneralNoteClose : ''}`} aria-hidden="true">{generalNoteOpen ? '×' : notes.general ? '查看 ▾' : '＋ 新增 ▾'}</span>
+                  <span className={`${styles.preDepartureGeneralNoteAction} ${generalNoteOpen && !generalNoteDirty ? styles.preDepartureGeneralNoteClose : ''}`} aria-hidden="true">
+                    {generalNoteOpen
+                      ? generalNoteDirty
+                        ? generalNoteSaveStatus === 'saving' ? '儲存中…' : generalNoteSaveStatus === 'error' ? '再試一次' : '儲存'
+                        : '×'
+                      : notes.general ? '查看 ▾' : '＋ 新增 ▾'}
+                  </span>
                 </button>
                 {generalNoteOpen ? (
                   <div id="pre-departure-general-note" className={styles.preDepartureGeneralNoteField}>
@@ -4476,6 +4519,12 @@ function PreDeparturePanelV2({
                           </div>
                         ) : null}
                       </div>
+                      {addingItem ? (
+                        <form className={styles.preDepartureAddForm} onSubmit={(event) => { event.preventDefault(); const label = customItemDraft.trim(); if (!label) return; onAdd(category.id, label); setCustomItemDraft(''); setAddingCategoryId(null) }}>
+                          <input value={customItemDraft} maxLength={30} placeholder="要準備什麼？" onChange={(event) => setCustomItemDraft(event.target.value)} />
+                          <button type="submit" disabled={!customItemDraft.trim()}>新增</button><button className={styles.preDepartureCancelButton} type="button" onClick={() => setAddingCategoryId(null)}>取消</button>
+                        </form>
+                      ) : null}
                       {category.items.length === 0 ? <p className={styles.preDepartureEmptyCategory}>這個分類目前沒有項目</p> : null}
                       <ul className={styles.preDepartureChecklist}>
                         {category.items.map((item) => {
@@ -4504,12 +4553,6 @@ function PreDeparturePanelV2({
                           )
                         })}
                       </ul>
-                      {addingItem ? (
-                        <form className={styles.preDepartureAddForm} onSubmit={(event) => { event.preventDefault(); const label = customItemDraft.trim(); if (!label) return; onAdd(category.id, label); setCustomItemDraft(''); setAddingCategoryId(null) }}>
-                          <input value={customItemDraft} maxLength={30} placeholder="要準備什麼？" onChange={(event) => setCustomItemDraft(event.target.value)} />
-                          <button type="submit" disabled={!customItemDraft.trim()}>新增</button><button className={styles.preDepartureCancelButton} type="button" onClick={() => setAddingCategoryId(null)}>取消</button>
-                        </form>
-                      ) : null}
                     </section>
                   )
                 })}

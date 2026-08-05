@@ -2916,6 +2916,12 @@
   border-top: 1px solid #edf1f4;
 }
 
+.preDepartureCategoryHeader + .preDepartureAddForm {
+  border-top: 0;
+  border-bottom: 1px solid #dbeafe;
+  background: #f0f9ff;
+}
+
 .preDepartureAddForm input {
   min-width: 0;
   flex: 1;
