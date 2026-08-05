@@ -4312,6 +4312,11 @@ function PreDeparturePanelV2({
   const [manualSaveStatus, setManualSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const resourceItemRefs = useRef<Record<string, HTMLLIElement | null>>({})
   const resourceCollapseTimerRef = useRef<number | null>(null)
+  const resourceCollapseAnchorRef = useRef<{
+    container: HTMLDivElement
+    element: HTMLElement
+    top: number
+  } | null>(null)
   usePlannerBodyScrollLock(true)
 
   const activeTraveler = travelers.find((traveler) => traveler.id === activeTargetId) ?? null
@@ -4354,12 +4359,36 @@ function PreDeparturePanelV2({
     if (resourceCollapseTimerRef.current != null) window.clearTimeout(resourceCollapseTimerRef.current)
   }, [])
 
+  useLayoutEffect(() => {
+    if (expandedDetailItemId) return
+    const anchor = resourceCollapseAnchorRef.current
+    resourceCollapseAnchorRef.current = null
+    if (!anchor || !anchor.element.isConnected || !anchor.container.isConnected) return
+    const shift = anchor.element.getBoundingClientRect().top - anchor.top
+    if (Math.abs(shift) > 0.5) anchor.container.scrollTop += shift
+  }, [expandedDetailItemId])
+
   const scheduleExpandedResourceCollapseIfNearlyOutside = useCallback((container: HTMLDivElement) => {
     if (resourceCollapseTimerRef.current != null) window.clearTimeout(resourceCollapseTimerRef.current)
     resourceCollapseTimerRef.current = window.setTimeout(() => {
       if (expandedDetailItemId) {
         const item = resourceItemRefs.current[expandedDetailItemId]
         if (item && cardIsNearlyOutsideScrollArea(item, container)) {
+          const containerRect = container.getBoundingClientRect()
+          const visibleAnchor = Array.from(
+            container.querySelectorAll<HTMLElement>('[data-pre-departure-item-id]'),
+          ).find((candidate) => {
+            if (candidate === item) return false
+            const rect = candidate.getBoundingClientRect()
+            return rect.bottom > containerRect.top + 8 && rect.top < containerRect.bottom - 8
+          })
+          if (visibleAnchor) {
+            resourceCollapseAnchorRef.current = {
+              container,
+              element: visibleAnchor,
+              top: visibleAnchor.getBoundingClientRect().top,
+            }
+          }
           setExpandedDetailItemId((current) => (current === expandedDetailItemId ? null : current))
         }
       }
@@ -4531,7 +4560,7 @@ function PreDeparturePanelV2({
                           const resource = item.resourceId ? PRE_DEPARTURE_RESOURCES[item.resourceId] : null
                           const detailsExpanded = Boolean(resource && expandedDetailItemId === item.id)
                           return (
-                            <li key={item.id} ref={(element) => { resourceItemRefs.current[item.id] = element }} className={resource ? styles.preDepartureResourceItem : undefined}>
+                            <li key={item.id} data-pre-departure-item-id={item.id} ref={(element) => { resourceItemRefs.current[item.id] = element }} className={resource ? styles.preDepartureResourceItem : undefined}>
                               <div className={styles.preDepartureItemRow}>
                                 <label><input type="checkbox" disabled={readOnly} checked={Boolean(checkedItems[activeTargetId]?.[item.id])} onChange={() => onToggle(activeTargetId, item.id)} /><span>{item.label}</span></label>
                                 {resource ? <button className={`${styles.preDepartureResourceToggle} ${detailsExpanded ? styles.preDepartureResourceClose : ''}`} type="button" aria-label={detailsExpanded ? `收合${item.label}詳細資料` : undefined} aria-expanded={detailsExpanded} aria-controls={`pre-departure-resource-${item.id}`} onClick={() => setExpandedDetailItemId((current) => current === item.id ? null : item.id)}>{detailsExpanded ? '×' : <>{resource.toggleLabel}<span aria-hidden="true">▾</span></>}</button> : null}
