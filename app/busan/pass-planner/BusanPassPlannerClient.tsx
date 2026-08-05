@@ -4360,22 +4360,22 @@ function PreDeparturePanelV2({
   }, [])
 
   useLayoutEffect(() => {
-    if (expandedDetailItemId) return
     const anchor = resourceCollapseAnchorRef.current
+    if (!anchor) return
     resourceCollapseAnchorRef.current = null
-    if (!anchor || !anchor.element.isConnected || !anchor.container.isConnected) return
-    const shift = anchor.element.getBoundingClientRect().top - anchor.top
-    if (Math.abs(shift) > 0.5) anchor.container.scrollTop += shift
+    const nextTop = anchor.element.getBoundingClientRect().top
+    const offset = nextTop - anchor.top
+    if (Math.abs(offset) > 1) anchor.container.scrollTop += offset
   }, [expandedDetailItemId])
 
   const scheduleExpandedResourceCollapseIfNearlyOutside = useCallback((container: HTMLDivElement) => {
-    // Throttle instead of debounce: keep checking during an active swipe so
-    // an off-screen resource closes promptly without waiting for scrolling to stop.
-    if (resourceCollapseTimerRef.current != null) return
+    if (resourceCollapseTimerRef.current != null) {
+      window.clearTimeout(resourceCollapseTimerRef.current)
+    }
     resourceCollapseTimerRef.current = window.setTimeout(() => {
       if (expandedDetailItemId) {
         const item = resourceItemRefs.current[expandedDetailItemId]
-        if (item && cardIsNearlyOutsideScrollArea(item, container, 18)) {
+        if (item && cardIsNearlyOutsideScrollArea(item, container)) {
           const containerRect = container.getBoundingClientRect()
           const visibleAnchor = Array.from(
             container.querySelectorAll<HTMLElement>('[data-pre-departure-item-id]'),
@@ -4395,7 +4395,7 @@ function PreDeparturePanelV2({
         }
       }
       resourceCollapseTimerRef.current = null
-    }, 80)
+    }, 140)
   }, [expandedDetailItemId])
 
   const copyPromoCode = async (event: string, promoCode: string) => {
