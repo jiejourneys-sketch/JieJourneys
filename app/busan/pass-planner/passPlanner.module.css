@@ -818,6 +818,34 @@
   font-weight: 900;
 }
 
+.customPlaceLabel,
+.customPlaceFieldSearching {
+  display: inline-flex;
+  align-items: center;
+}
+
+.customPlaceLabel {
+  gap: 7px;
+}
+
+.customPlaceFieldSearching {
+  gap: 4px;
+  color: var(--cta);
+}
+
+.customPlaceFieldSearching i {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(31, 122, 140, 0.28);
+  border-top-color: var(--cta);
+  border-radius: 999px;
+  animation: customPlaceSearchSpin 0.75s linear infinite;
+}
+
+@keyframes customPlaceSearchSpin {
+  to { transform: rotate(360deg); }
+}
+
 .customPlaceForm input,
 .customPlaceForm textarea,
 .customPlaceForm select {

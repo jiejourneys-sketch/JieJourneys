@@ -6936,7 +6936,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     customDraft.googleUrl.trim() && !googleMapsUrlFromInput(customDraft.googleUrl)
       ? googleMapsInputNotice(customDraft.googleUrl)
       : ''
-  const customDraftGoogleMapsName = cleanGoogleMapsQueryPlaceName(customDraft.googlePlaceName)
   const showCustomPlaceConfirm =
     !customGoogleUrlNotice && Boolean(customDraft.googleUrl.trim() || customDraft.lat != null || customUrlResolving)
 
@@ -11156,9 +11155,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                             placeholder="貼上 Google Maps 分享連結"
                           />
                         </label>
-                        {customUrlResolving || customGoogleUrlNotice ? (
-                          <p className={styles.customPlaceStatus} role="status" aria-live="polite">
-                            {customUrlResolving ? '正在從 Google Maps 辨識地點名稱與位置…' : customGoogleUrlNotice}
+                        {customGoogleUrlNotice ? (
+                          <p className={styles.customPlaceStatus}>
+                            {customGoogleUrlNotice}
                           </p>
                         ) : null}
                       </div>
@@ -11170,20 +11169,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           </div>
                           <>
                             <label>
-                              名稱
+                              <span className={styles.customPlaceLabel}>
+                                名稱
+                                {customUrlResolving ? (
+                                  <span className={styles.customPlaceFieldSearching} role="status" aria-live="polite">
+                                    <i aria-hidden="true" />
+                                    搜尋中
+                                  </span>
+                                ) : null}
+                              </span>
                               <input
                                 value={customDraft.name}
                                 onChange={(event) => setCustomDraft((draft) => ({ ...draft, name: event.target.value }))}
-                                placeholder="可自己修改景點名稱"
+                                placeholder={customUrlResolving ? '名稱搜尋中…' : '可自己修改景點名稱'}
+                                aria-busy={customUrlResolving || undefined}
                               />
                             </label>
-                            {customUrlResolving || customDraftGoogleMapsName ? (
-                              <p className={styles.customPlaceStatus} role="status" aria-live="polite">
-                                {customUrlResolving
-                                  ? 'Google Maps 正在辨識名稱；完成後會顯示系統用來確認位置的名稱。'
-                                  : <>Google Maps 辨識名稱：<strong>{customDraftGoogleMapsName}</strong>。系統會以此確認地點與住宿連結，你仍可自行修改上方名稱。</>}
-                              </p>
-                            ) : null}
                             <label>
                               分類
                               <select
@@ -11210,9 +11211,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           </>
                             <>
                               <p className={styles.customPlaceStatus}>
-                                {customUrlResolving
-                                  ? '正在從 Google Maps 辨識地點名稱與位置，請稍候。'
-                                  : customDraft.lat != null && customDraft.lng != null
+                                {customDraft.lat != null && customDraft.lng != null
                                   ? '\u5df2\u5e36\u5165\u4f4d\u7f6e\uff0c\u8acb\u770b\u4e0a\u65b9\u5730\u5716\u78ba\u8a8d\u6a19\u8a18\u5f8c\u518d\u5132\u5b58\u3002'
                                   : customDraft.picking
                                     ? '\u627e\u4e0d\u5230\u5b8c\u6574\u4f4d\u7f6e\uff0c\u5df2\u5207\u63db\u70ba\u624b\u52d5\u5efa\u7acb\u3002\u8acb\u78ba\u8a8d\u540d\u7a31\uff0c\u518d\u5230\u5730\u5716\u9ede\u4e00\u4e0b\u6a19\u8a18\u4f4d\u7f6e\u3002'
