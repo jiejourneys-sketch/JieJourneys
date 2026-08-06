@@ -72,6 +72,28 @@ test('prefers the localized Google Maps HTML title over an English URL query', a
   expect(payload.title).toBe('在地規劃飯店')
 })
 
+test('extracts a place name from the address-style Maps URL shared by mobile', async () => {
+  const shortUrl = 'https://maps.app.goo.gl/MCJb1wqJGhK6fPF26?g_st=ic'
+  const expandedUrl =
+    'https://www.google.com/maps?q=%E6%97%A5%E6%9C%AC%E3%80%92542-0071+Osaka,+Chuo+Ward,+Dotonbori,+1+Chome%E2%88%925%E2%88%925+%E5%8D%83%E6%88%BF+%E9%81%93%E9%A0%93%E5%A0%80+%E5%8D%83%E6%88%BF%E9%81%93%E9%A0%93%E5%A0%80%E3%83%93%E3%83%AB1%EF%BD%9E6F&ftid=0x6000e714e0f7db93:0x9bdc7e61a5f722f1&entry=gps&g_st=ic'
+  globalThis.fetch = (async (input) => {
+    const url = String(input)
+    if (url === shortUrl) return new Response(null, { status: 302, headers: { location: expandedUrl } })
+    if (url === expandedUrl) return new Response('<title>Google Maps</title>', { status: 200 })
+    throw new Error(`unexpected_url:${url}`)
+  }) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(shortUrl))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload).toMatchObject({
+    url: expandedUrl,
+    title: '千房 道頓堀',
+    googleMapsDataId: '0x6000e714e0f7db93:0x9bdc7e61a5f722f1',
+  })
+})
+
 test('keeps a Google Maps feature data ID separate from a ChIJ Place ID', async () => {
   const shortUrl = 'https://maps.app.goo.gl/art-hotel-short'
   const expandedUrl =

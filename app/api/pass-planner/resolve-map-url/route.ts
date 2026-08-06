@@ -189,6 +189,14 @@ function extractGoogleMapsPlaceId(value: string) {
 // reusable ChIJ Place ID. It is not itself a Place Details ID, but SerpAPI's
 // exact Maps-place endpoint can resolve it without a name-based guess.
 function extractGoogleMapsDataId(value: string) {
+  try {
+    const ftid = new URL(value).searchParams.get('ftid')?.trim().toLowerCase()
+    if (ftid && /^0x[0-9a-f]{6,}:0x[0-9a-f]{6,}$/i.test(ftid)) return ftid
+  } catch {
+    // Fall through to loose text matching.
+  }
+  const ftidMatch = value.match(/[?&]ftid=(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
+  if (ftidMatch?.[1]) return ftidMatch[1].toLowerCase()
   const match = value.match(/!1s(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
   return match?.[1]?.toLowerCase() ?? null
 }
@@ -206,6 +214,8 @@ function extractNaverPlaceId(value: string) {
 
 function cleanGoogleMapsQueryTitle(value: string | null) {
   if (!value) return null
+  const addressPlaceName = extractGoogleMapsAddressPlaceName(value)
+  if (addressPlaceName) return addressPlaceName
   const normalized = stripGoogleMapsPlusCode(value)
     .replace(/\s+/g, ' ')
     .trim()
@@ -227,6 +237,25 @@ function cleanGoogleMapsQueryTitle(value: string | null) {
     .trim()
   const candidate = stripped || normalized
   return isLikelyGoogleMapsAddress(candidate) ? null : cleanGoogleMapsTitle(candidate)
+}
+
+// Mobile Google Maps sharing often expands to `/maps?q=<full address> <place
+// name>&ftid=...` rather than `/maps/place/<place name>/...`. The last part
+// after a Japanese street number is the named place; keeping it separate from
+// the address lets the planner return a usable name without downloading Maps'
+// full HTML document.
+function extractGoogleMapsAddressPlaceName(value: string) {
+  const normalized = stripGoogleMapsPlusCode(value).replace(/\s+/g, ' ').trim()
+  const tail = normalized.match(
+    /(?:^|,\s*)(?:\d+\s*(?:Chome|丁目)\s*[-−–]\s*)?\d+(?:\s*[-−–]\s*\d+)+\s+(.+)$/iu,
+  )?.[1]
+  if (!tail) return null
+
+  const withoutBuilding = tail
+    .replace(/\s+\S*(?:ビル|building)\S*$/iu, '')
+    .trim()
+  const name = cleanGoogleMapsTitle(withoutBuilding)
+  return name && !isLikelyGoogleMapsAddress(name) ? name : null
 }
 
 function stripGoogleMapsLocationTail(value: string) {
@@ -374,15 +403,21 @@ export async function GET(request: NextRequest) {
     // timeout even though the short link itself resolved successfully.
     if (isGoogleUrl) {
       const pathPlaceName = decodeGoogleMapsPathPlaceName(resolvedUrl)
-      if (pathPlaceName && isGoogleMapsPlacePath(resolvedUrl)) {
-        const query = decodeGoogleMapsQuery(resolvedUrl) ?? pathPlaceName
+      const urlQuery = decodeGoogleMapsQuery(resolvedUrl)
+      const addressQueryPlaceName = urlQuery ? extractGoogleMapsAddressPlaceName(urlQuery) : null
+      const fastPlaceName =
+        pathPlaceName && isGoogleMapsPlacePath(resolvedUrl)
+          ? pathPlaceName
+          : addressQueryPlaceName
+      if (fastPlaceName) {
+        const query = urlQuery ?? pathPlaceName ?? fastPlaceName
         const coordinates = extractGoogleMapsCoordinates(resolvedUrl)
         const googlePlaceId = extractGoogleMapsPlaceId(resolvedUrl)
         const googleMapsDataId = extractGoogleMapsDataId(resolvedUrl)
         if (response.body) void response.body.cancel().catch(() => undefined)
         return NextResponse.json({
           url: resolvedUrl,
-          title: pathPlaceName,
+          title: fastPlaceName,
           ...(query ? { query } : {}),
           ...(coordinates ? coordinates : {}),
           ...(googlePlaceId ? { googlePlaceId } : {}),
