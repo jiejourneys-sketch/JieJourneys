@@ -296,8 +296,9 @@ const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v4:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
 // Agoda now resolves against the local catalogue and browser Places API (New).
-// Discard older misses that may have come from SerpAPI or the legacy Places API.
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v18'
+// v19 also retries results made before multilingual aliases and named-match
+// dominance could distinguish hotels sharing one building.
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v19'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 // v6 discards place-name entries created before Maps data-ID resolution. Those
 // old values can be incomplete URL labels and must not suppress the canonical
@@ -6935,6 +6936,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     customDraft.googleUrl.trim() && !googleMapsUrlFromInput(customDraft.googleUrl)
       ? googleMapsInputNotice(customDraft.googleUrl)
       : ''
+  const customDraftGoogleMapsName = cleanGoogleMapsQueryPlaceName(customDraft.googlePlaceName)
   const showCustomPlaceConfirm =
     !customGoogleUrlNotice && Boolean(customDraft.googleUrl.trim() || customDraft.lat != null || customUrlResolving)
 
@@ -11155,8 +11157,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           />
                         </label>
                         {customUrlResolving || customGoogleUrlNotice ? (
-                          <p className={styles.customPlaceStatus}>
-                            {customUrlResolving ? '\u6b63\u5728\u641c\u5c0b\u666f\u9ede\u540d\u7a31\u2026' : customGoogleUrlNotice}
+                          <p className={styles.customPlaceStatus} role="status" aria-live="polite">
+                            {customUrlResolving ? '正在從 Google Maps 辨識地點名稱與位置…' : customGoogleUrlNotice}
                           </p>
                         ) : null}
                       </div>
@@ -11175,6 +11177,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                 placeholder="可自己修改景點名稱"
                               />
                             </label>
+                            {customUrlResolving || customDraftGoogleMapsName ? (
+                              <p className={styles.customPlaceStatus} role="status" aria-live="polite">
+                                {customUrlResolving
+                                  ? 'Google Maps 正在辨識名稱；完成後會顯示系統用來確認位置的名稱。'
+                                  : <>Google Maps 辨識名稱：<strong>{customDraftGoogleMapsName}</strong>。系統會以此確認地點與住宿連結，你仍可自行修改上方名稱。</>}
+                              </p>
+                            ) : null}
                             <label>
                               分類
                               <select
@@ -11202,7 +11211,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                             <>
                               <p className={styles.customPlaceStatus}>
                                 {customUrlResolving
-                                  ? '\u6b63\u5728\u641c\u5c0b\u666f\u9ede\u540d\u7a31\u8207\u4f4d\u7f6e\uff0c\u8acb\u7a0d\u5019\u3002'
+                                  ? '正在從 Google Maps 辨識地點名稱與位置，請稍候。'
                                   : customDraft.lat != null && customDraft.lng != null
                                   ? '\u5df2\u5e36\u5165\u4f4d\u7f6e\uff0c\u8acb\u770b\u4e0a\u65b9\u5730\u5716\u78ba\u8a8d\u6a19\u8a18\u5f8c\u518d\u5132\u5b58\u3002'
                                   : customDraft.picking

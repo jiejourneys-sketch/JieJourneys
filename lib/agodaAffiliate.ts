@@ -693,12 +693,17 @@ function classifyAgodaIndexMatch(
     candidate.score,
     coordinateOnlyMatch || veryClosePartialNameMatch || nameAndDistanceMatch ? AUTO_MATCH_MIN_SCORE : 0,
   )
+  const candidateHasStrongNameEvidence = (candidate.nameScore ?? 0) >= REVIEW_MATCH_MIN_SCORE
   const runnerUpCompetes =
     Boolean(runnerUp) &&
     runnerUp?.hotelId !== candidate.hotelId &&
     (
-      (runnerUp?.nameScore ?? 0) >= REVIEW_MATCH_MIN_SCORE ||
-      isSafeCoordinateOnlyMatch(runnerUp, undefined, query.lodgingHint)
+      // A nearby apartment or hotel with no comparable name evidence must not
+      // veto an exact named match. Coordinate-only candidates still protect a
+      // vague user label, where coordinates alone cannot distinguish units in
+      // the same building.
+      (runnerUp?.nameScore ?? 0) >= Math.max(REVIEW_MATCH_MIN_SCORE, (candidate.nameScore ?? 0) - AUTO_MATCH_MIN_MARGIN) ||
+      (!candidateHasStrongNameEvidence && isSafeCoordinateOnlyMatch(runnerUp, undefined, query.lodgingHint))
     ) &&
     (runnerUp?.score ?? 0) >= candidate.score - AUTO_MATCH_MIN_MARGIN
 
@@ -835,9 +840,25 @@ function normalizeHotelNameAliasVariants(values: readonly unknown[]) {
   values.forEach((value) => {
     const clean = cleanHotelSearchName(value)
     if (!clean) return
-    normalizeHotelNameVariants(clean).forEach((variant) => variants.add(variant))
+    hotelNameLanguageAliases(clean).forEach((alias) => {
+      normalizeHotelNameVariants(alias).forEach((variant) => variants.add(variant))
+    })
   })
   return Array.from(variants)
+}
+
+// Maps labels often present the Latin hotel name followed by Japanese, Korean,
+// or Chinese text (for example: "VIA INN Shinsaibashi ヴィアイン心斎橋").  They
+// are two aliases, not one longer hotel name.  Retain the full label and add
+// only its leading Latin alias; this deliberately does not try to extract text
+// from an address that merely contains a hotel name later in the string.
+function hotelNameLanguageAliases(value: string) {
+  const clean = cleanHotelSearchName(value)
+  if (!clean) return []
+
+  const leadingLatinAlias = clean.match(/^[\p{Script=Latin}\p{Number}\s&.'’()\-–—]+/u)?.[0]?.trim() ?? ''
+  if (!leadingLatinAlias || leadingLatinAlias === clean || !/[A-Za-z]/.test(leadingLatinAlias)) return [clean]
+  return [clean, leadingLatinAlias]
 }
 
 function cleanHotelSearchName(value: unknown) {
