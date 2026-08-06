@@ -295,6 +295,7 @@ const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 // so an intermittent lookup failure must be retried instead of cached forever.
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v4:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
+const CUSTOM_MAP_URL_RESOLVE_TIMEOUT_MS = 25_000
 // Agoda now resolves against the local catalogue and browser Places API (New).
 // v19 also retries results made before multilingual aliases and named-match
 // dominance could distinguish hotels sharing one building.
@@ -9971,7 +9972,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     setCustomUrlResolving(true)
     const resolveController = new AbortController()
-    const resolveTimeout = window.setTimeout(() => resolveController.abort(), 12000)
+    const resolveTimeout = window.setTimeout(() => resolveController.abort(), CUSTOM_MAP_URL_RESOLVE_TIMEOUT_MS)
     fetch(`/api/pass-planner/resolve-map-url?url=${encodeURIComponent(trimmedGoogleUrl)}`, {
       cache: 'no-store',
       signal: resolveController.signal,

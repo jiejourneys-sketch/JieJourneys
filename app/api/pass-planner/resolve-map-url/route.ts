@@ -149,6 +149,14 @@ function decodeGoogleMapsPathPlaceName(value: string) {
   }
 }
 
+function isGoogleMapsPlacePath(value: string) {
+  try {
+    return /\/maps\/place\//i.test(new URL(value).pathname)
+  } catch {
+    return /\/maps\/place\//i.test(value)
+  }
+}
+
 function decodeGoogleMapsQuery(value: string) {
   try {
     const url = new URL(value)
@@ -358,6 +366,31 @@ export async function GET(request: NextRequest) {
       provider,
       controller.signal,
     )
+
+    // A Maps short URL commonly expands to `/maps/place/<name>/...`, which
+    // already contains the precise display name, coordinates, and feature ID.
+    // Returning that data immediately avoids downloading Google's large Maps
+    // HTML document. On mobile networks that download can outlive the client
+    // timeout even though the short link itself resolved successfully.
+    if (isGoogleUrl) {
+      const pathPlaceName = decodeGoogleMapsPathPlaceName(resolvedUrl)
+      if (pathPlaceName && isGoogleMapsPlacePath(resolvedUrl)) {
+        const query = decodeGoogleMapsQuery(resolvedUrl) ?? pathPlaceName
+        const coordinates = extractGoogleMapsCoordinates(resolvedUrl)
+        const googlePlaceId = extractGoogleMapsPlaceId(resolvedUrl)
+        const googleMapsDataId = extractGoogleMapsDataId(resolvedUrl)
+        if (response.body) void response.body.cancel().catch(() => undefined)
+        return NextResponse.json({
+          url: resolvedUrl,
+          title: pathPlaceName,
+          ...(query ? { query } : {}),
+          ...(coordinates ? coordinates : {}),
+          ...(googlePlaceId ? { googlePlaceId } : {}),
+          ...(googleMapsDataId ? { googleMapsDataId } : {}),
+        })
+      }
+    }
+
     const html = await response.text()
 
     if (isNaverUrl) {
