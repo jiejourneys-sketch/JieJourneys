@@ -3,6 +3,7 @@ import Footer from '@/components/Footer'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import Image from 'next/image'
 import {
@@ -15,6 +16,11 @@ const SITE_URL = 'https://www.jiejourneys.com'
 const TOMBORI_MAP_URL = 'https://maps.app.goo.gl/yqAUk77ncQw63DSd7'
 const WONDER_MAP_URL = 'https://maps.app.goo.gl/SU32q9zctBbo7ohj6'
 const WONDER_RESERVATION_URL = 'https://select-type.com/rsv/?id=oHYe7QVcsto&c_id=242746'
+
+const videoLinks = [
+  { label: '道頓堀遊船 IG', href: 'https://www.instagram.com/reel/Dbx7Bmyh2YC/', event: 'dotonboricruise_video_ig', platform: 'IG', primary: true },
+  { label: '道頓堀遊船 YouTube', href: 'https://www.youtube.com/shorts/aVfYXVdOICA', event: 'dotonboricruise_video_yt', platform: 'YouTube' },
+]
 
 const comparisonRows = [
   {
@@ -155,6 +161,14 @@ export default async function DotonboriCruiseGuidePage({ searchParams }: Dotonbo
             { label: '直接看結論', href: '#which-cruise', dataEvent: 'dotonboricruise_hero_choice', platform: 'article' },
           ]}
         />
+
+        <section className="seo-content" id="video-guide" aria-label="道頓堀遊船短影音">
+          <h2 className="seo-h2">先看短影音：道頓堀遊船怎麼選</h2>
+          <div className="seo-prose">
+            <p>先用短影音看河面視角與乘船氛圍，再回來比較 Tombori 與 Wonder Cruise 的班次、座位與周遊券換票方式。</p>
+            <SeoVideoLinkMenu label="道頓堀遊船" links={videoLinks} />
+          </div>
+        </section>
 
         <section className="seo-content" id="quick-answer" aria-label="道頓堀遊船快速結論">
           <div className="narita-summary-grid haneda-summary-grid" role="list">

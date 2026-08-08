@@ -68,6 +68,8 @@ const cards: CityCard[] = [
     datasetKey: 'video',
     datasetValue: 'dotonbori-cruise-guide',
     actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/Dbx7Bmyh2YC/', className: 'btn primary', event: 'osakavideo_dotonboricruiseIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/aVfYXVdOICA', className: 'btn', event: 'osakavideo_dotonboricruiseYT', platform: 'YouTube', section: 'video' },
       { label: '文章', href: '/osaka/dotonbori-cruise-guide?from=osaka-video', className: 'btn', event: 'osakavideo_dotonboricruiseArticle', platform: 'article', section: 'video' },
     ],
   },
