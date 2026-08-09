@@ -5325,11 +5325,6 @@ function PlannerImagesPanel({
   usePlannerBodyScrollLock(true)
 
   useEffect(() => {
-    if (activeImageIndex === null) return
-    if (activeImageIndex >= images.length) setActiveImageIndex(images.length > 0 ? images.length - 1 : null)
-  }, [activeImageIndex, images.length])
-
-  useEffect(() => {
     if (!activeImage) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setActiveImageIndex(null)
