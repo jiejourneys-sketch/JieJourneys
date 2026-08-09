@@ -5319,7 +5319,47 @@ function PlannerImagesPanel({
   onClose: () => void
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null)
+  const [imageActualSize, setImageActualSize] = useState(false)
+  const activeImage = activeImageIndex === null ? null : images[activeImageIndex] ?? null
   usePlannerBodyScrollLock(true)
+
+  useEffect(() => {
+    if (activeImageIndex === null) return
+    if (activeImageIndex >= images.length) setActiveImageIndex(images.length > 0 ? images.length - 1 : null)
+  }, [activeImageIndex, images.length])
+
+  useEffect(() => {
+    if (!activeImage) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setActiveImageIndex(null)
+      if (event.key === 'ArrowLeft' && images.length > 1) {
+        setImageActualSize(false)
+        setActiveImageIndex((index) => (index === null ? 0 : (index - 1 + images.length) % images.length))
+      }
+      if (event.key === 'ArrowRight' && images.length > 1) {
+        setImageActualSize(false)
+        setActiveImageIndex((index) => (index === null ? 0 : (index + 1) % images.length))
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [activeImage, images.length])
+
+  const openImage = (index: number) => {
+    setImageActualSize(false)
+    setActiveImageIndex(index)
+  }
+
+  const showPreviousImage = () => {
+    setImageActualSize(false)
+    setActiveImageIndex((index) => (index === null ? 0 : (index - 1 + images.length) % images.length))
+  }
+
+  const showNextImage = () => {
+    setImageActualSize(false)
+    setActiveImageIndex((index) => (index === null ? 0 : (index + 1) % images.length))
+  }
 
   return (
     <div
@@ -5351,11 +5391,25 @@ function PlannerImagesPanel({
         <div className={styles.imagesModalBody}>
           {images.length > 0 ? (
             <div className={styles.plannerImageGrid}>
-              {images.map((image) => (
+              {images.map((image, index) => (
                 <figure key={image.id} className={styles.plannerImageTile}>
-                  <img src={image.url} alt={`${placeName} 的照片`} loading="lazy" />
+                  <button
+                    type="button"
+                    className={styles.plannerImagePreviewButton}
+                    onClick={() => openImage(index)}
+                    aria-label={`放大查看 ${placeName} 的照片 ${index + 1}`}
+                  >
+                    <img src={image.url} alt={`${placeName} 的照片 ${index + 1}`} loading="lazy" />
+                    <span>放大查看</span>
+                  </button>
                   {imageUploadEnabled ? (
-                    <button type="button" onClick={() => void onRemoveImage(image.id)} disabled={imageBusy} aria-label="移除照片">
+                    <button
+                      type="button"
+                      className={styles.plannerImageRemoveButton}
+                      onClick={() => void onRemoveImage(image.id)}
+                      disabled={imageBusy}
+                      aria-label="移除照片"
+                    >
                       移除
                     </button>
                   ) : null}
@@ -5391,6 +5445,48 @@ function PlannerImagesPanel({
           </div>
         </div>
       </section>
+      {activeImage ? (
+        <div
+          className={styles.plannerImageLightbox}
+          role="presentation"
+          onClick={() => setActiveImageIndex(null)}
+        >
+          <section
+            className={styles.plannerImageLightboxPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${placeName} 放大照片`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className={styles.plannerImageLightboxHeader}>
+              <span>{activeImageIndex! + 1} / {images.length}</span>
+              <div>
+                {images.length > 1 ? (
+                  <>
+                    <button type="button" onClick={showPreviousImage} aria-label="上一張照片">上一張</button>
+                    <button type="button" onClick={showNextImage} aria-label="下一張照片">下一張</button>
+                  </>
+                ) : null}
+                <button type="button" onClick={() => setImageActualSize((value) => !value)}>
+                  {imageActualSize ? '符合畫面' : '原尺寸'}
+                </button>
+                <a href={activeImage.url} target="_blank" rel="noopener noreferrer">開啟原圖</a>
+                <button type="button" onClick={() => setActiveImageIndex(null)} aria-label="關閉放大照片">關閉</button>
+              </div>
+            </header>
+            <div className={styles.plannerImageLightboxCanvas}>
+              <button
+                type="button"
+                className={`${styles.plannerImageLightboxImageButton} ${imageActualSize ? styles.isActualSize : ''}`}
+                onClick={() => setImageActualSize((value) => !value)}
+                aria-label={imageActualSize ? '縮小為符合畫面' : '以原尺寸查看照片'}
+              >
+                <img src={activeImage.url} alt={`${placeName} 的放大照片`} />
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -2252,14 +2252,36 @@
   background: #f8fafc;
 }
 
-.plannerImageTile img {
+.plannerImagePreviewButton {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: zoom-in;
+}
+
+.plannerImagePreviewButton img {
   display: block;
   width: 100%;
   aspect-ratio: 1 / 0.82;
   object-fit: cover;
 }
 
-.plannerImageTile button {
+.plannerImagePreviewButton span {
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.plannerImageRemoveButton {
   position: absolute;
   right: 7px;
   bottom: 7px;
@@ -2273,6 +2295,103 @@
   font-size: 12px;
   font-weight: 900;
   cursor: pointer;
+}
+
+.plannerImageLightbox {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.88);
+  touch-action: auto;
+}
+
+.plannerImageLightboxPanel {
+  display: grid;
+  width: min(1240px, 100%);
+  height: min(900px, calc(100dvh - 24px));
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 14px;
+  background: #0f172a;
+  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.5);
+}
+
+.plannerImageLightboxHeader {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.plannerImageLightboxHeader > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.plannerImageLightboxHeader button,
+.plannerImageLightboxHeader a {
+  min-height: 32px;
+  border: 1px solid rgba(226, 232, 240, 0.36);
+  border-radius: 8px;
+  padding: 5px 9px;
+  background: rgba(30, 41, 59, 0.88);
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.plannerImageLightboxCanvas {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 10px;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.plannerImageLightboxImageButton {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.plannerImageLightboxImageButton img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(100dvh - 112px);
+  object-fit: contain;
+}
+
+.plannerImageLightboxImageButton.isActualSize {
+  max-width: none;
+  max-height: none;
+  cursor: zoom-out;
+}
+
+.plannerImageLightboxImageButton.isActualSize img {
+  max-width: none;
+  max-height: none;
 }
 
 .plannerImageEmpty {
@@ -5476,5 +5595,25 @@
   .transportCardCompact .transportSummary {
     min-height: 24px;
     gap: 5px;
+  }
+}
+
+@media (max-width: 640px) {
+  .plannerImageLightbox {
+    padding: 0;
+  }
+
+  .plannerImageLightboxPanel {
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .plannerImageLightboxHeader {
+    align-items: flex-start;
+  }
+
+  .plannerImageLightboxImageButton img {
+    max-height: calc(100dvh - 154px);
   }
 }
