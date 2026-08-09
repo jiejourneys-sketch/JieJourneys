@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BUCKET = 'planner-images'
-const MAX_IMAGES_PER_BOOK = 12
+const MAX_IMAGES_PER_BOOK = 24
 const MAX_IMAGES_PER_PLACE = 3
 const MAX_BYTES = 1_048_576
 const MAX_UPLOAD_BYTES = 1_200_000
