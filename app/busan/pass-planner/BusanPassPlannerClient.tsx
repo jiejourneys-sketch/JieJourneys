@@ -81,6 +81,14 @@ type DayView = 'all' | number
 type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
 type PlannerUserLink = CustomPlannerLink
+type PlannerCardImage = {
+  id: string
+  placeId: string
+  url: string
+  width: number
+  height: number
+  createdAt: string
+}
 type PreDepartureResourceId = 'hotel' | 'ticket' | 'esim' | 'shopping' | 'car-rental'
 type PreDepartureItemScope = 'shared' | 'personal'
 type PreDepartureTraveler = { id: string; name: string }
@@ -288,6 +296,11 @@ const SHARE_PARAM = 'plan'
 const SHARE_ID_PARAM = 's'
 const PLANNER_BOOK_PARAM = 'p'
 const PLANNER_PREVIEW_PARAM = 'v'
+const PLANNER_IMAGE_OWNER_KEY = 'planner-image-owner'
+const PLANNER_IMAGE_MAX_PER_BOOK = 12
+const PLANNER_IMAGE_MAX_PER_PLACE = 3
+const PLANNER_IMAGE_MAX_BYTES = 1_048_576
+const PLANNER_IMAGE_SOURCE_MAX_BYTES = 10 * 1024 * 1024
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 // v4 drops the old permanent "not found" result.  A short Google Maps link
@@ -3100,6 +3113,177 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
     : null
 }
 
+function cleanPlannerImages(value: unknown): PlannerCardImage[] {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  return value.flatMap((raw) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return []
+    const item = raw as Record<string, unknown>
+    const id = typeof item.id === 'string' ? item.id.trim() : ''
+    const placeId = typeof item.placeId === 'string' ? item.placeId.trim() : ''
+    const url = typeof item.url === 'string' ? item.url.trim() : ''
+    const width = typeof item.width === 'number' ? item.width : Number(item.width)
+    const height = typeof item.height === 'number' ? item.height : Number(item.height)
+    const createdAt = typeof item.createdAt === 'string' ? item.createdAt : ''
+    if (!id || !placeId || !url || !Number.isFinite(width) || !Number.isFinite(height) || seen.has(id)) return []
+    seen.add(id)
+    return [{ id, placeId, url, width, height, createdAt }]
+  })
+}
+
+function plannerImageFunctionUrl(action?: string) {
+  const base = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL?.replace(/\/$/, '')
+  if (!base) return ''
+  const url = new URL(`${base}/functions/v1/planner-images`)
+  if (action) url.searchParams.set('action', action)
+  return url.toString()
+}
+
+function plannerImageHeaders(ownerToken?: string) {
+  const anonKey = process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY ?? ''
+  if (!anonKey) return {}
+  return {
+    apikey: anonKey,
+    Authorization: `Bearer ${anonKey}`,
+    ...(ownerToken ? { 'x-planner-image-token': ownerToken } : {}),
+  }
+}
+
+async function readPlannerImageResponse(response: Response) {
+  const data = (await response.json().catch(() => null)) as { images?: unknown; owner_token?: unknown; error?: unknown } | null
+  if (!response.ok || !data) {
+    return { images: null as PlannerCardImage[] | null, ownerToken: null, error: typeof data?.error === 'string' ? data.error : 'request_failed' }
+  }
+  return {
+    images: cleanPlannerImages(data.images),
+    ownerToken: typeof data.owner_token === 'string' ? data.owner_token : null,
+    error: null,
+  }
+}
+
+async function fetchPlannerImages(bookId: string, readToken: string | null) {
+  const endpoint = plannerImageFunctionUrl()
+  if (!endpoint || !bookId || !readToken) return null
+  const url = new URL(endpoint)
+  url.searchParams.set('bookId', bookId)
+  url.searchParams.set('v', readToken)
+  const result = await readPlannerImageResponse(await fetch(url.toString(), { headers: plannerImageHeaders() }))
+  return result.images
+}
+
+async function claimPlannerImageOwner(bookId: string) {
+  const endpoint = plannerImageFunctionUrl('claim')
+  if (!endpoint || !bookId) return null
+  const result = await readPlannerImageResponse(
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: { ...plannerImageHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookId }),
+    }),
+  )
+  return result.ownerToken
+}
+
+async function uploadPlannerImage(
+  bookId: string,
+  placeId: string,
+  ownerToken: string,
+  file: File,
+  width: number,
+  height: number,
+) {
+  const endpoint = plannerImageFunctionUrl('upload')
+  if (!endpoint) return null
+  const form = new FormData()
+  form.set('bookId', bookId)
+  form.set('placeId', placeId)
+  form.set('width', String(width))
+  form.set('height', String(height))
+  form.set('image', file)
+  return readPlannerImageResponse(
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: plannerImageHeaders(ownerToken),
+      body: form,
+    }),
+  )
+}
+
+async function deletePlannerImage(bookId: string, imageId: string, ownerToken: string) {
+  const endpoint = plannerImageFunctionUrl()
+  if (!endpoint) return null
+  return readPlannerImageResponse(
+    await fetch(endpoint, {
+      method: 'DELETE',
+      headers: { ...plannerImageHeaders(ownerToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookId, imageId }),
+    }),
+  )
+}
+
+async function copyPlannerImages(
+  sourceBookId: string,
+  sourceReadToken: string,
+  targetBookId: string,
+  targetOwnerToken: string,
+) {
+  const endpoint = plannerImageFunctionUrl('copy')
+  if (!endpoint) return null
+  return readPlannerImageResponse(
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: { ...plannerImageHeaders(targetOwnerToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceBookId, sourceReadToken, targetBookId }),
+    }),
+  )
+}
+
+async function imageFromFile(file: File) {
+  if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size <= 0 || file.size > PLANNER_IMAGE_SOURCE_MAX_BYTES) {
+    throw new Error('unsupported_image')
+  }
+  const objectUrl = URL.createObjectURL(file)
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image()
+      element.onload = () => resolve(element)
+      element.onerror = () => reject(new Error('invalid_image'))
+      element.src = objectUrl
+    })
+    const originalWidth = image.naturalWidth || image.width
+    const originalHeight = image.naturalHeight || image.height
+    if (!originalWidth || !originalHeight) throw new Error('invalid_image')
+
+    let scale = Math.min(1, 1600 / Math.max(originalWidth, originalHeight))
+    let quality = 0.84
+    let blob: Blob | null = null
+    let width = Math.max(1, Math.round(originalWidth * scale))
+    let height = Math.max(1, Math.round(originalHeight * scale))
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const context = canvas.getContext('2d')
+      if (!context) throw new Error('canvas_unavailable')
+      context.drawImage(image, 0, 0, width, height)
+      blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
+      if (blob && blob.size <= PLANNER_IMAGE_MAX_BYTES) break
+      scale *= 0.82
+      quality = Math.max(0.58, quality - 0.08)
+      width = Math.max(1, Math.round(originalWidth * scale))
+      height = Math.max(1, Math.round(originalHeight * scale))
+    }
+    if (!blob || blob.size > PLANNER_IMAGE_MAX_BYTES) throw new Error('image_too_large')
+    return {
+      file: new File([blob], 'planner-photo.jpg', { type: 'image/jpeg' }),
+      width,
+      height,
+    }
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
 async function savePlannerBook(
   city: string,
   id: string | null,
@@ -4726,6 +4910,11 @@ function SortablePlanItem({
   userLinks,
   onAddUserLink,
   onRemoveUserLink,
+  images,
+  imageUploadEnabled,
+  imageBusy,
+  onAddImage,
+  onRemoveImage,
   cardRef,
   categoryLabels,
   categoryItems,
@@ -4747,6 +4936,11 @@ function SortablePlanItem({
   userLinks: PlannerUserLink[]
   onAddUserLink: (link: PlannerUserLink) => void
   onRemoveUserLink: (index: number) => void
+  images: PlannerCardImage[]
+  imageUploadEnabled: boolean
+  imageBusy: boolean
+  onAddImage: (file: File) => Promise<void>
+  onRemoveImage: (imageId: string) => Promise<void>
   cardRef: (el: HTMLElement | null) => void
   categoryLabels: PlannerConfig['categoryLabels']
   categoryItems: PlannerConfig['categoryItems']
@@ -4758,7 +4952,7 @@ function SortablePlanItem({
     id: itemId,
     disabled: readOnly,
   })
-  const [openPanel, setOpenPanel] = useState<'note' | 'links' | 'map' | null>(null)
+  const [openPanel, setOpenPanel] = useState<'note' | 'links' | 'map' | 'images' | null>(null)
   const [linkLabel, setLinkLabel] = useState('')
   const [linkHref, setLinkHref] = useState('')
   const [draftNote, setDraftNote] = useState(note)
@@ -4791,6 +4985,7 @@ function SortablePlanItem({
   const userLinkCount = generalUserLinks.length
   const displayLinkCount = visibleUserLinkCount + customActionLinkCount
   const hasAnyLinks = actionLinkCount + userLinkCount > 0
+  const imageCount = images.length
   const canEditCustom = Boolean(onEditCustom && isCustomPlaceId(place.id) && !readOnly)
   const saveNote = () => {
     onNoteChange(draftNote)
@@ -4900,6 +5095,13 @@ function SortablePlanItem({
           onClick={() => setOpenPanel((panel) => (panel === 'links' ? null : 'links'))}
         >
           連結{displayLinkCount > 0 ? ` ${displayLinkCount}` : ''}
+        </button>
+        <button
+          className={`${styles.iconLink} ${imageCount > 0 ? styles.iconLinkActive : ''}`}
+          type="button"
+          onClick={() => setOpenPanel((panel) => (panel === 'images' ? null : 'images'))}
+        >
+          照片{imageCount > 0 ? ` ${imageCount}` : ''}
         </button>
         <button
           className={styles.iconLink}
@@ -5016,6 +5218,18 @@ function SortablePlanItem({
           readOnly={readOnly}
         />
       ) : null}
+      {openPanel === 'images' ? (
+        <PlannerImagesPanel
+          panelRef={detailElementRef}
+          placeName={displayName}
+          images={images}
+          imageUploadEnabled={imageUploadEnabled}
+          imageBusy={imageBusy}
+          onAddImage={onAddImage}
+          onRemoveImage={onRemoveImage}
+          onClose={() => setOpenPanel(null)}
+        />
+      ) : null}
       {openPanel === 'map' ? (
         <PlannerMapLinksPanel
           panelRef={detailElementRef}
@@ -5075,6 +5289,102 @@ function SortablePlanItem({
           </section>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function PlannerImagesPanel({
+  panelRef,
+  placeName,
+  images,
+  imageUploadEnabled,
+  imageBusy,
+  onAddImage,
+  onRemoveImage,
+  onClose,
+}: {
+  panelRef: RefObject<HTMLDivElement | null>
+  placeName: string
+  images: PlannerCardImage[]
+  imageUploadEnabled: boolean
+  imageBusy: boolean
+  onAddImage: (file: File) => Promise<void>
+  onRemoveImage: (imageId: string) => Promise<void>
+  onClose: () => void
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  usePlannerBodyScrollLock(true)
+
+  return (
+    <div
+      className={styles.noteModalBackdrop}
+      role="presentation"
+      onTouchStart={stopModalTouch}
+      onTouchMove={lockModalBackgroundTouch}
+      onTouchEnd={stopModalTouch}
+      onTouchCancel={stopModalTouch}
+      onWheel={lockModalBackgroundWheel}
+    >
+      <section
+        ref={panelRef}
+        className={`${styles.noteModal} ${styles.imagesModal}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`images-modal-${placeName}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className={styles.noteModalHeader}>
+          <div>
+            <span className={styles.noteModalEyebrow}>照片</span>
+            <h2 id={`images-modal-${placeName}`}>{placeName}</h2>
+          </div>
+          <button className={styles.noteModalClose} type="button" onClick={onClose} aria-label="關閉照片">
+            ×
+          </button>
+        </div>
+        <div className={styles.imagesModalBody}>
+          {images.length > 0 ? (
+            <div className={styles.plannerImageGrid}>
+              {images.map((image) => (
+                <figure key={image.id} className={styles.plannerImageTile}>
+                  <img src={image.url} alt={`${placeName} 的照片`} loading="lazy" />
+                  {imageUploadEnabled ? (
+                    <button type="button" onClick={() => void onRemoveImage(image.id)} disabled={imageBusy} aria-label="移除照片">
+                      移除
+                    </button>
+                  ) : null}
+                </figure>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.plannerImageEmpty}>還沒有照片。</p>
+          )}
+          {imageUploadEnabled ? (
+            <div className={styles.plannerImageUpload}>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={imageBusy || images.length >= PLANNER_IMAGE_MAX_PER_PLACE}
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0]
+                  if (!file) return
+                  void onAddImage(file).finally(() => {
+                    if (inputRef.current) inputRef.current.value = ''
+                  })
+                }}
+              />
+              <span>每個景點最多 {PLANNER_IMAGE_MAX_PER_PLACE} 張；整份行程最多 {PLANNER_IMAGE_MAX_PER_BOOK} 張。會自動壓縮成 JPEG。</span>
+            </div>
+          ) : null}
+        </div>
+        <div className={styles.noteModalFooter}>
+          <span>{images.length}/{PLANNER_IMAGE_MAX_PER_PLACE} 張</span>
+          <div className={styles.noteModalActions}>
+            <button className={styles.notePrimaryAction} type="button" onClick={onClose}>關閉</button>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
@@ -5856,6 +6166,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [planItems, setPlanItems] = useState<PlannerItem[]>([])
   const [placeNotes, setPlaceNotes] = useState<Record<string, string>>({})
   const [placeUserLinks, setPlaceUserLinks] = useState<Record<string, PlannerUserLink[]>>({})
+  const [plannerImages, setPlannerImages] = useState<PlannerCardImage[]>([])
+  const [plannerImageOwnerToken, setPlannerImageOwnerToken] = useState<string | null>(null)
+  const [plannerImageBusy, setPlannerImageBusy] = useState(false)
   const [customPlaces, setCustomPlaces] = useState<Record<string, CustomPlannerPlace>>({})
   const [googlePlaceDetailsRevision, setGooglePlaceDetailsRevision] = useState(0)
   const [nearbyKnownPlaces, setNearbyKnownPlaces] = useState<MapPlace[]>([])
@@ -7153,6 +7466,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerBookReadToken(plannerBook.readToken)
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
             setReadOnlyPlan(plannerBook.readonly)
+            setPlannerImages([])
+            setPlannerImageOwnerToken(
+              plannerBook.readonly
+                ? null
+                : window.localStorage.getItem(`${config.storageKey}:${PLANNER_IMAGE_OWNER_KEY}:${plannerBook.id}`),
+            )
+            if (plannerBook.readToken) {
+              void fetchPlannerImages(plannerBook.id, plannerBook.readToken).then((images) => {
+                if (images) setPlannerImages(images)
+              })
+            }
             const checklistStorageKey = `${config.storageKey}:pre-departure:${plannerBook.id}`
             if (plannerBook.preDeparture) {
               const checklist = plannerBook.preDeparture
@@ -7198,6 +7522,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlaceNotes({})
             setCustomPlaces({})
             setPlaceUserLinks({})
+            setPlannerImages([])
+            setPlannerImageOwnerToken(null)
             setPlannerBookId(null)
             setPlannerBookReadToken(null)
             setPlannerBookUpdatedAt(null)
@@ -8556,6 +8882,78 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const updatePlaceNote = (itemId: string, note: string) => {
     updateNoteKeys([itemId], note)
   }
+
+  const ensurePlannerImageOwner = useCallback(async () => {
+    if (!plannerBookId || readOnlyPlan) return null
+    if (plannerImageOwnerToken) return plannerImageOwnerToken
+    const storageKey = `${config.storageKey}:${PLANNER_IMAGE_OWNER_KEY}:${plannerBookId}`
+    const storedToken = window.localStorage.getItem(storageKey)?.trim() ?? ''
+    if (storedToken) {
+      setPlannerImageOwnerToken(storedToken)
+      return storedToken
+    }
+    const claimedToken = await claimPlannerImageOwner(plannerBookId)
+    if (!claimedToken) {
+      alert('這份行程的圖片管理權限已在其他瀏覽器建立。請回到原本建立行程的裝置管理圖片。')
+      return null
+    }
+    window.localStorage.setItem(storageKey, claimedToken)
+    setPlannerImageOwnerToken(claimedToken)
+    return claimedToken
+  }, [config.storageKey, plannerBookId, plannerImageOwnerToken, readOnlyPlan])
+
+  const addPlannerImage = useCallback(async (itemId: string, file: File) => {
+    if (readOnlyPlan) return
+    if (!plannerBookId) {
+      alert('請先按「儲存更新」建立你的行程，再加入照片。')
+      return
+    }
+    if (plannerImageBusy) return
+    if (plannerImages.length >= PLANNER_IMAGE_MAX_PER_BOOK) {
+      alert(`每份行程最多 ${PLANNER_IMAGE_MAX_PER_BOOK} 張照片。`)
+      return
+    }
+    if (plannerImages.filter((image) => image.placeId === itemId).length >= PLANNER_IMAGE_MAX_PER_PLACE) {
+      alert(`每個景點最多 ${PLANNER_IMAGE_MAX_PER_PLACE} 張照片。`)
+      return
+    }
+    setPlannerImageBusy(true)
+    try {
+      const prepared = await imageFromFile(file)
+      const ownerToken = await ensurePlannerImageOwner()
+      if (!ownerToken) return
+      const result = await uploadPlannerImage(plannerBookId, itemId, ownerToken, prepared.file, prepared.width, prepared.height)
+      if (result?.images) {
+        setPlannerImages(result.images)
+        return
+      }
+      if (result?.error === 'image_limit_reached') {
+        alert(`照片數量已達上限：每個景點 ${PLANNER_IMAGE_MAX_PER_PLACE} 張、每份行程 ${PLANNER_IMAGE_MAX_PER_BOOK} 張。`)
+      } else if (result?.error === 'owner_required') {
+        alert('圖片管理權限已失效，請重新開啟你的行程後再試。')
+      } else {
+        alert('照片上傳失敗，請換一張較小的 JPEG、PNG 或 WebP 圖片再試。')
+      }
+    } catch (error) {
+      alert(error instanceof Error && error.message === 'unsupported_image' ? '請選擇 10MB 以下的 JPEG、PNG 或 WebP 圖片。' : '照片壓縮失敗，請換一張圖片再試。')
+    } finally {
+      setPlannerImageBusy(false)
+    }
+  }, [ensurePlannerImageOwner, plannerBookId, plannerImageBusy, plannerImages, readOnlyPlan])
+
+  const removePlannerImage = useCallback(async (imageId: string) => {
+    if (!plannerBookId || plannerImageBusy || readOnlyPlan) return
+    setPlannerImageBusy(true)
+    try {
+      const ownerToken = await ensurePlannerImageOwner()
+      if (!ownerToken) return
+      const result = await deletePlannerImage(plannerBookId, imageId, ownerToken)
+      if (result?.images) setPlannerImages(result.images)
+      else alert('照片移除失敗，請稍後再試。')
+    } finally {
+      setPlannerImageBusy(false)
+    }
+  }, [ensurePlannerImageOwner, plannerBookId, plannerImageBusy, readOnlyPlan])
 
   const addPlaceUserLink = (placeId: string, link: PlannerUserLink) => {
     if (readOnlyPlan) return
@@ -10496,6 +10894,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setPlannerBookReadToken(readToken)
         setPlannerBookUpdatedAt(updatedAt)
         setReadOnlyPlan(false)
+        setPlannerImages([])
+        setPlannerImageOwnerToken(null)
+        const imageOwnerToken = await claimPlannerImageOwner(book.id)
+        if (imageOwnerToken) {
+          window.localStorage.setItem(`${config.storageKey}:${PLANNER_IMAGE_OWNER_KEY}:${book.id}`, imageOwnerToken)
+          setPlannerImageOwnerToken(imageOwnerToken)
+          if (plannerBookId && plannerBookReadToken) {
+            const copiedImages = await copyPlannerImages(plannerBookId, plannerBookReadToken, book.id, imageOwnerToken)
+            if (copiedImages?.images) setPlannerImages(copiedImages.images)
+          }
+        }
         setSaveSheetUrl(null)
         setSaveSheetPreviewUrl(null)
         setPlannerLinkUnavailable(false)
@@ -10559,6 +10968,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     hasSavablePlannerContent,
     placeNotes,
     placeUserLinks,
+    plannerBookId,
+    plannerBookReadToken,
     preDepartureChecklist,
     preDepartureChecklistSignature,
     readOnlyPlan,
@@ -11735,6 +12146,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   userLinks={placeUserLinks[place.id] ?? []}
                                   onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
                                   onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}
+                                  images={plannerImages.filter((image) => image.placeId === item)}
+                                  imageUploadEnabled={!readOnlyPlan}
+                                  imageBusy={plannerImageBusy}
+                                  onAddImage={(file) => addPlannerImage(item, file)}
+                                  onRemoveImage={removePlannerImage}
                                   cardRef={(el) => {
                                     planCardRefs.current[item] = el
                                   }}
