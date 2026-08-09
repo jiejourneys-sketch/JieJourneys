@@ -13,6 +13,55 @@ const AREA_COORDINATES: Record<Area, { lat: number; lng: number }> = {
   cheongsapo: { lat: 35.164, lng: 129.1967 },
 }
 
+/** 由原 PDF 的 Google Maps 連結解析出的實際釘點，不再以行政區中心代替。 */
+const EXTRA_PLACE_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  'busan-journey-abalone-porridge': { lat: 35.1605788, lng: 129.171241 },
+  'busan-journey-and-coffee': { lat: 35.1622396, lng: 129.1651165 },
+  'busan-journey-ant-house': { lat: 35.1611033, lng: 129.160662 },
+  'busan-journey-artbox': { lat: 35.1545621, lng: 129.0613605 },
+  'busan-journey-avivere': { lat: 35.154644, lng: 129.0626 },
+  'busan-journey-bean-field': { lat: 35.1001669, lng: 129.0307726 },
+  'busan-journey-butter-shop': { lat: 35.1546432, lng: 129.061575 },
+  'busan-journey-cafe-1994': { lat: 35.1633117, lng: 129.1586235 },
+  'busan-journey-capsule-train': { lat: 35.1613733, lng: 129.1918758 },
+  'busan-journey-cod-soup': { lat: 35.1610798, lng: 129.1700367 },
+  'busan-journey-daiso-haeundae': { lat: 35.1629553, lng: 129.159743 },
+  'busan-journey-daiso-nampo': { lat: 35.0984681, lng: 129.0309443 },
+  'busan-journey-egg-drop': { lat: 35.1632912, lng: 129.1587251 },
+  'busan-journey-frank-burger': { lat: 35.1632931, lng: 129.1588005 },
+  'busan-journey-haemok': { lat: 35.1617808, lng: 129.1596666 },
+  'busan-journey-hong-kong': { lat: 35.1562438, lng: 129.0573781 },
+  'busan-journey-hotel-kolon-haeundae': { lat: 35.1604404, lng: 129.1622156 },
+  'busan-journey-hotel-l7-haeundae': { lat: 35.1600959, lng: 129.1600932 },
+  'busan-journey-hotel-shilla-stay': { lat: 35.1600161, lng: 129.1630504 },
+  'busan-journey-hotel-uh-suite': { lat: 35.1598173, lng: 129.1611312 },
+  'busan-journey-hotteok': { lat: 35.0988394, lng: 129.029148 },
+  'busan-journey-isaac': { lat: 35.1578928, lng: 129.0569553 },
+  'busan-journey-jeju-porridge': { lat: 35.1557981, lng: 129.0566887 },
+  'busan-journey-lotte-outlet-restaurant': { lat: 35.1916524, lng: 129.2137288 },
+  'busan-journey-lotte-world-restaurant': { lat: 35.1962453, lng: 129.2149345 },
+  'busan-journey-marinated-crab': { lat: 35.1597081, lng: 129.1595155 },
+  'busan-journey-mijangwang': { lat: 35.1610861, lng: 129.1590465 },
+  'busan-journey-nampo-noodle': { lat: 35.0989315, lng: 129.031225 },
+  'busan-journey-nampo-seolleongtang': { lat: 35.0984667, lng: 129.0320586 },
+  'busan-journey-object': { lat: 35.1553121, lng: 129.0644697 },
+  'busan-journey-obok-gukbap': { lat: 35.1626121, lng: 129.1600382 },
+  'busan-journey-olive-haeundae': { lat: 35.1617535, lng: 129.1608721 },
+  'busan-journey-olive-nampo': { lat: 35.0986158, lng: 129.0287567 },
+  'busan-journey-pufferfish': { lat: 35.1624205, lng: 129.1645061 },
+  'busan-journey-salt-bread': { lat: 35.1603382, lng: 129.1706577 },
+  'busan-journey-samgyetang': { lat: 35.1626284, lng: 129.1650085 },
+  'busan-journey-seomyeon-youth': { lat: 35.1554358, lng: 129.0612696 },
+  'busan-journey-songdo-hotpot': { lat: 35.0777315, lng: 129.021307 },
+  'busan-journey-songdo-seafood-1': { lat: 35.0762309, lng: 129.0230317 },
+  'busan-journey-songdo-seafood-2': { lat: 35.076788, lng: 129.0224199 },
+  'busan-journey-songdo-sky-park': { lat: 35.0615784, lng: 129.0205256 },
+  'busan-journey-songjeong-gukbap': { lat: 35.1556037, lng: 129.0585412 },
+  'busan-journey-twin-etoile': { lat: 35.1564749, lng: 129.0649151 },
+  'busan-journey-workingholiday': { lat: 35.1599125, lng: 129.161721 },
+  'busan-journey-wubanjang': { lat: 35.1615099, lng: 129.1591675 },
+}
+
 const action = (label: string, href: string, platform?: string): CityCardAction => ({ label, href, platform })
 
 const mapPlace = (
@@ -29,7 +78,7 @@ const mapPlace = (
   category,
   name,
   description,
-  ...AREA_COORDINATES[area],
+  ...(EXTRA_PLACE_COORDINATES[id] ?? AREA_COORDINATES[area]),
   spotGoogleMapsUrl: googleUrl,
   spotActions: [naverUrl ? action('NaverMap', naverUrl, 'NaverMap') : null, ...actions].filter(
     (item): item is CityCardAction => item !== null,
@@ -174,34 +223,34 @@ const busanJourneyDays = [
   {
     title: '抵達海雲台',
     placeIds: [
-      'haeundae-road', 'haeundae-market', 'busan-journey-wubanjang', 'busan-journey-ant-house',
-      'busan-journey-mijangwang', 'busan-haeundae', 'busan-journey-daiso-haeundae', 'busan-journey-olive-haeundae',
+      'haeundae-road', 'haeundae-market', 'busan-journey-wubanjang',
+      'busan-haeundae', 'busan-journey-daiso-haeundae', 'busan-journey-olive-haeundae',
     ],
   },
   {
     title: '松島・南浦洞',
     placeIds: [
       'busan-journey-egg-drop', 'Cultural-village', 'busan-pass-mid-cheolsu-younghee-hanbok', 'busan-pass-mid-flipbook-studio',
-      'Songdo-skywalk', 'busan-journey-songdo-seafood-1', 'busan-journey-songdo-seafood-2', 'busan-journey-songdo-hotpot',
+      'Songdo-skywalk', 'busan-journey-songdo-seafood-1',
       'busan-pass-high-songdo-cable-car', 'busan-journey-songdo-sky-park', 'busan-pass-low-songdo-yonggung-cloud-bridge',
       'Canning-market', 'International-market', 'busan-pass-low-busan-tower', 'busan-journey-nampo-noodle',
-      'busan-journey-nampo-seolleongtang', 'busan-journey-bean-field', 'busan-journey-hotteok', 'busan-journey-olive-nampo', 'busan-journey-daiso-nampo',
+      'busan-journey-hotteok', 'busan-journey-olive-nampo', 'busan-journey-daiso-nampo',
     ],
   },
   {
     title: '海雲台・膠囊列車',
     placeIds: [
-      'busan-journey-cafe-1994', 'busan-journey-frank-burger', 'busan-pass-low-blueline-park-mipo', 'haeundae-crossing',
+      'busan-journey-cafe-1994', 'busan-pass-low-blueline-park-mipo', 'haeundae-crossing',
       'haeundae-stone', 'busan-journey-capsule-train', 'busan-journey-salt-bread', 'busan-journey-abalone-porridge',
-      'busan-journey-cod-soup', 'busan-pass-high-club-d-oasis', 'busan-pass-high-x-the-sky', 'busan-journey-pufferfish',
-      'busan-journey-samgyetang', 'busan-pass-high-diamond-bay-yacht',
+      'busan-pass-high-club-d-oasis', 'busan-pass-high-x-the-sky', 'busan-journey-pufferfish',
+      'busan-pass-high-diamond-bay-yacht',
     ],
   },
   {
     title: '樂天世界・廣安里海灘',
     placeIds: [
-      'busan-journey-workingholiday', 'busan-journey-and-coffee', 'busan-pass-high-skyline-luge', 'busan-pass-high-lotte-world-adventure',
-      'busan-lotteoutlet', 'haeundae-temple', 'busan-journey-obok-gukbap', 'busan-journey-haemok', 'busan-journey-marinated-crab',
+      'busan-journey-workingholiday', 'busan-pass-high-skyline-luge', 'busan-pass-high-lotte-world-adventure',
+      'busan-lotteoutlet', 'haeundae-temple', 'busan-journey-obok-gukbap',
       'busan-haeundae', 'Gwangalli-beach',
     ],
   },
@@ -210,7 +259,7 @@ const busanJourneyDays = [
     placeIds: [
       'busan-Seomyeonlotte', 'busan-journey-seomyeon-youth', 'busan-journey-butter-shop', 'busan-journey-avivere',
       'busan-journey-artbox', 'busan-journey-object', 'busan-journey-twin-etoile', 'busan-journey-isaac',
-      'busan-journey-songjeong-gukbap', 'busan-journey-jeju-porridge', 'busan-journey-hong-kong',
+      'busan-journey-songjeong-gukbap',
     ],
   },
 ] as const
@@ -234,33 +283,31 @@ export const busanJourneyItems = [
   transportItem('journey-d2-subway', 'subway', '早餐後：海雲台站 → 西面站 → 南浦站；再搭計程車前往甘川洞文化村。'),
   ...busanJourneyDays[1].placeIds.slice(1, 4),
   transportItem('journey-d2-songdo', 'taxi', '從 Flipbook Studio 搭計程車前往松島天空步道。'),
-  ...busanJourneyDays[1].placeIds.slice(4, 11),
+  ...busanJourneyDays[1].placeIds.slice(4, 9),
   transportItem('journey-d2-nampo', 'taxi', '松島龍宮空中步道後，搭纜車回松島灣站；再搭計程車前往富平罐頭市場。'),
-  ...busanJourneyDays[1].placeIds.slice(11, 12),
+  ...busanJourneyDays[1].placeIds.slice(9, 10),
   transportItem('journey-d2-market-walk', 'walk', '步行至國際市場，再步行至釜山塔。'),
-  ...busanJourneyDays[1].placeIds.slice(12),
+  ...busanJourneyDays[1].placeIds.slice(10),
   transportItem('journey-d2-return', 'subway', '回住宿：南浦站 → 西面站 → 海雲台站。'),
 
   dayItem(3, '海雲台・膠囊列車'),
   ...busanJourneyDays[2].placeIds.slice(0, 2),
   transportItem('journey-d3-mipo', 'taxi', '早餐後搭計程車到海雲台藍線公園尾浦站。'),
-  ...busanJourneyDays[2].placeIds.slice(2, 12),
-  ...busanJourneyDays[2].placeIds.slice(12, 13),
+  ...busanJourneyDays[2].placeIds.slice(2, 10),
   transportItem('journey-d3-yacht', 'taxi', '搭計程車到鑽石灣遊艇碼頭；行程後搭計程車回住宿。'),
-  ...busanJourneyDays[2].placeIds.slice(13),
+  ...busanJourneyDays[2].placeIds.slice(10),
 
   dayItem(4, '樂天世界・廣安里海灘'),
-  ...busanJourneyDays[3].placeIds.slice(0, 2),
+  ...busanJourneyDays[3].placeIds.slice(0, 1),
   transportItem('journey-d4-luge', 'taxi', '09:20 搭計程車前往斜坡滑車。'),
-  ...busanJourneyDays[3].placeIds.slice(2, 4),
+  ...busanJourneyDays[3].placeIds.slice(1, 3),
   'busan-journey-lotte-world-restaurant',
-  'busan-journey-lotte-outlet-restaurant',
-  ...busanJourneyDays[3].placeIds.slice(4, 6),
+  ...busanJourneyDays[3].placeIds.slice(3, 5),
   transportItem('journey-d4-haeundae', 'taxi', '海東龍宮寺後搭計程車回海雲台。'),
-  ...busanJourneyDays[3].placeIds.slice(6, 9),
+  ...busanJourneyDays[3].placeIds.slice(5, 6),
   'visit:journey-d4-haeundae|busan-haeundae',
   transportItem('journey-d4-gwangalli', 'taxi', '可依體力選擇搭計程車或地鐵前往廣安里海灘。'),
-  ...busanJourneyDays[3].placeIds.slice(10),
+  ...busanJourneyDays[3].placeIds.slice(7),
 
   dayItem(5, '西面站半日遊・返程'),
   transportItem('journey-d5-seomyeon', 'subway', '09:00 退房 → 搭地鐵到西面站；在 6／8 號出口附近寄放行李。'),
@@ -338,7 +385,7 @@ export const busanJourneyCustomPlaces = {
 }>
 
 /** 每一張「我的順序」卡片會顯示的完整行程提醒。 */
-export const busanJourneyBookNotes: Record<string, string> = {
+const busanJourneyBookNotesRaw: Record<string, string> = {
   'custom:busan-entry': '依 PDF：先確認是否需要 K-ETA；若免申請，填寫電子入境卡即可。兩種流程的原始教學與官網都保留在連結中。',
   'custom:busan-tickets': '依 PDF：釜山 Pass 建議購買 48 小時；膠囊列車預約 Day 3 12:00，鑽石灣遊艇預約 Day 3 19:30／20:30。',
   'custom:busan-connectivity': '依 PDF：可選 eSIM、SIM 卡或 Wifi 分享器；交通可準備 WOWPASS 與 T-money。',
@@ -478,15 +525,15 @@ function uniqueJourneyLinks(links: JourneyPlannerLink[]) {
 function sourceLinksForJourneyPlace(placeId: string): JourneyPlannerLink[] {
   const place = journeyLookupPlaces.find((candidate) => candidate.id === placeId)
   if (!place) return []
-  return [
-    ...(place.spotGoogleMapsUrl ? [{ label: 'PDF Google 地圖', href: place.spotGoogleMapsUrl }] : []),
-    ...(place.spotActions ?? []).map(({ label, href }) => ({ label, href })),
-  ]
+  return (place.spotActions ?? []).map(({ label, href }) => ({ label, href }))
+}
+
+function isJourneyMapLink(href: string) {
+  return /(?:maps\.app\.goo\.gl|google\.[^/]+\/maps|naver\.me|map\.naver\.com)/i.test(href)
 }
 
 /**
- * 所有原 PDF 的 Google Maps、NaverMap、票券與餐廳連結也寫入公開 book。
- * 因此分享範本與複製後的個人行程，都不會依賴部署時的前端資料才能開啟連結。
+ * 地圖由 planner 的「地圖」操作統一提供；這裡只保留 PDF 的資源、票券與訂位連結。
  */
 export const busanJourneyBookUserLinks: Record<string, JourneyPlannerLink[]> = Object.fromEntries(
   Array.from(new Set([...busanJourneySourcePlaceIds, ...Object.keys(busanJourneyManualUserLinks)]))
@@ -495,9 +542,33 @@ export const busanJourneyBookUserLinks: Record<string, JourneyPlannerLink[]> = O
       uniqueJourneyLinks([
         ...sourceLinksForJourneyPlace(placeId),
         ...(busanJourneyManualUserLinks[placeId] ?? []),
-      ]),
+      ]).filter((link) => !isJourneyMapLink(link.href)),
     ])
     .filter(([, links]) => links.length > 0),
+)
+
+function stripJourneyDayReferences(value: string) {
+  return value.replace(/\bDay\s*\d+\s*/gi, '').replace(/\s{2,}/g, ' ').trim()
+}
+
+const busanJourneyRestaurantAlternatives: Record<string, string> = {
+  'busan-journey-wubanjang': '晚餐首選。備選：螞蟻家辣炒章魚、味贊王鹽烤肉；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-songdo-seafood-1': '午餐首選。備選：松島海鮮餐廳 2、松島火鍋；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-nampo-noodle': '晚餐首選。備選：南浦雪濃湯、豆田；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-cafe-1994': '早餐首選。備選：Frank Burger；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-abalone-porridge': '午餐首選。備選：鱈魚湯；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-pufferfish': '晚餐首選。備選：蔘雞湯；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-workingholiday': '早餐首選。備選：And Coffee；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-lotte-world-restaurant': '午餐首選。備選：樂天 Outlet 3 樓餐廳；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-obok-gukbap': '晚餐首選。備選：海木鰻魚飯、醬蟹；複製後可在景點清單搜尋名稱，加入本天。',
+  'busan-journey-songjeong-gukbap': '晚餐首選。備選：濟州鮑魚粥、香港飯店；複製後可在景點清單搜尋名稱，加入本天。',
+}
+
+export const busanJourneyBookNotes: Record<string, string> = Object.fromEntries(
+  Object.entries(busanJourneyBookNotesRaw).map(([placeId, note]) => [
+    placeId,
+    [stripJourneyDayReferences(note), busanJourneyRestaurantAlternatives[placeId]].filter(Boolean).join('｜'),
+  ]),
 )
 
 /** planner 既有的「行前準備」面板預載項目。 */
@@ -506,13 +577,13 @@ export const busanJourneyPreDeparture = {
   travelers: [{ id: 'traveler-owner', name: '我' }],
   checked: {},
   notes: {
-    general: '入境：先確認是否需 K-ETA；若免申請，僅填電子入境卡。票券：48 小時釜山 Pass、Day 3 12:00 膠囊列車、Day 3 19:30／20:30 鑽石灣遊艇。交通：WOWPASS／T-money、Uber 或 Kakao T、Naver Map。提醒：Club D Oasis 戶外 Spa 要帶泳衣；另備韓國轉接頭並確認行動電源規定。',
+    general: '入境：先確認是否需 K-ETA；若免申請，僅填電子入境卡。票券：48 小時釜山 Pass、12:00 膠囊列車、19:30／20:30 鑽石灣遊艇。交通：WOWPASS／T-money、Uber 或 Kakao T、Naver Map。提醒：Club D Oasis 戶外 Spa 要帶泳衣；另備韓國轉接頭並確認行動電源規定。',
   },
   customItems: [
     { id: 'custom-busan-keta', label: '確認 K-ETA／電子入境卡', custom: true, categoryId: 'essentials', scope: 'personal', travelerIds: ['traveler-owner'] },
     { id: 'custom-busan-pass', label: '購買 48 小時釜山 Pass', custom: true, categoryId: 'essentials', scope: 'personal', travelerIds: ['traveler-owner'] },
-    { id: 'custom-busan-capsule', label: '預訂 Day 3 12:00 膠囊列車', custom: true, categoryId: 'essentials', scope: 'personal', travelerIds: ['traveler-owner'] },
-    { id: 'custom-busan-yacht', label: '預約 Day 3 鑽石灣遊艇', custom: true, categoryId: 'essentials', scope: 'personal', travelerIds: ['traveler-owner'] },
+    { id: 'custom-busan-capsule', label: '預訂 12:00 膠囊列車', custom: true, categoryId: 'essentials', scope: 'personal', travelerIds: ['traveler-owner'] },
+    { id: 'custom-busan-yacht', label: '預約鑽石灣遊艇', custom: true, categoryId: 'essentials', scope: 'personal', travelerIds: ['traveler-owner'] },
     { id: 'custom-busan-wowpass', label: '準備 WOWPASS／T-money', custom: true, categoryId: 'essentials', scope: 'personal', travelerIds: ['traveler-owner'] },
     { id: 'custom-busan-naver', label: '安裝 Naver Map、Uber 或 Kakao T', custom: true, categoryId: 'digital', scope: 'personal', travelerIds: ['traveler-owner'] },
     { id: 'custom-busan-swimwear', label: 'Club D Oasis 戶外 Spa 泳衣', custom: true, categoryId: 'clothing', scope: 'personal', travelerIds: ['traveler-owner'] },

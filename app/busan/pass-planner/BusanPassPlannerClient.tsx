@@ -4634,6 +4634,11 @@ function isNaverMapHref(href: string) {
   return normalized.includes('naver.me') || normalized.includes('map.naver.com')
 }
 
+function isGoogleMapHref(href: string) {
+  const normalized = href.trim().toLowerCase()
+  return normalized.includes('maps.app.goo.gl') || /google\.[^/]+\/maps(?:[/?]|$)/.test(normalized)
+}
+
 function openPlannerMapLink(place: MapPlace, link: { href: string }) {
   const naverAppHref = isNaverMapHref(link.href)
     ? naverMapAppPlaceUrl(place, naverMapPlaceIdFromUrl(link.href))
@@ -4643,20 +4648,19 @@ function openPlannerMapLink(place: MapPlace, link: { href: string }) {
 }
 
 function isPlannerUserMapLink(href: string) {
-  return isNaverMapHref(href)
+  return isNaverMapHref(href) || isGoogleMapHref(href)
 }
 
 function plannerMapLinks(place: MapPlace, userLinks: PlannerUserLink[] = []) {
   const naverUrl = naverMapUrl(place)
+  const userMapLinks = userLinks.filter((link) => isPlannerUserMapLink(link.href))
+  const userGoogleMapLink = userMapLinks.find((link) => isGoogleMapHref(link.href))
+  const userNaverMapLink = userMapLinks.find((link) => isNaverMapHref(link.href))
   const links = [
-    { label: 'Google', href: googleMapsPinUrl(place) },
-    ...(naverUrl ? [{ label: 'Naver', href: naverUrl }] : []),
-    ...userLinks
-      .filter((link) => isPlannerUserMapLink(link.href))
-      .map((link) => ({
-        label: link.label.trim() || 'Naver',
-        href: link.href.trim(),
-      })),
+    { label: 'Google', href: userGoogleMapLink?.href.trim() || googleMapsPinUrl(place) },
+    ...(userNaverMapLink || naverUrl
+      ? [{ label: 'Naver', href: userNaverMapLink?.href.trim() || naverUrl || '' }]
+      : []),
   ]
   const seen = new Set<string>()
   return links.filter((link) => {

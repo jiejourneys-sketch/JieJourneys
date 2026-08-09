@@ -27,6 +27,70 @@ const AREA = {
   ginza: { lat: 35.671, lng: 139.7662 },
 } as const
 
+const TOKYO_JOURNEY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  '藥妝店｜OS Drug／SUGI／大國藥妝': { lat: 35.7108985, lng: 139.774618 },
+  '淺草炸肉餅': { lat: 35.7129114, lng: 139.7960553 },
+  '淺草今半': { lat: 35.7139345, lng: 139.7922291 },
+  '淺草花月堂': { lat: 35.7115289, lng: 139.7960494 },
+  '淺草寺 雷門': { lat: 35.7111163, lng: 139.7963656 },
+  '淺草吉備糰子': { lat: 35.7115289, lng: 139.7960494 },
+  '淺草文化觀光中心': { lat: 35.7107074, lng: 139.7965461 },
+  '淺草鰻魚鐵': { lat: 35.7136508, lng: 139.7925969 },
+  '＠cosme TOKYO': { lat: 35.6701458, lng: 139.7031743 },
+  DAISO: { lat: 35.6715621, lng: 139.7037819 },
+  '唐吉訶德｜上野阿美橫店': { lat: 35.7081306, lng: 139.7744933 },
+  "Eggs 'n Things": { lat: 35.6685856, lng: 139.7062313 },
+  '吹上御苑': { lat: 35.6861858, lng: 139.7485662 },
+  '哥吉拉的頭': { lat: 35.6950521, lng: 139.7019117 },
+  '五條天神社': { lat: 35.7136777, lng: 139.7722762 },
+  '牛かつもと村': { lat: 35.6706585, lng: 139.7072227 },
+  '炸牛 元村': { lat: 35.7104455, lng: 139.7744533 },
+  'Harry Potter Shop': { lat: 35.6686494, lng: 139.7044101 },
+  '一蘭拉麵': { lat: 35.6678693, lng: 139.7052351 },
+  '皇居東御苑': { lat: 35.6867824, lng: 139.7571445 },
+  '皇居外苑': { lat: 35.680117, lng: 139.7583125 },
+  '敘敘苑': { lat: 35.710053, lng: 139.8129139 },
+  '迴轉壽司': { lat: 35.7100517, lng: 139.8129244 },
+  'らーめん 鴨to葱': { lat: 35.7083768, lng: 139.7752537 },
+  '桔梗門': { lat: 35.6840122, lng: 139.758499 },
+  '清水觀音堂': { lat: 35.7126261, lng: 139.7735665 },
+  '楠木正成像': { lat: 35.6779137, lng: 139.7584835 },
+  Misojyu: { lat: 35.7116123, lng: 139.7937274 },
+  '三井花園飯店上野-東京': { lat: 35.7118567, lng: 139.7781079 },
+  '宮下公園': { lat: 35.661791, lng: 139.7018507 },
+  '波除稻荷神社': { lat: 35.6635186, lng: 139.7715677 },
+  '二重橋': { lat: 35.6802297, lng: 139.7535852 },
+  NikutoTamago: { lat: 35.690327, lng: 139.7027699 },
+  '表參道': { lat: 35.667355, lng: 139.707743 },
+  '表參道之丘': { lat: 35.6672869, lng: 139.7086162 },
+  '穏田橋跡': { lat: 35.6665448, lng: 139.7060313 },
+  '出發前｜機場進市區': { lat: 35.7100581, lng: 139.7745474 },
+  '出發前｜網路與交通卡': { lat: 35.7100581, lng: 139.7745474 },
+  '出發前｜入境與簽證': { lat: 35.7100581, lng: 139.7745474 },
+  '出發前｜票券預約': { lat: 35.7100581, lng: 139.7745474 },
+  '出發前｜地圖、換匯、機票飯店': { lat: 35.7100581, lng: 139.7745474 },
+  '拉麵林田': { lat: 35.690729, lng: 139.7037509 },
+  '上野雷索爾飯店': { lat: 35.7132578, lng: 139.7778548 },
+  '六厘舎': { lat: 35.7101946, lng: 139.8127136 },
+  '櫻田門': { lat: 35.6785627, lng: 139.7539422 },
+  '澀谷中心街': { lat: 35.6665448, lng: 139.7060313 },
+  '不忍池': { lat: 35.7122453, lng: 139.7708284 },
+  '上野燦路都星辰大飯店': { lat: 35.7135389, lng: 139.7781833 },
+  '壽司三昧': { lat: 35.6659044, lng: 139.7706492 },
+  '上野薩頓普萊斯飯店': { lat: 35.713958, lng: 139.779093 },
+  '竹下通': { lat: 35.6712601, lng: 139.7046761 },
+  '東鄉神社': { lat: 35.6717402, lng: 139.7058439 },
+  '鳥めし 鳥藤分店': { lat: 35.6660547, lng: 139.7704112 },
+  '築地 本願寺': { lat: 35.6664862, lng: 139.7722836 },
+  '月島もんじゃ もへじ': { lat: 35.7101036, lng: 139.7746348 },
+  '綱八天婦羅': { lat: 35.6908459, lng: 139.7034867 },
+  '上野大佛': { lat: 35.7144982, lng: 139.7728505 },
+  '上野東照宮': { lat: 35.7147557, lng: 139.7734312 },
+  '本まぐろ専門店 うに虎': { lat: 35.6656053, lng: 139.7699504 },
+  '和田倉噴水公園': { lat: 35.6833415, lng: 139.7608736 },
+  'よろし化粧堂': { lat: 35.7113135, lng: 139.7964548 },
+}
+
 type AreaKey = keyof typeof AREA
 
 function at(area: AreaKey, latOffset = 0, lngOffset = 0) {
@@ -53,7 +117,7 @@ function place(
     category,
     description,
     googleUrl,
-    ...at(area, latOffset, lngOffset),
+    ...(TOKYO_JOURNEY_COORDINATES[name] ?? at(area, latOffset, lngOffset)),
     links: links.length > 0 ? links : undefined,
   }
 }
@@ -758,7 +822,7 @@ export const tokyoJourneyCustomPlaces = Object.fromEntries(
   ]),
 )
 
-export const tokyoJourneyBookUserLinks: Record<string, JourneyLink[]> = {
+const tokyoJourneyBookUserLinksRaw: Record<string, JourneyLink[]> = {
   'tokyo-UenoPark': [
     link('PDF Google 地圖', 'https://maps.app.goo.gl/ugzzFtpZm3LUP1cP6'),
   ],
@@ -869,6 +933,16 @@ export const tokyoJourneyBookUserLinks: Record<string, JourneyLink[]> = {
   ],
 }
 
+function isTokyoJourneyMapLink(href: string) {
+  return /(?:maps\.app\.goo\.gl|google\.[^/]+\/maps|naver\.me|map\.naver\.com)/i.test(href)
+}
+
+export const tokyoJourneyBookUserLinks: Record<string, JourneyLink[]> = Object.fromEntries(
+  Object.entries(tokyoJourneyBookUserLinksRaw)
+    .map(([placeId, links]) => [placeId, links.filter((item) => !isTokyoJourneyMapLink(item.href))])
+    .filter(([, links]) => links.length > 0),
+)
+
 const tokyoJourneyBookNotesRaw: Record<string, string> = {
   'tokyo-UenoPark': 'Day 1 起手式，從上野公園一路串上野東照宮／五條天神社／上野大佛；1–2 小時逛，05:00–23:00。',
   'custom-tokyo-ueno-tosho-gu': 'Day 1 09:00–16:30，門票 500 日圓。',
@@ -949,7 +1023,7 @@ const tokyoJourneyCustomPlaceNotes = Object.fromEntries(
   Object.entries(tokyoJourneyCustomPlacesRaw).map(([id, placeItem]) => [bookPlaceId(id), placeItem.description]),
 ) as Record<string, string>
 
-export const tokyoJourneyBookNotes = {
+const tokyoJourneyBookNotesCombined = {
   ...tokyoJourneyCustomPlaceNotes,
   ...Object.fromEntries(
     Object.entries(tokyoJourneyBookNotesRaw).map(([id, note]) => {
@@ -960,13 +1034,33 @@ export const tokyoJourneyBookNotes = {
   ),
 } as Record<string, string>
 
+function stripTokyoJourneyDayReferences(value: string) {
+  return value.replace(/\bDay\s*\d+\s*/gi, '').replace(/\s{2,}/g, ' ').trim()
+}
+
+const tokyoJourneyRestaurantAlternatives: Record<string, string> = {
+  'custom:tokyo-gyukatsu-motomura-ueno': '晚餐首選。備選：月島もんじゃ もへじ、らーめん 鴨to葱；複製後可在景點清單搜尋名稱，加入本天。',
+  'custom:tokyo-asakusa-imahan': '午餐首選。備選：淺草鰻魚鐵；複製後可在景點清單搜尋名稱，加入本天。',
+  'custom:tokyo-rokurinsha': '晚餐首選。備選：迴轉壽司、敘敘苑；複製後可在景點清單搜尋名稱，加入本天。',
+  'custom:tokyo-nikuto-tamago': '午餐首選。備選：拉麵林田、綱八天婦羅；複製後可在景點清單搜尋名稱，加入本天。',
+  'custom:tokyo-gyukatsu-motomura-harajuku': "午餐首選。備選：一蘭拉麵、Eggs 'n Things；複製後可在景點清單搜尋名稱，加入本天。",
+  'custom:tokyo-sushi-zanmai': '市場用餐首選。備選：鳥めし 鳥藤分店、本まぐろ専門店 うに虎；複製後可在景點清單搜尋名稱，加入本天。',
+}
+
+export const tokyoJourneyBookNotes: Record<string, string> = Object.fromEntries(
+  Object.entries(tokyoJourneyBookNotesCombined).map(([placeId, note]) => [
+    placeId,
+    [stripTokyoJourneyDayReferences(note), tokyoJourneyRestaurantAlternatives[placeId]].filter(Boolean).join('｜'),
+  ]),
+)
+
 export const tokyoJourneyPreDeparture = {
   version: 2 as const,
   travelers: [{ id: 'traveler-owner', name: '我' }],
   checked: {},
   notes: {
     general:
-      'NRT 用 Skyliner 進上野；HND 用單軌＋JR。Day 2 晴空塔抓 16:00–17:00，Day 3 皇居 10:00，Day 4 Shibuya Sky 17:00 左右。記得先準備 Suica、eSIM / SIM、Google Maps、日圓換匯與住宿確認。',
+      'NRT 用 Skyliner 進上野；HND 用單軌＋JR。晴空塔抓 16:00–17:00，皇居 10:00，Shibuya Sky 17:00 左右。記得先準備 Suica、eSIM / SIM、Google Maps、日圓換匯與住宿確認。',
   },
   customItems: [
     {
@@ -987,7 +1081,7 @@ export const tokyoJourneyPreDeparture = {
     },
     {
       id: 'custom-tokyo-skytree-reservation',
-      label: 'Day 2 晴空塔 16:00',
+      label: '晴空塔 16:00',
       custom: true,
       categoryId: 'essentials',
       scope: 'personal',
@@ -995,7 +1089,7 @@ export const tokyoJourneyPreDeparture = {
     },
     {
       id: 'custom-tokyo-imperial-reservation',
-      label: 'Day 3 皇居 10:00',
+      label: '皇居 10:00',
       custom: true,
       categoryId: 'essentials',
       scope: 'personal',
@@ -1003,7 +1097,7 @@ export const tokyoJourneyPreDeparture = {
     },
     {
       id: 'custom-tokyo-shibuya-sky',
-      label: 'Day 4 Shibuya Sky',
+      label: 'Shibuya Sky',
       custom: true,
       categoryId: 'essentials',
       scope: 'personal',
@@ -1081,8 +1175,6 @@ const tokyoJourneyDays: JourneyDay[] = [
       'custom-tokyo-kiyomizu-kannondo',
       'custom-tokyo-shinobazu-pond',
       'custom-tokyo-gyukatsu-motomura-ueno',
-      'custom-tokyo-tsukishima-monja-mohji',
-      'custom-tokyo-kamoto-negi',
       'tokyo-AmeyokoMarket',
       'custom-tokyo-ameyoko-drugstores',
       'custom-tokyo-donki-ueno',
@@ -1099,14 +1191,10 @@ const tokyoJourneyDays: JourneyDay[] = [
       'custom-tokyo-yoroshi-cosmedo',
       'custom-tokyo-asakusa-fried-meatball',
       'tokyo-AsakusaTemple',
-      'custom-tokyo-misojyu',
       'custom-tokyo-asakusa-imahan',
-      'custom-tokyo-asakusa-unagitetsu',
       'tokyo-TokyoSkytree',
       'tokyo-skytree',
       'custom-tokyo-rokurinsha',
-      'custom-tokyo-kaiten-sushi',
-      'custom-tokyo-jojoen',
       'tokyo-AmeyokoMarket',
     ],
   },
@@ -1123,8 +1211,6 @@ const tokyoJourneyDays: JourneyDay[] = [
       'custom-tokyo-sakurada-mon',
       'custom-tokyo-kusunoki-statue',
       'custom-tokyo-nikuto-tamago',
-      'custom-tokyo-ramen-hayashi',
-      'custom-tokyo-tsunahachi-tempura',
       'tokyo-BicCameraShinjuku',
       'tokyo-DisneyStoreShinjuku',
       'tokyo-KinokuniyaShinjuku',
@@ -1143,8 +1229,6 @@ const tokyoJourneyDays: JourneyDay[] = [
       'custom-tokyo-daiso-harajuku',
       'custom-tokyo-togo-shrine',
       'custom-tokyo-gyukatsu-motomura-harajuku',
-      'custom-tokyo-ichiran-harajuku',
-      'custom-tokyo-eggsnthings-harajuku',
       'custom-tokyo-omotesando',
       'tokyo-LaforetHarajuku',
       'tokyo-TokyuPlazaHarajuku',
@@ -1168,22 +1252,11 @@ const tokyoJourneyDays: JourneyDay[] = [
       'custom-tokyo-namiyoke-inari',
       'custom-tokyo-tsukiji-honganji',
       'custom-tokyo-sushi-zanmai',
-      'custom-tokyo-torifuji',
-      'custom-tokyo-unitora',
       'tokyo-ItoyaGinza',
       'tokyo-MujiGinza',
       'tokyo-SongwuGinza',
       'tokyo-SanyueGinza',
       'tokyo-GinzaSix',
-    ],
-  },
-  {
-    title: '住宿選擇',
-    placeIds: [
-      'custom-tokyo-mitsui-garden-ueno',
-      'custom-tokyo-resol-ueno',
-      'custom-tokyo-sunroute-stellar-ueno',
-      'custom-tokyo-sutton-place-ueno',
     ],
   },
 ]
@@ -1193,9 +1266,6 @@ function journeyDay(placeIds: string[]) {
 }
 
 export const tokyoJourneyItems = [
-  dayItem(0, '事前準備｜入境・票券・網路'),
-  ...tokyoJourneyPreDeparturePlaceIds.map(bookPlaceId),
-
   dayItem(1, 'Day 1｜抵達上野・半日遊'),
   transportItem(
     'journey-d1-airport',
@@ -1209,9 +1279,9 @@ export const tokyoJourneyItems = [
   transportItem('journey-d2-subway', 'subway', '上野站先換 72 小時東京地鐵券。'),
   ...tokyoJourneyDays[1].placeIds.slice(0, 7).map(bookPlaceId),
   transportItem('journey-d2-skytree', 'subway', '淺草站 → 押上站，先逛晴空街道再上晴空塔。'),
-  ...tokyoJourneyDays[1].placeIds.slice(7, 15).map(bookPlaceId),
+  ...tokyoJourneyDays[1].placeIds.slice(7, 11).map(bookPlaceId),
   transportItem('journey-d2-return', 'subway', '東館 B3 回上野，體力夠再去阿美橫。'),
-  ...tokyoJourneyDays[1].placeIds.slice(15).map(bookPlaceId),
+  ...tokyoJourneyDays[1].placeIds.slice(11).map(bookPlaceId),
 
   dayItem(3, 'Day 3｜皇居・新宿'),
   transportItem('journey-d3-imperial', 'subway', '上野 → 日本橋 → 大手町 → 桔梗門，09:30 報到、10:00 場次。', 'https://sankan.kunaicho.go.jp/english/index.html'),
@@ -1222,24 +1292,21 @@ export const tokyoJourneyItems = [
   dayItem(4, 'Day 4｜原宿・涉谷'),
   transportItem('journey-d4-meiji', 'subway', '上野 → 表參道 → 明治神宮前，2 號出口。'),
   ...tokyoJourneyDays[3].placeIds.slice(0, 5).map(bookPlaceId),
-  ...tokyoJourneyDays[3].placeIds.slice(5, 8).map(bookPlaceId),
-  ...tokyoJourneyDays[3].placeIds.slice(8, 13).map(bookPlaceId),
+  ...tokyoJourneyDays[3].placeIds.slice(5, 6).map(bookPlaceId),
+  ...tokyoJourneyDays[3].placeIds.slice(6, 11).map(bookPlaceId),
   transportItem('journey-d4-shibuya', 'walk', '走路或搭 JR 山手線前往 Shibuya Sky，17:00 左右最好。'),
-  ...tokyoJourneyDays[3].placeIds.slice(13).map(bookPlaceId),
+  ...tokyoJourneyDays[3].placeIds.slice(11).map(bookPlaceId),
 
   dayItem(5, 'Day 5｜築地市場・銀座・返程'),
   transportItem('journey-d5-tsukiji', 'subway', '上野 H18 → 築地 H11。'),
-  ...tokyoJourneyDays[4].placeIds.slice(0, 6).map(bookPlaceId),
+  ...tokyoJourneyDays[4].placeIds.slice(0, 4).map(bookPlaceId),
   transportItem('journey-d5-ginza', 'subway', '築地 H11 → 銀座 H09。', 'https://maps.app.goo.gl/t3s2bFV6FpvzwAkZ8'),
-  ...tokyoJourneyDays[4].placeIds.slice(6).map(bookPlaceId),
+  ...tokyoJourneyDays[4].placeIds.slice(4).map(bookPlaceId),
   transportItem('journey-d5-airport', 'train', '上野搭 Skyliner 回成田；若去羽田，JR 到濱松町再轉單軌。'),
 
-  dayItem(6, '住宿選擇'),
-  ...tokyoJourneyDays[5].placeIds.map(bookPlaceId),
 ] as const
 
 export const tokyoJourneyPlan = [
-  journeyDay(tokyoJourneyPreDeparturePlaceIds),
   ...tokyoJourneyDays.map((day) => journeyDay(day.placeIds)),
 ].join('|')
 
