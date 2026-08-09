@@ -4647,13 +4647,14 @@ function openPlannerMapLink(place: MapPlace, link: { href: string }) {
   window.open(link.href, '_blank', 'noopener,noreferrer')
 }
 
-function isPlannerUserMapLink(href: string) {
+function isPlannerUserMapLink(href: string, label = '') {
+  if (label.trim().startsWith('備選｜')) return false
   return isNaverMapHref(href) || isGoogleMapHref(href)
 }
 
 function plannerMapLinks(place: MapPlace, userLinks: PlannerUserLink[] = []) {
   const naverUrl = naverMapUrl(place)
-  const userMapLinks = userLinks.filter((link) => isPlannerUserMapLink(link.href))
+  const userMapLinks = userLinks.filter((link) => isPlannerUserMapLink(link.href, link.label))
   const userGoogleMapLink = userMapLinks.find((link) => isGoogleMapHref(link.href))
   const userNaverMapLink = userMapLinks.find((link) => isNaverMapHref(link.href))
   const links = [
@@ -4785,7 +4786,7 @@ function SortablePlanItem({
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
   const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
-  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href))
+  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.label))
   const visibleUserLinkCount = generalUserLinks.filter((link) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim())).length
   const userLinkCount = generalUserLinks.length
   const displayLinkCount = visibleUserLinkCount + customActionLinkCount
@@ -5109,7 +5110,7 @@ function PlannerActionPanel({
   const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
   const visibleUserLinks = userLinks
     .map((link, index) => ({ link, index }))
-    .filter(({ link }) => !isPlannerUserMapLink(link.href) && !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
+    .filter(({ link }) => !isPlannerUserMapLink(link.href, link.label) && !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
   usePlannerBodyScrollLock(true)
 
   return (
@@ -5259,10 +5260,10 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
   const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
-  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href))
+  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.label))
   const visibleUserLinkCount = generalUserLinks.filter((link) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim())).length
   const displayLinkCount = customActionLinkCount + visibleUserLinkCount
-  const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href))
+  const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href, link.label))
   const linkButtonClassName = `${styles.iconLink} ${styles.iconLinkActive} ${displayLinkCount > 0 ? styles.iconLinkPrimary : ''}`
   const linkButtonLabel = `\u9023\u7d50${displayLinkCount > 0 ? ` ${displayLinkCount}` : ''}`
 
