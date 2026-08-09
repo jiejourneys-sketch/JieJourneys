@@ -69,6 +69,7 @@ const TOKYO_JOURNEY_COORDINATES: Record<string, { lat: number; lng: number }> = 
   '出發前｜入境與簽證': { lat: 35.7100581, lng: 139.7745474 },
   '出發前｜票券預約': { lat: 35.7100581, lng: 139.7745474 },
   '出發前｜地圖、換匯、機票飯店': { lat: 35.7100581, lng: 139.7745474 },
+  '成田國際機場（NRT）': { lat: 35.772, lng: 140.3929 },
   '拉麵林田': { lat: 35.690729, lng: 139.7037509 },
   '上野雷索爾飯店': { lat: 35.7132578, lng: 139.7778548 },
   '六厘舎': { lat: 35.7101946, lng: 139.8127136 },
@@ -731,6 +732,18 @@ const tokyoJourneyCustomPlacesRaw = {
     -0.0018,
     0.0005,
   ),
+  'custom-tokyo-narita-airport': place(
+    '成田國際機場（NRT）',
+    'spot',
+    'ueno',
+    'https://www.google.com/maps/search/?api=1&query=Narita%20International%20Airport',
+    '第一／第二航廈以 QR code 換 Skyliner 車票，約 40 分鐘抵達京成上野站；返程由上野搭 Skyliner 回機場。',
+    [
+      link('Skyliner 時刻表', 'https://www.keisei.co.jp/keisei/tetudou/skyliner/tc/traffic/skyliner.php'),
+      link('備選｜羽田機場（HND）', 'https://www.google.com/maps/search/?api=1&query=Haneda%20Airport'),
+      link('東京單軌時刻表', 'https://www.tokyo-monorail.co.jp/tc/timetable/0920.html'),
+    ],
+  ),
   'custom-tokyo-predeparture-entry': place(
     '出發前｜入境與簽證',
     'spot',
@@ -1300,6 +1313,7 @@ function journeyDay(placeIds: string[]) {
 
 export const tokyoJourneyItems = [
   dayItem(1, '第一天．抵達上野・半日遊'),
+  'custom:tokyo-narita-airport',
   transportItem(
     'journey-d1-airport',
     'train',
@@ -1336,6 +1350,12 @@ export const tokyoJourneyItems = [
   transportItem('journey-d5-ginza', 'subway', '築地 H11 → 銀座 H09。', 'https://maps.app.goo.gl/t3s2bFV6FpvzwAkZ8'),
   ...tokyoJourneyDays[4].placeIds.slice(4).map(bookPlaceId),
   transportItem('journey-d5-airport', 'train', '上野搭 Skyliner 回成田；若去羽田，JR 到濱松町再轉單軌。'),
+
+  dayItem(6, '住宿選擇．上野'),
+  'custom:tokyo-mitsui-garden-ueno',
+  'custom:tokyo-resol-ueno',
+  'custom:tokyo-sunroute-stellar-ueno',
+  'custom:tokyo-sutton-place-ueno',
 
 ] as const
 

@@ -275,6 +275,7 @@ function transportItem(id: string, mode: 'walk' | 'subway' | 'train' | 'taxi', n
 /** 直接寫入 pass_planner_books 的完整五日行程項目，供 /tools/planner?p=... 使用。 */
 export const busanJourneyItems = [
   dayItem(1, '第一天．抵達海雲台'),
+  'custom:busan-gimhae-airport',
   transportItem('journey-d1-airport', 'subway', '2 號出口旁櫃檯領取釜山 Pass → 機場 3 號出口（過馬路右轉）→ 機場輕軌 → 地鐵沙上站 → 海雲台站 → 入住。也可使用計程車接送。', 'https://www.kkday.com/zh-tw/product/18410?cid=22312'),
   ...busanJourneyDays[0].placeIds,
 
@@ -313,6 +314,12 @@ export const busanJourneyItems = [
   transportItem('journey-d5-seomyeon', 'subway', '09:00 退房 → 搭地鐵到西面站；在 6／8 號出口附近寄放行李。'),
   ...busanJourneyDays[4].placeIds,
   transportItem('journey-d5-airport', 'subway', '取回行李 → 搭地鐵前往機場返程。'),
+
+  dayItem(6, '住宿選擇．海雲台'),
+  'busan-journey-hotel-shilla-stay',
+  'busan-journey-hotel-l7-haeundae',
+  'busan-journey-hotel-kolon-haeundae',
+  'busan-journey-hotel-uh-suite',
 ]
 
 /** 相容既有 planner 的短版 plan 參數；正式商品入口使用 p= 行程 book。 */
@@ -325,6 +332,13 @@ type JourneyPlannerLink = { label: string; href: string }
  * 使用者可在 planner 的景點清單開啟原始連結，複製行程時也會一併帶走。
  */
 export const busanJourneyCustomPlaces = {
+  'custom:busan-gimhae-airport': {
+    name: '金海國際機場（PUS）', category: 'spot', lat: 35.1796, lng: 128.9382,
+    links: [
+      { label: '機場接送', href: 'https://www.kkday.com/zh-tw/product/18410?cid=22312' },
+      { label: '釜山 Pass 領取資訊', href: 'https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312' },
+    ],
+  },
   'custom:busan-entry': {
     name: '行前｜入境簽證', category: 'spot', lat: 35.1796, lng: 128.9382,
     links: [
@@ -386,6 +400,7 @@ export const busanJourneyCustomPlaces = {
 
 /** 每一張「我的順序」卡片會顯示的完整行程提醒。 */
 const busanJourneyBookNotesRaw: Record<string, string> = {
+  'custom:busan-gimhae-airport': '抵達後依行程領取釜山 Pass，再前往機場 3 號出口搭輕軌轉地鐵到海雲台站；也可使用機場接送。返程從住宿取回行李後回到此處。',
   'custom:busan-entry': '依 PDF：先確認是否需要 K-ETA；若免申請，填寫電子入境卡即可。兩種流程的原始教學與官網都保留在連結中。',
   'custom:busan-tickets': '依 PDF：釜山 Pass 建議購買 48 小時；膠囊列車預約 Day 3 12:00，鑽石灣遊艇預約 Day 3 19:30／20:30。',
   'custom:busan-connectivity': '依 PDF：可選 eSIM、SIM 卡或 Wifi 分享器；交通可準備 WOWPASS 與 T-money。',
