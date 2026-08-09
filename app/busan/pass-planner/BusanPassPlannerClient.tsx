@@ -297,6 +297,7 @@ const SHARE_ID_PARAM = 's'
 const PLANNER_BOOK_PARAM = 'p'
 const PLANNER_PREVIEW_PARAM = 'v'
 const PLANNER_IMAGE_OWNER_KEY = 'planner-image-owner'
+const PLANNER_IMAGE_OWNER_PARAM = 'i'
 const PLANNER_IMAGE_MAX_PER_BOOK = 12
 const PLANNER_IMAGE_MAX_PER_PLACE = 3
 const PLANNER_IMAGE_MAX_BYTES = 1_048_576
@@ -3129,6 +3130,11 @@ function cleanPlannerImages(value: unknown): PlannerCardImage[] {
     seen.add(id)
     return [{ id, placeId, url, width, height, createdAt }]
   })
+}
+
+function plannerImageOwnerFromSearch(search: string) {
+  const token = new URLSearchParams(search).get(PLANNER_IMAGE_OWNER_PARAM)?.trim() ?? ''
+  return /^[A-Za-z0-9_-]{24,96}$/.test(token) ? token : null
 }
 
 function plannerImageFunctionUrl(action?: string) {
@@ -7454,6 +7460,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             ? `?${new URLSearchParams(config.initialSearchParams).toString()}`
             : window.location.search
           const initialParams = new URLSearchParams(initialSearch)
+          const urlImageOwnerToken = plannerImageOwnerFromSearch(window.location.search)
           const hasPlannerBookLink = Boolean(
             initialParams.get(PLANNER_BOOK_PARAM)?.trim() || initialParams.get(PLANNER_PREVIEW_PARAM)?.trim(),
           )
@@ -7467,11 +7474,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
             setReadOnlyPlan(plannerBook.readonly)
             setPlannerImages([])
-            setPlannerImageOwnerToken(
-              plannerBook.readonly
-                ? null
-                : window.localStorage.getItem(`${config.storageKey}:${PLANNER_IMAGE_OWNER_KEY}:${plannerBook.id}`),
-            )
+            const imageOwnerStorageKey = `${config.storageKey}:${PLANNER_IMAGE_OWNER_KEY}:${plannerBook.id}`
+            const imageOwnerToken = plannerBook.readonly
+              ? null
+              : urlImageOwnerToken ?? window.localStorage.getItem(imageOwnerStorageKey)
+            setPlannerImageOwnerToken(imageOwnerToken)
+            if (imageOwnerToken) {
+              window.localStorage.setItem(imageOwnerStorageKey, imageOwnerToken)
+              if (urlImageOwnerToken) {
+                const cleanUrl = new URL(window.location.href)
+                cleanUrl.searchParams.delete(PLANNER_IMAGE_OWNER_PARAM)
+                window.history.replaceState(null, '', `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`)
+              }
+            }
             if (plannerBook.readToken) {
               void fetchPlannerImages(plannerBook.id, plannerBook.readToken).then((images) => {
                 if (images) setPlannerImages(images)
