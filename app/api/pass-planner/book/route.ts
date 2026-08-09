@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 const TABLE = 'pass_planner_books'
 const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const MAX_ITEMS = 240
-const MAX_NOTES = 80
+const MAX_NOTES = 160
 const MAX_NOTE_LENGTH = 500
 const MAX_CUSTOM_PLACES = 80
 const MAX_LINKS_PER_CUSTOM_PLACE = 8

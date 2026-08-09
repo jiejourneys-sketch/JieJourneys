@@ -10463,6 +10463,105 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     validPlanItems,
   ])
 
+  const forkSharedPlan = useCallback(() => {
+    if (!readOnlyPlan || shareSaving || !hasSavablePlannerContent) return
+    void (async () => {
+      setShareSaving(true)
+      try {
+        const sharedNotes = Object.fromEntries(
+          validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note),
+        )
+        const book = await savePlannerBook(
+          config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+          null,
+          validPlanItems,
+          sharedNotes,
+          customPlaces,
+          placeUserLinks,
+          preDepartureChecklist,
+        ).catch(() => null)
+        if (!book) {
+          alert('建立副本失敗，請稍後再試一次')
+          return
+        }
+
+        const updatedAt = new Date().toISOString()
+        const readToken = book.readToken ?? null
+        setPlannerBookId(book.id)
+        setPlannerBookReadToken(readToken)
+        setPlannerBookUpdatedAt(updatedAt)
+        setReadOnlyPlan(false)
+        setSaveSheetUrl(null)
+        setSaveSheetPreviewUrl(null)
+        setPlannerLinkUnavailable(false)
+        preDepartureLastCloudSignatureRef.current = preDepartureChecklistSignature
+        setPreDepartureCloudStatus('saved')
+        removeJsonCache(`planner-book:id=${encodeURIComponent(book.id)}`)
+        if (readToken) removeJsonCache(`planner-book:${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(readToken)}`)
+
+        window.localStorage.setItem(`${config.storageKey}:book-id`, book.id)
+        if (readToken) window.localStorage.setItem(`${config.storageKey}:book-read-token`, readToken)
+        window.localStorage.setItem(`${config.storageKey}:book-updated-at`, updatedAt)
+        if (config.recentListKey && config.recentRegionKey) {
+          const rawRecent = window.localStorage.getItem(config.recentListKey)
+          let recentItems: unknown = []
+          try {
+            recentItems = rawRecent ? (JSON.parse(rawRecent) as unknown) : []
+          } catch {
+            // A malformed local recent-list must not block creating the copy.
+          }
+          const existingItems = Array.isArray(recentItems)
+            ? recentItems.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+            : []
+          window.localStorage.setItem(
+            config.recentListKey,
+            JSON.stringify([
+              {
+                id: book.id,
+                readToken: readToken ?? '',
+                access: 'edit',
+                regionKey: config.recentRegionKey,
+                source: config.recentSource ?? 'map',
+                countryName: config.recentCountryName ?? config.shareTitle,
+                updatedAt,
+              },
+              ...existingItems.filter((item) => item.id !== book.id),
+            ].slice(0, 12)),
+          )
+        }
+
+        const url = new URL(window.location.pathname, window.location.origin)
+        Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
+          if (value) url.searchParams.set(key, value)
+        })
+        url.searchParams.set(PLANNER_BOOK_PARAM, book.id)
+        window.history.replaceState(null, '', `${url.pathname}${url.search}`)
+        alert('已建立你的行程副本，現在可以自由調整，不會影響原分享行程。')
+      } finally {
+        setShareSaving(false)
+      }
+    })()
+  }, [
+    config.plannerBookCityName,
+    config.recentCountryName,
+    config.recentListKey,
+    config.recentRegionKey,
+    config.recentSource,
+    config.shareSearchParams,
+    config.shareTitle,
+    config.storageKey,
+    customPlaces,
+    hasSavablePlannerContent,
+    placeNotes,
+    placeUserLinks,
+    preDepartureChecklist,
+    preDepartureChecklistSignature,
+    readOnlyPlan,
+    shareSaving,
+    validPlanIds,
+    validPlanItems,
+  ])
+
   const handleShare = useCallback(() => {
     if (readOnlyPlan) return
     if (shareSaving) return
@@ -10904,7 +11003,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             <p>{config.description}</p>
             {readOnlyPlan || plannerBookUpdatedAt ? (
               <div className={styles.plannerMeta}>
-                {readOnlyPlan ? <span>預覽模式</span> : null}
+                {readOnlyPlan ? <span>分享範本・複製後可自由修改</span> : null}
                 {plannerBookUpdatedAt ? <span>最後更新 {formatPlannerUpdatedAt(plannerBookUpdatedAt)}</span> : null}
               </div>
             ) : null}
@@ -10923,11 +11022,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 {config.guideLink.label}
               </a>
             ) : null}
-            {!readOnlyPlan ? (
+            {readOnlyPlan ? (
+              <button className={styles.shareAction} type="button" onClick={forkSharedPlan} disabled={shareSaving || !hasSavablePlannerContent}>
+                {shareSaving ? '建立副本中...' : '複製成我的行程'}
+              </button>
+            ) : (
               <button className={styles.shareAction} type="button" onClick={handleShare} disabled={shareSaving}>
                 {shareSaving ? '儲存中...' : plannerBookId ? '儲存更新' : config.shareActionLabel}
               </button>
-            ) : null}
+            )}
             {config.backLinkLabel ? (
               <a className={styles.secondaryAction} href={config.headerBackHref}>
                 {config.backLinkLabel}
@@ -12084,21 +12187,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               )}
               <div className={styles.saveLinkGroup}>
                 <div className={styles.saveLinkHeader}>
-                  <span>行程連結</span>
+                  <span>我的編輯連結</span>
                 </div>
                 <div className={styles.saveUrlRow}>
                   <div className={styles.saveUrl}>{saveSheetUrl}</div>
                   <button type="button" className={styles.saveCopyButton} onClick={copySavedLink}>
-                    {saveLinkCopied ? '已複製' : '複製'}
+                    {saveLinkCopied ? '已複製' : '複製給自己'}
                   </button>
                 </div>
               </div>
               {saveSheetPreviewUrl ? (
                 <div className={styles.saveLinkGroup}>
                   <div className={styles.saveLinkHeader}>
-                    <span>預覽連結</span>
+                    <span>可分享範本連結</span>
                   </div>
-                  <p className={styles.saveHint}>只給朋友查看，不會出現編輯、拖曳或儲存更新。</p>
+                  <p className={styles.saveHint}>朋友可先查看；想調整時按「複製成我的行程」，會建立自己的副本，不會改到你的原始行程。</p>
                   <div className={styles.saveUrlRow}>
                     <div className={styles.saveUrl}>{saveSheetPreviewUrl}</div>
                     <button type="button" className={styles.saveCopyButton} onClick={copyPreviewLink}>
@@ -12108,14 +12211,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 </div>
               ) : null}
               <div className={styles.saveActions}>
-                <button type="button" className={styles.confirmPrimary} onClick={shareSavedLink}>
-                  分享連結
+                <button type="button" className={styles.confirmPrimary} onClick={saveSheetPreviewUrl ? sharePreviewLink : shareSavedLink}>
+                  {saveSheetPreviewUrl ? '分享範本連結' : '分享連結'}
                 </button>
-                {saveSheetPreviewUrl ? (
-                  <button type="button" className={styles.confirmSecondary} onClick={sharePreviewLink}>
-                    分享預覽連結
-                  </button>
-                ) : null}
               </div>
             </section>
           </div>

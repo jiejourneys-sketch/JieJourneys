@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import BusanPassPlannerClient from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import type { PlannerConfig } from '@/app/busan/pass-planner/BusanPassPlannerClient'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
-import { BUSAN_MAP_CENTER, busanMapPlaces } from '@/data/busan/map/places'
-import { busanPassMapPlaces } from '@/data/busan/pass-map/places'
+import { BUSAN_MAP_CENTER } from '@/data/busan/map/places'
+import { busanJourneyMatchPlaces, busanJourneyPlaces } from '@/data/busan/journeys'
 import { OSAKA_MAP_CENTER, osakaMapPlaces } from '@/data/osaka/map/places'
 import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 import { TOKYO_MAP_CENTER, tokyoMapPlaces } from '@/data/tokyo'
@@ -110,8 +110,8 @@ const knownRegions: PlannerRegion[] = [
     label: '韓國釜山',
     shortLabel: '釜山',
     center: BUSAN_MAP_CENTER,
-    places: busanMapPlaces,
-    matchPlaces: busanPassMapPlaces,
+    places: busanJourneyPlaces,
+    matchPlaces: busanJourneyMatchPlaces,
   },
   {
     key: 'osaka',
