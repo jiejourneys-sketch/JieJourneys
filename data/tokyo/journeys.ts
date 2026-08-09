@@ -1093,10 +1093,26 @@ const tokyoJourneyRestaurantAlternatives: Record<string, string> = {
   'custom:tokyo-sushi-zanmai': '市場用餐首選。備選：鳥めし 鳥藤分店、本まぐろ専門店 うに虎；可直接點本卡片「連結」中的店名開啟 Google Maps。',
 }
 
+const tokyoJourneyHotelSelectionNotes: Record<string, string> = Object.fromEntries(
+  [
+    'custom:tokyo-mitsui-garden-ueno',
+    'custom:tokyo-resol-ueno',
+    'custom:tokyo-sunroute-stellar-ueno',
+    'custom:tokyo-sutton-place-ueno',
+  ].map((placeId) => [
+    placeId,
+    '住宿四選一：比較本卡片的訂房連結後選定一間入住；複製行程後可刪除其餘住宿卡片。',
+  ]),
+)
+
 export const tokyoJourneyBookNotes: Record<string, string> = Object.fromEntries(
   Object.entries(tokyoJourneyBookNotesCombined).map(([placeId, note]) => [
     placeId,
-    [stripTokyoJourneyDayReferences(note), tokyoJourneyRestaurantAlternatives[placeId]].filter(Boolean).join('｜'),
+    [
+      stripTokyoJourneyDayReferences(note),
+      tokyoJourneyRestaurantAlternatives[placeId],
+      tokyoJourneyHotelSelectionNotes[placeId],
+    ].filter(Boolean).join('｜'),
   ]),
 )
 
@@ -1320,6 +1336,10 @@ export const tokyoJourneyItems = [
     'NRT：B1 用 QR code 換 Skyliner；HND：西瓜卡搭單軌電車再轉 JR 進上野。',
     'https://www.keisei.co.jp/keisei/tetudou/skyliner/tc/traffic/skyliner.php',
   ),
+  'custom:tokyo-mitsui-garden-ueno',
+  'custom:tokyo-resol-ueno',
+  'custom:tokyo-sunroute-stellar-ueno',
+  'custom:tokyo-sutton-place-ueno',
   ...tokyoJourneyDays[0].placeIds.map(bookPlaceId),
 
   dayItem(2, '第二天．淺草・晴空塔・上野'),
@@ -1350,12 +1370,6 @@ export const tokyoJourneyItems = [
   transportItem('journey-d5-ginza', 'subway', '築地 H11 → 銀座 H09。', 'https://maps.app.goo.gl/t3s2bFV6FpvzwAkZ8'),
   ...tokyoJourneyDays[4].placeIds.slice(4).map(bookPlaceId),
   transportItem('journey-d5-airport', 'train', '上野搭 Skyliner 回成田；若去羽田，JR 到濱松町再轉單軌。'),
-
-  dayItem(6, '住宿選擇．上野'),
-  'custom:tokyo-mitsui-garden-ueno',
-  'custom:tokyo-resol-ueno',
-  'custom:tokyo-sunroute-stellar-ueno',
-  'custom:tokyo-sutton-place-ueno',
 
 ] as const
 

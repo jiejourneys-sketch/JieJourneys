@@ -277,6 +277,10 @@ export const busanJourneyItems = [
   dayItem(1, '第一天．抵達海雲台'),
   'custom:busan-gimhae-airport',
   transportItem('journey-d1-airport', 'subway', '2 號出口旁櫃檯領取釜山 Pass → 機場 3 號出口（過馬路右轉）→ 機場輕軌 → 地鐵沙上站 → 海雲台站 → 入住。也可使用計程車接送。', 'https://www.kkday.com/zh-tw/product/18410?cid=22312'),
+  'busan-journey-hotel-shilla-stay',
+  'busan-journey-hotel-l7-haeundae',
+  'busan-journey-hotel-kolon-haeundae',
+  'busan-journey-hotel-uh-suite',
   ...busanJourneyDays[0].placeIds,
 
   dayItem(2, '第二天．松島・南浦洞'),
@@ -314,12 +318,6 @@ export const busanJourneyItems = [
   transportItem('journey-d5-seomyeon', 'subway', '09:00 退房 → 搭地鐵到西面站；在 6／8 號出口附近寄放行李。'),
   ...busanJourneyDays[4].placeIds,
   transportItem('journey-d5-airport', 'subway', '取回行李 → 搭地鐵前往機場返程。'),
-
-  dayItem(6, '住宿選擇．海雲台'),
-  'busan-journey-hotel-shilla-stay',
-  'busan-journey-hotel-l7-haeundae',
-  'busan-journey-hotel-kolon-haeundae',
-  'busan-journey-hotel-uh-suite',
 ]
 
 /** 相容既有 planner 的短版 plan 參數；正式商品入口使用 p= 行程 book。 */
@@ -612,10 +610,24 @@ const busanJourneyRestaurantAlternatives: Record<string, string> = {
   'busan-journey-songjeong-gukbap': '晚餐首選。備選：濟州家海鮮粥、香港飯店；可直接點本卡片「連結」中的店名開啟 Google Maps。',
 }
 
-export const busanJourneyBookNotes: Record<string, string> = Object.fromEntries(
-  Object.entries(busanJourneyBookNotesRaw).map(([placeId, note]) => [
+const busanJourneyHotelSelectionNotes: Record<string, string> = Object.fromEntries(
+  busanJourneyHotelPlaceIds.map((placeId) => [
     placeId,
-    [stripJourneyDayReferences(note), busanJourneyRestaurantAlternatives[placeId]].filter(Boolean).join('｜'),
+    '住宿四選一：比較本卡片的訂房連結後選定一間入住；複製行程後可刪除其餘住宿卡片。',
+  ]),
+)
+
+export const busanJourneyBookNotes: Record<string, string> = Object.fromEntries(
+  Array.from(new Set([
+    ...Object.keys(busanJourneyBookNotesRaw),
+    ...Object.keys(busanJourneyHotelSelectionNotes),
+  ])).map((placeId) => [
+    placeId,
+    [
+      busanJourneyBookNotesRaw[placeId] ? stripJourneyDayReferences(busanJourneyBookNotesRaw[placeId]) : '',
+      busanJourneyRestaurantAlternatives[placeId],
+      busanJourneyHotelSelectionNotes[placeId],
+    ].filter(Boolean).join('｜'),
   ]),
 )
 
