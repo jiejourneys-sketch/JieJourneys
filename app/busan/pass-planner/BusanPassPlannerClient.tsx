@@ -2867,6 +2867,11 @@ function planItemPlaceId(item: PlannerItem) {
   return separatorIndex >= 0 ? item.slice(separatorIndex + 1) : null
 }
 
+function plannerImagePlaceIdForPlanItem(item: PlannerItem) {
+  if (isTransportItem(item)) return transportImagePlaceId(item)
+  return planItemPlaceId(item) ?? ''
+}
+
 function createVisitItem(placeId: string) {
   const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
   return `${VISIT_ITEM_PREFIX}${token}|${placeId}`
@@ -9108,10 +9113,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         alert(`照片數量已達上限：每個景點 ${PLANNER_IMAGE_MAX_PER_PLACE} 張、每份行程 ${PLANNER_IMAGE_MAX_PER_BOOK} 張。`)
       } else if (result?.error === 'owner_required') {
         alert('圖片管理權限已失效，請重新開啟你的行程後再試。')
+      } else if (result?.error === 'invalid_upload') {
+        alert('這張行程卡尚未準備好接收照片。請先按「儲存更新」後重新整理，再上傳一次。')
       } else if (result?.error === 'invalid_image' || result?.error === 'image_too_large') {
         alert('照片自動壓縮後仍無法上傳，請再試一次或換另一張照片。')
+      } else if (result?.error === 'upload_failed' || result?.error === 'store_failed') {
+        alert('圖片儲存服務暫時沒有回應，請稍後再試。')
       } else {
-        alert('照片上傳失敗，請確認網路後再試。')
+        alert(`照片上傳失敗（${result?.error ?? 'request_failed'}），請截圖傳給我。`)
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
@@ -12339,10 +12348,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   userLinks={placeUserLinks[place.id] ?? []}
                                   onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
                                   onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}
-                                  images={plannerImages.filter((image) => image.placeId === item)}
+                                  images={plannerImages.filter((image) => image.placeId === plannerImagePlaceIdForPlanItem(item))}
                                   imageUploadEnabled={!readOnlyPlan}
                                   imageBusy={plannerImageBusy}
-                                  onAddImage={(file) => addPlannerImage(item, file)}
+                                  onAddImage={(file) => addPlannerImage(plannerImagePlaceIdForPlanItem(item), file)}
                                   onRemoveImage={removePlannerImage}
                                   cardRef={(el) => {
                                     planCardRefs.current[item] = el
