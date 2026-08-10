@@ -216,8 +216,35 @@ function customRegionFromUrl(regionKey: string, countryName: string): PlannerReg
   }
 }
 
-async function fetchPlannerBookMeta(plannerId: string, readToken: string): Promise<PlannerBookMetaLookup> {
-  const query = plannerId ? `id=${encodeURIComponent(plannerId)}` : `v=${encodeURIComponent(readToken)}`
+function cleanPlannerEditToken(value: string | null | undefined) {
+  const token = value?.trim() ?? ''
+  return /^[a-f0-9]{64}$/.test(token) ? token : ''
+}
+
+function plannerBookEditTokenStorageKey(storageKey: string, bookId: string) {
+  return `${storageKey}:book-edit-token:${bookId}`
+}
+
+function localPlannerEditToken(storageKey: string, bookId: string) {
+  return cleanPlannerEditToken(window.localStorage.getItem(plannerBookEditTokenStorageKey(storageKey, bookId)))
+}
+
+async function recoverPlannerEditToken(bookId: string, imageOwnerToken: string) {
+  if (!bookId || !imageOwnerToken) return ''
+  const res = await fetch('/api/pass-planner/book', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'recover_edit_token', id: bookId, image_owner_token: imageOwnerToken }),
+  })
+  if (!res.ok) return ''
+  const data = (await res.json().catch(() => null)) as { edit_token?: unknown } | null
+  return typeof data?.edit_token === 'string' ? cleanPlannerEditToken(data.edit_token) : ''
+}
+
+async function fetchPlannerBookMeta(plannerId: string, readToken: string, editorToken = ''): Promise<PlannerBookMetaLookup> {
+  const query = plannerId
+    ? `id=${encodeURIComponent(plannerId)}&e=${encodeURIComponent(editorToken)}`
+    : `v=${encodeURIComponent(readToken)}`
   const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
   if (res.status === 404 || res.status === 410) return { book: null, unavailable: true }
   if (!res.ok) return { book: null, unavailable: false }
@@ -261,8 +288,10 @@ function clearPlannerLocalDraft(regionKey: string, source: PlannerSource) {
   window.localStorage.removeItem(`${key}:notes`)
   window.localStorage.removeItem(`${key}:custom-places`)
   window.localStorage.removeItem(`${key}:user-links`)
+  const bookId = window.localStorage.getItem(`${key}:book-id`)
   window.localStorage.removeItem(`${key}:book-id`)
   window.localStorage.removeItem(`${key}:book-read-token`)
+  if (bookId) window.localStorage.removeItem(plannerBookEditTokenStorageKey(key, bookId))
   window.localStorage.removeItem(`${key}:book-updated-at`)
   window.localStorage.removeItem(`${key}:day-view:draft`)
   window.localStorage.removeItem(`${key}:pre-departure:draft`)
@@ -299,6 +328,7 @@ function removeRecentPlanner(planner: Pick<RecentPlanner, 'id' | 'readToken' | '
   if (window.localStorage.getItem(`${storageKey}:book-id`) === planner.id) {
     window.localStorage.removeItem(`${storageKey}:book-id`)
     window.localStorage.removeItem(`${storageKey}:book-read-token`)
+    window.localStorage.removeItem(plannerBookEditTokenStorageKey(storageKey, planner.id))
     window.localStorage.removeItem(`${storageKey}:book-updated-at`)
   }
   return next
@@ -308,9 +338,11 @@ async function pruneUnavailableRecentPlanners(items: RecentPlanner[]) {
   const checked = await Promise.all(
     items.map(async (item) => {
       try {
+        const storageKey = plannerStorageKey(item.regionKey, item.source ?? 'map')
         const lookup = await fetchPlannerBookMeta(
           item.access === 'edit' ? item.id : '',
           item.access === 'preview' ? item.readToken ?? '' : '',
+          item.access === 'edit' ? localPlannerEditToken(storageKey, item.id) : '',
         )
         if (lookup.unavailable) {
           removeRecentPlanner(item)
@@ -346,6 +378,7 @@ export default function ToolsPlannerPage() {
     source: PlannerSource
     plannerId?: string
     readToken?: string
+    editToken?: string
   } | null>(null)
   const [unavailablePlanner, setUnavailablePlanner] = useState<{
     countryName: string
@@ -369,6 +402,15 @@ export default function ToolsPlannerPage() {
       setPreferredSource(source)
       const plannerId = params.get('p')?.trim() || ''
       const readToken = params.get('v')?.trim() || ''
+      const urlEditorToken = cleanPlannerEditToken(params.get('e'))
+      const linkStorageKey = plannerStorageKey(regionKey, source)
+      if (plannerId && urlEditorToken) {
+        window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), urlEditorToken)
+      }
+      let editorToken = plannerId ? urlEditorToken || localPlannerEditToken(linkStorageKey, plannerId) : ''
+      const legacyOwnerToken = plannerId
+        ? params.get('i')?.trim() || window.localStorage.getItem(`${linkStorageKey}:planner-image-owner:${plannerId}`)?.trim() || ''
+        : ''
       const planParam = params.get('plan')?.trim() || ''
       const shouldLoadSharedPlan = Boolean(plannerId || readToken || planParam)
       const region = knownRegions.find((item) => item.key === regionKey)
@@ -377,7 +419,11 @@ export default function ToolsPlannerPage() {
           setCheckingSharedPlanner(true)
           ;(async () => {
             try {
-              const lookup = await fetchPlannerBookMeta(plannerId, readToken)
+              if (plannerId && !editorToken) {
+                editorToken = await recoverPlannerEditToken(plannerId, legacyOwnerToken)
+                if (editorToken) window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), editorToken)
+              }
+              const lookup = await fetchPlannerBookMeta(plannerId, readToken, editorToken)
               if (cancelled) return
               const book = lookup.book
               setCheckingSharedPlanner(false)
@@ -418,6 +464,7 @@ export default function ToolsPlannerPage() {
                 source,
                 plannerId: plannerId || undefined,
                 readToken: plannerId ? undefined : readToken || undefined,
+                editToken: plannerId ? editorToken || undefined : undefined,
               })
             } catch {
               if (cancelled) return
@@ -466,6 +513,7 @@ export default function ToolsPlannerPage() {
             source,
             plannerId: plannerId || undefined,
             readToken: plannerId ? undefined : readToken || undefined,
+            editToken: plannerId ? editorToken || undefined : undefined,
           })
         }
 
@@ -473,7 +521,11 @@ export default function ToolsPlannerPage() {
           setCheckingSharedPlanner(true)
           ;(async () => {
             try {
-              const lookup = await fetchPlannerBookMeta(plannerId, readToken)
+              if (plannerId && !editorToken) {
+                editorToken = await recoverPlannerEditToken(plannerId, legacyOwnerToken)
+                if (editorToken) window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), editorToken)
+              }
+              const lookup = await fetchPlannerBookMeta(plannerId, readToken, editorToken)
               if (cancelled) return
               const book = lookup.book
               setCheckingSharedPlanner(false)
@@ -587,7 +639,7 @@ export default function ToolsPlannerPage() {
     countryName = region.shortLabel,
     shouldLoadKnownPlaces = true,
     source: PlannerSource = 'map',
-    planner?: { id?: string; readToken?: string },
+    planner?: { id?: string; readToken?: string; editToken?: string },
     resetDraft = !planner,
   ) => {
     if (!planner && inAppBrowser) {
@@ -604,6 +656,7 @@ export default function ToolsPlannerPage() {
       source,
       plannerId: planner?.id,
       readToken: planner?.id ? undefined : planner?.readToken,
+      editToken: planner?.id ? planner.editToken : undefined,
     })
   }
 
@@ -653,9 +706,14 @@ export default function ToolsPlannerPage() {
         places: [],
         zoom: 7,
       }
+    const editorToken =
+      planner.access === 'edit'
+        ? localPlannerEditToken(plannerStorageKey(planner.regionKey, planner.source ?? 'map'), planner.id)
+        : ''
     const lookup = await fetchPlannerBookMeta(
       planner.access === 'edit' ? planner.id : '',
       planner.access === 'preview' ? planner.readToken ?? '' : '',
+      editorToken,
     )
     if (!lookup.book) {
       if (lookup.unavailable) {
@@ -668,7 +726,7 @@ export default function ToolsPlannerPage() {
     }
 
     const countryName = plannerDisplayName(lookup.book.city, planner.regionKey)
-    const nextPlanner = { id: planner.id, readToken: planner.readToken, countryName }
+    const nextPlanner = { id: planner.id, readToken: planner.readToken, editToken: editorToken, countryName }
     const params = new URLSearchParams()
     params.set('region', region.key)
     if (planner.source === 'pass') params.set('source', 'pass')
@@ -695,6 +753,8 @@ export default function ToolsPlannerPage() {
     const planner = renameTarget
     if (!planner || renamingPlannerId) return
     const nextName = plannerDisplayName(renameValue, planner.regionKey) || planner.countryName
+    const editorToken = localPlannerEditToken(plannerStorageKey(planner.regionKey, planner.source ?? 'map'), planner.id)
+    if (!editorToken) return
     setRenamingPlannerId(planner.id)
     try {
       const res = await fetch('/api/pass-planner/book', {
@@ -702,7 +762,7 @@ export default function ToolsPlannerPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: planner.id,
-          read_token: planner.readToken ?? '',
+          edit_token: editorToken,
           city: nextName,
         }),
       })
@@ -735,10 +795,13 @@ export default function ToolsPlannerPage() {
       setDeleteTarget(null)
       return
     }
+    const storageKey = plannerStorageKey(planner.regionKey, planner.source ?? 'map')
+    const editorToken = localPlannerEditToken(storageKey, planner.id)
+    if (!editorToken) return
     setDeletingPlannerId(planner.id)
     try {
       const params = new URLSearchParams({ id: planner.id })
-      if (planner.readToken) params.set('read_token', planner.readToken)
+      params.set('e', editorToken)
       const res = await fetch(`/api/pass-planner/book?${params.toString()}`, {
         method: 'DELETE',
       })
@@ -754,11 +817,11 @@ export default function ToolsPlannerPage() {
         window.sessionStorage.removeItem(`planner-book:v=${encodeURIComponent(planner.readToken)}`)
       }
 
-      const storageKey = plannerStorageKey(planner.regionKey, planner.source ?? 'map')
       window.localStorage.removeItem(`${storageKey}:day-view:${planner.id}`)
       if (window.localStorage.getItem(`${storageKey}:book-id`) === planner.id) {
         window.localStorage.removeItem(`${storageKey}:book-id`)
         window.localStorage.removeItem(`${storageKey}:book-read-token`)
+        window.localStorage.removeItem(plannerBookEditTokenStorageKey(storageKey, planner.id))
         window.localStorage.removeItem(`${storageKey}:book-updated-at`)
       }
       setDeleteTarget(null)
@@ -871,6 +934,7 @@ export default function ToolsPlannerPage() {
         region: region.key,
         ...(source === 'pass' ? { source: 'pass' } : {}),
         ...(started.plannerId ? { p: started.plannerId } : started.readToken ? { v: started.readToken } : {}),
+        ...(started.plannerId && started.editToken ? { e: started.editToken } : {}),
       },
       recentListKey: RECENT_PLANNERS_KEY,
       recentRegionKey: region.key,

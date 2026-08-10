@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const TABLE = 'pass_planner_books'
 const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const MAX_ITEMS = 240
 const MAX_NOTES = 160
@@ -13,7 +12,6 @@ const MAX_USER_LINKS_PER_PLACE = 8
 const MAX_PRE_DEPARTURE_TRAVELERS = 12
 const MAX_PRE_DEPARTURE_CUSTOM_ITEMS = 80
 const MAX_PRE_DEPARTURE_CHECKED_ITEMS = 300
-const PLANNER_RETENTION_DAYS = 365
 const PRE_DEPARTURE_NOTE_KEY = '__pre_departure_v2'
 const PRE_DEPARTURE_OWNER = { id: 'traveler-owner', name: '我' }
 const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel'])
@@ -42,12 +40,31 @@ function cleanGooglePlaceTypes(value: unknown) {
 
 type PlannerBookPayload = {
   id?: string
+  edit_token?: string
   city: string
   items: string[]
   notes?: Record<string, string>
   custom_places?: Record<string, unknown>
   user_links?: Record<string, unknown>
   pre_departure?: Record<string, unknown>
+}
+
+type StoredPlannerBook = {
+  id?: string
+  read_token?: string
+  city: string
+  items: unknown
+  notes: unknown
+  custom_places: unknown
+  user_links: unknown
+  updated_at?: string
+}
+
+type PlannerBookMutation = {
+  id?: string
+  read_token?: string
+  city?: string
+  updated_at?: string
 }
 
 function cleanPreDeparture(value: unknown): Record<string, unknown> | undefined {
@@ -161,10 +178,27 @@ function readToken() {
   return shortId(12)
 }
 
+function editToken() {
+  const values = new Uint8Array(32)
+  crypto.getRandomValues(values)
+  return Array.from(values, (value) => value.toString(16).padStart(2, '0')).join('')
+}
+
+function cleanEditToken(value: unknown) {
+  const token = typeof value === 'string' ? value.trim() : ''
+  return /^[a-f0-9]{64}$/.test(token) ? token : ''
+}
+
+function cleanLegacyImageOwnerToken(value: unknown) {
+  const token = typeof value === 'string' ? value.trim() : ''
+  return /^[A-Za-z0-9_-]{24,96}$/.test(token) ? token : ''
+}
+
 function cleanPayload(value: unknown): PlannerBookPayload | null {
   if (!value || typeof value !== 'object') return null
   const input = value as Record<string, unknown>
   const id = typeof input.id === 'string' ? input.id.trim().slice(0, 32) : undefined
+  const editorToken = cleanEditToken(input.edit_token)
   const city = typeof input.city === 'string' ? input.city.trim().slice(0, 32) : ''
   const rawItems = Array.isArray(input.items) ? input.items : []
   const items = rawItems
@@ -267,6 +301,7 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
 
   return {
     id,
+    ...(editorToken ? { edit_token: editorToken } : {}),
     city,
     items,
     notes: Object.keys(notes).length > 0 ? notes : undefined,
@@ -281,6 +316,22 @@ export async function POST(req: NextRequest) {
   if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
 
   const input = await req.json().catch(() => null)
+  const recoveryInput = input && typeof input === 'object' && !Array.isArray(input)
+    ? input as Record<string, unknown>
+    : null
+  if (recoveryInput?.action === 'recover_edit_token') {
+    const id = typeof recoveryInput.id === 'string' ? recoveryInput.id.trim().slice(0, 32) : ''
+    const imageOwnerToken = cleanLegacyImageOwnerToken(recoveryInput.image_owner_token)
+    if (!id || !imageOwnerToken) return NextResponse.json({ error: 'recovery_forbidden' }, { status: 403 })
+    const { data, error } = await supabase.rpc('planner_book_recover_edit_token', {
+      p_id: id,
+      p_image_owner_token: imageOwnerToken,
+    })
+    const recoveredToken = cleanEditToken(data)
+    if (error) return NextResponse.json({ error: 'recovery_failed' }, { status: 503 })
+    if (!recoveredToken) return NextResponse.json({ error: 'recovery_forbidden' }, { status: 403 })
+    return NextResponse.json({ edit_token: recoveredToken })
+  }
   // Reject replacement/control characters instead of overwriting an entire
   // shared plan with mojibake from a misconfigured external client.
   if (hasInvalidTextEncoding(input)) {
@@ -289,22 +340,15 @@ export async function POST(req: NextRequest) {
   const payload = cleanPayload(input)
   if (!payload) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
-  const expiresAt = new Date(Date.now() + PLANNER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
-  const baseRow = {
-    city: payload.city,
-    items: payload.items,
-    custom_places: payload.custom_places ?? {},
-    user_links: payload.user_links ?? {},
-    expires_at: expiresAt,
-    updated_at: new Date().toISOString(),
-  }
-
   if (payload.id) {
-    const { data: existing } = await supabase
-      .from(TABLE)
-      .select('read_token, notes')
-      .eq('id', payload.id)
-      .maybeSingle()
+    if (!payload.edit_token) return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
+    const { data: rawExisting, error: loadError } = await supabase.rpc('planner_book_read_edit', {
+      p_id: payload.id,
+      p_edit_token: payload.edit_token,
+    }).maybeSingle()
+    const existing = rawExisting as StoredPlannerBook | null
+    if (loadError) return NextResponse.json({ error: 'load_failed' }, { status: 503 })
+    if (!existing) return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
     const existingNotes = existing?.notes && typeof existing.notes === 'object' && !Array.isArray(existing.notes)
       ? (existing.notes as Record<string, unknown>)
       : {}
@@ -313,35 +357,48 @@ export async function POST(req: NextRequest) {
       ...(payload.notes ?? {}),
       ...(nextPreDeparture ? { [PRE_DEPARTURE_NOTE_KEY]: nextPreDeparture } : {}),
     }
-    const nextReadToken =
-      typeof existing?.read_token === 'string' && existing.read_token ? existing.read_token : readToken()
     const { data, error } = await supabase
-      .from(TABLE)
-      .update({ ...baseRow, notes: nextNotes, read_token: nextReadToken })
-      .eq('id', payload.id)
-      .select('id, read_token')
+      .rpc('planner_book_update', {
+        p_id: payload.id,
+        p_edit_token: payload.edit_token,
+        p_city: payload.city,
+        p_items: payload.items,
+        p_notes: nextNotes,
+        p_custom_places: payload.custom_places ?? {},
+        p_user_links: payload.user_links ?? {},
+      })
       .maybeSingle()
 
-    if (!error && data?.id) return NextResponse.json({ id: data.id, read_token: data.read_token, updated: true })
+    const saved = data as PlannerBookMutation | null
+    if (!error && saved?.id) return NextResponse.json({ id: saved.id, read_token: saved.read_token, updated: true })
+    if (error) return NextResponse.json({ error: 'store_failed', code: error.code }, { status: 503 })
+    return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
   }
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const id = shortId()
     const token = readToken()
-    const { error } = await supabase.from(TABLE).insert({
-      id,
-      read_token: token,
-      ...baseRow,
-      notes: {
+    const editorToken = editToken()
+    const { data, error } = await supabase.rpc('planner_book_create', {
+      p_id: id,
+      p_read_token: token,
+      p_edit_token: editorToken,
+      p_city: payload.city,
+      p_items: payload.items,
+      p_notes: {
         ...(payload.notes ?? {}),
         ...(payload.pre_departure ? { [PRE_DEPARTURE_NOTE_KEY]: payload.pre_departure } : {}),
       },
+      p_custom_places: payload.custom_places ?? {},
+      p_user_links: payload.user_links ?? {},
     })
 
-    if (!error) return NextResponse.json({ id, read_token: token, created: true })
-    if (error.code !== '23505') {
-      return NextResponse.json({ error: 'store_failed', code: error.code }, { status: 503 })
+    const created = data as PlannerBookMutation[] | null
+    if (!error && created?.[0]?.id) {
+      return NextResponse.json({ id, read_token: token, edit_token: editorToken, created: true })
     }
+    if (error?.code === '23505') continue
+    return NextResponse.json({ error: 'store_failed', ...(error?.code ? { code: error.code } : {}) }, { status: 503 })
   }
 
   return NextResponse.json({ error: 'id_collision' }, { status: 503 })
@@ -353,36 +410,35 @@ export async function GET(req: NextRequest) {
 
   const id = req.nextUrl.searchParams.get('id')?.trim()
   const viewToken = req.nextUrl.searchParams.get('v')?.trim()
+  const editorToken = cleanEditToken(req.nextUrl.searchParams.get('e'))
   if (!id && !viewToken) return NextResponse.json({ error: 'missing_id' }, { status: 400 })
 
-  const query = supabase
-    .from(TABLE)
-    .select('id, read_token, city, items, notes, custom_places, user_links, expires_at, updated_at')
-  const { data, error } = await (viewToken ? query.eq('read_token', viewToken) : query.eq('id', id))
+  if (id && !editorToken) return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
+  const { data, error } = await (viewToken
+    ? supabase.rpc('planner_book_read_public', { p_read_token: viewToken })
+    : supabase.rpc('planner_book_read_edit', { p_id: id, p_edit_token: editorToken }))
     .maybeSingle()
 
   if (error) return NextResponse.json({ error: 'load_failed' }, { status: 503 })
-  if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
-    return NextResponse.json({ error: 'expired' }, { status: 410 })
-  }
+  const book = data as StoredPlannerBook | null
+  if (!book) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
-  const storedNotes = data.notes && typeof data.notes === 'object' && !Array.isArray(data.notes)
-    ? (data.notes as Record<string, unknown>)
+  const storedNotes = book.notes && typeof book.notes === 'object' && !Array.isArray(book.notes)
+    ? (book.notes as Record<string, unknown>)
     : {}
   const { [PRE_DEPARTURE_NOTE_KEY]: storedPreDeparture, ...placeNotes } = storedNotes
 
   return NextResponse.json({
-    id: data.id,
-    read_token: data.read_token,
+    ...(viewToken ? {} : { id: book.id }),
+    read_token: book.read_token,
     readonly: Boolean(viewToken),
-    city: data.city,
-    items: Array.isArray(data.items) ? data.items : [],
+    city: book.city,
+    items: Array.isArray(book.items) ? book.items : [],
     notes: placeNotes,
     pre_departure: cleanPreDeparture(storedPreDeparture),
-    custom_places: data.custom_places && typeof data.custom_places === 'object' ? data.custom_places : {},
-    user_links: data.user_links && typeof data.user_links === 'object' ? data.user_links : {},
-    updated_at: data.updated_at,
+    custom_places: book.custom_places && typeof book.custom_places === 'object' ? book.custom_places : {},
+    user_links: book.user_links && typeof book.user_links === 'object' ? book.user_links : {},
+    updated_at: book.updated_at,
   })
 }
 
@@ -392,74 +448,64 @@ export async function PATCH(req: NextRequest) {
 
   const input = (await req.json().catch(() => null)) as Record<string, unknown> | null
   const id = typeof input?.id === 'string' ? input.id.trim().slice(0, 32) : ''
-  const readToken = typeof input?.read_token === 'string' ? input.read_token.trim().slice(0, 32) : ''
+  const editorToken = cleanEditToken(input?.edit_token)
   const city = typeof input?.city === 'string' ? input.city.trim().slice(0, 32) : ''
+  if (!id || !editorToken) return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
   if (id && Object.prototype.hasOwnProperty.call(input ?? {}, 'pre_departure')) {
     const preDeparture = cleanPreDeparture(input?.pre_departure)
     if (!preDeparture) return NextResponse.json({ error: 'invalid_pre_departure' }, { status: 400 })
-    const { data: existing, error: loadError } = await supabase
-      .from(TABLE)
-      .select('notes')
-      .eq('id', id)
-      .maybeSingle()
+    const { data: rawExisting, error: loadError } = await supabase.rpc('planner_book_read_edit', {
+      p_id: id,
+      p_edit_token: editorToken,
+    }).maybeSingle()
+    const existing = rawExisting as StoredPlannerBook | null
     if (loadError) return NextResponse.json({ error: 'load_failed' }, { status: 503 })
     if (!existing) return NextResponse.json({ error: 'not_found' }, { status: 404 })
     const existingNotes = existing.notes && typeof existing.notes === 'object' && !Array.isArray(existing.notes)
       ? (existing.notes as Record<string, unknown>)
       : {}
-    const updatedAt = new Date().toISOString()
-    const expiresAt = new Date(Date.now() + PLANNER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()
-    const { error } = await supabase
-      .from(TABLE)
-      .update({
-        notes: { ...existingNotes, [PRE_DEPARTURE_NOTE_KEY]: preDeparture },
-        updated_at: updatedAt,
-        expires_at: expiresAt,
-      })
-      .eq('id', id)
+    const { data, error } = await supabase.rpc('planner_book_update', {
+      p_id: id,
+      p_edit_token: editorToken,
+      p_city: existing.city,
+      p_items: existing.items,
+      p_notes: { ...existingNotes, [PRE_DEPARTURE_NOTE_KEY]: preDeparture },
+      p_custom_places: existing.custom_places ?? {},
+      p_user_links: existing.user_links ?? {},
+    }).maybeSingle()
     if (error) return NextResponse.json({ error: 'update_failed', code: error.code }, { status: 503 })
-    return NextResponse.json({ id, pre_departure: preDeparture, updated_at: updatedAt })
+    const saved = data as PlannerBookMutation | null
+    if (!saved?.id) return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
+    return NextResponse.json({ id, pre_departure: preDeparture, updated_at: saved.updated_at })
   }
-  if (!id || !city) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
+  if (!city) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
-  let updateQuery = supabase
-    .from(TABLE)
-    .update({ city, updated_at: new Date().toISOString() })
-    .eq('id', id)
-  if (readToken) updateQuery = updateQuery.eq('read_token', readToken)
-  const { data, error } = await updateQuery.select('id, city, updated_at').maybeSingle()
+  const { data, error } = await supabase.rpc('planner_book_rename', {
+    p_id: id,
+    p_edit_token: editorToken,
+    p_city: city,
+  }).maybeSingle()
 
   if (error) return NextResponse.json({ error: 'update_failed', code: error.code }, { status: 503 })
-  if (!data?.id) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  const renamed = data as PlannerBookMutation | null
+  if (!renamed?.id) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
-  return NextResponse.json({ id: data.id, city: data.city, updated_at: data.updated_at })
+  return NextResponse.json({ id: renamed.id, city: renamed.city, updated_at: renamed.updated_at })
 }
 export async function DELETE(req: NextRequest) {
   const supabase = getTripSupabase()
   if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
 
   const id = req.nextUrl.searchParams.get('id')?.trim().slice(0, 32)
-  const readToken = req.nextUrl.searchParams.get('read_token')?.trim().slice(0, 32)
-  if (!id) return NextResponse.json({ error: 'missing_id' }, { status: 400 })
+  const editorToken = cleanEditToken(req.nextUrl.searchParams.get('e'))
+  if (!id || !editorToken) return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
 
-  let findQuery = supabase.from(TABLE).select('id').eq('id', id)
-  if (readToken) findQuery = findQuery.eq('read_token', readToken)
-  const { data: existing, error: findError } = await findQuery.maybeSingle()
-  if (findError) return NextResponse.json({ error: 'load_failed', code: findError.code }, { status: 503 })
-  if (!existing?.id) return NextResponse.json({ error: 'not_found' }, { status: 404 })
-
-  let deleteQuery = supabase.from(TABLE).delete().eq('id', id)
-  if (readToken) deleteQuery = deleteQuery.eq('read_token', readToken)
-  const { error } = await deleteQuery
+  const { data: deleted, error } = await supabase.rpc('planner_book_delete', {
+    p_id: id,
+    p_edit_token: editorToken,
+  })
   if (error) return NextResponse.json({ error: 'delete_failed', code: error.code }, { status: 503 })
-
-  const { data: remaining, error: verifyError } = await supabase
-    .from(TABLE)
-    .select('id')
-    .eq('id', id)
-    .maybeSingle()
-  if (verifyError) return NextResponse.json({ error: 'verify_failed', code: verifyError.code }, { status: 503 })
-  if (remaining?.id) return NextResponse.json({ error: 'delete_not_applied' }, { status: 503 })
+  if (deleted !== true) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
   return NextResponse.json({ deleted: true })
 }

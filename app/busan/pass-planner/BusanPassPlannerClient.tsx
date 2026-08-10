@@ -297,11 +297,12 @@ const SHARE_PARAM = 'plan'
 const SHARE_ID_PARAM = 's'
 const PLANNER_BOOK_PARAM = 'p'
 const PLANNER_PREVIEW_PARAM = 'v'
-const PLANNER_IMAGE_OWNER_KEY = 'planner-image-owner'
-const PLANNER_IMAGE_OWNER_PARAM = 'i'
-const PLANNER_IMAGE_MAX_PER_BOOK = 24
+const PLANNER_BOOK_EDIT_PARAM = 'e'
+const PLANNER_BOOK_EDIT_KEY = 'book-edit-token'
+const LEGACY_PLANNER_IMAGE_OWNER_KEY = 'planner-image-owner'
+const LEGACY_PLANNER_IMAGE_OWNER_PARAM = 'i'
 const PLANNER_IMAGE_MAX_PER_PLACE = 3
-const PLANNER_IMAGE_MAX_BYTES = 1_048_576
+const PLANNER_IMAGE_MAX_BYTES = 600 * 1024
 const PLANNER_IMAGE_SOURCE_MAX_BYTES = 30 * 1024 * 1024
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
@@ -3058,14 +3059,43 @@ async function fetchShortSharedPlan(search: string, placeById: Map<string, MapPl
   return items.length > 0 ? { items, notes, customPlaces, userLinks } : null
 }
 
-async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>) {
+function plannerBookEditTokenFromSearch(search: string) {
+  const token = new URLSearchParams(search).get(PLANNER_BOOK_EDIT_PARAM)?.trim() ?? ''
+  return /^[a-f0-9]{64}$/.test(token) ? token : null
+}
+
+function plannerBookEditTokenStorageKey(storageKey: string, bookId: string) {
+  return `${storageKey}:${PLANNER_BOOK_EDIT_KEY}:${bookId}`
+}
+
+function legacyPlannerImageOwnerToken(search: string, storageKey: string, bookId: string) {
+  const fromUrl = new URLSearchParams(search).get(LEGACY_PLANNER_IMAGE_OWNER_PARAM)?.trim() ?? ''
+  const fromStorage = window.localStorage.getItem(`${storageKey}:${LEGACY_PLANNER_IMAGE_OWNER_KEY}:${bookId}`)?.trim() ?? ''
+  const token = fromUrl || fromStorage
+  return /^[A-Za-z0-9_-]{24,96}$/.test(token) ? token : ''
+}
+
+async function recoverPlannerBookEditToken(bookId: string, imageOwnerToken: string) {
+  if (!bookId || !imageOwnerToken) return null
+  const response = await fetch('/api/pass-planner/book', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'recover_edit_token', id: bookId, image_owner_token: imageOwnerToken }),
+  })
+  if (!response.ok) return null
+  const data = (await response.json().catch(() => null)) as { edit_token?: unknown } | null
+  return typeof data?.edit_token === 'string' && /^[a-f0-9]{64}$/.test(data.edit_token) ? data.edit_token : null
+}
+
+async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>, storedEditToken?: string | null) {
   const params = new URLSearchParams(search)
   const id = params.get(PLANNER_BOOK_PARAM)?.trim()
   const viewToken = params.get(PLANNER_PREVIEW_PARAM)?.trim()
   if (!id && !viewToken) return null
 
-  const query = id
-    ? `id=${encodeURIComponent(id)}`
+  const editorToken = plannerBookEditTokenFromSearch(search) ?? storedEditToken?.trim() ?? ''
+  const query = id && editorToken
+    ? `id=${encodeURIComponent(id)}&${PLANNER_BOOK_EDIT_PARAM}=${encodeURIComponent(editorToken)}`
     : `${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(viewToken ?? '')}`
   const res = await fetch(`/api/pass-planner/book?${query}`, {
     cache: 'no-store',
@@ -3107,10 +3137,10 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
         )
       : {}
 
-  const bookId = typeof data.id === 'string' && data.id ? data.id : id
+  const bookId = typeof data.id === 'string' && data.id ? data.id : null
   const userLinks = cleanUserLinks(data.user_links)
 
-  return (items.length > 0 || Object.keys(customPlaces).length > 0) && bookId
+  return (items.length > 0 || Object.keys(customPlaces).length > 0) && (bookId || viewToken)
     ? {
         id: bookId,
         readToken: typeof data.read_token === 'string' ? data.read_token : null,
@@ -3143,11 +3173,6 @@ function cleanPlannerImages(value: unknown): PlannerCardImage[] {
   })
 }
 
-function plannerImageOwnerFromSearch(search: string) {
-  const token = new URLSearchParams(search).get(PLANNER_IMAGE_OWNER_PARAM)?.trim() ?? ''
-  return /^[A-Za-z0-9_-]{24,96}$/.test(token) ? token : null
-}
-
 function plannerImageFunctionUrl(action?: string) {
   const base = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL?.replace(/\/$/, '')
   if (!base) return ''
@@ -3156,55 +3181,40 @@ function plannerImageFunctionUrl(action?: string) {
   return url.toString()
 }
 
-function plannerImageHeaders(ownerToken?: string) {
+function plannerImageHeaders(editorToken?: string) {
   const anonKey = process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY ?? ''
   if (!anonKey) return {}
   return {
     apikey: anonKey,
     Authorization: `Bearer ${anonKey}`,
-    ...(ownerToken ? { 'x-planner-image-token': ownerToken } : {}),
+    ...(editorToken ? { 'x-planner-edit-token': editorToken } : {}),
   }
 }
 
 async function readPlannerImageResponse(response: Response) {
-  const data = (await response.json().catch(() => null)) as { images?: unknown; owner_token?: unknown; error?: unknown } | null
+  const data = (await response.json().catch(() => null)) as { images?: unknown; error?: unknown } | null
   if (!response.ok || !data) {
-    return { images: null as PlannerCardImage[] | null, ownerToken: null, error: typeof data?.error === 'string' ? data.error : 'request_failed' }
+    return { images: null as PlannerCardImage[] | null, error: typeof data?.error === 'string' ? data.error : 'request_failed' }
   }
   return {
     images: cleanPlannerImages(data.images),
-    ownerToken: typeof data.owner_token === 'string' ? data.owner_token : null,
     error: null,
   }
 }
 
-async function fetchPlannerImages(bookId: string, readToken: string | null) {
+async function fetchPlannerImages(readToken: string | null) {
   const endpoint = plannerImageFunctionUrl()
-  if (!endpoint || !bookId || !readToken) return null
+  if (!endpoint || !readToken) return null
   const url = new URL(endpoint)
-  url.searchParams.set('bookId', bookId)
   url.searchParams.set('v', readToken)
   const result = await readPlannerImageResponse(await fetch(url.toString(), { headers: plannerImageHeaders() }))
   return result.images
 }
 
-async function claimPlannerImageOwner(bookId: string) {
-  const endpoint = plannerImageFunctionUrl('claim')
-  if (!endpoint || !bookId) return null
-  const result = await readPlannerImageResponse(
-    await fetch(endpoint, {
-      method: 'POST',
-      headers: { ...plannerImageHeaders(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookId }),
-    }),
-  )
-  return result.ownerToken
-}
-
 async function uploadPlannerImage(
   bookId: string,
   placeId: string,
-  ownerToken: string,
+  editorToken: string,
   file: File,
   width: number,
   height: number,
@@ -3220,37 +3230,36 @@ async function uploadPlannerImage(
   return readPlannerImageResponse(
     await fetch(endpoint, {
       method: 'POST',
-      headers: plannerImageHeaders(ownerToken),
+      headers: plannerImageHeaders(editorToken),
       body: form,
     }),
   )
 }
 
-async function deletePlannerImage(bookId: string, imageId: string, ownerToken: string) {
+async function deletePlannerImage(bookId: string, imageId: string, editorToken: string) {
   const endpoint = plannerImageFunctionUrl()
   if (!endpoint) return null
   return readPlannerImageResponse(
     await fetch(endpoint, {
       method: 'DELETE',
-      headers: { ...plannerImageHeaders(ownerToken), 'Content-Type': 'application/json' },
+      headers: { ...plannerImageHeaders(editorToken), 'Content-Type': 'application/json' },
       body: JSON.stringify({ bookId, imageId }),
     }),
   )
 }
 
 async function copyPlannerImages(
-  sourceBookId: string,
   sourceReadToken: string,
   targetBookId: string,
-  targetOwnerToken: string,
+  targetEditorToken: string,
 ) {
   const endpoint = plannerImageFunctionUrl('copy')
   if (!endpoint) return null
   return readPlannerImageResponse(
     await fetch(endpoint, {
       method: 'POST',
-      headers: { ...plannerImageHeaders(targetOwnerToken), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourceBookId, sourceReadToken, targetBookId }),
+      headers: { ...plannerImageHeaders(targetEditorToken), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceReadToken, targetBookId }),
     }),
   )
 }
@@ -3310,6 +3319,7 @@ async function imageFromFile(file: File) {
 async function savePlannerBook(
   city: string,
   id: string | null,
+  editorToken: string | null,
   items: PlannerItem[],
   notes: Record<string, string>,
   customPlaces: Record<string, CustomPlannerPlace>,
@@ -3322,6 +3332,7 @@ async function savePlannerBook(
     body: JSON.stringify({
       city,
       id,
+      ...(editorToken ? { edit_token: editorToken } : {}),
       items,
       notes,
       custom_places: customPlaces,
@@ -3330,11 +3341,12 @@ async function savePlannerBook(
     }),
   })
   if (!res.ok) return null
-  const data = (await res.json()) as { id?: unknown; read_token?: unknown }
+  const data = (await res.json()) as { id?: unknown; read_token?: unknown; edit_token?: unknown }
   return typeof data.id === 'string' && data.id
     ? {
         id: data.id,
         readToken: typeof data.read_token === 'string' ? data.read_token : null,
+        editToken: typeof data.edit_token === 'string' && /^[a-f0-9]{64}$/.test(data.edit_token) ? data.edit_token : null,
       }
     : null
 }
@@ -3819,11 +3831,11 @@ const PRE_DEPARTURE_RESOURCES: Record<PreDepartureResourceId, PreDepartureResour
   },
 }
 
-async function savePreDepartureChecklistCloud(id: string, checklist: PreDepartureChecklistStorage) {
+async function savePreDepartureChecklistCloud(id: string, editorToken: string, checklist: PreDepartureChecklistStorage) {
   const res = await fetch('/api/pass-planner/book', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, pre_departure: serializePreDepartureChecklistStorage(checklist) }),
+    body: JSON.stringify({ id, edit_token: editorToken, pre_departure: serializePreDepartureChecklistStorage(checklist) }),
   })
   if (!res.ok) return null
   const data = (await res.json()) as { pre_departure?: unknown; updated_at?: unknown }
@@ -3833,8 +3845,11 @@ async function savePreDepartureChecklistCloud(id: string, checklist: PreDepartur
   }
 }
 
-async function fetchPreDepartureChecklistCloud(id: string) {
-  const res = await fetch(`/api/pass-planner/book?id=${encodeURIComponent(id)}`, { cache: 'no-store' })
+async function fetchPreDepartureChecklistCloud(id: string, editorToken: string) {
+  const res = await fetch(
+    `/api/pass-planner/book?id=${encodeURIComponent(id)}&${PLANNER_BOOK_EDIT_PARAM}=${encodeURIComponent(editorToken)}`,
+    { cache: 'no-store' },
+  )
   if (!res.ok) return null
   const data = (await res.json()) as { pre_departure?: unknown; updated_at?: unknown }
   if (!data.pre_departure) return null
@@ -6340,7 +6355,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [placeNotes, setPlaceNotes] = useState<Record<string, string>>({})
   const [placeUserLinks, setPlaceUserLinks] = useState<Record<string, PlannerUserLink[]>>({})
   const [plannerImages, setPlannerImages] = useState<PlannerCardImage[]>([])
-  const [plannerImageOwnerToken, setPlannerImageOwnerToken] = useState<string | null>(null)
   const [plannerImageBusy, setPlannerImageBusy] = useState(false)
   const [customPlaces, setCustomPlaces] = useState<Record<string, CustomPlannerPlace>>({})
   const [googlePlaceDetailsRevision, setGooglePlaceDetailsRevision] = useState(0)
@@ -6373,6 +6387,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [shareSaving, setShareSaving] = useState(false)
   const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
   const [plannerBookReadToken, setPlannerBookReadToken] = useState<string | null>(null)
+  const [plannerBookEditToken, setPlannerBookEditToken] = useState<string | null>(null)
   const [plannerBookUpdatedAt, setPlannerBookUpdatedAt] = useState<string | null>(null)
   const [plannerLinkUnavailable, setPlannerLinkUnavailable] = useState(false)
   const [readOnlyPlan, setReadOnlyPlan] = useState(false)
@@ -7627,11 +7642,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             ? `?${new URLSearchParams(config.initialSearchParams).toString()}`
             : window.location.search
           const initialParams = new URLSearchParams(initialSearch)
-          const urlImageOwnerToken = plannerImageOwnerFromSearch(window.location.search)
+          const requestedBookId = initialParams.get(PLANNER_BOOK_PARAM)?.trim() ?? ''
+          const urlEditorToken = plannerBookEditTokenFromSearch(initialSearch)
+          const storedEditorToken = requestedBookId
+            ? window.localStorage.getItem(plannerBookEditTokenStorageKey(config.storageKey, requestedBookId))?.trim() ?? ''
+            : ''
+          let recoveredEditorToken = urlEditorToken ?? storedEditorToken
+          if (requestedBookId && !recoveredEditorToken) {
+            const legacyOwnerToken = legacyPlannerImageOwnerToken(initialSearch, config.storageKey, requestedBookId)
+            recoveredEditorToken = (await recoverPlannerBookEditToken(requestedBookId, legacyOwnerToken)) ?? ''
+            if (recoveredEditorToken) {
+              window.localStorage.setItem(
+                plannerBookEditTokenStorageKey(config.storageKey, requestedBookId),
+                recoveredEditorToken,
+              )
+            }
+          }
           const hasPlannerBookLink = Boolean(
             initialParams.get(PLANNER_BOOK_PARAM)?.trim() || initialParams.get(PLANNER_PREVIEW_PARAM)?.trim(),
           )
-          const plannerBook = await fetchPlannerBook(initialSearch, placeById)
+          const plannerBook = await fetchPlannerBook(initialSearch, placeById, recoveredEditorToken)
           if (plannerBook) {
             const hasOrderedPlaces = plannerBook.items.some((item) => Boolean(planItemPlaceId(item)))
             const hasCustomPlaces = Boolean(plannerBook.customPlaces && Object.keys(plannerBook.customPlaces).length > 0)
@@ -7641,21 +7671,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
             setReadOnlyPlan(plannerBook.readonly)
             setPlannerImages([])
-            const imageOwnerStorageKey = `${config.storageKey}:${PLANNER_IMAGE_OWNER_KEY}:${plannerBook.id}`
-            const imageOwnerToken = plannerBook.readonly
-              ? null
-              : urlImageOwnerToken ?? window.localStorage.getItem(imageOwnerStorageKey)
-            setPlannerImageOwnerToken(imageOwnerToken)
-            if (imageOwnerToken) {
-              window.localStorage.setItem(imageOwnerStorageKey, imageOwnerToken)
-              if (urlImageOwnerToken) {
+            const activeEditorToken = plannerBook.readonly ? null : recoveredEditorToken
+            setPlannerBookEditToken(activeEditorToken)
+            if (plannerBook.id && activeEditorToken) {
+              window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, plannerBook.id), activeEditorToken)
+              if (urlEditorToken || initialParams.get(LEGACY_PLANNER_IMAGE_OWNER_PARAM)) {
                 const cleanUrl = new URL(window.location.href)
-                cleanUrl.searchParams.delete(PLANNER_IMAGE_OWNER_PARAM)
+                cleanUrl.searchParams.delete(PLANNER_BOOK_EDIT_PARAM)
+                cleanUrl.searchParams.delete(LEGACY_PLANNER_IMAGE_OWNER_PARAM)
                 window.history.replaceState(null, '', `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`)
               }
             }
             if (plannerBook.readToken) {
-              void fetchPlannerImages(plannerBook.id, plannerBook.readToken).then((images) => {
+              void fetchPlannerImages(plannerBook.readToken).then((images) => {
                 if (images) setPlannerImages(images)
               })
             }
@@ -7705,7 +7733,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setCustomPlaces({})
             setPlaceUserLinks({})
             setPlannerImages([])
-            setPlannerImageOwnerToken(null)
+            setPlannerBookEditToken(null)
             setPlannerBookId(null)
             setPlannerBookReadToken(null)
             setPlannerBookUpdatedAt(null)
@@ -7738,6 +7766,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           const rawBookUpdatedAt = window.localStorage.getItem(`${config.storageKey}:book-updated-at`)
           if (rawBookId) {
             setPlannerBookId(rawBookId)
+            setPlannerBookEditToken(window.localStorage.getItem(plannerBookEditTokenStorageKey(config.storageKey, rawBookId))?.trim() ?? null)
             if (rawBookReadToken) setPlannerBookReadToken(rawBookReadToken)
             if (rawBookUpdatedAt) setPlannerBookUpdatedAt(rawBookUpdatedAt)
           }
@@ -7801,10 +7830,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (plannerBookReadToken) {
       window.localStorage.setItem(`${config.storageKey}:book-read-token`, plannerBookReadToken)
     }
+    if (plannerBookEditToken) {
+      window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, plannerBookId), plannerBookEditToken)
+    }
     if (plannerBookUpdatedAt) {
       window.localStorage.setItem(`${config.storageKey}:book-updated-at`, plannerBookUpdatedAt)
     }
-  }, [config.storageKey, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
+  }, [config.storageKey, plannerBookEditToken, plannerBookId, plannerBookReadToken, plannerBookUpdatedAt, readOnlyPlan, storageReady])
 
   useEffect(() => {
     if (!storageReady || dayViewStorageReadyKey === dayViewStorageKey) return
@@ -7945,6 +7977,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       !storageReady ||
       readOnlyPlan ||
       !plannerBookId ||
+      !plannerBookEditToken ||
       preDepartureStorageReadyKey !== preDepartureStorageKey
     ) {
       if (!plannerBookId) setPreDepartureCloudStatus('local')
@@ -7960,7 +7993,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const checklist = preDepartureChecklist
     preDepartureCloudSaveTimerRef.current = window.setTimeout(() => {
       setPreDepartureCloudStatus('saving')
-      void savePreDepartureChecklistCloud(plannerBookId, checklist)
+      void savePreDepartureChecklistCloud(plannerBookId, plannerBookEditToken, checklist)
         .then((result) => {
           if (!result) {
             setPreDepartureCloudStatus('error')
@@ -7982,6 +8015,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
     }
   }, [
+    plannerBookEditToken,
     plannerBookId,
     preDepartureChecklist,
     preDepartureChecklistSignature,
@@ -7992,10 +8026,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   ])
 
   useEffect(() => {
-    if (!preDepartureOpen || !plannerBookId || preDepartureCloudStatus === 'saving') return
+    if (!preDepartureOpen || !plannerBookId || !plannerBookEditToken || preDepartureCloudStatus === 'saving') return
     let cancelled = false
     const refresh = async () => {
-      const result = await fetchPreDepartureChecklistCloud(plannerBookId).catch(() => null)
+      const result = await fetchPreDepartureChecklistCloud(plannerBookId, plannerBookEditToken).catch(() => null)
       if (!result || cancelled) return
       const remoteSignature = JSON.stringify(serializePreDepartureChecklistStorage(result.checklist))
       if (
@@ -8022,6 +8056,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       window.clearInterval(interval)
     }
   }, [
+    plannerBookEditToken,
     plannerBookId,
     preDepartureChecklistSignature,
     preDepartureCloudStatus,
@@ -9065,24 +9100,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     updateNoteKeys([itemId], note)
   }
 
-  const ensurePlannerImageOwner = useCallback(async () => {
+  const ensurePlannerBookEditToken = useCallback(() => {
     if (!plannerBookId || readOnlyPlan) return null
-    if (plannerImageOwnerToken) return plannerImageOwnerToken
-    const storageKey = `${config.storageKey}:${PLANNER_IMAGE_OWNER_KEY}:${plannerBookId}`
+    if (plannerBookEditToken) return plannerBookEditToken
+    const storageKey = plannerBookEditTokenStorageKey(config.storageKey, plannerBookId)
     const storedToken = window.localStorage.getItem(storageKey)?.trim() ?? ''
     if (storedToken) {
-      setPlannerImageOwnerToken(storedToken)
+      setPlannerBookEditToken(storedToken)
       return storedToken
     }
-    const claimedToken = await claimPlannerImageOwner(plannerBookId)
-    if (!claimedToken) {
-      alert('這份行程的圖片管理權限已在其他瀏覽器建立。請回到原本建立行程的裝置管理圖片。')
-      return null
-    }
-    window.localStorage.setItem(storageKey, claimedToken)
-    setPlannerImageOwnerToken(claimedToken)
-    return claimedToken
-  }, [config.storageKey, plannerBookId, plannerImageOwnerToken, readOnlyPlan])
+    return null
+  }, [config.storageKey, plannerBookEditToken, plannerBookId, readOnlyPlan])
 
   const addPlannerImage = useCallback(async (itemId: string, file: File) => {
     if (readOnlyPlan) return
@@ -9091,10 +9119,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
     if (plannerImageBusy) return
-    if (plannerImages.length >= PLANNER_IMAGE_MAX_PER_BOOK) {
-      alert(`每份行程最多 ${PLANNER_IMAGE_MAX_PER_BOOK} 張照片。`)
-      return
-    }
     if (plannerImages.filter((image) => image.placeId === itemId).length >= PLANNER_IMAGE_MAX_PER_PLACE) {
       alert(`每個景點最多 ${PLANNER_IMAGE_MAX_PER_PLACE} 張照片。`)
       return
@@ -9102,16 +9126,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPlannerImageBusy(true)
     try {
       const prepared = await imageFromFile(file)
-      const ownerToken = await ensurePlannerImageOwner()
-      if (!ownerToken) return
-      const result = await uploadPlannerImage(plannerBookId, itemId, ownerToken, prepared.file, prepared.width, prepared.height)
+      const editorToken = ensurePlannerBookEditToken()
+      if (!editorToken) return
+      const result = await uploadPlannerImage(plannerBookId, itemId, editorToken, prepared.file, prepared.width, prepared.height)
       if (result?.images) {
         setPlannerImages(result.images)
         return
       }
       if (result?.error === 'image_limit_reached') {
-        alert(`照片數量已達上限：每個景點 ${PLANNER_IMAGE_MAX_PER_PLACE} 張、每份行程 ${PLANNER_IMAGE_MAX_PER_BOOK} 張。`)
-      } else if (result?.error === 'owner_required') {
+        alert(`照片數量已達上限：每個景點最多 ${PLANNER_IMAGE_MAX_PER_PLACE} 張；個人新增照片最多 12 張。`)
+      } else if (result?.error === 'owner_required' || result?.error === 'edit_required') {
         alert('圖片管理權限已失效，請重新開啟你的行程後再試。')
       } else if (result?.error === 'invalid_upload') {
         alert('這張行程卡尚未準備好接收照片。請先按「儲存更新」後重新整理，再上傳一次。')
@@ -9136,21 +9160,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     } finally {
       setPlannerImageBusy(false)
     }
-  }, [ensurePlannerImageOwner, plannerBookId, plannerImageBusy, plannerImages, readOnlyPlan])
+  }, [ensurePlannerBookEditToken, plannerBookId, plannerImageBusy, plannerImages, readOnlyPlan])
 
   const removePlannerImage = useCallback(async (imageId: string) => {
     if (!plannerBookId || plannerImageBusy || readOnlyPlan) return
     setPlannerImageBusy(true)
     try {
-      const ownerToken = await ensurePlannerImageOwner()
-      if (!ownerToken) return
-      const result = await deletePlannerImage(plannerBookId, imageId, ownerToken)
+      const editorToken = ensurePlannerBookEditToken()
+      if (!editorToken) return
+      const result = await deletePlannerImage(plannerBookId, imageId, editorToken)
       if (result?.images) setPlannerImages(result.images)
       else alert('照片移除失敗，請稍後再試。')
     } finally {
       setPlannerImageBusy(false)
     }
-  }, [ensurePlannerImageOwner, plannerBookId, plannerImageBusy, readOnlyPlan])
+  }, [ensurePlannerBookEditToken, plannerBookId, plannerImageBusy, readOnlyPlan])
 
   const addPlaceUserLink = (placeId: string, link: PlannerUserLink) => {
     if (readOnlyPlan) return
@@ -10853,6 +10877,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       transferUrl.searchParams.set(PLANNER_PREVIEW_PARAM, plannerBookReadToken)
     } else {
       transferUrl.searchParams.set(PLANNER_BOOK_PARAM, plannerBookId)
+      if (plannerBookEditToken) transferUrl.searchParams.set(PLANNER_BOOK_EDIT_PARAM, plannerBookEditToken)
     }
     const transferValue = encodePreDepartureTransfer({
       bookId: plannerBookId,
@@ -10871,6 +10896,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [
     config.shareSearchParams,
+    plannerBookEditToken,
     plannerBookId,
     plannerBookReadToken,
     preDepartureChecklist,
@@ -10899,8 +10925,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const urlPlannerBookId = currentParams.get(PLANNER_BOOK_PARAM)?.trim() ?? ''
     const storedPlannerBookId = window.localStorage.getItem(`${config.storageKey}:book-id`)?.trim() ?? ''
     const currentPlannerBookId = plannerBookId ?? (urlPlannerBookId || storedPlannerBookId || '')
+    const currentPlannerBookEditToken =
+      plannerBookEditToken ??
+      (currentPlannerBookId
+        ? window.localStorage.getItem(plannerBookEditTokenStorageKey(config.storageKey, currentPlannerBookId))?.trim() ?? ''
+        : '')
     let savedPlannerBookId = currentPlannerBookId
     let savedReadToken = plannerBookReadToken
+    let savedEditorToken = currentPlannerBookEditToken
 
     try {
       if (!hasSavablePlannerContent) {
@@ -10919,6 +10951,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const book = await savePlannerBook(
           config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
           currentPlannerBookId,
+          currentPlannerBookEditToken || null,
           validPlanItems,
           sharedNotes,
           customPlaces,
@@ -10929,16 +10962,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           saveSucceeded = true
           savedPlannerBookId = book.id
           savedReadToken = book.readToken ?? plannerBookReadToken
+          savedEditorToken = book.editToken ?? currentPlannerBookEditToken
           const updatedAt = new Date().toISOString()
           if (!plannerBookId) preDepartureMigrationTargetRef.current = book.id
           setPlannerBookId(book.id)
           setPlannerBookReadToken(savedReadToken)
+          setPlannerBookEditToken(savedEditorToken || null)
           setPlannerBookUpdatedAt(updatedAt)
           preDepartureLastCloudSignatureRef.current = preDepartureChecklistSignature
           setPreDepartureCloudStatus('saved')
           removeJsonCache(`planner-book:id=${encodeURIComponent(book.id)}`)
           if (savedReadToken) removeJsonCache(`planner-book:${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(savedReadToken)}`)
           window.localStorage.setItem(`${config.storageKey}:book-id`, book.id)
+          if (savedEditorToken) {
+            window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, book.id), savedEditorToken)
+          }
           if (savedReadToken) window.localStorage.setItem(`${config.storageKey}:book-read-token`, savedReadToken)
           window.localStorage.setItem(`${config.storageKey}:book-updated-at`, updatedAt)
           if (config.recentListKey && config.recentRegionKey) {
@@ -10966,6 +11004,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             if (value) url.searchParams.set(key, value)
           })
           url.searchParams.set(PLANNER_BOOK_PARAM, book.id)
+          if (savedEditorToken) url.searchParams.set(PLANNER_BOOK_EDIT_PARAM, savedEditorToken)
         } else {
           shortShareId = ''
         }
@@ -10979,6 +11018,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         return
       }
       const shareUrl = url.toString()
+      const previewUrl = savedReadToken ? new URL(window.location.pathname, PUBLIC_SITE_ORIGIN) : null
+      if (previewUrl) {
+        Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
+          if (value) previewUrl.searchParams.set(key, value)
+        })
+        previewUrl.searchParams.set(PLANNER_PREVIEW_PARAM, savedReadToken ?? '')
+      }
+      const publicShareUrl = previewUrl?.toString() ?? shareUrl
       const sharePath = `${url.pathname}${url.search}`
       trackPlannerEvent('share', {
         plan_count: validPlanIds.length,
@@ -10996,21 +11043,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setSaveLinkCopied(false)
         setSavePreviewCopied(false)
         setSaveSheetUrl(shareUrl)
-        if (savedReadToken) {
-          const token = savedReadToken
-          const previewUrl = token ? new URL(window.location.pathname, PUBLIC_SITE_ORIGIN) : null
-          if (previewUrl) {
-            Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
-              if (value) previewUrl.searchParams.set(key, value)
-            })
-            previewUrl.searchParams.set(PLANNER_PREVIEW_PARAM, token)
-            setSaveSheetPreviewUrl(previewUrl.toString())
-          } else {
-            setSaveSheetPreviewUrl(null)
-          }
-        } else {
-          setSaveSheetPreviewUrl(null)
-        }
+        setSaveSheetPreviewUrl(previewUrl?.toString() ?? null)
         return
       }
 
@@ -11019,7 +11052,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           await navigator.share({
             title: config.shareTitle,
             text: config.shareText,
-            url: shareUrl,
+            url: publicShareUrl,
           })
           return
         } catch (err) {
@@ -11028,7 +11061,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
 
       try {
-        await navigator.clipboard.writeText(shareUrl)
+        await navigator.clipboard.writeText(publicShareUrl)
         alert('已複製分享連結')
       } catch {
         alert('複製失敗，請手動複製網址列')
@@ -11054,6 +11087,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     hasSavablePlannerContent,
     placeUserLinks,
     placeNotes,
+    plannerBookEditToken,
     plannerBookId,
     plannerBookReadToken,
     preDepartureChecklist,
@@ -11074,6 +11108,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const book = await savePlannerBook(
           config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
           null,
+          null,
           validPlanItems,
           sharedNotes,
           customPlaces,
@@ -11087,18 +11122,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
         const updatedAt = new Date().toISOString()
         const readToken = book.readToken ?? null
+        const editorToken = book.editToken ?? null
         setPlannerBookId(book.id)
         setPlannerBookReadToken(readToken)
+        setPlannerBookEditToken(editorToken)
         setPlannerBookUpdatedAt(updatedAt)
         setReadOnlyPlan(false)
         setPlannerImages([])
-        setPlannerImageOwnerToken(null)
-        const imageOwnerToken = await claimPlannerImageOwner(book.id)
-        if (imageOwnerToken) {
-          window.localStorage.setItem(`${config.storageKey}:${PLANNER_IMAGE_OWNER_KEY}:${book.id}`, imageOwnerToken)
-          setPlannerImageOwnerToken(imageOwnerToken)
-          if (plannerBookId && plannerBookReadToken) {
-            const copiedImages = await copyPlannerImages(plannerBookId, plannerBookReadToken, book.id, imageOwnerToken)
+        if (editorToken) {
+          window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, book.id), editorToken)
+          if (plannerBookReadToken) {
+            const copiedImages = await copyPlannerImages(plannerBookReadToken, book.id, editorToken)
             if (copiedImages?.images) setPlannerImages(copiedImages.images)
           }
         }
@@ -11111,6 +11145,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         if (readToken) removeJsonCache(`planner-book:${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(readToken)}`)
 
         window.localStorage.setItem(`${config.storageKey}:book-id`, book.id)
+        if (editorToken) {
+          window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, book.id), editorToken)
+        }
         if (readToken) window.localStorage.setItem(`${config.storageKey}:book-read-token`, readToken)
         window.localStorage.setItem(`${config.storageKey}:book-updated-at`, updatedAt)
         if (config.recentListKey && config.recentRegionKey) {
@@ -11165,7 +11202,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     hasSavablePlannerContent,
     placeNotes,
     placeUserLinks,
-    plannerBookId,
     plannerBookReadToken,
     preDepartureChecklist,
     preDepartureChecklistSignature,
@@ -12645,6 +12681,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 handleShare()
                 return true
               }
+              if (!plannerBookEditToken) return false
               if (preDepartureCloudSaveTimerRef.current != null) {
                 window.clearTimeout(preDepartureCloudSaveTimerRef.current)
                 preDepartureCloudSaveTimerRef.current = null
@@ -12654,7 +12691,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 return true
               }
               setPreDepartureCloudStatus('saving')
-              const result = await savePreDepartureChecklistCloud(plannerBookId, preDepartureChecklist).catch(() => null)
+              const result = await savePreDepartureChecklistCloud(plannerBookId, plannerBookEditToken, preDepartureChecklist).catch(() => null)
               if (!result) {
                 setPreDepartureCloudStatus('error')
                 return false
@@ -12810,8 +12847,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               )}
               <div className={styles.saveLinkGroup}>
                 <div className={styles.saveLinkHeader}>
-                  <span>我的編輯連結</span>
+                  <span>我的編輯連結（私密）</span>
                 </div>
+                <p className={styles.saveHint}>只留給自己在其他裝置繼續編輯；不要傳給買家或朋友。</p>
                 <div className={styles.saveUrlRow}>
                   <div className={styles.saveUrl}>{saveSheetUrl}</div>
                   <button type="button" className={styles.saveCopyButton} onClick={copySavedLink}>
