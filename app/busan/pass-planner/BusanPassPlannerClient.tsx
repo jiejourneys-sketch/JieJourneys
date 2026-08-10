@@ -302,7 +302,7 @@ const PLANNER_IMAGE_OWNER_PARAM = 'i'
 const PLANNER_IMAGE_MAX_PER_BOOK = 24
 const PLANNER_IMAGE_MAX_PER_PLACE = 3
 const PLANNER_IMAGE_MAX_BYTES = 1_048_576
-const PLANNER_IMAGE_SOURCE_MAX_BYTES = 10 * 1024 * 1024
+const PLANNER_IMAGE_SOURCE_MAX_BYTES = 30 * 1024 * 1024
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 // v4 drops the old permanent "not found" result.  A short Google Maps link
@@ -3251,9 +3251,15 @@ async function copyPlannerImages(
 }
 
 async function imageFromFile(file: File) {
-  if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size <= 0 || file.size > PLANNER_IMAGE_SOURCE_MAX_BYTES) {
+  const sourceType = file.type.toLowerCase()
+  const sourceName = file.name.toLowerCase()
+  const supportedSource =
+    /^image\/(jpeg|jpg|png|webp|heic|heif)$/i.test(sourceType) ||
+    /\.(jpe?g|png|webp|heic|heif)$/i.test(sourceName)
+  if (!supportedSource || file.size <= 0) {
     throw new Error('unsupported_image')
   }
+  if (file.size > PLANNER_IMAGE_SOURCE_MAX_BYTES) throw new Error('source_too_large')
   const objectUrl = URL.createObjectURL(file)
   try {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -5418,7 +5424,7 @@ function PlannerImagesPanel({
               <input
                 ref={inputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
                 disabled={imageBusy || images.length >= PLANNER_IMAGE_MAX_PER_PLACE}
                 onChange={(event) => {
                   const file = event.currentTarget.files?.[0]
@@ -5428,7 +5434,7 @@ function PlannerImagesPanel({
                   })
                 }}
               />
-              <span>每個景點最多 {PLANNER_IMAGE_MAX_PER_PLACE} 張；整份行程最多 {PLANNER_IMAGE_MAX_PER_BOOK} 張。會自動壓縮成 JPEG。</span>
+              <span>可選原始照片（最多 30MB），會在裝置上自動等比例縮小後上傳；不會裁切或改變比例。</span>
             </div>
           ) : null}
         </div>
@@ -5802,16 +5808,19 @@ function SortableTransportItem({
   const canSave = editing && !readOnly
   const summaryParts = [transportLabel(info), info.duration.trim(), info.note.trim()].filter(Boolean)
   const photoPanelTitle = summaryParts.join('｜') || '交通資訊'
-  const photoButton = images.length > 0 || imageUploadEnabled ? (
-    <button
-      className={styles.transportNavigationLink}
-      type="button"
-      onClick={() => setPhotosOpen(true)}
-      aria-label={`${photoPanelTitle} 的照片${images.length > 0 ? `，共 ${images.length} 張` : ''}`}
-    >
-      照片{images.length > 0 ? ` ${images.length}` : ''}
-    </button>
-  ) : null
+  const photoButton = (showWhenEmpty: boolean) => {
+    if (images.length === 0 && (!imageUploadEnabled || !showWhenEmpty)) return null
+    return (
+      <button
+        className={styles.transportNavigationLink}
+        type="button"
+        onClick={() => setPhotosOpen(true)}
+        aria-label={`${photoPanelTitle} 的照片${images.length > 0 ? `，共 ${images.length} 張` : ''}`}
+      >
+        照片{images.length > 0 ? ` ${images.length}` : ''}
+      </button>
+    )
+  }
   const activeNavigationMode = editing ? draft.mode : info.mode
   const navigationFrom = navigationPlaces?.from ?? null
   const navigationTo = navigationPlaces?.to ?? null
@@ -5996,7 +6005,7 @@ function SortableTransportItem({
             <div className={styles.transportSummary}>
               <span className={styles.transportSummaryText}>{summaryParts.length > 0 ? summaryParts.join(' · ') : '交通'}</span>
               <span className={styles.transportSummaryActions}>
-                {photoButton}
+                {photoButton(false)}
                 {navigationLink}
               </span>
             </div>
@@ -6005,7 +6014,7 @@ function SortableTransportItem({
               <div className={styles.transportHeader}>
                 <span>{transportLabel(draft)}</span>
                 <span className={styles.transportSummaryActions}>
-                  {photoButton}
+                  {photoButton(true)}
                   {navigationLink}
                 </span>
               </div>
@@ -9099,11 +9108,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         alert(`照片數量已達上限：每個景點 ${PLANNER_IMAGE_MAX_PER_PLACE} 張、每份行程 ${PLANNER_IMAGE_MAX_PER_BOOK} 張。`)
       } else if (result?.error === 'owner_required') {
         alert('圖片管理權限已失效，請重新開啟你的行程後再試。')
+      } else if (result?.error === 'invalid_image' || result?.error === 'image_too_large') {
+        alert('照片自動壓縮後仍無法上傳，請再試一次或換另一張照片。')
       } else {
-        alert('照片上傳失敗，請換一張較小的 JPEG、PNG 或 WebP 圖片再試。')
+        alert('照片上傳失敗，請確認網路後再試。')
       }
     } catch (error) {
-      alert(error instanceof Error && error.message === 'unsupported_image' ? '請選擇 10MB 以下的 JPEG、PNG 或 WebP 圖片。' : '照片壓縮失敗，請換一張圖片再試。')
+      const message = error instanceof Error ? error.message : ''
+      alert(
+        message === 'source_too_large'
+          ? '請選擇 30MB 以下的照片。'
+          : message === 'unsupported_image'
+            ? '請選擇 JPEG、PNG、WebP 或 HEIC／HEIF 照片。'
+            : message === 'invalid_image'
+              ? '這張照片無法在目前瀏覽器自動壓縮。請改用 JPG、PNG 或 WebP 後再試。'
+              : '照片壓縮失敗，請換一張圖片再試。',
+      )
     } finally {
       setPlannerImageBusy(false)
     }
