@@ -2221,13 +2221,49 @@ function plannerActionLinks(place: MapPlace) {
       : []),
   ].filter((action) => action.href && !isPlannerMapAction(action))
 
-  const seen = new Set<string>()
-  return links.filter((action) => {
-    const key = `${action.label}::${action.href}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
+  return uniquePlannerLinks(place, links)
+}
+
+function plannerLinkKey(link: { label: string; href: string }) {
+  return `${link.label.trim().toLowerCase()}::${link.href.trim()}`
+}
+
+function plannerHotelBookingProvider(place: MapPlace, link: { label: string; href: string }) {
+  if (place.category !== 'hotel') return ''
+  const label = link.label.trim().toLowerCase()
+  return label === 'trip' || label === 'agoda' ? label : ''
+}
+
+function hasMatchingPlannerLink(
+  place: MapPlace,
+  knownLinks: readonly { label: string; href: string }[],
+  candidate: { label: string; href: string },
+) {
+  const candidateKey = plannerLinkKey(candidate)
+  const bookingProvider = plannerHotelBookingProvider(place, candidate)
+  return knownLinks.some((link) => {
+    if (plannerLinkKey(link) === candidateKey) return true
+    return Boolean(bookingProvider && plannerHotelBookingProvider(place, link) === bookingProvider)
   })
+}
+
+function uniquePlannerLinks<T extends { label: string; href: string }>(place: MapPlace, links: readonly T[]) {
+  const unique: T[] = []
+  links.forEach((link) => {
+    if (!hasMatchingPlannerLink(place, unique, link)) unique.push(link)
+  })
+  return unique
+}
+
+function visiblePlannerUserLinks(place: MapPlace, actionLinks: readonly { label: string; href: string }[], userLinks: PlannerUserLink[]) {
+  const knownLinks: { label: string; href: string }[] = [...actionLinks]
+  return userLinks
+    .map((link, index) => ({ link, index }))
+    .filter(({ link }) => {
+      if (isPlannerUserMapLink(link.href, link.label) || hasMatchingPlannerLink(place, knownLinks, link)) return false
+      knownLinks.push(link)
+      return true
+    })
 }
 
 function shortName(name: string) {
@@ -5017,9 +5053,8 @@ function SortablePlanItem({
   const customActionLinkCount = isCustomPlaceId(place.id)
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
-  const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
   const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.label))
-  const visibleUserLinkCount = generalUserLinks.filter((link) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim())).length
+  const visibleUserLinkCount = visiblePlannerUserLinks(place, actionLinks, userLinks).length
   const userLinkCount = generalUserLinks.length
   const displayLinkCount = visibleUserLinkCount + customActionLinkCount
   const hasAnyLinks = actionLinkCount + userLinkCount > 0
@@ -5353,32 +5388,130 @@ function PlannerImagesPanel({
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null)
   const [pendingImageRemoval, setPendingImageRemoval] = useState<PlannerCardImage | null>(null)
+  const [lightboxImageTransform, setLightboxImageTransform] = useState({ scale: 1, x: 0, y: 0 })
+  const lightboxImageTransformRef = useRef({ scale: 1, x: 0, y: 0 })
+  const lightboxTouchRef = useRef<{
+    mode: 'pan' | 'pinch' | null
+    startX: number
+    startY: number
+    startScale: number
+    startDistance: number
+    originX: number
+    originY: number
+  }>({ mode: null, startX: 0, startY: 0, startScale: 1, startDistance: 0, originX: 0, originY: 0 })
   const activeImage = activeImageIndex === null ? null : images[activeImageIndex] ?? null
   usePlannerBodyScrollLock(true)
+
+  const updateLightboxImageTransform = useCallback((next: { scale: number; x: number; y: number }) => {
+    const scale = Math.min(4, Math.max(1, next.scale))
+    const offsetLimit = (scale - 1) * 520
+    const normalized = {
+      scale,
+      x: scale === 1 ? 0 : Math.min(offsetLimit, Math.max(-offsetLimit, next.x)),
+      y: scale === 1 ? 0 : Math.min(offsetLimit, Math.max(-offsetLimit, next.y)),
+    }
+    lightboxImageTransformRef.current = normalized
+    setLightboxImageTransform(normalized)
+  }, [])
+
+  const resetLightboxImageTransform = useCallback(() => {
+    lightboxTouchRef.current.mode = null
+    updateLightboxImageTransform({ scale: 1, x: 0, y: 0 })
+  }, [updateLightboxImageTransform])
+
+  const closeActiveImage = useCallback(() => {
+    resetLightboxImageTransform()
+    setActiveImageIndex(null)
+  }, [resetLightboxImageTransform])
+
+  const selectActiveImage = useCallback((index: number) => {
+    resetLightboxImageTransform()
+    setActiveImageIndex(index)
+  }, [resetLightboxImageTransform])
 
   useEffect(() => {
     if (!activeImage) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setActiveImageIndex(null)
+      if (event.key === 'Escape') closeActiveImage()
       if (event.key === 'ArrowLeft' && images.length > 1) {
-        setActiveImageIndex((index) => (index === null ? 0 : (index - 1 + images.length) % images.length))
+        selectActiveImage((activeImageIndex === null ? 0 : activeImageIndex - 1 + images.length) % images.length)
       }
       if (event.key === 'ArrowRight' && images.length > 1) {
-        setActiveImageIndex((index) => (index === null ? 0 : (index + 1) % images.length))
+        selectActiveImage((activeImageIndex === null ? 0 : (activeImageIndex + 1) % images.length))
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activeImage, images.length])
+  }, [activeImage, activeImageIndex, closeActiveImage, images.length, selectActiveImage])
 
-  const openImage = (index: number) => setActiveImageIndex(index)
+  const openImage = (index: number) => selectActiveImage(index)
 
   const showPreviousImage = () => {
-    setActiveImageIndex((index) => (index === null ? 0 : (index - 1 + images.length) % images.length))
+    selectActiveImage((activeImageIndex === null ? 0 : activeImageIndex - 1 + images.length) % images.length)
   }
 
   const showNextImage = () => {
-    setActiveImageIndex((index) => (index === null ? 0 : (index + 1) % images.length))
+    selectActiveImage((activeImageIndex === null ? 0 : (activeImageIndex + 1) % images.length))
+  }
+
+  const handleLightboxTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    const touch = lightboxTouchRef.current
+    if (event.touches.length >= 2) {
+      const first = event.touches[0]
+      const second = event.touches[1]
+      touch.mode = 'pinch'
+      touch.startDistance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
+      touch.startScale = lightboxImageTransformRef.current.scale
+      return
+    }
+    const first = event.touches[0]
+    if (!first) return
+    touch.mode = 'pan'
+    touch.startX = first.clientX
+    touch.startY = first.clientY
+    touch.originX = lightboxImageTransformRef.current.x
+    touch.originY = lightboxImageTransformRef.current.y
+  }
+
+  const handleLightboxTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    if (event.cancelable) event.preventDefault()
+    const touch = lightboxTouchRef.current
+    if (event.touches.length >= 2) {
+      const first = event.touches[0]
+      const second = event.touches[1]
+      const distance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
+      if (touch.startDistance > 0) {
+        updateLightboxImageTransform({
+          ...lightboxImageTransformRef.current,
+          scale: touch.startScale * (distance / touch.startDistance),
+        })
+      }
+      return
+    }
+    const first = event.touches[0]
+    if (!first || touch.mode !== 'pan' || lightboxImageTransformRef.current.scale <= 1) return
+    updateLightboxImageTransform({
+      ...lightboxImageTransformRef.current,
+      x: touch.originX + first.clientX - touch.startX,
+      y: touch.originY + first.clientY - touch.startY,
+    })
+  }
+
+  const handleLightboxTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    const touch = lightboxTouchRef.current
+    const remainingTouch = event.touches[0]
+    if (!remainingTouch) {
+      touch.mode = null
+      return
+    }
+    touch.mode = 'pan'
+    touch.startX = remainingTouch.clientX
+    touch.startY = remainingTouch.clientY
+    touch.originX = lightboxImageTransformRef.current.x
+    touch.originY = lightboxImageTransformRef.current.y
   }
 
   return (
@@ -5468,7 +5601,7 @@ function PlannerImagesPanel({
       </div>
       {activeImage
         ? createPortal(
-            <div className={styles.plannerImageLightbox} role="presentation" onClick={() => setActiveImageIndex(null)}>
+            <div className={styles.plannerImageLightbox} role="presentation" onClick={closeActiveImage}>
               <section
                 className={styles.plannerImageLightboxPanel}
                 role="dialog"
@@ -5478,9 +5611,15 @@ function PlannerImagesPanel({
               >
                 <header className={styles.plannerImageLightboxHeader}>
                   <span>{activeImageIndex! + 1} / {images.length}</span>
-                  <button type="button" onClick={() => setActiveImageIndex(null)} aria-label="關閉放大照片">×</button>
+                  <button type="button" onClick={closeActiveImage} aria-label="關閉放大照片">×</button>
                 </header>
-                <div className={styles.plannerImageLightboxCanvas}>
+                <div
+                  className={styles.plannerImageLightboxCanvas}
+                  onTouchStart={handleLightboxTouchStart}
+                  onTouchMove={handleLightboxTouchMove}
+                  onTouchEnd={handleLightboxTouchEnd}
+                  onTouchCancel={handleLightboxTouchEnd}
+                >
                   {images.length > 1 ? (
                     <button className={styles.plannerImagePreviousButton} type="button" onClick={showPreviousImage} aria-label="上一張照片">‹</button>
                   ) : null}
@@ -5488,6 +5627,7 @@ function PlannerImagesPanel({
                     className={styles.plannerImageLightboxImage}
                     src={activeImage.url}
                     alt={`${placeName} 的放大照片`}
+                    style={{ transform: `translate3d(${lightboxImageTransform.x}px, ${lightboxImageTransform.y}px, 0) scale(${lightboxImageTransform.scale})` }}
                   />
                   {images.length > 1 ? (
                     <button className={styles.plannerImageNextButton} type="button" onClick={showNextImage} aria-label="下一張照片">›</button>
@@ -5563,10 +5703,7 @@ function PlannerActionPanel({
   readOnly: boolean
 }) {
   const actionLinks = plannerActionLinks(place)
-  const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
-  const visibleUserLinks = userLinks
-    .map((link, index) => ({ link, index }))
-    .filter(({ link }) => !isPlannerUserMapLink(link.href, link.label) && !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim()))
+  const visibleUserLinks = visiblePlannerUserLinks(place, actionLinks, userLinks)
   usePlannerBodyScrollLock(true)
 
   return (
@@ -5715,9 +5852,8 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
   const customActionLinkCount = isCustomPlaceId(place.id)
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
-  const actionLinkKeys = new Set(actionLinks.map((link) => link.label.trim() + '::' + link.href.trim()))
   const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.label))
-  const visibleUserLinkCount = generalUserLinks.filter((link) => !actionLinkKeys.has(link.label.trim() + '::' + link.href.trim())).length
+  const visibleUserLinkCount = visiblePlannerUserLinks(place, actionLinks, userLinks).length
   const displayLinkCount = customActionLinkCount + visibleUserLinkCount
   const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href, link.label))
   const linkButtonClassName = `${styles.iconLink} ${styles.iconLinkActive} ${displayLinkCount > 0 ? styles.iconLinkPrimary : ''}`

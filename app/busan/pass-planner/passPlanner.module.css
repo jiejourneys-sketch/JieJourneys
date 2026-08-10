@@ -2303,7 +2303,7 @@
   place-items: center;
   padding: clamp(10px, 2vw, 24px);
   background: rgba(2, 6, 23, 0.94);
-  touch-action: manipulation;
+  touch-action: none;
 }
 
 .plannerImageLightboxPanel {
@@ -2355,15 +2355,17 @@
   min-height: 0;
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  overflow: hidden;
   padding: 4px 52px;
   overscroll-behavior: contain;
-  touch-action: pan-x pan-y pinch-zoom;
+  touch-action: none;
 }
 
 .plannerImageLightboxImage {
   display: block;
   flex: 0 0 auto;
+  transform-origin: center;
+  will-change: transform;
 }
 
 .plannerImageLightboxImage {
