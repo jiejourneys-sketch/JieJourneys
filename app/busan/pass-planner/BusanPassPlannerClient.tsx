@@ -6511,6 +6511,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
   const [mobilePanelDragHeight, setMobilePanelDragHeight] = useState<number | null>(null)
   const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
+  const [plannerNotice, setPlannerNotice] = useState<'save-before-photo' | 'copy-complete' | 'copy-failed' | null>(null)
   const [pendingAddPlace, setPendingAddPlace] = useState<MapPlace | null>(null)
   const [pendingAddPlaceNote, setPendingAddPlaceNote] = useState('')
   const [pendingDelete, setPendingDelete] = useState<
@@ -9251,7 +9252,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const addPlannerImage = useCallback(async (itemId: string, file: File) => {
     if (readOnlyPlan) return
     if (!plannerBookId) {
-      alert('請先按「儲存更新」建立你的行程，再加入照片。')
+      setPlannerNotice('save-before-photo')
       return
     }
     if (plannerImageBusy) return
@@ -11252,7 +11253,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           preDepartureChecklist,
         ).catch(() => null)
         if (!book) {
-          alert('建立副本失敗，請稍後再試一次')
+          setPlannerNotice('copy-failed')
           return
         }
 
@@ -11320,7 +11321,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         })
         url.searchParams.set(PLANNER_BOOK_PARAM, book.id)
         window.history.replaceState(null, '', `${url.pathname}${url.search}`)
-        alert('已建立你的行程副本，現在可以自由調整，不會影響原分享行程。')
+        setPlannerNotice('copy-complete')
       } finally {
         setShareSaving(false)
       }
@@ -12841,6 +12842,61 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             }}
             onClose={() => setPreDepartureOpen(false)}
           />
+        ) : null}
+
+        {plannerNotice ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPlannerNotice(null)}>
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="planner-notice-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {plannerNotice === 'save-before-photo' ? (
+                <>
+                  <h2 id="planner-notice-title">先儲存行程，才能加入照片</h2>
+                  <p>照片會存到你自己的行程裡。先建立行程後，再上傳照片就能在各個裝置查看與管理。</p>
+                  <div className={styles.confirmActions}>
+                    <button type="button" className={styles.confirmSecondary} onClick={() => setPlannerNotice(null)}>
+                      稍後
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.confirmPrimary}
+                      onClick={() => {
+                        setPlannerNotice(null)
+                        handleShare()
+                      }}
+                    >
+                      先儲存行程
+                    </button>
+                  </div>
+                </>
+              ) : plannerNotice === 'copy-complete' ? (
+                <>
+                  <h2 id="planner-notice-title">已建立你的專屬行程</h2>
+                  <p>現在開始調整景點、備註、交通和照片，都不會影響原始模板或其他人的版本。</p>
+                  <p className={styles.confirmNotice}>這份行程已自動存到這台裝置；請保留自己的私密編輯連結。</p>
+                  <div className={styles.confirmActions}>
+                    <button type="button" className={styles.confirmPrimary} onClick={() => setPlannerNotice(null)}>
+                      開始編輯
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 id="planner-notice-title">建立副本失敗</h2>
+                  <p>暫時無法建立你的行程，請確認網路後再試一次。</p>
+                  <div className={styles.confirmActions}>
+                    <button type="button" className={styles.confirmPrimary} onClick={() => setPlannerNotice(null)}>
+                      知道了
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
+          </div>
         ) : null}
 
         {updateShareConfirmOpen ? (
