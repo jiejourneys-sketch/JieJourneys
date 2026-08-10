@@ -18,6 +18,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { createPortal } from 'react-dom'
 import {
   closestCenter,
   type CollisionDetection,
@@ -5357,33 +5358,34 @@ function PlannerImagesPanel({
   }
 
   return (
-    <div
-      className={styles.noteModalBackdrop}
-      role="presentation"
-      onTouchStart={stopModalTouch}
-      onTouchMove={lockModalBackgroundTouch}
-      onTouchEnd={stopModalTouch}
-      onTouchCancel={stopModalTouch}
-      onWheel={lockModalBackgroundWheel}
-    >
-      <section
-        ref={panelRef}
-        className={`${styles.noteModal} ${styles.imagesModal}`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`images-modal-${placeName}`}
-        onClick={(event) => event.stopPropagation()}
+    <>
+      <div
+        className={styles.noteModalBackdrop}
+        role="presentation"
+        onTouchStart={stopModalTouch}
+        onTouchMove={lockModalBackgroundTouch}
+        onTouchEnd={stopModalTouch}
+        onTouchCancel={stopModalTouch}
+        onWheel={lockModalBackgroundWheel}
       >
-        <div className={styles.noteModalHeader}>
-          <div>
-            <span className={styles.noteModalEyebrow}>照片</span>
-            <h2 id={`images-modal-${placeName}`}>{placeName}</h2>
+        <section
+          ref={panelRef}
+          className={`${styles.noteModal} ${styles.imagesModal}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`images-modal-${placeName}`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className={styles.noteModalHeader}>
+            <div>
+              <span className={styles.noteModalEyebrow}>照片</span>
+              <h2 id={`images-modal-${placeName}`}>{placeName}</h2>
+            </div>
+            <button className={styles.noteModalClose} type="button" onClick={onClose} aria-label="關閉照片">
+              ×
+            </button>
           </div>
-          <button className={styles.noteModalClose} type="button" onClick={onClose} aria-label="關閉照片">
-            ×
-          </button>
-        </div>
-        <div className={styles.imagesModalBody}>
+          <div className={styles.imagesModalBody}>
           {images.length > 0 ? (
             <div className={styles.plannerImageGrid}>
               {images.map((image, index) => (
@@ -5395,7 +5397,6 @@ function PlannerImagesPanel({
                     aria-label={`放大查看 ${placeName} 的照片 ${index + 1}`}
                   >
                     <img src={image.url} alt={`${placeName} 的照片 ${index + 1}`} loading="lazy" />
-                    <span>放大查看</span>
                   </button>
                   {imageUploadEnabled ? (
                     <button
@@ -5405,7 +5406,7 @@ function PlannerImagesPanel({
                       disabled={imageBusy}
                       aria-label="移除照片"
                     >
-                      移除
+                      ×
                     </button>
                   ) : null}
                 </figure>
@@ -5440,49 +5441,46 @@ function PlannerImagesPanel({
           </div>
         </div>
       </section>
-      {activeImage ? (
-        <div
-          className={styles.plannerImageLightbox}
-          role="presentation"
-          onClick={() => setActiveImageIndex(null)}
-        >
-          <section
-            className={styles.plannerImageLightboxPanel}
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${placeName} 放大照片`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <header className={styles.plannerImageLightboxHeader}>
-              <span>{activeImageIndex! + 1} / {images.length}</span>
-              <div>
-                {images.length > 1 ? (
-                  <>
-                    <button type="button" onClick={showPreviousImage} aria-label="上一張照片">上一張</button>
-                    <button type="button" onClick={showNextImage} aria-label="下一張照片">下一張</button>
-                  </>
-                ) : null}
-                <button type="button" onClick={() => setImageActualSize((value) => !value)}>
-                  {imageActualSize ? '符合畫面' : '原尺寸'}
-                </button>
-                <a href={activeImage.url} target="_blank" rel="noopener noreferrer">開啟原圖</a>
-                <button type="button" onClick={() => setActiveImageIndex(null)} aria-label="關閉放大照片">關閉</button>
-              </div>
-            </header>
-            <div className={styles.plannerImageLightboxCanvas}>
-              <button
-                type="button"
-                className={`${styles.plannerImageLightboxImageButton} ${imageActualSize ? styles.isActualSize : ''}`}
-                onClick={() => setImageActualSize((value) => !value)}
-                aria-label={imageActualSize ? '縮小為符合畫面' : '以原尺寸查看照片'}
+      </div>
+      {activeImage
+        ? createPortal(
+            <div className={styles.plannerImageLightbox} role="presentation" onClick={() => setActiveImageIndex(null)}>
+              <section
+                className={styles.plannerImageLightboxPanel}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${placeName} 放大照片`}
+                onClick={(event) => event.stopPropagation()}
               >
-                <img src={activeImage.url} alt={`${placeName} 的放大照片`} />
-              </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
-    </div>
+                <header className={styles.plannerImageLightboxHeader}>
+                  <span>{activeImageIndex! + 1} / {images.length}</span>
+                  <button type="button" onClick={() => setActiveImageIndex(null)} aria-label="關閉放大照片">×</button>
+                </header>
+                <div className={styles.plannerImageLightboxCanvas}>
+                  {images.length > 1 ? (
+                    <button className={styles.plannerImagePreviousButton} type="button" onClick={showPreviousImage} aria-label="上一張照片">‹</button>
+                  ) : null}
+                  <img
+                    className={imageActualSize ? styles.plannerImageActualSize : styles.plannerImageLightboxImage}
+                    src={activeImage.url}
+                    alt={`${placeName} 的放大照片`}
+                  />
+                  {images.length > 1 ? (
+                    <button className={styles.plannerImageNextButton} type="button" onClick={showNextImage} aria-label="下一張照片">›</button>
+                  ) : null}
+                </div>
+                <footer className={styles.plannerImageLightboxFooter}>
+                  <button type="button" onClick={() => setImageActualSize((value) => !value)}>
+                    {imageActualSize ? '符合畫面' : '原尺寸'}
+                  </button>
+                  <a href={activeImage.url} target="_blank" rel="noopener noreferrer">開啟原圖</a>
+                </footer>
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   )
 }
 

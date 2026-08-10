@@ -2249,7 +2249,7 @@
   margin: 0;
   border: 1px solid rgba(31, 122, 140, 0.18);
   border-radius: 12px;
-  background: #f8fafc;
+  background: #f1f5f9;
 }
 
 .plannerImagePreviewButton {
@@ -2265,87 +2265,164 @@
 .plannerImagePreviewButton img {
   display: block;
   width: 100%;
-  aspect-ratio: 1 / 0.82;
-  object-fit: cover;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  transition: transform 160ms ease;
 }
 
-.plannerImagePreviewButton span {
-  position: absolute;
-  left: 7px;
-  bottom: 7px;
-  border-radius: 8px;
-  padding: 5px 8px;
-  background: rgba(15, 23, 42, 0.8);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 900;
+.plannerImagePreviewButton:hover img,
+.plannerImagePreviewButton:focus-visible img {
+  transform: scale(1.025);
 }
 
 .plannerImageRemoveButton {
   position: absolute;
-  right: 7px;
-  bottom: 7px;
-  min-height: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 8px;
-  padding: 5px 8px;
-  background: rgba(15, 23, 42, 0.8);
-  color: #ffffff;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid rgba(148, 36, 36, 0.24);
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.94);
+  color: #a12828;
   font: inherit;
-  font-size: 12px;
+  font-size: 20px;
   font-weight: 900;
+  line-height: 1;
   cursor: pointer;
 }
 
 .plannerImageLightbox {
   position: fixed;
-  z-index: 90;
+  z-index: 1000;
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 12px;
-  background: rgba(15, 23, 42, 0.88);
-  touch-action: auto;
+  padding: clamp(10px, 2vw, 24px);
+  background: rgba(2, 6, 23, 0.94);
+  touch-action: manipulation;
 }
 
 .plannerImageLightboxPanel {
   display: grid;
-  width: min(1240px, 100%);
-  height: min(900px, calc(100dvh - 24px));
-  grid-template-rows: auto minmax(0, 1fr);
+  width: min(1440px, 100%);
+  height: min(960px, 100%);
+  grid-template-rows: 46px minmax(0, 1fr) 46px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  border-radius: 14px;
-  background: #0f172a;
-  box-shadow: 0 22px 70px rgba(2, 6, 23, 0.5);
+  background: transparent;
 }
 
 .plannerImageLightboxHeader {
   display: flex;
-  min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  padding: 0 4px;
   color: #e2e8f0;
   font-size: 13px;
   font-weight: 900;
 }
 
-.plannerImageLightboxHeader > div {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 7px;
+.plannerImageLightboxHeader > span {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(15, 23, 42, 0.72);
 }
 
-.plannerImageLightboxHeader button,
-.plannerImageLightboxHeader a {
-  min-height: 32px;
-  border: 1px solid rgba(226, 232, 240, 0.36);
-  border-radius: 8px;
-  padding: 5px 9px;
+.plannerImageLightboxHeader button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgba(226, 232, 240, 0.3);
+  border-radius: 50%;
+  padding: 0;
   background: rgba(30, 41, 59, 0.88);
+  color: #ffffff;
+  font: inherit;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.plannerImageLightboxCanvas {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 4px 52px;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.plannerImageLightboxImage,
+.plannerImageActualSize {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.plannerImageLightboxImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.plannerImageActualSize {
+  max-width: none;
+  max-height: none;
+}
+
+.plannerImagePreviousButton,
+.plannerImageNextButton {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(226, 232, 240, 0.34);
+  border-radius: 50%;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.76);
+  color: #ffffff;
+  font: inherit;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.plannerImagePreviousButton {
+  left: 6px;
+}
+
+.plannerImageNextButton {
+  right: 6px;
+}
+
+.plannerImageLightboxFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px;
+}
+
+.plannerImageLightboxFooter button,
+.plannerImageLightboxFooter a {
+  min-height: 32px;
+  border: 1px solid rgba(226, 232, 240, 0.34);
+  border-radius: 999px;
+  padding: 6px 11px;
+  background: rgba(30, 41, 59, 0.86);
   color: #ffffff;
   font: inherit;
   font-size: 12px;
@@ -2355,43 +2432,18 @@
   cursor: pointer;
 }
 
-.plannerImageLightboxCanvas {
-  display: flex;
-  min-width: 0;
-  min-height: 0;
-  align-items: center;
-  justify-content: center;
-  overflow: auto;
-  padding: 10px;
-  touch-action: pan-x pan-y pinch-zoom;
-}
+@media (hover: hover) {
+  .plannerImageRemoveButton {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 140ms ease;
+  }
 
-.plannerImageLightboxImageButton {
-  display: block;
-  max-width: 100%;
-  max-height: 100%;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  cursor: zoom-in;
-}
-
-.plannerImageLightboxImageButton img {
-  display: block;
-  max-width: 100%;
-  max-height: calc(100dvh - 112px);
-  object-fit: contain;
-}
-
-.plannerImageLightboxImageButton.isActualSize {
-  max-width: none;
-  max-height: none;
-  cursor: zoom-out;
-}
-
-.plannerImageLightboxImageButton.isActualSize img {
-  max-width: none;
-  max-height: none;
+  .plannerImageTile:hover .plannerImageRemoveButton,
+  .plannerImageTile:focus-within .plannerImageRemoveButton {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .plannerImageEmpty {
@@ -5606,14 +5658,23 @@
   .plannerImageLightboxPanel {
     width: 100%;
     height: 100dvh;
+    grid-template-rows: 52px minmax(0, 1fr) 52px;
     border-radius: 0;
   }
 
   .plannerImageLightboxHeader {
-    align-items: flex-start;
+    padding: 0 12px;
   }
 
-  .plannerImageLightboxImageButton img {
-    max-height: calc(100dvh - 154px);
+  .plannerImageLightboxCanvas {
+    padding-right: 42px;
+    padding-left: 42px;
+  }
+
+  .plannerImagePreviousButton,
+  .plannerImageNextButton {
+    width: 34px;
+    height: 34px;
+    font-size: 29px;
   }
 }
