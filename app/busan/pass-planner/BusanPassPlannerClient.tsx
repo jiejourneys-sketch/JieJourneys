@@ -5321,7 +5321,7 @@ function PlannerImagesPanel({
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null)
-  const [imageActualSize, setImageActualSize] = useState(false)
+  const [pendingImageRemoval, setPendingImageRemoval] = useState<PlannerCardImage | null>(null)
   const activeImage = activeImageIndex === null ? null : images[activeImageIndex] ?? null
   usePlannerBodyScrollLock(true)
 
@@ -5330,11 +5330,9 @@ function PlannerImagesPanel({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setActiveImageIndex(null)
       if (event.key === 'ArrowLeft' && images.length > 1) {
-        setImageActualSize(false)
         setActiveImageIndex((index) => (index === null ? 0 : (index - 1 + images.length) % images.length))
       }
       if (event.key === 'ArrowRight' && images.length > 1) {
-        setImageActualSize(false)
         setActiveImageIndex((index) => (index === null ? 0 : (index + 1) % images.length))
       }
     }
@@ -5342,18 +5340,13 @@ function PlannerImagesPanel({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [activeImage, images.length])
 
-  const openImage = (index: number) => {
-    setImageActualSize(false)
-    setActiveImageIndex(index)
-  }
+  const openImage = (index: number) => setActiveImageIndex(index)
 
   const showPreviousImage = () => {
-    setImageActualSize(false)
     setActiveImageIndex((index) => (index === null ? 0 : (index - 1 + images.length) % images.length))
   }
 
   const showNextImage = () => {
-    setImageActualSize(false)
     setActiveImageIndex((index) => (index === null ? 0 : (index + 1) % images.length))
   }
 
@@ -5402,7 +5395,7 @@ function PlannerImagesPanel({
                     <button
                       type="button"
                       className={styles.plannerImageRemoveButton}
-                      onClick={() => void onRemoveImage(image.id)}
+                      onClick={() => setPendingImageRemoval(image)}
                       disabled={imageBusy}
                       aria-label="移除照片"
                     >
@@ -5461,7 +5454,7 @@ function PlannerImagesPanel({
                     <button className={styles.plannerImagePreviousButton} type="button" onClick={showPreviousImage} aria-label="上一張照片">‹</button>
                   ) : null}
                   <img
-                    className={imageActualSize ? styles.plannerImageActualSize : styles.plannerImageLightboxImage}
+                    className={styles.plannerImageLightboxImage}
                     src={activeImage.url}
                     alt={`${placeName} 的放大照片`}
                   />
@@ -5469,12 +5462,39 @@ function PlannerImagesPanel({
                     <button className={styles.plannerImageNextButton} type="button" onClick={showNextImage} aria-label="下一張照片">›</button>
                   ) : null}
                 </div>
-                <footer className={styles.plannerImageLightboxFooter}>
-                  <button type="button" onClick={() => setImageActualSize((value) => !value)}>
-                    {imageActualSize ? '符合畫面' : '原尺寸'}
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
+      {pendingImageRemoval
+        ? createPortal(
+            <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingImageRemoval(null)}>
+              <section
+                className={styles.confirmDialog}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="planner-image-remove-confirm-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <h2 id="planner-image-remove-confirm-title">移除這張照片？</h2>
+                <p>移除後無法復原。</p>
+                <div className={styles.confirmActions}>
+                  <button type="button" className={styles.confirmSecondary} onClick={() => setPendingImageRemoval(null)}>
+                    取消
                   </button>
-                  <a href={activeImage.url} target="_blank" rel="noopener noreferrer">開啟原圖</a>
-                </footer>
+                  <button
+                    type="button"
+                    className={styles.confirmDanger}
+                    disabled={imageBusy}
+                    onClick={() => {
+                      void onRemoveImage(pendingImageRemoval.id)
+                      setPendingImageRemoval(null)
+                    }}
+                  >
+                    確認移除
+                  </button>
+                </div>
               </section>
             </div>,
             document.body,

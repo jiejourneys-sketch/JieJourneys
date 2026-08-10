@@ -220,6 +220,42 @@ async function deleteImage(request: Request, supabase: NonNullable<ReturnType<ty
   return images ? json({ images }) : json({ error: 'load_failed' }, 503)
 }
 
+async function moveImage(request: Request, supabase: NonNullable<ReturnType<typeof adminClient>>) {
+  const body = await request.json().catch(() => null) as Record<string, unknown> | null
+  const bookId = cleanBookId(body?.bookId)
+  const imageId = typeof body?.imageId === 'string' ? body.imageId.trim() : ''
+  const placeId = cleanPlaceId(body?.placeId)
+  if (!bookId || !/^[0-9a-f-]{36}$/i.test(imageId) || !placeId) return json({ error: 'invalid_move' }, 400)
+  if (!(await hasOwnerAccess(supabase, bookId, ownerToken(request)))) return json({ error: 'owner_required' }, 403)
+  if (!(await validBook(supabase, bookId))) return json({ error: 'not_found' }, 404)
+
+  const { data: image } = await supabase
+    .from('pass_planner_images')
+    .select('id, place_id')
+    .eq('id', imageId)
+    .eq('book_id', bookId)
+    .maybeSingle()
+  if (!image) return json({ error: 'not_found' }, 404)
+
+  if (image.place_id !== placeId) {
+    const { count: placeCount } = await supabase
+      .from('pass_planner_images')
+      .select('id', { count: 'exact', head: true })
+      .eq('book_id', bookId)
+      .eq('place_id', placeId)
+    if ((placeCount ?? 0) >= MAX_IMAGES_PER_PLACE) return json({ error: 'image_limit_reached' }, 409)
+    const { error } = await supabase
+      .from('pass_planner_images')
+      .update({ place_id: placeId })
+      .eq('id', imageId)
+      .eq('book_id', bookId)
+    if (error) return json({ error: 'move_failed' }, 503)
+  }
+
+  const images = await signedImages(supabase, bookId)
+  return images ? json({ images }) : json({ error: 'load_failed' }, 503)
+}
+
 async function copyImages(request: Request, supabase: NonNullable<ReturnType<typeof adminClient>>) {
   const body = await request.json().catch(() => null) as Record<string, unknown> | null
   const targetBookId = cleanBookId(body?.targetBookId)
@@ -281,6 +317,7 @@ Deno.serve(async (request) => {
   if (request.method === 'POST' && action === 'claim') return claimOwner(request, supabase)
   if (request.method === 'POST' && action === 'upload') return uploadImage(request, supabase)
   if (request.method === 'POST' && action === 'copy') return copyImages(request, supabase)
+  if (request.method === 'POST' && action === 'move') return moveImage(request, supabase)
   if (request.method === 'DELETE') return deleteImage(request, supabase)
   return json({ error: 'method_not_allowed' }, 405)
 })
