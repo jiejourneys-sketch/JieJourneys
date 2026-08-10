@@ -2808,6 +2808,11 @@ function parseTransportItem(item: PlannerItem): TransportInfo | null {
   }
 }
 
+function transportImagePlaceId(item: PlannerItem) {
+  const info = parseTransportItem(item)
+  return info ? `${TRANSPORT_ITEM_PREFIX}${info.id}` : ''
+}
+
 function transportLabel(info: TransportInfo) {
   if (info.mode !== 'custom') return TRANSPORT_MODE_LABELS[info.mode]
   return info.customLabel.trim() || TRANSPORT_MODE_LABELS.custom
@@ -5753,6 +5758,11 @@ function SortableTransportItem({
   onToggleExpanded,
   onChange,
   onRemove,
+  images,
+  imageUploadEnabled,
+  imageBusy,
+  onAddImage,
+  onRemoveImage,
   cardRef,
   readOnly,
 }: {
@@ -5763,6 +5773,11 @@ function SortableTransportItem({
   onToggleExpanded: () => void
   onChange: (info: TransportInfo) => void
   onRemove: () => void
+  images: PlannerCardImage[]
+  imageUploadEnabled: boolean
+  imageBusy: boolean
+  onAddImage: (file: File) => Promise<void>
+  onRemoveImage: (imageId: string) => Promise<void>
   cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
 }) {
@@ -5775,6 +5790,8 @@ function SortableTransportItem({
     transition,
   }
   const [draft, setDraft] = useState(info)
+  const [photosOpen, setPhotosOpen] = useState(false)
+  const photoPanelRef = useRef<HTMLDivElement | null>(null)
   const hasDetails = hasSavedTransportDetails(info)
   const editing = expanded
   const dirty =
@@ -5784,6 +5801,17 @@ function SortableTransportItem({
     draft.note !== info.note
   const canSave = editing && !readOnly
   const summaryParts = [transportLabel(info), info.duration.trim(), info.note.trim()].filter(Boolean)
+  const photoPanelTitle = summaryParts.join('｜') || '交通資訊'
+  const photoButton = images.length > 0 || imageUploadEnabled ? (
+    <button
+      className={styles.transportNavigationLink}
+      type="button"
+      onClick={() => setPhotosOpen(true)}
+      aria-label={`${photoPanelTitle} 的照片${images.length > 0 ? `，共 ${images.length} 張` : ''}`}
+    >
+      照片{images.length > 0 ? ` ${images.length}` : ''}
+    </button>
+  ) : null
   const activeNavigationMode = editing ? draft.mode : info.mode
   const navigationFrom = navigationPlaces?.from ?? null
   const navigationTo = navigationPlaces?.to ?? null
@@ -5968,6 +5996,7 @@ function SortableTransportItem({
             <div className={styles.transportSummary}>
               <span className={styles.transportSummaryText}>{summaryParts.length > 0 ? summaryParts.join(' · ') : '交通'}</span>
               <span className={styles.transportSummaryActions}>
+                {photoButton}
                 {navigationLink}
               </span>
             </div>
@@ -5975,7 +6004,10 @@ function SortableTransportItem({
             <>
               <div className={styles.transportHeader}>
                 <span>{transportLabel(draft)}</span>
-                {navigationLink}
+                <span className={styles.transportSummaryActions}>
+                  {photoButton}
+                  {navigationLink}
+                </span>
               </div>
               <div className={styles.transportFields} data-transport-edit-block="true">
                 <label>
@@ -6025,6 +6057,18 @@ function SortableTransportItem({
           </button>
         ) : null}
       </article>
+      {photosOpen ? (
+        <PlannerImagesPanel
+          panelRef={photoPanelRef}
+          placeName={photoPanelTitle}
+          images={images}
+          imageUploadEnabled={imageUploadEnabled}
+          imageBusy={imageBusy}
+          onAddImage={onAddImage}
+          onRemoveImage={onRemoveImage}
+          onClose={() => setPhotosOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }
@@ -12238,6 +12282,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   }}
                                   onChange={(info) => updateTransportItem(item, info)}
                                   onRemove={() => requestRemoveTransport(item)}
+                                  images={plannerImages.filter((image) => image.placeId === transportImagePlaceId(item))}
+                                  imageUploadEnabled={!readOnlyPlan}
+                                  imageBusy={plannerImageBusy}
+                                  onAddImage={(file) => addPlannerImage(transportImagePlaceId(item), file)}
+                                  onRemoveImage={removePlannerImage}
                                   cardRef={(el) => {
                                     transportCardRefs.current[item] = el
                                   }}
