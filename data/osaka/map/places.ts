@@ -930,10 +930,30 @@ const osakaOrderedHotelPlaces: MapPlace[] = [
     .map((slug) => osakaAdditionalHotelMapPlaceBySlug[slug]),
 ]
 
+const osakaAirportPlaces: MapPlace[] = [
+  {
+    id: 'osaka-kansai-airport',
+    category: 'free',
+    name: '大阪關西國際機場（KIX）',
+    description: '大阪、京都與關西自由行常用的國際機場；T1 可直接接 JR、南海與市區巴士，T2 要先搭免費接駁車到 T1／Aeroplaza 一側。',
+    lat: 34.4319994,
+    lng: 135.2366019,
+    spotGoogleMapsUrl: 'https://maps.app.goo.gl/EH9UFMPLLUM3oq2z5',
+    mapButtonMapEvent: 'osakamap_kansai_airport_map',
+    spotActions: [
+      { label: '航廈攻略', href: '/osaka/kansai-airport-terminal-guide?from=osaka-map', className: 'btn', mapEvent: 'osakamap_kansai_airport_terminal_article', platform: 'article' },
+      { label: '進市區', href: '/osaka/kansai-airport-to-osaka?from=osaka-map', className: 'btn', mapEvent: 'osakamap_kansai_airport_city_article', platform: 'article' },
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DZzv-KlBF65/', className: 'btn', mapEvent: 'osakamap_kansai_airport_ig', platform: 'IG' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/RLZ9aIn_BUg', className: 'btn', mapEvent: 'osakamap_kansai_airport_youtube', platform: 'YouTube' },
+    ],
+  },
+]
+
 export const osakaMapPlaces: MapPlace[] = [
   ...osakaTicketPlaces.map(ticketPlaceToMapPlace),
   ...osakaPassTicketPlaces,
   ...osakaSpotPlaces.map(spotPlaceToMapPlace),
+  ...osakaAirportPlaces,
   ...osakaShopMapPlaces,
   ...osakaOrderedHotelPlaces,
 ]

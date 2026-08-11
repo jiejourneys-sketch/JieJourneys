@@ -11,6 +11,36 @@ function tokyoRelatedTicketHref(tag: string, placeId: string): string {
 
 export const tokyoFreeMapPlaces: TokyoMapPlace[] = [
   {
+    id: 'tokyo-narita-airport',
+    category: 'free',
+    name: '成田國際機場（NRT）',
+    description: '東京主要國際機場之一，距離市區較遠；依住宿地點比較 Skyliner、N’EX、利木津巴士與接送最順。',
+    lat: 35.770178,
+    lng: 140.3843215,
+    spotGoogleMapsUrl: 'https://maps.app.goo.gl/58vN7K4Vmiw3WGm46',
+    mapButtonMapEvent: 'tokyomap_narita_airport_map',
+    spotActions: [
+      { label: '文章', href: '/tokyo/narita-airport-to-tokyo?from=tokyo-map', className: 'btn', mapEvent: 'tokyomap_narita_airport_article', platform: 'article' },
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DULQxKUkVR2/', className: 'btn', mapEvent: 'tokyomap_narita_airport_ig', platform: 'IG' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/vdFwmQd8CLQ', className: 'btn', mapEvent: 'tokyomap_narita_airport_youtube', platform: 'YouTube' },
+    ],
+  },
+  {
+    id: 'tokyo-haneda-airport',
+    category: 'free',
+    name: '羽田機場（HND）',
+    description: '離東京市區較近的國際機場；多數住宿可比較京急、東京單軌電車、利木津巴士或接送。',
+    lat: 35.5482964,
+    lng: 139.7779951,
+    spotGoogleMapsUrl: 'https://maps.app.goo.gl/BN7dMT2EWon7YMr4A',
+    mapButtonMapEvent: 'tokyomap_haneda_airport_map',
+    spotActions: [
+      { label: '文章', href: '/tokyo/haneda-airport-to-tokyo?from=tokyo-map', className: 'btn', mapEvent: 'tokyomap_haneda_airport_article', platform: 'article' },
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DUvT5Etkf4f/', className: 'btn', mapEvent: 'tokyomap_haneda_airport_ig', platform: 'IG' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/fTtfgB93DE4', className: 'btn', mapEvent: 'tokyomap_haneda_airport_youtube', platform: 'YouTube' },
+    ],
+  },
+  {
     id: 'tokyo-UenoPark',
     category: 'free',
     name: '上野恩賜公園',

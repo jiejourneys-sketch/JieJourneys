@@ -16,6 +16,20 @@ function busanRelatedTicketHref(tag: string, placeId: string): string {
  */
 export const busanFreeMapPlaces: BusanMapPlace[] = [
   {
+    id: 'busan-gimhae-airport',
+    category: 'free',
+    name: '釜山金海國際機場（PUS）',
+    description: '釜山自由行的入境機場；可搭釜山－金海輕軌到沙上站，再轉地鐵進市區，也可安排機場接送。',
+    lat: 35.1728688,
+    lng: 128.9471783,
+    spotGoogleMapsUrl: 'https://maps.app.goo.gl/QXNcBWKZ5oCnPB7f9',
+    mapButtonMapEvent: 'busanmap_gimhae_airport_map',
+    spotActions: [
+      { label: '交通', href: '/busan/transport?from=busan-map', className: 'btn', mapEvent: 'busanmap_gimhae_airport_transport', platform: 'article' },
+      { label: 'NaverMap', href: 'https://naver.me/GNRjwFwb', className: 'btn', mapEvent: 'busanmap_gimhae_airport_navermap', platform: 'NaverMap' },
+    ],
+  },
+  {
     id: 'busan-haeundae',
     category: 'free',
     name: '海雲台海灘',

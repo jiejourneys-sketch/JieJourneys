@@ -121,6 +121,18 @@ const cards: CityCard[] = [
       { label: '文章', href: '/osaka/kansai-airport-to-osaka?from=video', className: 'btn', event: 'osakavideo_kix3waysArticle', platform: 'article', section: 'video' },
     ],
   },
+  {
+    title: '大阪關西機場｜T1 vs T2',
+    meta: '交通',
+    area: '交通',
+    datasetKey: 'video',
+    datasetValue: 'osaka-kix-terminal-guide',
+    actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DZzv-KlBF65/', className: 'btn primary', event: 'osakavideo_kixterminalIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/RLZ9aIn_BUg', className: 'btn', event: 'osakavideo_kixterminalYT', platform: 'YouTube', section: 'video' },
+      { label: '文章', href: '/osaka/kansai-airport-terminal-guide?from=osaka-video', className: 'btn', event: 'osakavideo_kixterminalArticle', platform: 'article', section: 'video' },
+    ],
+  },
   { title: 'Visit Japan Web｜入境卡填寫', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'visit-japan-web', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DSxI34Nkebp/', className: 'btn primary', event: 'osakavideo_visitjapanwebIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/DWKvXvEHyKk', className: 'btn', event: 'osakavideo_visitjapanwebYT', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/japan/visit-japan-web-guide?from=osaka-video', className: 'btn', event: 'osakavideo_visitjapanwebArticle', platform: 'article', section: 'video' }] },
   { title: '日幣換匯攻略', meta: '行前準備', area: '行前準備', datasetKey: 'video', datasetValue: 'jpy-exchange', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/DTDKcCoEZBS/', className: 'btn primary', event: 'osakavideo_JPYExchangeIG', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/FfMj7w2R7BA', className: 'btn', event: 'osakavideo_JPYExchangeYT', platform: 'YouTube', section: 'video' }] },
   { title: '日本退稅新制｜2026懶人包', meta: '行前準備', note: '整理 2026/11/1 後日本免稅流程、新舊制度差異、機場退稅與完美行購物注意事項。', area: '行前準備', datasetKey: 'video', datasetValue: 'japan-tax-free-2026-article', actions: [{ label: 'IG Reels', href: 'https://www.instagram.com/reel/Da72R_yBXam/', className: 'btn primary', event: 'osakavideo_taxfree2026_ig', platform: 'IG', section: 'video' }, { label: 'YouTube', href: 'https://www.youtube.com/shorts/ULH9oonQ7-I', className: 'btn', event: 'osakavideo_taxfree2026_youtube', platform: 'YouTube', section: 'video' }, { label: '文章', href: '/japan/tax-free-2026?from=osaka-video', className: 'btn', event: 'osakavideo_taxfree2026_article', platform: 'article', section: 'video' }] },

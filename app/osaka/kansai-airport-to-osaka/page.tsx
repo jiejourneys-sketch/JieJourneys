@@ -163,7 +163,7 @@ export default async function KansaiAirportToOsakaPage({ searchParams }: KansaiA
           ctaLinks={[
             { label: '快速比較', href: '#quick-answer', dataEvent: 'osakakix_hero_quick', platform: 'article' },
             { label: '購票連結', href: '#ticket-links', dataEvent: 'osakakix_hero_links', platform: 'article' },
-            { label: '交通地圖', href: KIX_TRANSPORT_MAP_URL, dataEvent: 'osakakix_hero_map', platform: 'GoogleMap' },
+            { label: '航廈 T1 vs T2', href: '/osaka/kansai-airport-terminal-guide?from=kansai-airport-to-osaka', dataEvent: 'osakakix_hero_terminal', platform: 'article' },
           ]}
         />
 

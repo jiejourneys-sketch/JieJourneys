@@ -9,6 +9,21 @@ function northVietnamRelatedTicketHref(tag: string, placeId: string): string {
 
 export const northVietnamFreeMapPlaces: NorthVietnamMapPlace[] = [
   {
+    id: 'northvietnam-noi-bai-airport',
+    category: 'free',
+    name: '河內內排國際機場（HAN）',
+    description: '河內與北越自由行的主要入境機場；抵達後可依行李、人數與住宿位置比較機場巴士、叫車或包車進河內市區。',
+    lat: 21.2178001,
+    lng: 105.8025514,
+    spotGoogleMapsUrl: 'https://maps.app.goo.gl/QWwjD9CMo6HEE9S86',
+    mapButtonMapEvent: 'northvietnammap_noi_bai_airport_map',
+    spotActions: [
+      { label: '交通', href: '/northvietnam/transport?from=northvietnam-map', className: 'btn', mapEvent: 'northvietnammap_noi_bai_airport_transport', platform: 'article' },
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DPjJTCUEUCw/', className: 'btn', mapEvent: 'northvietnammap_noi_bai_airport_ig', platform: 'IG' },
+      { label: 'YouTube', href: 'https://youtube.com/shorts/JxJGlDEXqPg?si=6Y_2KzgriHAPiomU', className: 'btn', mapEvent: 'northvietnammap_noi_bai_airport_youtube', platform: 'YouTube' },
+    ],
+  },
+  {
     id: 'northvietnam-CatCat',
     category: 'free',
     name: '貓貓村',
