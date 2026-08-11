@@ -210,7 +210,11 @@ export default function Osaka5AreasGuidePage() {
           <h2 className="seo-h2">第三區：梅田｜白天購物，晚上看大阪夜景</h2>
           <div className="seo-prose">
             <p>
-              梅田是大阪北側的交通與購物核心。大阪站周邊百貨、地下街、商場密集，Grand Front Osaka 從 JR 大阪站中央口約步行 3 分鐘；若想看夜景，梅田空中庭園展望台適合排在傍晚到晚上。
+              梅田是大阪北側的交通與購物核心。大阪站周邊百貨、地下街、商場密集，Grand Front Osaka 從 JR 大阪站中央口約步行 3 分鐘；若想看夜景，
+              <a href="/osaka/umeda-sky-building-guide?from=osaka-5-areas-guide" data-event="osaka5areas_umeda_sky_article" data-platform="article" data-section="article_link">
+                <strong>梅田空中庭園展望台</strong>
+              </a>
+              適合排在傍晚到晚上。
             </p>
             <p>
               梅田站名與出口很多，第一次來別把轉車抓得太緊。先決定要從哪個商場開始，最後再去空中庭園或餐廳收尾，比一直在地下街找路輕鬆。

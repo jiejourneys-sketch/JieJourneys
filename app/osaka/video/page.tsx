@@ -86,6 +86,16 @@ const cards: CityCard[] = [
     ],
   },
   {
+    title: '梅田空中庭園｜攻略',
+    meta: '大阪攻略',
+    area: '大阪攻略',
+    datasetKey: 'video',
+    datasetValue: 'umeda-sky-building-guide',
+    actions: [
+      { label: '文章', href: '/osaka/umeda-sky-building-guide?from=osaka-video', className: 'btn', event: 'osakavideo_umedaskyArticle', platform: 'article', section: 'video' },
+    ],
+  },
+  {
     title: '地鐵 vs JR｜攻略',
     meta: '交通',
     area: '交通',
