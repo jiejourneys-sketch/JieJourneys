@@ -3130,8 +3130,8 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
   if (!id && !viewToken) return null
 
   const editorToken = plannerBookEditTokenFromSearch(search) ?? storedEditToken?.trim() ?? ''
-  const query = id && editorToken
-    ? `id=${encodeURIComponent(id)}&${PLANNER_BOOK_EDIT_PARAM}=${encodeURIComponent(editorToken)}`
+  const query = id
+    ? `id=${encodeURIComponent(id)}${editorToken ? `&${PLANNER_BOOK_EDIT_PARAM}=${encodeURIComponent(editorToken)}` : ''}`
     : `${PLANNER_PREVIEW_PARAM}=${encodeURIComponent(viewToken ?? '')}`
   const res = await fetch(`/api/pass-planner/book?${query}`, {
     cache: 'no-store',
@@ -3140,6 +3140,7 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
   const data = (await res.json()) as {
     id?: unknown
     read_token?: unknown
+    edit_token?: unknown
     readonly?: unknown
     updated_at?: unknown
     items?: unknown
@@ -3176,10 +3177,11 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
   const bookId = typeof data.id === 'string' && data.id ? data.id : null
   const userLinks = cleanUserLinks(data.user_links)
 
-  return (items.length > 0 || Object.keys(customPlaces).length > 0) && (bookId || viewToken)
+  return (items.length > 0 || Object.keys(customPlaces).length > 0) && (bookId || viewToken || id)
     ? {
         id: bookId,
         readToken: typeof data.read_token === 'string' ? data.read_token : null,
+        editToken: typeof data.edit_token === 'string' && /^[a-f0-9]{64}$/.test(data.edit_token) ? data.edit_token : null,
         readonly: data.readonly === true || Boolean(viewToken),
         updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
         items,
@@ -7808,7 +7810,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
             setReadOnlyPlan(plannerBook.readonly)
             setPlannerImages([])
-            const activeEditorToken = plannerBook.readonly ? null : recoveredEditorToken
+            const activeEditorToken = plannerBook.readonly ? null : plannerBook.editToken ?? recoveredEditorToken
             setPlannerBookEditToken(activeEditorToken)
             if (plannerBook.id && activeEditorToken) {
               window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, plannerBook.id), activeEditorToken)
@@ -11789,7 +11791,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             <p>{config.description}</p>
             {readOnlyPlan || plannerBookUpdatedAt ? (
               <div className={styles.plannerMeta}>
-                {readOnlyPlan ? <span>分享範本・複製後可自由修改</span> : null}
+                {readOnlyPlan ? <span>唯讀行程・複製後可自由修改</span> : null}
                 {plannerBookUpdatedAt ? <span>最後更新 {formatPlannerUpdatedAt(plannerBookUpdatedAt)}</span> : null}
               </div>
             ) : null}

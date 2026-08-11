@@ -92,6 +92,44 @@ as $$
   limit 1;
 $$;
 
+-- Saved links created before edit tokens were introduced used `?p=<id>`.
+-- They remain editor links for the same pre-existing non-template plan;
+-- source templates are deliberately excluded.
+drop function if exists public.planner_book_read_legacy(text);
+create or replace function public.planner_book_read_legacy(p_id text)
+returns table (
+  id text,
+  read_token text,
+  edit_token text,
+  city text,
+  items jsonb,
+  notes jsonb,
+  custom_places jsonb,
+  user_links jsonb,
+  updated_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    b.id,
+    b.read_token,
+    b.edit_token,
+    b.city,
+    b.items,
+    b.notes,
+    b.custom_places,
+    b.user_links,
+    b.updated_at
+  from public.pass_planner_books b
+  where b.id = p_id
+    and b.is_template = false
+    and (b.expires_at is null or b.expires_at >= now())
+  limit 1;
+$$;
+
 create or replace function public.planner_book_read_edit(p_id text, p_edit_token text)
 returns table (
   id text,
@@ -266,6 +304,7 @@ as $$
 $$;
 
 revoke all on function public.planner_book_read_public(text) from public;
+revoke all on function public.planner_book_read_legacy(text) from public;
 revoke all on function public.planner_book_read_edit(text, text) from public;
 revoke all on function public.planner_book_create(text, text, text, text, jsonb, jsonb, jsonb, jsonb) from public;
 revoke all on function public.planner_book_update(text, text, text, jsonb, jsonb, jsonb, jsonb) from public;
@@ -274,6 +313,7 @@ revoke all on function public.planner_book_delete(text, text) from public;
 revoke all on function public.planner_book_recover_edit_token(text, text) from public;
 
 grant execute on function public.planner_book_read_public(text) to anon, authenticated;
+grant execute on function public.planner_book_read_legacy(text) to anon, authenticated;
 grant execute on function public.planner_book_read_edit(text, text) to anon, authenticated;
 grant execute on function public.planner_book_create(text, text, text, text, jsonb, jsonb, jsonb, jsonb) to anon, authenticated;
 grant execute on function public.planner_book_update(text, text, text, jsonb, jsonb, jsonb, jsonb) to anon, authenticated;

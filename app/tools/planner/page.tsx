@@ -42,6 +42,7 @@ type RecentPlanner = {
 type PlannerBookMeta = {
   id?: string
   readToken?: string
+  editToken?: string
   city?: string
 }
 
@@ -248,7 +249,7 @@ async function fetchPlannerBookMeta(plannerId: string, readToken: string, editor
   const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
   if (res.status === 404 || res.status === 410) return { book: null, unavailable: true }
   if (!res.ok) return { book: null, unavailable: false }
-  const data = (await res.json()) as { id?: unknown; read_token?: unknown; city?: unknown }
+  const data = (await res.json()) as { id?: unknown; read_token?: unknown; edit_token?: unknown; city?: unknown }
   return {
     book: {
       id: typeof data.id === 'string' && data.id.trim() ? data.id.trim() : undefined,
@@ -256,6 +257,7 @@ async function fetchPlannerBookMeta(plannerId: string, readToken: string, editor
         typeof data.read_token === 'string' && data.read_token.trim()
           ? data.read_token.trim()
           : undefined,
+      editToken: cleanPlannerEditToken(typeof data.edit_token === 'string' ? data.edit_token : '' ) || undefined,
       city: typeof data.city === 'string' && data.city.trim() ? data.city.trim() : undefined,
     },
     unavailable: false,
@@ -443,6 +445,10 @@ export default function ToolsPlannerPage() {
                 return
               }
               const countryName = plannerDisplayName(book.city, region.key)
+              if (plannerId && book.editToken && !editorToken) {
+                editorToken = book.editToken
+                window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), editorToken)
+              }
               if (book.id) {
                 setRecentPlanners(
                   upsertRecentPlanner({
@@ -492,6 +498,10 @@ export default function ToolsPlannerPage() {
         const startCustomSharedPlanner = (book?: PlannerBookMeta | null) => {
           const countryName = plannerDisplayName(book?.city, regionKey)
           const customRegion = customRegionFromUrl(regionKey, countryName)
+          if (plannerId && book?.editToken && !editorToken) {
+            editorToken = book.editToken
+            window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), editorToken)
+          }
           if (book?.id) {
             setRecentPlanners(
               upsertRecentPlanner({

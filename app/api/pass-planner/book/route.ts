@@ -52,6 +52,7 @@ type PlannerBookPayload = {
 type StoredPlannerBook = {
   id?: string
   read_token?: string
+  edit_token?: string
   city: string
   items: unknown
   notes: unknown
@@ -413,10 +414,16 @@ export async function GET(req: NextRequest) {
   const editorToken = cleanEditToken(req.nextUrl.searchParams.get('e'))
   if (!id && !viewToken) return NextResponse.json({ error: 'missing_id' }, { status: 400 })
 
-  if (id && !editorToken) return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
+  // Before edit tokens were introduced, saved personal planner links used
+  // `?p=<id>`. Treat that existing bearer link as the legacy editor credential
+  // for the same non-template book, so owners do not need to create a copy.
+  // Protected source templates are excluded by the RPC.
+  const legacyIdLink = Boolean(id && !editorToken && !viewToken)
   const { data, error } = await (viewToken
     ? supabase.rpc('planner_book_read_public', { p_read_token: viewToken })
-    : supabase.rpc('planner_book_read_edit', { p_id: id, p_edit_token: editorToken }))
+    : legacyIdLink
+      ? supabase.rpc('planner_book_read_legacy', { p_id: id })
+      : supabase.rpc('planner_book_read_edit', { p_id: id, p_edit_token: editorToken }))
     .maybeSingle()
 
   if (error) return NextResponse.json({ error: 'load_failed' }, { status: 503 })
@@ -431,6 +438,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ...(viewToken ? {} : { id: book.id }),
     read_token: book.read_token,
+    ...(legacyIdLink && cleanEditToken(book.edit_token) ? { edit_token: cleanEditToken(book.edit_token) } : {}),
     readonly: Boolean(viewToken),
     city: book.city,
     items: Array.isArray(book.items) ? book.items : [],
