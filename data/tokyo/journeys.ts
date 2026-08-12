@@ -1385,7 +1385,3 @@ export const tokyoJourneyBook = {
   user_links: tokyoJourneyBookUserLinks,
   pre_departure: tokyoJourneyPreDeparture,
 }
-
-export const tokyoJourneyPlannerBookId = 'd6OpvoA'
-export const tokyoJourneyPlannerReadToken = '4e0agdiYa59q'
-export const tokyoJourneyPlannerHref = `/tools/planner?region=tokyo&v=${tokyoJourneyPlannerReadToken}`

@@ -1,7 +1,6 @@
 import Image from 'next/image'
 import Script from 'next/script'
 import JourneysHeader from '@/components/JourneysHeader'
-import { busanJourneyPlannerHref } from '@/data/busan/journeys'
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -50,9 +49,6 @@ export default function BusanJourneysPage() {
                 立即取得PDF
               </a>
               <div className="cta-secondary">
-                <a className="secondary-btn" href={busanJourneyPlannerHref} data-event="busanPDF_PlannerPreview">
-                  先看旅杰規劃版
-                </a>
                 <a className="secondary-btn" href="https://www.instagram.com/reel/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="busanPDF_TrialIG">
                   🎬 30秒看怎麼用
                 </a>

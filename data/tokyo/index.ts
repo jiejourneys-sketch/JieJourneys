@@ -8,8 +8,5 @@ export {
   tokyoJourneyCustomPlaces,
   tokyoJourneyItems,
   tokyoJourneyPlan,
-  tokyoJourneyPlannerBookId,
-  tokyoJourneyPlannerReadToken,
-  tokyoJourneyPlannerHref,
   tokyoJourneyPreDeparture,
 } from './journeys'

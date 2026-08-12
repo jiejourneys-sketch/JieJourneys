@@ -662,7 +662,3 @@ export const busanJourneyBook = {
   user_links: busanJourneyBookUserLinks,
   pre_departure: busanJourneyPreDeparture,
 }
-
-export const busanJourneyPlannerBookId = 'fdUxi2k'
-export const busanJourneyPlannerReadToken = 'CoRyH08BDB4Y'
-export const busanJourneyPlannerHref = `/tools/planner?region=busan&v=${busanJourneyPlannerReadToken}`

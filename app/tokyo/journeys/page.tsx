@@ -1,7 +1,6 @@
 import Image from 'next/image'
 import JourneysHeader from '@/components/JourneysHeader'
 import Script from 'next/script'
-import { tokyoJourneyPlannerHref } from '@/data/tokyo'
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -50,9 +49,6 @@ export default function TokyoJourneysPage() {
                 立即取得PDF
               </a>
               <div className="cta-secondary">
-                <a className="secondary-btn" href={tokyoJourneyPlannerHref} data-event="tokyoPDF_PlannerPreview">
-                  直接看 planner 版
-                </a>
                 <a className="secondary-btn" href="https://www.instagram.com/reel/DOQv5njkT4I/" target="_blank" rel="noopener noreferrer" data-event="tokyoPDF_TrialIG">
                   🎬 30秒看怎麼用
                 </a>
