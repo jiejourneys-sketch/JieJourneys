@@ -12,6 +12,22 @@ const SITE_URL = 'https://www.jiejourneys.com'
 const OG_IMAGE = 'https://www.jiejourneys.com/assets/og-share.png'
 const BILL_URL = `${SITE_URL}/tools/bill`
 
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: '旅杰分帳｜JieJourneys Bill',
+  description: desc,
+  url: BILL_URL,
+  applicationCategory: 'FinanceApplication',
+  operatingSystem: 'Any',
+  isAccessibleForFree: true,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'TWD',
+  },
+}
+
 export function generateMetadata(): Metadata {
   return {
     metadataBase: new URL(SITE_URL),
@@ -48,6 +64,7 @@ export default function RootLayout({
   const gaId = process.env.NEXT_PUBLIC_GA_ID
   return (
     <div className="bill-app">
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         {gaId ? (
           <>
             <Script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />

@@ -189,7 +189,7 @@ export default function Home() {
   return (
     <div>
       <h1 className="tool-title">旅杰分帳</h1>
-      <p className="tool-desc">最簡單的旅行分帳工具</p>
+      <p className="tool-desc">旅行多人分帳，記錄支出、分攤費用、快速結帳。</p>
 
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <a
@@ -331,6 +331,48 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <section className="tool-about" aria-labelledby="bill-about-title">
+        <h2 id="bill-about-title">第一次用旅杰分帳？1 分鐘看懂</h2>
+        <p>
+          <strong>旅杰分帳是免登入的旅行多人分帳工具。</strong>
+          建立帳本並分享連結給旅伴後，大家可以一起記錄誰先付款、費用要怎麼分攤，最後快速看懂每個人該收多少、該付多少。
+        </p>
+        <h3>三步驟開始使用</h3>
+        <ol className="tool-steps">
+          <li>
+            <strong>建立帳本</strong>
+            <span>輸入旅程名稱，設定最後結算要使用的貨幣。</span>
+          </li>
+          <li>
+            <strong>加入旅伴與支出</strong>
+            <span>記錄住宿、交通、餐費、門票等共同花費與付款人。</span>
+          </li>
+          <li>
+            <strong>查看結帳結果</strong>
+            <span>系統整理每個人的應收與應付，再分享帳本給旅伴。</span>
+          </li>
+        </ol>
+        <div className="tool-faq" aria-labelledby="bill-faq-title">
+          <h3 id="bill-faq-title">常見問題</h3>
+          <details>
+            <summary>旅杰分帳需要登入嗎？</summary>
+            <p>不用。建立帳本後即可開始記錄；同一個瀏覽器會顯示最近開啟的帳本。</p>
+          </details>
+          <details>
+            <summary>帳本如何保存與分享？</summary>
+            <p>每本帳本都有專屬連結。在帳本內按「分享帳本」即可傳給旅伴；建議也把連結存到 LINE、備忘錄或書籤。持有連結的人可以開啟帳本，請勿公開分享含有私人資訊的帳本。</p>
+          </details>
+          <details>
+            <summary>支援哪些貨幣？</summary>
+            <p>內建台幣、日圓、韓元、越南盾、美金、港幣、歐元、泰銖、新幣、馬幣、菲幣、印尼盾、澳幣與人民幣；帳本設定也能新增自訂貨幣。每筆支出可使用不同貨幣，最後依帳本設定的結算貨幣整理。</p>
+          </details>
+          <details>
+            <summary>和直接問 AI 算分帳有什麼差別？</summary>
+            <p>AI 適合協助估算預算或回答問題；旅杰分帳則把實際付款、分攤與結帳結果留在同一本帳裡，旅伴可直接一起查看與更新。</p>
+          </details>
+        </div>
+      </section>
 
       <p
         style={{

@@ -983,7 +983,7 @@ export default function ToolsPlannerPage() {
             看看怎麼用
           </a>
         </div>
-        <p className={styles.lead}>輸入目的地，開始排行程。</p>
+        <p className={styles.lead}>整理景點、住宿、餐廳與票券，排出每天的行程順序。</p>
 
         <label className={styles.field}>
           <span>國家 / 城市</span>
@@ -1081,6 +1081,48 @@ export default function ToolsPlannerPage() {
             </div>
           </section>
         ) : null}
+      </section>
+
+      <section className={styles.seoIntro} aria-labelledby="planner-about-title">
+        <h2 id="planner-about-title">第一次用旅杰規劃？1 分鐘看懂</h2>
+        <p>
+          <strong>旅杰規劃是免費的自由行行程規劃工具。</strong>
+          輸入目的地後，你可以自行新增想去的地點；支援旅杰資料的城市，還能直接帶入已整理的景點資訊，依天數安排每天的行程。
+        </p>
+        <h3>三步驟開始使用</h3>
+        <ol className={styles.toolSteps}>
+          <li>
+            <strong>輸入目的地</strong>
+            <span>選擇支援資料的城市，或直接從空白行程開始。</span>
+          </li>
+          <li>
+            <strong>加入並安排地點</strong>
+            <span>把景點、住宿、餐廳、票券與備註依天數排好。</span>
+          </li>
+          <li>
+            <strong>儲存與分享</strong>
+            <span>建立專屬連結，方便旅伴一起規劃或在手機查看。</span>
+          </li>
+        </ol>
+        <div className={styles.faq} aria-labelledby="planner-faq-title">
+          <h3 id="planner-faq-title">常見問題</h3>
+          <details>
+            <summary>旅杰規劃需要登入嗎？</summary>
+            <p>不用。輸入目的地即可開始建立行程；儲存後，同一個瀏覽器會在首頁顯示最近行程。</p>
+          </details>
+          <details>
+            <summary>行程如何保存與分享？</summary>
+            <p>加入至少一個地點後，按「分享／保存」即可建立專屬行程連結。建議把連結存到 LINE、備忘錄或書籤；在 Instagram、LINE 等 App 內建瀏覽器使用時尤其重要。</p>
+          </details>
+          <details>
+            <summary>哪些城市可直接帶入旅杰整理的景點資料？</summary>
+            <p>目前可帶入釜山、大阪、東京、富士河口湖與北越的旅杰景點資料。其他國家或城市也能建立空白行程，再自行新增想去的地點。</p>
+          </details>
+          <details>
+            <summary>和直接請 AI 產生行程有什麼差別？</summary>
+            <p>AI 適合協助發想景點與路線；旅杰規劃適合把已確認的景點、住宿、票券與備註整理成可調整、可保存、可分享的實際行程。</p>
+          </details>
+        </div>
       </section>
       </main>
       {renameTarget ? (
