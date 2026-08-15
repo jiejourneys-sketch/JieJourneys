@@ -6,6 +6,7 @@ out/
 node_modules/
 # env
 .env*
+supabase/.temp/
 # misc
 .DS_Store
 *.tsbuildinfo

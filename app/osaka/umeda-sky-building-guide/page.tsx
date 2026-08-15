@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import Image from 'next/image'
 import {
@@ -11,6 +12,11 @@ import {
 } from './pageMeta'
 
 const SITE_URL = 'https://www.jiejourneys.com'
+
+const videoLinks = [
+  { label: '梅田空中庭園 IG', href: 'https://www.instagram.com/reel/DcD8iTFBUpu/', event: 'umedasky_video_ig', platform: 'IG', primary: true },
+  { label: '梅田空中庭園 YouTube', href: 'https://www.youtube.com/shorts/s8bOPrmd98M', event: 'umedasky_video_youtube', platform: 'YouTube' },
+]
 
 const faqItems = [
   {
@@ -92,6 +98,14 @@ export default async function UmedaSkyBuildingGuidePage({ searchParams }: UmedaS
             { label: '梅田區域攻略', href: '/osaka/osaka-5-areas-guide?from=umeda-sky-building-guide', dataEvent: 'umedasky_hero_areas', platform: 'article' },
           ]}
         />
+
+        <section className="seo-content" id="video-guide" aria-label="梅田空中庭園短影音">
+          <h2 className="seo-h2">先看短影音：梅田空中庭園現場動線</h2>
+          <div className="seo-prose">
+            <p>先用短影音看梅田藍天大廈的入口、空中庭園與 Sky Walk，再回來依這篇安排從車站步行與登樓動線。</p>
+            <SeoVideoLinkMenu label="梅田空中庭園" links={videoLinks} />
+          </div>
+        </section>
 
         <section className="seo-content" id="quick-answer" aria-label="梅田空中庭園快速結論">
           <div className="narita-summary-grid haneda-summary-grid" role="list">

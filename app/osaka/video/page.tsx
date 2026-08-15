@@ -92,6 +92,8 @@ const cards: CityCard[] = [
     datasetKey: 'video',
     datasetValue: 'umeda-sky-building-guide',
     actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DcD8iTFBUpu/', className: 'btn primary', event: 'osakavideo_umedaskyIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/s8bOPrmd98M', className: 'btn', event: 'osakavideo_umedaskyYT', platform: 'YouTube', section: 'video' },
       { label: '文章', href: '/osaka/umeda-sky-building-guide?from=osaka-video', className: 'btn', event: 'osakavideo_umedaskyArticle', platform: 'article', section: 'video' },
     ],
   },
