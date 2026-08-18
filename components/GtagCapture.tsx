@@ -3,6 +3,31 @@
 import { useEffect } from 'react'
 import { getGtag } from '@/lib/gtag'
 
+const AFFILIATE_PLATFORM_LABELS: Record<string, string> = {
+  kkday: 'KKDAY',
+  klook: 'KLOOK',
+  agoda: 'Agoda',
+  trip: 'Trip',
+  'trip.com': 'Trip',
+}
+
+function affiliatePlatform(platform: string, destinationUrl: string): string | null {
+  const platformKey = platform.trim().toLowerCase()
+  if (AFFILIATE_PLATFORM_LABELS[platformKey]) return AFFILIATE_PLATFORM_LABELS[platformKey]
+
+  try {
+    const hostname = new URL(destinationUrl).hostname.toLowerCase()
+    if (hostname === 'kkday.com' || hostname.endsWith('.kkday.com')) return 'KKDAY'
+    if (hostname === 'klook.com' || hostname.endsWith('.klook.com')) return 'KLOOK'
+    if (hostname === 'agoda.com' || hostname.endsWith('.agoda.com')) return 'Agoda'
+    if (hostname === 'trip.com' || hostname.endsWith('.trip.com')) return 'Trip'
+  } catch {
+    // A relative/internal link is not an affiliate destination.
+  }
+
+  return null
+}
+
 /** 文件層級 GA 點擊追蹤：捕捉所有 [data-event] 元素，與 HTML 版本一致 */
 export default function GtagCapture() {
   useEffect(() => {
@@ -20,19 +45,33 @@ export default function GtagCapture() {
 
       const card = (el as HTMLElement).closest('[data-video],[data-hotel],.stay-card')
       const titleText = card?.querySelector('.title')?.textContent?.trim() || ''
-
-      gtagFn('event', name, {
+      const element = el as HTMLElement
+      const destinationUrl = (el as HTMLAnchorElement).href || ''
+      const platform = element.dataset.platform || ''
+      const eventParameters = {
         page_path: typeof window !== 'undefined' ? location.pathname : '',
-        label: (el as HTMLElement).dataset.label || '',
-        hotel: (el as HTMLElement).dataset.hotel || (card as HTMLElement)?.dataset?.hotel || titleText,
-        platform: (el as HTMLElement).dataset.platform || '',
-        area: (el as HTMLElement).dataset.area || (card as HTMLElement)?.dataset?.area || '',
-        url: (el as HTMLAnchorElement).href || '',
-        item: (el as HTMLElement).dataset.item || (card as HTMLElement)?.dataset?.item || '',
-        section: (el as HTMLElement).dataset.section || (card as HTMLElement)?.dataset?.section || '',
+        label: element.dataset.label || '',
+        hotel: element.dataset.hotel || (card as HTMLElement)?.dataset?.hotel || titleText,
+        platform,
+        area: element.dataset.area || (card as HTMLElement)?.dataset?.area || '',
+        url: destinationUrl,
+        item: element.dataset.item || (card as HTMLElement)?.dataset?.item || '',
+        section: element.dataset.section || (card as HTMLElement)?.dataset?.section || '',
         video: (card as HTMLElement)?.dataset?.video || '',
         title: (card as HTMLElement)?.dataset?.title || titleText,
-      })
+      }
+
+      gtagFn('event', name, eventParameters)
+
+      const canonicalAffiliatePlatform = affiliatePlatform(platform, destinationUrl)
+      if (canonicalAffiliatePlatform) {
+        gtagFn('event', 'affiliate_click', {
+          ...eventParameters,
+          platform: canonicalAffiliatePlatform,
+          affiliate_event: name,
+          transport_type: 'beacon',
+        })
+      }
     }
     document.addEventListener('click', handleClick, { capture: true })
     return () => document.removeEventListener('click', handleClick, { capture: true })
