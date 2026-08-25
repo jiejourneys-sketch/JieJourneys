@@ -386,7 +386,7 @@ export const osakaPassMapPlaces: MapPlace[] = [
       },
       {
         label: 'Trip',
-        href: 'https://tw.trip.com/travel-guide/attraction/osaka/koji-kinutani-tenku-art-museum-50576711/',
+        href: 'https://tw.trip.com/travel-guide/attraction/osaka/koji-kinutani-tenku-art-museum-50576711/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D19468787',
         className: 'btn',
         event: 'osakapassmap_pass_free_kinutani_koji_sky_art_museum_trip',
         platform: 'Trip',

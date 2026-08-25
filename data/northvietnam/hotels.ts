@@ -164,7 +164,7 @@ export const northVietnamHotelCards: CityCard[] = [
     actions: [
       {
         label: 'Trip',
-        href: 'https://tw.trip.com/hotels/tt-sa-pa-hotel-detail-43095843/',
+        href: 'https://tw.trip.com/hotels/tt-sa-pa-hotel-detail-43095843/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D19468787',
         className: 'btn primary',
         event: 'northvietnamhotel_kk_sapa_trip',
         platform: 'Trip',
