@@ -158,6 +158,16 @@ export default function BusanVideoPage() {
       ],
     },
     {
+      title: '釜山煙火節｜攻略',
+      meta: '景點攻略',
+      area: '景點攻略',
+      datasetKey: 'video',
+      datasetValue: 'busan-fireworks-festival-guide',
+      actions: [
+        { label: '文章', href: '/busan/busan-fireworks-festival-guide?from=busan-video', className: 'btn', event: 'busanvideo_fireworksfestival_article', platform: 'article', section: 'video' },
+      ],
+    },
+    {
       title: '5個行前準備',
       meta: '行前準備',
       area: '行前準備',

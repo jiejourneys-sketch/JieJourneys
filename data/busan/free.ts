@@ -192,6 +192,9 @@ export const busanFreeMapPlaces: BusanMapPlace[] = [
     lng: 129.1186609,
     spotGoogleMapsUrl: 'https://maps.app.goo.gl/4yVvHrhWyiNVHoJK9',
     mapButtonMapEvent: 'busanmap_gwangalli_beach',
+    relatedArticleHref: '/busan/busan-fireworks-festival-guide?from=busan-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'busanmap_gwangalli_beach_fireworks_article',
     spotActions: [
       {
         label: 'NaverMap',
