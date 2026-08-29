@@ -103,7 +103,7 @@ const capRows = [
 
 const faqItems = [
   {
-    q: '九州復興應援割是什麼？',
+    q: '九州復興旅遊補助是什麼？',
     a: '這是日本政府針對 2026 年熊本地震後觀光需求推出的旅行與住宿折扣支援。公告對象為九州七縣的至少一晚住宿旅行商品；熊本、鹿兒島折抵 60%，福岡、佐賀、長崎、大分、宮崎折抵 50%。',
   },
   {
@@ -124,7 +124,7 @@ const faqItems = [
   },
   {
     q: '楽天的熊本、鹿兒島優惠券就是政府補助嗎？',
-    a: '不是。楽天 8 月 28 日推出的是自家「熊本・鹿兒島觀光應援優惠券」，目前有熊本住宿最高 10% 與熊本、鹿兒島住宿 5% 等方案；它和政府 50～60% 的九州復興應援割是兩個不同活動。',
+    a: '不是。楽天 8 月 28 日推出的是自家「熊本・鹿兒島觀光應援優惠券」，目前有熊本住宿最高 10% 與熊本、鹿兒島住宿 5% 等方案；它和政府 50～60% 的九州復興旅遊補助是兩個不同活動。',
   },
 ]
 
@@ -178,8 +178,8 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
           badge="九州旅遊速報｜2026/8/28 更新"
-          h1="九州旅遊補助最高省 6 成｜2026 九州復興應援割怎麼用？"
-          intro="日本政府已公布九州復興應援割，熊本、鹿兒島最高折抵 60%，其餘五縣 50%。不過 10/1 是住宿適用起點，不是統一開賣日；台灣旅客資格、訂房平台與既有訂單能否補折，都還要等各縣細則。"
+          h1="九州旅遊補助最高省 6 成｜2026 九州復興旅遊補助怎麼用？"
+          intro="日本政府已公布九州復興旅遊補助，熊本、鹿兒島最高折抵 60%，其餘五縣 50%。不過 10/1 是住宿適用起點，不是統一開賣日；台灣旅客資格、訂房平台與既有訂單能否補折，都還要等各縣細則。"
           eventPrefix="kyushusubsidy"
           showVisual={false}
           ctaLinks={[
@@ -215,7 +215,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           </div>
         </section>
 
-        <section className="seo-content" id="discount" aria-label="九州復興應援割折扣與上限">
+        <section className="seo-content" id="discount" aria-label="九州復興旅遊補助折扣與上限">
           <h2 className="seo-h2">已確認：九州七縣、折扣率與每人最高折抵額</h2>
           <div className="seo-prose">
             <p>
@@ -368,7 +368,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           </div>
         </section>
 
-        <SeoFaqSection title="九州復興應援割常見問題" items={faqItems} />
+        <SeoFaqSection title="九州復興旅遊補助常見問題" items={faqItems} />
       </main>
       <Footer />
     </>
