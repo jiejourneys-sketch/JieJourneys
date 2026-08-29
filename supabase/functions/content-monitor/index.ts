@@ -8,6 +8,7 @@ const FAILURE_ALERT_THRESHOLD = clampNumber(Deno.env.get("CONTENT_MONITOR_FAILUR
 const EVENT_BATCH_SIZE = 20;
 const PREVIEW_LENGTH = 1_200;
 const TELEGRAM_TEXT_LIMIT = 3_700;
+const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches"]);
 
 type SourceType = "html" | "json";
 type EventType = "change" | "error" | "recovered";
@@ -137,9 +138,43 @@ function requestHeaders(site: MonitorSite) {
   };
 
   for (const [key, value] of Object.entries(site.request_headers ?? {})) {
+    if (MONITOR_METADATA_KEYS.has(key)) continue;
     if (typeof value === "string" && value.trim()) headers[key] = value.trim();
   }
   return headers;
+}
+
+function publicSourceUrl(site: MonitorSite) {
+  const configured = site.request_headers?.source_page_url;
+  if (typeof configured !== "string" || !configured.trim()) return site.url;
+  try {
+    const parsed = new URL(configured);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.href : site.url;
+  } catch {
+    return site.url;
+  }
+}
+
+function notificationPatterns(site: MonitorSite) {
+  const configured = site.request_headers?.notify_if_matches;
+  return Array.isArray(configured)
+    ? configured.filter((item): item is string => typeof item === "string" && item.trim())
+    : [];
+}
+
+function shouldNotifyChange(site: MonitorSite, content: string) {
+  const patterns = notificationPatterns(site);
+  if (!patterns.length) return true;
+
+  return patterns.some((pattern) => {
+    try {
+      return new RegExp(pattern, "iu").test(content);
+    } catch {
+      // A malformed optional notification rule should not break the monitor.
+      console.warn("Ignoring invalid notify_if_matches pattern", pattern);
+      return false;
+    }
+  });
 }
 
 function applyIgnorePatterns(content: string, patterns: string[] | null) {
@@ -318,7 +353,7 @@ async function enqueueEvent(site: MonitorSite, eventType: EventType, fingerprint
   const { error } = await supabase.from("content_monitor_events").upsert({
     site_id: site.id,
     site_name: site.name,
-    site_url: site.url,
+    site_url: publicSourceUrl(site),
     event_type: eventType,
     fingerprint,
     old_content_preview: fields.old_content_preview ?? null,
@@ -372,7 +407,7 @@ async function checkSite(site: MonitorSite, state: MonitorState | undefined, dry
       return { result: recovered ? "recovered" : "unchanged", queuedEvent };
     }
 
-    if (!dryRun && site.notify_changes) {
+    if (!dryRun && site.notify_changes && shouldNotifyChange(site, content)) {
       await enqueueEvent(site, "change", hash, {
         old_content_preview: state.last_content_preview,
         new_content_preview: contentPreview,
