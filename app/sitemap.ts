@@ -20,6 +20,7 @@ const lastModifiedByPath: Record<string, string> = {
   '/tools/resources': '2026-07-01',
   '/japan/tax-free-2026': '2026-07-14',
   '/japan/visit-japan-web-guide': '2026-07-22',
+  '/japan/kyushu-travel-subsidy-2026': '2026-08-28',
   '/busan': '2026-05-17',
   '/busan/hotel': '2026-06-06',
   '/busan/ticket': '2026-06-15',
@@ -104,6 +105,7 @@ const sitemapRoutes: SitemapRoute[] = [
 
   { path: '/japan/tax-free-2026', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/japan-tax-free-comparison-2026.png'] },
   { path: '/japan/visit-japan-web-guide', changeFrequency: 'monthly', priority: 0.8 },
+  { path: '/japan/kyushu-travel-subsidy-2026', changeFrequency: 'weekly', priority: 0.8 },
 
   { path: '/busan', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/busan/hotel', changeFrequency: 'monthly', priority: 0.7 },
