@@ -13,6 +13,11 @@ const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches"]);
 type SourceType = "html" | "json";
 type EventType = "change" | "error" | "recovered";
 
+type FetchedContent = {
+  hashable: string;
+  display: string;
+};
+
 type MonitorSite = {
   id: string;
   name: string;
@@ -162,13 +167,32 @@ function notificationPatterns(site: MonitorSite) {
     : [];
 }
 
-function shouldNotifyChange(site: MonitorSite, content: string) {
+function newContentDelta(before: string | null, after: string) {
+  const oldText = normalizeText(before ?? "");
+  const newText = normalizeText(after);
+  if (!oldText) return newText;
+
+  let prefixLength = 0;
+  while (prefixLength < oldText.length && prefixLength < newText.length && oldText[prefixLength] === newText[prefixLength]) {
+    prefixLength += 1;
+  }
+  let oldEnd = oldText.length - 1;
+  let newEnd = newText.length - 1;
+  while (oldEnd >= prefixLength && newEnd >= prefixLength && oldText[oldEnd] === newText[newEnd]) {
+    oldEnd -= 1;
+    newEnd -= 1;
+  }
+  return newText.slice(prefixLength, newEnd + 1);
+}
+
+function shouldNotifyChange(site: MonitorSite, content: string, previousContent: string | null) {
   const patterns = notificationPatterns(site);
   if (!patterns.length) return true;
+  const changedText = newContentDelta(previousContent, content);
 
   return patterns.some((pattern) => {
     try {
-      return new RegExp(pattern, "iu").test(content);
+      return new RegExp(pattern, "iu").test(changedText);
     } catch {
       // A malformed optional notification rule should not break the monitor.
       console.warn("Ignoring invalid notify_if_matches pattern", pattern);
@@ -184,10 +208,33 @@ function applyIgnorePatterns(content: string, patterns: string[] | null) {
     try {
       result = result.replace(new RegExp(pattern, "g"), "");
     } catch {
-      throw new Error(`Invalid ignore pattern: ${pattern}`);
+      // A bad optional ignore rule must not take the whole monitor offline.
+      console.warn("Ignoring invalid ignore pattern", pattern);
     }
   }
   return normalizeText(result);
+}
+
+function formatJsonPreview(value: unknown) {
+  if (typeof value === "string") return value;
+  const rows = Array.isArray(value) ? value : [value];
+  const formattedRows = rows.map((row) => {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return JSON.stringify(row);
+    const fields = Object.entries(row as Record<string, unknown>)
+      .filter(([key, fieldValue]) => fieldValue !== null && fieldValue !== undefined && fieldValue !== "")
+      .filter(([key]) => !/id$/i.test(key))
+      .map(([key, fieldValue]) => {
+        const label = /(title|ttl)/i.test(key)
+          ? "標題"
+          : /(date|dt)$/i.test(key)
+            ? "日期"
+            : key;
+        const displayValue = typeof fieldValue === "string" ? fieldValue : JSON.stringify(fieldValue);
+        return `${label}：${normalizeText(displayValue)}`;
+      });
+    return fields.join("\n");
+  }).filter(Boolean);
+  return formattedRows.join("\n\n") || JSON.stringify(value);
 }
 
 async function hashContent(content: string) {
@@ -196,7 +243,7 @@ async function hashContent(content: string) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function fetchContent(site: MonitorSite) {
+async function fetchContent(site: MonitorSite): Promise<FetchedContent> {
   const response = await fetch(site.url, {
     headers: requestHeaders(site),
     redirect: "follow",
@@ -208,7 +255,10 @@ async function fetchContent(site: MonitorSite) {
     const json = await response.json();
     const value = site.selector_or_path ? selectJsonContent(json, site.selector_or_path) : json;
     if (value === null || value === undefined) throw new Error("JSON path returned no content");
-    return applyIgnorePatterns(typeof value === "string" ? value : JSON.stringify(value), site.ignore_patterns);
+    return {
+      hashable: applyIgnorePatterns(typeof value === "string" ? value : JSON.stringify(value), site.ignore_patterns),
+      display: applyIgnorePatterns(formatJsonPreview(value), site.ignore_patterns),
+    };
   }
 
   const html = await response.text();
@@ -225,7 +275,8 @@ async function fetchContent(site: MonitorSite) {
   } catch (error) {
     throw new Error(`HTML extraction failed: ${errorMessage(error)}`);
   }
-  return applyIgnorePatterns(extracted, site.ignore_patterns);
+  const content = applyIgnorePatterns(extracted, site.ignore_patterns);
+  return { hashable: content, display: content };
 }
 
 function nextCheckAt(site: MonitorSite) {
@@ -252,6 +303,18 @@ function changeSnippet(before: string | null, after: string | null) {
   const oldChanged = oldText.slice(prefixLength, oldEnd + 1);
   const newChanged = newText.slice(prefixLength, newEnd + 1);
   return `原：${preview(oldChanged, 180)}\n新：${preview(newChanged, 180)}`;
+}
+
+function shouldRebaselineAfterResponseShift(site: MonitorSite, state: MonitorState, hashable: string) {
+  const previous = normalizeText(state.last_content_preview ?? "");
+  const current = normalizeText(hashable);
+  if (!previous || !current) return false;
+
+  // Old states can survive a selector or source-type adjustment. The first
+  // complete response after that adjustment is a new baseline, not a website
+  // update. This also protects against a temporary "shell" response.
+  if (site.source_type === "json" && !previous.includes("：") && !/^[{[]/.test(previous) && /^[{[]/.test(current)) return true;
+  return previous.length < 80 && current.length > Math.max(240, previous.length * 4);
 }
 
 function eventText(event: MonitorEvent) {
@@ -366,10 +429,11 @@ async function enqueueEvent(site: MonitorSite, eventType: EventType, fingerprint
 async function checkSite(site: MonitorSite, state: MonitorState | undefined, dryRun: boolean): Promise<{ result: SiteResult; queuedEvent: boolean }> {
   const checkedAt = new Date().toISOString();
   try {
-    const content = await fetchContent(site);
+    const fetched = await fetchContent(site);
+    const content = fetched.hashable;
     if (!content) throw new Error("Extracted content was empty");
     const hash = await hashContent(content);
-    const contentPreview = preview(content);
+    const contentPreview = preview(fetched.display);
 
     if (!state?.last_hash) {
       if (!dryRun) {
@@ -388,12 +452,12 @@ async function checkSite(site: MonitorSite, state: MonitorState | undefined, dry
 
     const recovered = Boolean(state.alerted_error_fingerprint);
     let queuedEvent = false;
-    if (!dryRun && recovered && site.notify_failures) {
-      await enqueueEvent(site, "recovered", `${state.alerted_error_fingerprint}:${hash}`, {});
-      queuedEvent = true;
-    }
 
     if (hash === state.last_hash) {
+      if (!dryRun && recovered && site.notify_failures) {
+        await enqueueEvent(site, "recovered", `${state.alerted_error_fingerprint}:${hash}`, {});
+        queuedEvent = true;
+      }
       if (!dryRun) {
         await saveState(site, {
           last_hash: hash,
@@ -407,7 +471,27 @@ async function checkSite(site: MonitorSite, state: MonitorState | undefined, dry
       return { result: recovered ? "recovered" : "unchanged", queuedEvent };
     }
 
-    if (!dryRun && site.notify_changes && shouldNotifyChange(site, content)) {
+    if (shouldRebaselineAfterResponseShift(site, state, content)) {
+      if (!dryRun) {
+        await saveState(site, {
+          last_hash: hash,
+          last_content_preview: contentPreview,
+          last_checked_at: checkedAt,
+          last_changed_at: state.last_changed_at ?? checkedAt,
+          consecutive_failures: 0,
+          last_error: null,
+          alerted_error_fingerprint: null,
+        });
+      }
+      return { result: "baseline", queuedEvent: false };
+    }
+
+    if (!dryRun && recovered && site.notify_failures) {
+      await enqueueEvent(site, "recovered", `${state.alerted_error_fingerprint}:${hash}`, {});
+      queuedEvent = true;
+    }
+
+    if (!dryRun && site.notify_changes && shouldNotifyChange(site, content, state.last_content_preview)) {
       await enqueueEvent(site, "change", hash, {
         old_content_preview: state.last_content_preview,
         new_content_preview: contentPreview,
