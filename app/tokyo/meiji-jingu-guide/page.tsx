@@ -2,6 +2,7 @@ import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -318,6 +319,15 @@ export default async function TokyoMeijiJinguGuidePage({ searchParams }: TokyoMe
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="明治神宮周邊接著怎麼玩"
+          intro="明治神宮可和原宿、表參道、澀谷排在同一天；先看區域攻略和澀谷展望台的預約方式，再決定交通票。"
+          links={[
+            { label: '東京 9 大區域攻略', href: '/tokyo/tokyo-9-areas-guide?from=meiji-jingu-guide', event: 'meijijingu_related_areas', primary: true },
+            { label: 'SHIBUYA SKY 攻略', href: '/tokyo/shibuya-sky-guide?from=meiji-jingu-guide', event: 'meijijingu_related_shibuya' },
+            { label: '東京地鐵券攻略', href: '/tokyo/tokyo-subway-ticket?from=meiji-jingu-guide', event: 'meijijingu_related_subway' },
+          ]}
+        />
         <SeoFaqSection title="明治神宮攻略常見問題" items={faqItems} />
       </main>
       <Footer />

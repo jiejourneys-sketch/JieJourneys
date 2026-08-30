@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
@@ -290,6 +291,15 @@ export default async function TokyoToKawaguchikoPage({ searchParams }: TokyoToKa
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="抵達河口湖後，接著排富士山行程"
+          intro="先看富士周遊券是否適合你，再用地圖確認住宿與景點位置；這樣可避免把交通票和景點順序拆開規劃。"
+          links={[
+            { label: '富士山周遊券攻略', href: '/fuji/mt-fuji-pass?from=tokyo-to-kawaguchiko', event: 'tokyokawaguchiko_related_pass', primary: true },
+            { label: '富士山交通整理', href: '/fuji/transport', event: 'tokyokawaguchiko_related_transport' },
+            { label: '富士山旅遊地圖', href: '/fuji/map?from=tokyo-to-kawaguchiko', event: 'tokyokawaguchiko_related_map' },
+          ]}
+        />
         <SeoFaqSection title="東京到河口湖常見問題" items={faqItems} />
       </main>
       <Footer />

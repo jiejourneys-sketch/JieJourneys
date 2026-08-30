@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { busanTicketCards } from '@/data/busan/tickets'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -350,6 +351,15 @@ export default async function BusanHaeundaeGuidePage({ searchParams }: BusanHaeu
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="海雲台行程接著這樣排"
+          intro="海雲台、膠囊列車與夜景遊艇能排在同一個海岸動線；打開地圖後再依住宿位置決定從哪一站開始。"
+          links={[
+            { label: '海雲台膠囊列車攻略', href: '/busan/capsule-train-guide?from=haeundae-guide', event: 'haeundae_related_capsule', primary: true },
+            { label: '釜山遊艇攻略', href: '/busan/busan-yacht-suyeong-diamond-bay?from=haeundae-guide', event: 'haeundae_related_yacht' },
+            { label: '釜山旅遊地圖', href: '/busan/map?from=haeundae-guide', event: 'haeundae_related_map' },
+          ]}
+        />
         <SeoFaqSection title="海雲台攻略常見問題" items={faqItems} />
       </main>
       <Footer />

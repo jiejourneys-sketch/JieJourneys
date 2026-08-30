@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { tokyoTicketCards } from '@/data/tokyo/tickets'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -423,6 +424,15 @@ export default async function Tokyo9AreasGuidePage({ searchParams }: Tokyo9Areas
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="選好區域後，接著把景點和交通排進去"
+          intro="先打開地圖確認每一區的位置，再回頭看交通票；若已決定想去淺草或澀谷，也可以直接接著看該區景點攻略。"
+          links={[
+            { label: '東京旅遊地圖', href: '/tokyo/map?from=tokyo-9-areas', event: 'tokyo9areas_related_map', primary: true },
+            { label: '東京交通整理', href: '/tokyo/transport', event: 'tokyo9areas_related_transport' },
+            { label: '淺草寺攻略', href: '/tokyo/sensoji-guide?from=tokyo-9-areas', event: 'tokyo9areas_related_sensoji' },
+          ]}
+        />
         <SeoFaqSection title="東京 9 大區域常見問題" items={faqItems} />
       </main>
       <Footer />

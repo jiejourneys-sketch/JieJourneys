@@ -108,6 +108,16 @@ const cards: CityCard[] = [
     ],
   },
   {
+    title: '大阪周遊券低調景點｜攻略',
+    meta: '大阪攻略',
+    area: '大阪攻略',
+    datasetKey: 'video',
+    datasetValue: 'osaka-amazing-pass-hidden-spots-guide',
+    actions: [
+      { label: '文章', href: '/osaka/osaka-amazing-pass-hidden-spots-guide?from=osaka-video', className: 'btn', event: 'osakavideo_amazingpasshiddenArticle', platform: 'article', section: 'video' },
+    ],
+  },
+  {
     title: '地鐵 vs JR｜攻略',
     meta: '交通',
     area: '交通',
@@ -166,8 +176,8 @@ export default function OsakaVideoPage() {
       <CitySubpageHeader backHref="/osaka" eventPrefix="osakavideo" />
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
-          badge="短影片合輯"
-          h1="大阪短影片攻略｜5個區域與關西機場交通快速看懂"
+          badge="旅遊攻略合輯"
+          h1="大阪旅遊攻略合輯｜5個區域與關西機場交通快速看懂"
           intro="先用短影片抓大阪五大區域和關西機場進市區方式，再搭配行前準備影片，把第一次大阪自由行的重點一次整理好。"
           eventPrefix="osakavideo"
           showVisual={false}
@@ -194,7 +204,7 @@ export default function OsakaVideoPage() {
         />
 
         <h2 className="seo-h2" id="videoListTitle">
-          大阪短影片合輯（依主題分類）
+          大阪旅遊攻略合輯（依主題分類）
         </h2>
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="osaka_video_tab" collapseVideoActions />
 

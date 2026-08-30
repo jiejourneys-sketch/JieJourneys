@@ -2,6 +2,7 @@ import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -370,6 +371,15 @@ export default async function TokyoSensojiGuidePage({ searchParams }: TokyoSenso
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="淺草行程接著這樣排"
+          intro="淺草適合安排在東京東側的一日；先用東京區域攻略和地圖看周邊位置，再決定當天是否需要地鐵券。"
+          links={[
+            { label: '東京 9 大區域攻略', href: '/tokyo/tokyo-9-areas-guide?from=sensoji-guide', event: 'sensoji_related_areas', primary: true },
+            { label: '東京旅遊地圖', href: '/tokyo/map?from=sensoji-guide', event: 'sensoji_related_map' },
+            { label: '東京地鐵券攻略', href: '/tokyo/tokyo-subway-ticket?from=sensoji-guide', event: 'sensoji_related_subway' },
+          ]}
+        />
         <SeoFaqSection title="淺草寺攻略常見問題" items={faqItems} />
       </main>
       <Footer />

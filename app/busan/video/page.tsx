@@ -323,8 +323,8 @@ export default function BusanVideoPage() {
       <CitySubpageHeader backHref="/busan" eventPrefix="busanvideo" />
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
-          badge="短影片合輯"
-          h1="釜山短影片攻略｜快速找到適合你的玩法"
+          badge="旅遊攻略合輯"
+          h1="釜山旅遊攻略合輯｜快速找到適合你的玩法"
           intro="這頁有所有短影片連結，讓你用最快速度找到要看的那一支。"
           eventPrefix="busanvideo"
           showVisual={false}
@@ -351,7 +351,7 @@ export default function BusanVideoPage() {
         />
 
         <h2 className="seo-h2" id="videoListTitle">
-          釜山短影片合輯（依主題分類）
+          釜山旅遊攻略合輯（依主題分類）
         </h2>
 
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="video_tab" collapseVideoActions />
@@ -782,7 +782,7 @@ export default function BusanVideoPage() {
         </section>
 
         <SeoFaqSection
-          title="釜山短影片合輯常見問題"
+          title="釜山旅遊攻略合輯常見問題"
           items={[
             {
               q: '第一次去釜山，先看哪幾支影片？',

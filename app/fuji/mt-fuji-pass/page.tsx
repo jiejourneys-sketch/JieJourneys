@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
@@ -240,6 +241,15 @@ export default async function MtFujiPassPage({ searchParams }: MtFujiPassPagePro
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="買富士山周遊券前，先把交通排好"
+          intro="先確認從東京到河口湖的進出方式，再用富士地圖檢查景點是否集中；這樣才能判斷周遊券是否真的划算。"
+          links={[
+            { label: '東京到河口湖交通', href: '/fuji/tokyo-to-kawaguchiko?from=mt-fuji-pass', event: 'fujipass_related_kawaguchiko', primary: true },
+            { label: '富士山交通整理', href: '/fuji/transport', event: 'fujipass_related_transport' },
+            { label: '富士山旅遊地圖', href: '/fuji/map?from=mt-fuji-pass', event: 'fujipass_related_map' },
+          ]}
+        />
         <SeoFaqSection title="富士山周遊券常見問題" items={faqItems} />
       </main>
       <Footer />

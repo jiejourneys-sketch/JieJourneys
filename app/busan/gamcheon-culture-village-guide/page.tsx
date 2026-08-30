@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
@@ -294,6 +295,15 @@ export default async function BusanGamcheonGuidePage({ searchParams }: BusanGamc
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="甘川洞之後，接著往南浦洞走"
+          intro="甘川洞適合和南浦洞、札嘎其市場、釜山塔排成同一天；先用地圖確認巴士與步行動線，會比逐一找景點省時。"
+          links={[
+            { label: '南浦洞攻略', href: '/busan/nampo-dong-guide?from=gamcheon-guide', event: 'gamcheon_related_nampo', primary: true },
+            { label: '釜山塔攻略', href: '/busan/busan-tower-guide?from=gamcheon-guide', event: 'gamcheon_related_tower' },
+            { label: '釜山旅遊地圖', href: '/busan/map?from=gamcheon-guide', event: 'gamcheon_related_map' },
+          ]}
+        />
         <SeoFaqSection title="甘川洞文化村攻略常見問題" items={faqItems} />
       </main>
       <Footer />

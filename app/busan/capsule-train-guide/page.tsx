@@ -1,6 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { busanTicketCards } from '@/data/busan/tickets'
@@ -318,6 +319,15 @@ export default async function BusanCapsuleTrainGuidePage({ searchParams }: Busan
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="膠囊列車可以這樣接著安排"
+          intro="膠囊列車最適合搭配海雲台散步與遊艇夜景；要用釜山通行證或安排其他景點，先到通行證地圖確認順路度。"
+          links={[
+            { label: '海雲台攻略', href: '/busan/haeundae-guide?from=capsule-train-guide', event: 'capsule_related_haeundae', primary: true },
+            { label: '釜山遊艇攻略', href: '/busan/busan-yacht-suyeong-diamond-bay?from=capsule-train-guide', event: 'capsule_related_yacht' },
+            { label: '釜山通行證地圖', href: '/busan/pass-map?from=capsule-train-guide', event: 'capsule_related_passmap' },
+          ]}
+        />
         <SeoFaqSection title="膠囊列車攻略常見問題" items={faqItems} />
       </main>
       <Footer />

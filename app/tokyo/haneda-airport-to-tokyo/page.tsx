@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import {
   hanedaAirportToTokyoCanonical,
@@ -314,6 +315,15 @@ export default function HanedaAirportToTokyoPage() {
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="抵達東京後，下一步這樣規劃"
+          intro="選好進市區的交通後，先依飯店所在區域確認地鐵券與第一天路線；交通和區域先決定，行程會更順。"
+          links={[
+            { label: '東京交通整理', href: '/tokyo/transport', event: 'haneda_related_transport', primary: true },
+            { label: '東京地鐵券攻略', href: '/tokyo/tokyo-subway-ticket?from=haneda-guide', event: 'haneda_related_subway' },
+            { label: '東京 9 大區域攻略', href: '/tokyo/tokyo-9-areas-guide?from=haneda-guide', event: 'haneda_related_areas' },
+          ]}
+        />
         <SeoFaqSection title="羽田機場到東京常見問題" items={faqItems} />
       </main>
       <Footer />

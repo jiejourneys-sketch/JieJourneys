@@ -1,6 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import Image from 'next/image'
@@ -472,16 +473,25 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
           <h2 className="seo-h2">把煙火節放進釜山行程</h2>
           <div className="seo-prose">
             <p>
-              煙火節當天不要再硬塞太多景點，白天安排海雲台、南浦洞或西面其中一區就好，傍晚提早往選定會場移動。住宿還沒決定，可以先從交通與行程重心挑區域；想把其他釜山景點排進前後兩天，也可回短影音合輯找對應攻略。
+              煙火節當天不要再硬塞太多景點，白天安排海雲台、南浦洞或西面其中一區就好，傍晚提早往選定會場移動。住宿還沒決定，可以先從交通與行程重心挑區域；想把其他釜山景點排進前後兩天，也可回旅遊攻略合輯找對應攻略。
             </p>
             <div className="seo-buy-links seo-action-links" aria-label="釜山煙火節延伸攻略">
               <a className="seo-buy-link primary" href="/busan/hotel?from=busan-fireworks-festival-guide" data-event="busanfireworks_hotel" data-platform="internal" data-section="article_link">釜山住宿推薦</a>
-              <a className="seo-buy-link" href="/busan/video?from=busan-fireworks-festival-guide" data-event="busanfireworks_video" data-platform="internal" data-section="article_link">釜山短影音合輯</a>
+              <a className="seo-buy-link" href="/busan/video?from=busan-fireworks-festival-guide" data-event="busanfireworks_video" data-platform="internal" data-section="article_link">釜山旅遊攻略合輯</a>
               <a className="seo-buy-link" href="/busan/map?from=busan-fireworks-festival-guide" data-event="busanfireworks_map" data-platform="internal" data-section="article_link">釜山景點地圖</a>
             </div>
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="看煙火前，先把海岸交通和住宿位置看懂"
+          intro="廣安里煙火節最重要的是選觀看位置與離場方式；先用釜山地圖確認廣安里、冬柏島、二妓臺和住宿之間的距離。"
+          links={[
+            { label: '釜山旅遊地圖', href: '/busan/map?from=busan-fireworks-guide', event: 'busanfireworks_related_map', primary: true },
+            { label: '海雲台攻略', href: '/busan/haeundae-guide?from=busan-fireworks-guide', event: 'busanfireworks_related_haeundae' },
+            { label: '釜山住宿地圖', href: '/busan/hotel', event: 'busanfireworks_related_hotel' },
+          ]}
+        />
         <SeoFaqSection title="釜山煙火節常見問題" items={faqItems} />
       </main>
       <Footer />

@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import {
   tokyoSubwayTicketCanonical,
@@ -324,6 +325,15 @@ export default function TokyoSubwayTicketPage() {
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="買地鐵券前，先把東京移動方式看懂"
+          intro="先確認行程主要跑哪些區域、會不會搭 JR，再決定地鐵券是否划算；地圖可協助檢查景點是否真的集中。"
+          links={[
+            { label: '東京交通整理', href: '/tokyo/transport', event: 'tokyosubway_related_transport', primary: true },
+            { label: '東京地鐵 vs JR 攻略', href: '/tokyo/tokyo-subway-vs-jr-guide?from=tokyo-subway-ticket', event: 'tokyosubway_related_vs' },
+            { label: '東京 9 大區域攻略', href: '/tokyo/tokyo-9-areas-guide?from=tokyo-subway-ticket', event: 'tokyosubway_related_areas' },
+          ]}
+        />
         <SeoFaqSection title="東京地鐵券常見問題" items={faqItems} />
       </main>
       <Footer />

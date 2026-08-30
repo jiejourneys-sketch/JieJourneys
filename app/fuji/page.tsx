@@ -33,7 +33,7 @@ export default function FujiPage() {
             data-section="quick"
           >
             <Image className="link-icon" src="/assets/video.png" alt="短影片" width={48} height={48} />
-            <div className="link-text">短影音合輯</div>
+            <div className="link-text">旅遊攻略合輯</div>
           </Link>
 
           <Link

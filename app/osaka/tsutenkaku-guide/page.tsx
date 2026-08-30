@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -400,6 +401,20 @@ export default async function TsutenkakuGuidePage({ searchParams }: TsutenkakuGu
         </section>
 
         <SeoCtaSection text="" href="/osaka/pass-map" linkText="查看大阪周遊卡免費設施地圖" newTab dataEvent="tsutenkaku_cta_passmap" />
+        <SeoRelatedLinksSection
+          title="通天閣周邊可以這樣接著玩"
+          intro="想把新世界排得更完整，可接天王寺動物園與周遊券低調景點；出發前也可以在周遊券地圖確認當天設施的使用規則。"
+          links={[
+            { label: '大阪周遊券低調景點', href: '/osaka/osaka-amazing-pass-hidden-spots-guide?from=tsutenkaku-guide', event: 'tsutenkaku_related_hidden', primary: true },
+            { label: '大阪周遊券地圖', href: '/osaka/pass-map?from=tsutenkaku-guide', event: 'tsutenkaku_related_passmap' },
+          ]}
+          purchaseLabel="購票"
+          purchaseOptions={[
+            { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/12156-osaka-amazing-pass-e-ticket-japan?cid=22312', event: 'tsutenkaku_purchase_kkday', platform: 'KKDAY' },
+            { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/82312-amazing-pass-osaka/?aid=93798', event: 'tsutenkaku_purchase_klook', platform: 'KLOOK' },
+            { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/48361291?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D17058162', event: 'tsutenkaku_purchase_trip', platform: 'Trip' },
+          ]}
+        />
         <SeoFaqSection title="通天閣攻略常見問題" items={faqItems} />
       </main>
       <Footer />

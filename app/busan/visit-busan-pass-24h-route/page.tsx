@@ -1,6 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -296,6 +297,15 @@ export default async function VisitBusanPass24hRoutePage({ searchParams }: Visit
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="24 小時不夠或想再微調？"
+          intro="先回通行證完整攻略確認票種，再用地圖刪掉不順路的點；如果停留超過一天，再比較 48 小時版是否更適合。"
+          links={[
+            { label: '釜山通行證完整攻略', href: '/busan/visit-busan-pass?from=pass-24h-route', event: 'busanpass24_related_pass', primary: true },
+            { label: '釜山通行證地圖', href: '/busan/pass-map?from=pass-24h-route', event: 'busanpass24_related_map' },
+            { label: '48 小時路線', href: '/busan/visit-busan-pass-48h-route?from=pass-24h-route', event: 'busanpass24_related_48h' },
+          ]}
+        />
         <SeoFaqSection title="釜山通行證 24 小時常見問題" items={faqItems} />
       </main>
       <Footer />

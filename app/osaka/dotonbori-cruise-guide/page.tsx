@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -356,6 +357,20 @@ export default async function DotonboriCruiseGuidePage({ searchParams }: Dotonbo
           href="/osaka/osaka-amazing-pass?from=dotonbori-cruise-guide"
           linkText="繼續看大阪周遊券完整攻略"
           dataEvent="dotonboricruise_cta_amazingpass"
+        />
+        <SeoRelatedLinksSection
+          title="搭完遊船，接著把難波排順"
+          intro="遊船前後可把心齋橋、道頓堀與難波放在同一段；持周遊券則先用地圖確認換票處與當天能搭的班次。"
+          links={[
+            { label: '大阪 5 大區域攻略', href: '/osaka/osaka-5-areas-guide?from=dotonbori-cruise-guide', event: 'dotonboricruise_related_areas', primary: true },
+            { label: '大阪周遊券地圖', href: '/osaka/pass-map?from=dotonbori-cruise-guide', event: 'dotonboricruise_related_passmap' },
+          ]}
+          purchaseLabel="購票"
+          purchaseOptions={[
+            { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/12156-osaka-amazing-pass-e-ticket-japan?cid=22312', event: 'dotonboricruise_purchase_kkday', platform: 'KKDAY' },
+            { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/82312-amazing-pass-osaka/?aid=93798', event: 'dotonboricruise_purchase_klook', platform: 'KLOOK' },
+            { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/48361291?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D17058162', event: 'dotonboricruise_purchase_trip', platform: 'Trip' },
+          ]}
         />
         <SeoFaqSection title="道頓堀遊船常見問題" items={faqItems} />
       </main>

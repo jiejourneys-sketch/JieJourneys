@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
@@ -312,6 +313,15 @@ export default async function HanoiToSapaTransportPage({ searchParams }: HanoiTo
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="選好車後，再把北越行程排進地圖"
+          intro="先用北越交通頁比較河內市區移動與沙壩接駁，再打開地圖確認住宿、車站和景點的位置。"
+          links={[
+            { label: '北越交通整理', href: '/northvietnam/transport', event: 'hanoisapa_related_transport', primary: true },
+            { label: '北越旅遊地圖', href: '/northvietnam/map?from=hanoi-to-sapa', event: 'hanoisapa_related_map' },
+            { label: '北越票券總整理', href: '/northvietnam/ticket', event: 'hanoisapa_related_ticket' },
+          ]}
+        />
         <SeoFaqSection title="河內到沙壩交通常見問題" items={faqItems} />
       </main>
       <Footer />

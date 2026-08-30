@@ -25,7 +25,7 @@ export default function NorthVietnamPage() {
 
           <Link className="link-item" href="/northvietnam/video" data-event="northvietnam_video" data-item="video" data-section="quick">
             <Image className="link-icon" src="/assets/video.png" alt="影片" width={48} height={48} />
-            <div className="link-text">短影音合輯</div>
+            <div className="link-text">旅遊攻略合輯</div>
           </Link>
 
           <Link className="link-item" href="/northvietnam/hotel" data-event="northvietnam_hotel" data-item="hotel" data-section="quick">

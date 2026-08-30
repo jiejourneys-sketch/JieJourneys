@@ -1,6 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -267,6 +268,20 @@ export default async function UmedaSkyBuildingGuidePage({ searchParams }: UmedaS
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="把梅田空中庭園接進大阪行程"
+          intro="梅田適合和大阪站周邊排半日；若同一天還會用多個免費設施，可先在周遊券地圖確認開放日與順路程度。"
+          links={[
+            { label: '大阪 5 大區域攻略', href: '/osaka/osaka-5-areas-guide?from=umeda-sky-guide', event: 'umedasky_related_areas', primary: true },
+            { label: '大阪周遊券地圖', href: '/osaka/pass-map?from=umeda-sky-guide', event: 'umedasky_related_passmap' },
+          ]}
+          purchaseLabel="購票"
+          purchaseOptions={[
+            { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/12156-osaka-amazing-pass-e-ticket-japan?cid=22312', event: 'umedasky_purchase_kkday', platform: 'KKDAY' },
+            { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/82312-amazing-pass-osaka/?aid=93798', event: 'umedasky_purchase_klook', platform: 'KLOOK' },
+            { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/48361291?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D17058162', event: 'umedasky_purchase_trip', platform: 'Trip' },
+          ]}
+        />
         <SeoFaqSection title="梅田空中庭園常見問題" items={faqItems} />
       </main>
       <Footer />

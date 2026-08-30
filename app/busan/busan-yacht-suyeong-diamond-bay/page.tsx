@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
@@ -314,6 +315,15 @@ export default async function BusanYachtPage({ searchParams }: BusanYachtPagePro
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="搭遊艇前後，海岸行程這樣接"
+          intro="先依白天或夜景班次安排海雲台與膠囊列車；若要同時使用通行證，先到地圖確認設施位置與當日動線。"
+          links={[
+            { label: '海雲台攻略', href: '/busan/haeundae-guide?from=busan-yacht', event: 'busanyacht_related_haeundae', primary: true },
+            { label: '海雲台膠囊列車攻略', href: '/busan/capsule-train-guide?from=busan-yacht', event: 'busanyacht_related_capsule' },
+            { label: '釜山通行證地圖', href: '/busan/pass-map?from=busan-yacht', event: 'busanyacht_related_passmap' },
+          ]}
+        />
         <SeoFaqSection title="釜山遊艇常見問題" items={faqItems} />
       </main>
       <Footer />

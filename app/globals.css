@@ -870,6 +870,73 @@ a.link-item {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+.seo-page .seo-purchase-details {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: flex-start;
+  width: 80px;
+  max-width: 100%;
+}
+.seo-page .seo-purchase-details > summary {
+  box-sizing: border-box;
+  cursor: pointer;
+  list-style: none;
+  width: 100%;
+}
+.seo-page .seo-purchase-details > summary::-webkit-details-marker {
+  display: none;
+}
+.seo-page .seo-purchase-details > summary:hover,
+.seo-page .seo-purchase-details[open] > summary {
+  border-color: #8ebdb9;
+  background: #f7fbfa;
+  box-shadow: none;
+}
+.seo-page .seo-purchase-options {
+  display: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 3px 4px 4px;
+  border: 1px solid #8ebdb9;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  background: #ffffff;
+  box-shadow: 0 9px 16px rgba(15, 23, 42, 0.06);
+}
+.seo-page .seo-purchase-details[open] > summary {
+  position: relative;
+  z-index: 1;
+  border-bottom-color: transparent;
+  border-radius: 12px 12px 0 0;
+}
+.seo-page .seo-purchase-details[open] .seo-purchase-options {
+  display: flex;
+}
+.seo-page .seo-purchase-options .seo-buy-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #245b61 !important;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.3;
+  box-shadow: none;
+}
+.seo-page .seo-purchase-options .seo-buy-link + .seo-buy-link {
+  border-top: 1px solid #e2e8f0;
+}
+.seo-page .seo-purchase-options .seo-buy-link:hover {
+  background: #f2f8f7;
+  color: #176070 !important;
+}
 .seo-page .seo-buy-link {
   display: inline-flex;
   align-items: center;

@@ -38,7 +38,7 @@ export default function TokyoVideoPage() {
       <CitySubpageHeader backHref="/tokyo" eventPrefix="tokyovideo" />
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
-          badge="東京短影片合輯"
+          badge="東京旅遊攻略合輯"
           h1="東京自由行，不用做功課也能玩"
           intro="用短影片快速搞懂東京怎麼玩：景點怎麼排、交通怎麼搭、行程怎麼順，直接帶你走最簡單的玩法。"
           eventPrefix="tokyovideo"
@@ -66,7 +66,7 @@ export default function TokyoVideoPage() {
         />
 
         <h2 className="seo-h2" id="videoListTitle">
-          東京短影片合輯（依主題分類）
+          東京旅遊攻略合輯（依主題分類）
         </h2>
 
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="tokyo_video_tab" collapseVideoActions />
@@ -230,7 +230,7 @@ export default function TokyoVideoPage() {
         </SeoContentSection>
 
         <SeoFaqSection
-          title="東京短影片合輯常見問題"
+          title="東京旅遊攻略合輯常見問題"
           items={[
             { q: '第一次去東京先看哪支影片？', a: '先看東京區域影片，再看地鐵 vs JR 和地鐵券，最後看你抵達機場的交通影片。這樣比較不會一開始就被票券和景點清單打散。' },
             { q: '成田機場和羽田機場交通影片都要看嗎？', a: '不用。你飛哪個機場就看哪個。成田重點是距離遠、路線選擇多；羽田重點是離市區近，通常京急或單軌電車就能解決。' },

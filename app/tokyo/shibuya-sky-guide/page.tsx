@@ -2,6 +2,7 @@ import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { tokyoTicketCards } from '@/data/tokyo/tickets'
@@ -333,6 +334,15 @@ export default async function TokyoShibuyaSkyGuidePage({ searchParams }: TokyoSh
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="澀谷行程接著這樣安排"
+          intro="先用區域攻略與地圖把澀谷、原宿、明治神宮排在同一日；移動範圍較大時，再回頭比較地鐵券。"
+          links={[
+            { label: '東京 9 大區域攻略', href: '/tokyo/tokyo-9-areas-guide?from=shibuya-sky-guide', event: 'shibuyasky_related_areas', primary: true },
+            { label: '東京旅遊地圖', href: '/tokyo/map?from=shibuya-sky-guide', event: 'shibuyasky_related_map' },
+            { label: '明治神宮攻略', href: '/tokyo/meiji-jingu-guide?from=shibuya-sky-guide', event: 'shibuyasky_related_meiji' },
+          ]}
+        />
         <SeoFaqSection title="SHIBUYA SKY 攻略常見問題" items={faqItems} />
       </main>
       <Footer />

@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import Image from 'next/image'
@@ -409,6 +410,15 @@ export default async function OsakaCastleGuidePage({ searchParams }: OsakaCastle
         </section>
 
         <SeoCtaSection text="" href="/osaka/map" linkText="打開大阪景點地圖安排大阪城" newTab dataEvent="osakacastle_cta_map" />
+        <SeoRelatedLinksSection
+          title="大阪城之後，接著怎麼排？"
+          intro="大阪城適合獨立安排半日；想再加進其他免費設施，就用周遊券地圖確認同一天的移動距離與開放時間。"
+          links={[
+            { label: '大阪 5 大區域攻略', href: '/osaka/osaka-5-areas-guide?from=osaka-castle-guide', event: 'osakacastle_related_areas', primary: true },
+            { label: '大阪周遊券完整攻略', href: '/osaka/osaka-amazing-pass?from=osaka-castle-guide', event: 'osakacastle_related_pass' },
+            { label: '大阪周遊券地圖', href: '/osaka/pass-map?from=osaka-castle-guide', event: 'osakacastle_related_passmap' },
+          ]}
+        />
         <SeoFaqSection title="大阪城常見問題" items={faqItems} />
       </main>
       <Footer />

@@ -1,6 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import {
@@ -282,6 +283,15 @@ export default function Osaka5AreasGuidePage() {
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="把選好的區域變成實際路線"
+          intro="先用大阪地圖確認景點與飯店位置；若當天會跑多個免費設施，再切到大阪周遊券地圖比較是否值得買。"
+          links={[
+            { label: '大阪旅遊地圖', href: '/osaka/map?from=osaka-5-areas', event: 'osaka5areas_related_map', primary: true },
+            { label: '大阪周遊券地圖', href: '/osaka/pass-map?from=osaka-5-areas', event: 'osaka5areas_related_passmap' },
+            { label: '大阪交通整理', href: '/osaka/transport', event: 'osaka5areas_related_transport' },
+          ]}
+        />
         <SeoFaqSection title="大阪 5 大區域常見問題" items={faqItems} />
       </main>
       <Footer />

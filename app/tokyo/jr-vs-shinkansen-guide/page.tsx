@@ -1,6 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -215,6 +216,15 @@ export default async function JrVsShinkansenGuidePage({ searchParams }: JrVsShin
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="東京市區交通也一起看"
+          intro="新幹線適合城市間移動，東京市區則要另外看地鐵、JR 與住宿所在區域；兩段交通分開規劃最不容易買錯。"
+          links={[
+            { label: '東京交通整理', href: '/tokyo/transport', event: 'jrvsshinkansen_related_transport', primary: true },
+            { label: '東京地鐵 vs JR 攻略', href: '/tokyo/tokyo-subway-vs-jr-guide?from=jr-vs-shinkansen', event: 'jrvsshinkansen_related_subwayjr' },
+            { label: '東京票券總整理', href: '/tokyo/ticket', event: 'jrvsshinkansen_related_ticket' },
+          ]}
+        />
         <SeoFaqSection title="JR vs 新幹線常見問題" items={faqItems} />
       </main>
       <Footer />

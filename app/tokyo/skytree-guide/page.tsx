@@ -2,6 +2,7 @@ import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { tokyoTicketCards } from '@/data/tokyo/tickets'
@@ -335,6 +336,15 @@ export default async function TokyoSkytreeGuidePage({ searchParams }: TokyoSkytr
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="晴空塔可以和東京東側這樣排"
+          intro="晴空塔和淺草同屬東京東側，適合排在同一天；先看地圖與區域攻略，再決定是否使用地鐵券。"
+          links={[
+            { label: '淺草寺攻略', href: '/tokyo/sensoji-guide?from=skytree-guide', event: 'skytree_related_sensoji', primary: true },
+            { label: '東京 9 大區域攻略', href: '/tokyo/tokyo-9-areas-guide?from=skytree-guide', event: 'skytree_related_areas' },
+            { label: '東京旅遊地圖', href: '/tokyo/map?from=skytree-guide', event: 'skytree_related_map' },
+          ]}
+        />
         <SeoFaqSection title="東京晴空塔攻略常見問題" items={faqItems} />
       </main>
       <Footer />

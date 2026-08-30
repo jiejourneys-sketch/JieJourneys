@@ -1,6 +1,7 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
@@ -260,6 +261,15 @@ export default async function KansaiAirportTerminalGuidePage({ searchParams }: K
           </div>
         </section>
 
+        <SeoRelatedLinksSection
+          title="離開航廈後，接著看哪一頁？"
+          intro="看懂第一航廈或第二航廈的動線後，下一步就是依住宿區域選 Rapi:t、HARUKA、巴士或包車；也可以先看大阪交通和住宿位置。"
+          links={[
+            { label: '關西機場到大阪交通', href: '/osaka/kansai-airport-to-osaka?from=kix-terminal', event: 'kixterminal_related_transport', primary: true },
+            { label: '大阪交通整理', href: '/osaka/transport', event: 'kixterminal_related_osakatransport' },
+            { label: '大阪住宿地圖', href: '/osaka/hotel', event: 'kixterminal_related_hotel' },
+          ]}
+        />
         <SeoFaqSection title="大阪關西機場航廈常見問題" items={faqItems} />
       </main>
       <Footer />

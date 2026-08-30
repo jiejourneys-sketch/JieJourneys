@@ -48,8 +48,8 @@ export default function NorthVietnamVideoPage() {
       <CitySubpageHeader backHref="/northvietnam" eventPrefix="northvietnamvideo" />
       <main className="busan-main transport-main seo-page">
         <SeoHeroSection
-          badge="北越短影片合輯"
-          h1="北越短影片攻略｜河內・下龍灣・沙壩・陸龍灣快速掌握"
+          badge="北越旅遊攻略合輯"
+          h1="北越旅遊攻略合輯｜河內・下龍灣・沙壩・陸龍灣快速掌握"
           intro="用短影片幫你搞懂北越自由行：各地怎麼玩、交通怎麼安排、行前準備要做什麼，切換標籤找到你需要的主題。"
           eventPrefix="northvietnamvideo"
           showVisual={false}
@@ -61,7 +61,7 @@ export default function NorthVietnamVideoPage() {
         />
 
         <h2 className="seo-h2" id="videoListTitle">
-          北越短影片合輯（依主題分類）
+          北越旅遊攻略合輯（依主題分類）
         </h2>
         <CityTabbedList tabs={tabs} cards={cards} tabEvent="northvietnam_video_tab" collapseVideoActions />
 
@@ -88,7 +88,7 @@ export default function NorthVietnamVideoPage() {
         </SeoContentSection>
 
         <SeoFaqSection
-          title="北越短影片合輯常見問題"
+          title="北越旅遊攻略合輯常見問題"
           items={[
             { q: '第一次去北越看哪支影片最有用？', a: '建議先看「越南北越最速攻略」建立整體概念，再依你想去的地區（河內、下龍灣、沙壩）切換標籤找對應影片深入了解。' },
             { q: '沙壩值得去嗎？', a: '沙壩適合喜歡自然風景、健行、慢旅行的人。影片有完整的景點比較和行程建議，可先看「沙壩3天2夜最佳解」和「3種交通方式」再決定。' },
