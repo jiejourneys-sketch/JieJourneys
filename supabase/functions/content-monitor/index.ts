@@ -435,7 +435,10 @@ async function checkSite(site: MonitorSite, state: MonitorState | undefined, dry
     const hash = await hashContent(content);
     const contentPreview = preview(fetched.display);
 
-    if (!state?.last_hash) {
+    // A hash without a readable preview is an incomplete old state (for
+    // example after a rule migration). Treat the next successful read as a
+    // silent baseline instead of sending accumulated old notices.
+    if (!state?.last_hash || !state.last_content_preview?.trim()) {
       if (!dryRun) {
         await saveState(site, {
           last_hash: hash,
