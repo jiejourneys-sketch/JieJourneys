@@ -98,6 +98,16 @@ const cards: CityCard[] = [
     ],
   },
   {
+    title: '咲洲宇宙塔展望台｜攻略',
+    meta: '大阪攻略',
+    area: '大阪攻略',
+    datasetKey: 'video',
+    datasetValue: 'sakishima-cosmo-tower-guide',
+    actions: [
+      { label: '文章', href: '/osaka/sakishima-cosmo-tower-guide?from=osaka-video', className: 'btn', event: 'osakavideo_sakishimacosmotowerArticle', platform: 'article', section: 'video' },
+    ],
+  },
+  {
     title: '地鐵 vs JR｜攻略',
     meta: '交通',
     area: '交通',
