@@ -391,20 +391,39 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               event: 'kyushusubsidy_related_resources',
               platform: 'internal',
             },
-            {
-              label: '追蹤旅杰 IG',
-              href: 'https://www.instagram.com/jiejourneys',
-              event: 'kyushusubsidy_related_instagram',
-              platform: 'Instagram',
-            },
-            {
-              label: '訂閱旅杰 YouTube',
-              href: 'https://www.youtube.com/@jiejourneys',
-              event: 'kyushusubsidy_related_youtube',
-              platform: 'YouTube',
-            },
           ]}
         />
+
+        <section className="seo-content" aria-label="追蹤旅杰">
+          <h2 className="seo-h2">追蹤旅杰</h2>
+          <div className="seo-prose">
+            <p>第一時間收到最新的日本旅遊攻略。</p>
+            <div className="seo-buy-links seo-action-links">
+              <a
+                className="seo-buy-link"
+                href="https://www.instagram.com/jiejourneys"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="kyushusubsidy_follow_instagram"
+                data-platform="Instagram"
+                data-section="social_follow"
+              >
+                追蹤旅杰 IG
+              </a>
+              <a
+                className="seo-buy-link"
+                href="https://www.youtube.com/@jiejourneys"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="kyushusubsidy_follow_youtube"
+                data-platform="YouTube"
+                data-section="social_follow"
+              >
+                訂閱旅杰 YouTube
+              </a>
+            </div>
+          </div>
+        </section>
 
         <SeoFaqSection title="九州復興旅遊補助常見問題" items={faqItems} />
       </main>
