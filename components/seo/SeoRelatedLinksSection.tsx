@@ -24,16 +24,11 @@ export default function SeoRelatedLinksSection({
   purchaseLabel,
   purchaseOptions = [],
 }: Props) {
-  const hasAffiliate = links.some((link) => link.affiliate) || purchaseOptions.length > 0
-
   return (
     <section className="seo-content" aria-label={title}>
       <h2 className="seo-h2">{title}</h2>
       <div className="seo-prose">
         {intro ? <p>{intro}</p> : null}
-        {hasAffiliate ? (
-          <p><small>本頁含聯盟行銷連結；若透過連結完成訂購，旅杰可能獲得佣金。</small></p>
-        ) : null}
         <div className="seo-buy-links seo-action-links">
           {links.map((link) => {
             const external = /^https?:\/\//.test(link.href)
