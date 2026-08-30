@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   kyushuTravelSubsidy2026Canonical,
@@ -367,6 +368,43 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
             <ActionLinks label="九州旅遊補助官方來源" links={officialLinks} />
           </div>
         </section>
+
+        <SeoRelatedLinksSection
+          title="接著安排日本自由行"
+          intro="補助細則確認前，也可以先把入境、退稅與其他行前需求準備好。"
+          links={[
+            {
+              label: 'Visit Japan Web 入境卡教學',
+              href: '/japan/visit-japan-web-guide',
+              event: 'kyushusubsidy_related_visit_japan_web',
+              platform: 'internal',
+            },
+            {
+              label: '2026 日本退稅新制',
+              href: '/japan/tax-free-2026',
+              event: 'kyushusubsidy_related_tax_free',
+              platform: 'internal',
+            },
+            {
+              label: '旅遊優惠與資源',
+              href: '/tools/resources',
+              event: 'kyushusubsidy_related_resources',
+              platform: 'internal',
+            },
+            {
+              label: '追蹤旅杰 IG',
+              href: 'https://www.instagram.com/jiejourneys',
+              event: 'kyushusubsidy_related_instagram',
+              platform: 'Instagram',
+            },
+            {
+              label: '訂閱旅杰 YouTube',
+              href: 'https://www.youtube.com/@jiejourneys',
+              event: 'kyushusubsidy_related_youtube',
+              platform: 'YouTube',
+            },
+          ]}
+        />
 
         <SeoFaqSection title="九州復興旅遊補助常見問題" items={faqItems} />
       </main>
