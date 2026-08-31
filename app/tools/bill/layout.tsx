@@ -84,7 +84,7 @@ export default function RootLayout({
               <span className="brand-logo" aria-hidden="true">
                 <BillLogo />
               </span>
-              <span className="brand-text">JieJourneys｜旅杰</span>
+              <span className="brand-text">旅杰 JieJourneys</span>
             </a>
             <div className="nav-actions">
               <a href="https://www.jiejourneys.com" target="_blank" rel="noreferrer" data-event="billtosite">
