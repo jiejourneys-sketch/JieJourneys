@@ -8,6 +8,7 @@ const FAILURE_ALERT_THRESHOLD = clampNumber(Deno.env.get("CONTENT_MONITOR_FAILUR
 const EVENT_BATCH_SIZE = 20;
 const PREVIEW_LENGTH = 1_200;
 const TELEGRAM_TEXT_LIMIT = 3_700;
+const SITE_CLAIM_WINDOW_MS = 2 * 60 * 1_000;
 const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches"]);
 
 type SourceType = "html" | "json";
@@ -390,10 +391,11 @@ async function loadDueSites(dryRun: boolean) {
   if (dryRun) return dueSites;
 
   const claimTime = new Date().toISOString();
+  const claimedUntil = new Date(Date.now() + SITE_CLAIM_WINDOW_MS).toISOString();
   const claimed = await Promise.all(dueSites.map(async (site) => {
     const { data: claimedSite, error: claimError } = await supabase
       .from("content_monitor_sites")
-      .update({ next_check_at: nextCheckAt(site) })
+      .update({ next_check_at: claimedUntil })
       .eq("id", site.id)
       .eq("enabled", true)
       .lte("next_check_at", claimTime)
