@@ -9,15 +9,25 @@ type PurchaseOption = {
   event: string
   primary?: boolean
   platform?: string
+  affiliate?: boolean
 }
 
 type Props = {
   label?: string
   options: PurchaseOption[]
+  className?: string
+  dataSection?: string
+  revealOnOpen?: boolean
 }
 
-export default function SeoPurchaseMenu({ label = '購票', options }: Props) {
-  const { detailsRef, onToggle } = useShortVideoMenuAutoClose({ revealOnOpen: true })
+export default function SeoPurchaseMenu({
+  label = '購票',
+  options,
+  className,
+  dataSection = 'related_links_purchase',
+  revealOnOpen = true,
+}: Props) {
+  const { detailsRef, onToggle } = useShortVideoMenuAutoClose({ revealOnOpen })
 
   useEffect(() => {
     const closeWhenClickingAway = (event: PointerEvent) => {
@@ -32,7 +42,7 @@ export default function SeoPurchaseMenu({ label = '購票', options }: Props) {
   }, [detailsRef])
 
   return (
-    <details ref={detailsRef} name="short-video-menu" className="seo-purchase-details" onToggle={onToggle}>
+    <details ref={detailsRef} name="short-video-menu" className={`seo-purchase-details${className ? ` ${className}` : ''}`} onToggle={onToggle}>
       <summary className="seo-buy-link">{label}</summary>
       <div className="seo-purchase-options" aria-label={label}>
         {options.map((option) => (
@@ -41,10 +51,10 @@ export default function SeoPurchaseMenu({ label = '購票', options }: Props) {
             className={`seo-buy-link${option.primary ? ' primary' : ''}`}
             href={option.href}
             target="_blank"
-            rel="sponsored noopener noreferrer"
+            rel={option.affiliate === false ? 'noopener noreferrer' : 'sponsored noopener noreferrer'}
             data-event={option.event}
             data-platform={option.platform ?? 'affiliate'}
-            data-section="related_links_purchase"
+            data-section={dataSection}
             onClick={() => {
               if (detailsRef.current) detailsRef.current.open = false
             }}

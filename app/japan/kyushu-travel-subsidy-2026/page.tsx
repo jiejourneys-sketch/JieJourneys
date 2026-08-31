@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoPurchaseMenu from '@/components/seo/SeoPurchaseMenu'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
@@ -11,7 +12,8 @@ import {
 } from './pageMeta'
 
 const SITE_URL = 'https://www.jiejourneys.com'
-const UPDATED_AT = '2026-08-28'
+const PUBLISHED_AT = '2026-08-28'
+const UPDATED_AT = '2026-08-31'
 
 const JAPAN_TOURISM_AGENCY_URL = 'https://www.mlit.go.jp/kankocho/page04_00060.html'
 const JAPAN_TOURISM_AGENCY_PDF_URL = 'https://www.mlit.go.jp/kankocho/content/002018975.pdf'
@@ -23,49 +25,89 @@ type ActionLink = {
   href: string
   event: string
   platform: string
-  primary?: boolean
+  purpose: string
 }
 
-function ActionLinks({ label, links }: { label: string; links: ActionLink[] }) {
-  return (
-    <div className="seo-buy-links seo-action-links" aria-label={label}>
-      {links.map((link) => (
-        <a
-          key={`${link.label}-${link.href}`}
-          className={link.primary ? 'seo-buy-link primary' : 'seo-buy-link'}
-          href={link.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-event={link.event}
-          data-platform={link.platform}
-          data-section="article_link"
-        >
-          {link.label}
-        </a>
-      ))}
-    </div>
-  )
+type AffiliateLink = {
+  label: string
+  href: string
+  event: string
+  platform: string
+  affiliate?: boolean
 }
 
-const officialLinks: ActionLink[] = [
+const officialSources: ActionLink[] = [
   {
     label: '觀光廳最新公告',
     href: JAPAN_TOURISM_AGENCY_URL,
     event: 'kyushusubsidy_jta_notice',
     platform: 'Japan Tourism Agency',
-    primary: true,
+    purpose: '優先確認七縣的開賣日、適用住宿日、可訂商品與平台名單。',
   },
   {
     label: '官方事業概要 PDF',
     href: JAPAN_TOURISM_AGENCY_PDF_URL,
     event: 'kyushusubsidy_jta_pdf',
     platform: 'Japan Tourism Agency',
+    purpose: '核對折扣率、每人上限與「交通＋住宿」等制度範圍。',
   },
   {
     label: '內閣府支援方案',
     href: CABINET_OFFICE_URL,
     event: 'kyushusubsidy_cabinet_office',
     platform: 'Cabinet Office',
+    purpose: '確認方案定位、執行方向與災後支援是否有新的調整。',
+  },
+]
+
+const affiliateLinks: AffiliateLink[] = [
+  {
+    label: 'Agoda｜查看可取消住宿',
+    href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hl=zh-tw',
+    event: 'kyushusubsidy_affiliate_agoda',
+    platform: 'Agoda',
+  },
+  {
+    label: 'Trip.com｜比較住宿價格',
+    href: 'https://tw.trip.com/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664',
+    event: 'kyushusubsidy_affiliate_trip',
+    platform: 'Trip.com',
+  },
+  {
+    label: 'KKday｜看交通與行程',
+    href: 'https://www.kkday.com/zh-tw/?cid=22312',
+    event: 'kyushusubsidy_affiliate_kkday',
+    platform: 'KKday',
+  },
+  {
+    label: 'Klook｜看交通與行程',
+    href: 'https://www.klook.com/zh-TW/?aid=93798',
+    event: 'kyushusubsidy_affiliate_klook',
+    platform: 'Klook',
+  },
+]
+
+const socialFollowLinks: AffiliateLink[] = [
+  {
+    label: 'Instagram',
+    href: 'https://www.instagram.com/jiejourneys',
+    event: 'kyushusubsidy_updates_follow_instagram',
+    platform: 'Instagram',
+    affiliate: false,
+  },
+  {
+    label: 'YouTube',
+    href: 'https://www.youtube.com/@jiejourneys',
+    event: 'kyushusubsidy_updates_follow_youtube',
+    platform: 'YouTube',
+    affiliate: false,
+  },
+  {
+    label: 'Threads',
+    href: 'https://www.threads.net/@jiejourneys',
+    event: 'kyushusubsidy_updates_follow_threads',
+    platform: 'Threads',
+    affiliate: false,
   },
 ]
 
@@ -135,7 +177,7 @@ const articleJsonLd = {
   headline: kyushuTravelSubsidy2026Title.replace(' | JieJourneys(旅杰)', ''),
   description: kyushuTravelSubsidy2026Description,
   inLanguage: 'zh-Hant',
-  datePublished: UPDATED_AT,
+  datePublished: PUBLISHED_AT,
   dateModified: UPDATED_AT,
   mainEntityOfPage: kyushuTravelSubsidy2026Canonical,
   author: { '@type': 'Organization', name: 'JieJourneys(旅杰)', url: SITE_URL },
@@ -178,16 +220,16 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
       <CitySubpageHeader backHref={backHref} eventPrefix="kyushusubsidy" />
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
-          badge="九州旅遊速報｜2026/8/28 更新"
+          badge="九州旅遊速報｜2026/8/31 更新"
           h1="九州旅遊補助最高省 6 成｜2026 九州復興旅遊補助怎麼用？"
           intro="日本政府已公布九州復興旅遊補助，熊本、鹿兒島最高折抵 60%，其餘五縣 50%。不過 10/1 是住宿適用起點，不是統一開賣日；台灣旅客資格、訂房平台與既有訂單能否補折，都還要等各縣細則。"
           eventPrefix="kyushusubsidy"
           showVisual={false}
           ctaLinks={[
+            { label: '追蹤最新進度', href: '#updates', dataEvent: 'kyushusubsidy_hero_updates', platform: 'article' },
             { label: '先看已確認重點', href: '#quick-answer', dataEvent: 'kyushusubsidy_hero_quick', platform: 'article' },
             { label: '折扣與上限', href: '#discount', dataEvent: 'kyushusubsidy_hero_discount', platform: 'article' },
             { label: '台灣旅客資格', href: '#pending', dataEvent: 'kyushusubsidy_hero_pending', platform: 'article' },
-            { label: '官方最新公告', href: JAPAN_TOURISM_AGENCY_URL, dataEvent: 'kyushusubsidy_hero_official', platform: 'Japan Tourism Agency' },
           ]}
         />
 
@@ -213,6 +255,53 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               <strong>台灣旅客仍待確認</strong>
               <p>平台名單、國際機票、既有訂單與排除日期也都還沒有正式細則。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content kyushu-update-hub" id="updates" aria-label="九州旅遊補助官方追蹤">
+          <div className="kyushu-update-heading">
+            <div>
+              <p className="kyushu-update-kicker">旅杰官方追蹤台</p>
+              <h2 className="seo-h2">有新消息，先在這裡幫你看懂</h2>
+            </div>
+          </div>
+          <div className="seo-prose">
+            <p>
+              開賣日、台灣旅客資格與可用平台一旦公布，最容易被零碎日文資訊搞混。旅杰會交叉追下面三份官方資料，把<strong>「台灣旅客能不能用、何時訂、已訂訂單怎麼辦」</strong>這些真正影響決定的內容先更新在這篇。
+            </p>
+          </div>
+          <ul className="kyushu-source-grid" aria-label="九州旅遊補助追蹤來源">
+            {officialSources.map((source) => (
+              <li key={source.event}>
+                <a
+                  className="kyushu-source-card"
+                  href={source.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event={source.event}
+                  data-platform={source.platform}
+                  data-section="official_tracker"
+                >
+                  <span className="kyushu-source-label">官方來源</span>
+                  <strong>{source.label}</strong>
+                  <span>{source.purpose}</span>
+                  <span className="kyushu-source-link">查看原始公告 <span aria-hidden="true">→</span></span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <div className="kyushu-update-actions">
+            <div>
+              <strong>不想自己反覆找日文公告？</strong>
+              <p>追蹤旅杰，第一時間收到九州補助的最新消息。</p>
+            </div>
+            <SeoPurchaseMenu
+              className="kyushu-follow-details"
+              label="追蹤旅杰・開啟通知"
+              options={socialFollowLinks}
+              dataSection="official_tracker"
+              revealOnOpen={false}
+            />
           </div>
         </section>
 
@@ -359,71 +448,46 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           </div>
         </section>
 
-        <section className="seo-content" id="sources" aria-label="九州旅遊補助官方資料">
-          <h2 className="seo-h2">官方資料：更新時先看這三個來源</h2>
+        <section className="seo-content" id="booking-options" aria-label="九州旅遊住宿與行程合作連結">
+          <h2 className="seo-h2">想先安排？查可取消住宿與交通行程</h2>
           <div className="seo-prose">
             <p>
-              這篇以日本政府的一級資料為主。觀光廳頁面目前最適合追各縣的開賣日與適用期間；內閣府頁面則可確認本措施屬於熊本地震災後支援方案的一部分。
+              目前尚未公布政府補助可用的平台。若你本來就要訂房或安排交通，可先比較<strong>可免費取消</strong>的選項。
             </p>
-            <ActionLinks label="九州旅遊補助官方來源" links={officialLinks} />
+            <SeoPurchaseMenu
+              className="kyushu-affiliate-details"
+              label="查看合作訂房與行程選項"
+              options={affiliateLinks}
+              dataSection="affiliate_booking_options"
+              revealOnOpen={false}
+            />
           </div>
         </section>
 
         <SeoRelatedLinksSection
-          title="接著安排日本自由行"
-          intro="補助細則確認前，也可以先把入境、退稅與其他行前需求準備好。"
+          title="補助開跑前，先把日本行前安排好"
+          intro="補助細則還沒齊，也不必停下整個行程。先完成入境、退稅與旅行資源準備；等開賣規則確認後，再決定住宿與交通怎麼下訂。"
           links={[
             {
-              label: 'Visit Japan Web 入境卡教學',
+              label: 'Visit Japan Web｜入境卡教學',
               href: '/japan/visit-japan-web-guide',
               event: 'kyushusubsidy_related_visit_japan_web',
               platform: 'internal',
             },
             {
-              label: '2026 日本退稅新制',
+              label: '2026 日本退稅新制懶人包',
               href: '/japan/tax-free-2026',
               event: 'kyushusubsidy_related_tax_free',
               platform: 'internal',
             },
             {
-              label: '旅遊優惠與資源',
+              label: '日本旅遊優惠｜訂房、eSIM、租車',
               href: '/tools/resources',
               event: 'kyushusubsidy_related_resources',
               platform: 'internal',
             },
           ]}
         />
-
-        <section className="seo-content" aria-label="追蹤旅杰">
-          <h2 className="seo-h2">追蹤旅杰</h2>
-          <div className="seo-prose">
-            <p>第一時間收到最新的日本旅遊攻略。</p>
-            <div className="seo-buy-links seo-action-links">
-              <a
-                className="seo-buy-link"
-                href="https://www.instagram.com/jiejourneys"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="kyushusubsidy_follow_instagram"
-                data-platform="Instagram"
-                data-section="social_follow"
-              >
-                追蹤旅杰 IG
-              </a>
-              <a
-                className="seo-buy-link"
-                href="https://www.youtube.com/@jiejourneys"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-event="kyushusubsidy_follow_youtube"
-                data-platform="YouTube"
-                data-section="social_follow"
-              >
-                訂閱旅杰 YouTube
-              </a>
-            </div>
-          </div>
-        </section>
 
         <SeoFaqSection title="九州復興旅遊補助常見問題" items={faqItems} />
       </main>

@@ -20,7 +20,7 @@ const lastModifiedByPath: Record<string, string> = {
   '/tools/resources': '2026-07-01',
   '/japan/tax-free-2026': '2026-07-14',
   '/japan/visit-japan-web-guide': '2026-07-22',
-  '/japan/kyushu-travel-subsidy-2026': '2026-08-28',
+  '/japan/kyushu-travel-subsidy-2026': '2026-08-31',
   '/busan': '2026-05-17',
   '/busan/hotel': '2026-06-06',
   '/busan/ticket': '2026-06-15',

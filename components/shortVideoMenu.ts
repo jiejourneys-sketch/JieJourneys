@@ -70,7 +70,13 @@ export function useShortVideoMenuAutoClose({ revealOnOpen = false }: { revealOnO
 
   const onToggle = useCallback(() => {
     const menu = detailsRef.current
-    if (menu?.open && revealOnOpen) revealOpenMenu(menu)
+    if (menu?.open) {
+      // Expanding a details element can trigger browser scroll anchoring even
+      // without a reader scrolling. Keep that layout adjustment from closing
+      // the menu that has just been opened.
+      ignoreScrollCloseUntil = Date.now() + 250
+      if (revealOnOpen) revealOpenMenu(menu)
+    }
   }, [revealOnOpen])
 
   useEffect(() => {
