@@ -372,7 +372,7 @@ async function mapConcurrent<T, R>(items: T[], worker: (item: T) => Promise<R>) 
   return results;
 }
 
-async function loadDueSites() {
+async function loadDueSites(dryRun: boolean) {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("content_monitor_sites")
@@ -382,7 +382,28 @@ async function loadDueSites() {
     .order("next_check_at", { ascending: true })
     .limit(MAX_SITES_PER_RUN);
   if (error) throw error;
-  return (data ?? []) as MonitorSite[];
+  const dueSites = (data ?? []) as MonitorSite[];
+
+  // Two scheduler invocations can overlap. Reserve each site before checking
+  // it so only the first invocation that updates next_check_at processes it.
+  // A dry run remains completely read-only.
+  if (dryRun) return dueSites;
+
+  const claimTime = new Date().toISOString();
+  const claimed = await Promise.all(dueSites.map(async (site) => {
+    const { data: claimedSite, error: claimError } = await supabase
+      .from("content_monitor_sites")
+      .update({ next_check_at: nextCheckAt(site) })
+      .eq("id", site.id)
+      .eq("enabled", true)
+      .lte("next_check_at", claimTime)
+      .select("id,name,url,enabled,source_type,selector_or_path,ignore_patterns,request_headers,check_every_minutes,notify_changes,notify_failures")
+      .maybeSingle();
+    if (claimError) throw claimError;
+    return claimedSite as MonitorSite | null;
+  }));
+
+  return claimed.filter((site): site is MonitorSite => Boolean(site));
 }
 
 async function loadStates(siteIds: string[]) {
@@ -601,7 +622,7 @@ async function main(request: Request) {
 
   const dryRun = requestUrl.searchParams.get("dryrun") === "true";
   const startedAt = new Date().toISOString();
-  const sites = await loadDueSites();
+  const sites = await loadDueSites(dryRun);
   const states = await loadStates(sites.map((site) => site.id));
   const checks = await mapConcurrent(sites, (site) => checkSite(site, states.get(site.id), dryRun));
   const delivery = dryRun ? { claimed: 0, notified: 0 } : await deliverPendingEvents();
