@@ -29,8 +29,8 @@ export default function HomePage() {
       <header>
         <nav className="nav">
           <Link href="/" className="brand" aria-label="回首頁" data-event="home_logo" data-item="brand">
-            <Image src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
-            <span>JieJourneys｜旅杰</span>
+            <Image src="/assets/logo.jpg" alt="旅杰 JieJourneys Logo" width={36} height={36} />
+            <span>旅杰 JieJourneys</span>
           </Link>
           <div className="menu">
             <Link href="#popular" data-event="home_gonglue" data-item="popular">
@@ -53,7 +53,7 @@ export default function HomePage() {
       </header>
 
       <main className="container">
-        <h1 className="sr-only">JieJourneys(旅杰)— 自由行旅遊攻略</h1>
+        <h1 className="sr-only">旅杰 JieJourneys－自由行旅遊攻略</h1>
         <section id="popular" className="section" aria-label="熱門攻略">
           <h2>熱門攻略</h2>
           <p className="sub">點擊國家卡片，會有連結總整理</p>
@@ -133,7 +133,7 @@ export default function HomePage() {
         </section>
 
         <section id="about" className="section" aria-label="關於我們">
-          <h2>關於 JieJourneys(旅杰)</h2>
+          <h2>關於旅杰 JieJourneys</h2>
           <p className="sub">自助旅遊｜一看就懂的攻略</p>
           <div className="about">
             我們整理城市地圖、景點票券、住宿區域與交通資訊，幫你快速抓到旅行重點，不用從零開始爬文。

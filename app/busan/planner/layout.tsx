@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
-    siteName: 'JieJourneys',
+    siteName: '旅杰 JieJourneys',
     title,
     description,
     url: 'https://www.jiejourneys.com/busan/planner',

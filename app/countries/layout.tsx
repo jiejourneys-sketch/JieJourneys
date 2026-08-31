@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
-    siteName: 'JieJourneys(旅杰)',
+    siteName: '旅杰 JieJourneys',
     title: '其他國家／地區攻略 | JieJourneys(旅杰)',
     description: '搜尋或點選卡片進入各區攻略。',
     url: 'https://www.jiejourneys.com/countries',

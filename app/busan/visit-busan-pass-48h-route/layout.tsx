@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'article',
     locale: 'zh_TW',
-    siteName: 'JieJourneys(旅杰)',
+    siteName: '旅杰 JieJourneys',
     title: visitBusanPass48hRouteTitle,
     description: visitBusanPass48hRouteDescription,
     url: visitBusanPass48hRouteCanonical,

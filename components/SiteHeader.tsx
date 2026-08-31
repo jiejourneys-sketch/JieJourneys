@@ -7,8 +7,8 @@ export default function SiteHeader() {
     <header>
       <nav className="nav">
         <Link href="/" className="brand" aria-label="回首頁" data-event="home_logo" data-item="brand">
-          <Image src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
-          <span>JieJourneys｜旅杰</span>
+          <Image src="/assets/logo.jpg" alt="旅杰 JieJourneys Logo" width={36} height={36} />
+          <span>旅杰 JieJourneys</span>
         </Link>
         <div className="menu">
           <Link href="/#popular" data-event="home_gonglue" data-item="popular">

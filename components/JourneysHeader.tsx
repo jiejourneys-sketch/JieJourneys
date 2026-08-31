@@ -17,8 +17,8 @@ export default function JourneysHeader({ backHref, eventPrefix }: Props) {
         data-event={`${eventPrefix}_logo`}
         data-item="brand"
       >
-        <Image src="/assets/logo.jpg" alt="JieJourneys Logo" width={40} height={40} style={{ borderRadius: 8, objectFit: 'cover' }} />
-        <span className="jj-title">JieJourneys｜旅杰</span>
+        <Image src="/assets/logo.jpg" alt="旅杰 JieJourneys Logo" width={40} height={40} style={{ borderRadius: 8, objectFit: 'cover' }} />
+        <span className="jj-title">旅杰 JieJourneys</span>
       </Link>
       <nav className="jj-actions">
         <Link

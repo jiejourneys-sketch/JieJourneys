@@ -42,7 +42,7 @@ export function generateMetadata(): Metadata {
     openGraph: {
       type: 'website',
       url: BILL_URL,
-      siteName: 'JieJourneys',
+      siteName: '旅杰 JieJourneys',
       title: '旅杰分帳｜JieJourneys Bill',
       description: desc,
       images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: '旅杰分帳 JieJourneys Bill' }]

@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     url: PLANNER_URL,
-    siteName: 'JieJourneys',
+    siteName: '旅杰 JieJourneys',
     title: '旅杰規劃｜JieJourneys Planner',
     description,
     images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: '旅杰規劃 JieJourneys Planner' }],

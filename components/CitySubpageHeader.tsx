@@ -28,8 +28,8 @@ export default function CitySubpageHeader({ backHref, eventPrefix = 'page', forc
           data-event={`${eventPrefix}_logo`}
           data-item="brand"
         >
-          <Image src="/assets/logo.jpg" alt="JieJourneys(旅杰) Logo" width={36} height={36} />
-          <span>JieJourneys｜旅杰</span>
+          <Image src="/assets/logo.jpg" alt="旅杰 JieJourneys Logo" width={36} height={36} />
+          <span>旅杰 JieJourneys</span>
         </Link>
         <div className="nav-actions">
           {forceBackReload ? (

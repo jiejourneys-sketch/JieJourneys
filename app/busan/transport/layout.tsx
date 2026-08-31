@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
-    siteName: 'JieJourneys(旅杰)',
+    siteName: '旅杰 JieJourneys',
     title,
     description,
     url: 'https://www.jiejourneys.com/busan/transport',

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
-    siteName: 'JieJourneys (旅杰)',
+    siteName: '旅杰 JieJourneys',
     title: 'JieJourneys(旅杰)-自由行旅遊速成攻略',
     description:
       'JieJourneys(旅杰)-以短片拆解旅行重點，含可下載行程與票券連結，讓你用最短時間精準規劃旅程。',
@@ -95,8 +95,7 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'Organization',
-              name: 'JieJourneys',
-              alternateName: '旅杰',
+              name: '旅杰 JieJourneys',
               url: 'https://www.jiejourneys.com/',
               logo: 'https://www.jiejourneys.com/assets/og-share.png',
               image: 'https://www.jiejourneys.com/assets/og-share.png',
@@ -114,12 +113,11 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'WebSite',
-              name: 'JieJourneys',
-              alternateName: '旅杰',
+              name: '旅杰 JieJourneys',
               url: 'https://www.jiejourneys.com/',
               publisher: {
                 '@type': 'Organization',
-                name: 'JieJourneys',
+                name: '旅杰 JieJourneys',
                 logo: {
                   '@type': 'ImageObject',
                   url: 'https://www.jiejourneys.com/assets/og-share.png',

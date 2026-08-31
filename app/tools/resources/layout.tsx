@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     url: RESOURCES_URL,
-    siteName: 'JieJourneys(旅杰)',
+    siteName: '旅杰 JieJourneys',
     title: '旅遊優惠與資源｜JieJourneys(旅杰)',
     description,
     images: [{ url: 'https://www.jiejourneys.com/assets/og-share.png', width: 1200, height: 630 }],

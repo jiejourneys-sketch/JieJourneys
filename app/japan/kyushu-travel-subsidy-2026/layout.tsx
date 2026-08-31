@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'article',
     locale: 'zh_TW',
-    siteName: 'JieJourneys(旅杰)',
+    siteName: '旅杰 JieJourneys',
     title: kyushuTravelSubsidy2026Title,
     description: kyushuTravelSubsidy2026Description,
     url: kyushuTravelSubsidy2026Canonical,
