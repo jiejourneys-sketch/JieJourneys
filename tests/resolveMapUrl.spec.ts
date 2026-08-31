@@ -94,6 +94,45 @@ test('extracts a place name from the address-style Maps URL shared by mobile', a
   })
 })
 
+test('prefers a hotel name in the Maps query over an address-like HTML title', async () => {
+  const url =
+    'https://www.google.com/maps?q=Dormy+Inn+Premium+Osaka+Kitahama,+1+Chome-6-7+Koraibashi,+Chuo+Ward,+Osaka,+541-0043%E6%97%A5%E6%9C%AC&ftid=0x6000e6de4b249b83:0xc2ec7b9f812f2652'
+  globalThis.fetch = (async () => new Response(
+    '<title>Koraibashi, Chuo Ward, Osaka, 541-0043\u65e5\u672c - Google Maps</title>',
+    { status: 200, headers: { 'content-type': 'text/html' } },
+  )) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(url))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload).toMatchObject({
+    url,
+    title: 'Dormy Inn Premium Osaka Kitahama',
+    query: 'Dormy Inn Premium Osaka Kitahama, 1 Chome-6-7 Koraibashi, Chuo Ward, Osaka, 541-0043\u65e5\u672c',
+    googleMapsDataId: '0x6000e6de4b249b83:0xc2ec7b9f812f2652',
+  })
+})
+
+test('keeps address-style Google Maps identity when fetching the expanded URL fails', async () => {
+  const url =
+    'https://www.google.com/maps?q=Japan+556-0005+Osaka,+Naniwa+Ward,+Nipponbashi,+3+Chome-1-25+Apartment+Hotel+11+Kuromon+5&ftid=0x6000e761b2d83803:0x129706af2bd8c1c9'
+  globalThis.fetch = (async () => {
+    throw new Error('maps_fetch_failed')
+  }) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(url))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload).toMatchObject({
+    url,
+    title: 'Apartment Hotel 11 Kuromon 5',
+    query: 'Japan 556-0005 Osaka, Naniwa Ward, Nipponbashi, 3 Chome-1-25 Apartment Hotel 11 Kuromon 5',
+    googleMapsDataId: '0x6000e761b2d83803:0x129706af2bd8c1c9',
+  })
+})
+
 test('keeps a Google Maps feature data ID separate from a ChIJ Place ID', async () => {
   const shortUrl = 'https://maps.app.goo.gl/art-hotel-short'
   const expandedUrl =

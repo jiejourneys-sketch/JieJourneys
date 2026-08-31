@@ -46,6 +46,8 @@ type GooglePlaceDetailsNewFailure = {
   googleStatus?: string
 }
 
+const MAX_MAP_URL_LENGTH = 900
+
 export async function GET(request: NextRequest) {
   const placeId = cleanPlaceId(request.nextUrl.searchParams.get('placeId'))
   if (!placeId) return NextResponse.json({ error: 'invalid_place_id' }, { status: 400 })
@@ -174,7 +176,7 @@ async function fetchGooglePlaceDetailsNew(placeId: string, apiKey: string, langu
       ...(payload.formattedAddress?.trim() ? { formattedAddress: payload.formattedAddress.trim().slice(0, 240) } : {}),
       ...(lat != null && lng != null ? { lat, lng } : {}),
       ...(types.length > 0 ? { types } : {}),
-      ...(payload.googleMapsUri?.trim() ? { googleMapsUrl: payload.googleMapsUri.trim().slice(0, 500) } : {}),
+      ...(payload.googleMapsUri?.trim() ? { googleMapsUrl: payload.googleMapsUri.trim().slice(0, MAX_MAP_URL_LENGTH) } : {}),
       ...(payload.websiteUri?.trim() ? { website: payload.websiteUri.trim().slice(0, 500) } : {}),
     },
   }
@@ -184,6 +186,10 @@ function readGooglePlacesApiKey() {
   return (
     process.env.GOOGLE_PLACES_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
+    // The browser Maps SDK already requires this public key. Prefer a
+    // server-only key above, but keep Place Details working on deployments
+    // that only provide the SDK key.
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
     ''
   ).trim()
 }

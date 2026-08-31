@@ -214,13 +214,17 @@ function extractNaverPlaceId(value: string) {
 
 function cleanGoogleMapsQueryTitle(value: string | null) {
   if (!value) return null
+  const leadingPlaceName = extractGoogleMapsLeadingPlaceName(value)
+  if (leadingPlaceName) return leadingPlaceName
   const addressPlaceName = extractGoogleMapsAddressPlaceName(value)
   if (addressPlaceName) return addressPlaceName
   const normalized = stripGoogleMapsPlusCode(value)
     .replace(/\s+/g, ' ')
     .trim()
   const locationTailStripped = stripGoogleMapsLocationTail(normalized)
-  if (locationTailStripped !== normalized) return cleanGoogleMapsTitle(locationTailStripped)
+  if (locationTailStripped !== normalized) {
+    return isLikelyGoogleMapsAddress(locationTailStripped) ? null : cleanGoogleMapsTitle(locationTailStripped)
+  }
   const embeddedPlaceName = extractEmbeddedNonLatinPlaceName(normalized)
   if (embeddedPlaceName && isLikelyGoogleMapsAddress(normalized)) return cleanGoogleMapsTitle(embeddedPlaceName)
   if (isLikelyGoogleMapsAddress(normalized)) return null
@@ -237,6 +241,20 @@ function cleanGoogleMapsQueryTitle(value: string | null) {
     .trim()
   const candidate = stripped || normalized
   return isLikelyGoogleMapsAddress(candidate) ? null : cleanGoogleMapsTitle(candidate)
+}
+
+// Some mobile shares put the venue first, followed by its complete address:
+// `Dormy Inn ..., 1 Chome-6-7 ...`.  Keep the venue instead of treating
+// Google's address title as a better identity.
+function extractGoogleMapsLeadingPlaceName(value: string) {
+  const normalized = stripGoogleMapsPlusCode(value).replace(/\s+/g, ' ').trim()
+  const addressStart = normalized.search(
+    /,\s*(?:(?:\d+\s*(?:Chome|\u4e01\u76ee)\s*[-\u2212\u2013]\s*)?\d+(?:\s*[-\u2212\u2013]\s*\d+)+(?:\s|,)|\d{1,6}\s+[A-Za-z].*(?:Road|Rd\.?|Street|St\.?|Avenue|Ave\.?|Boulevard|Blvd\.?|Lane|Ln\.?|Drive|Dr\.?)\b)/i,
+  )
+  if (addressStart <= 1) return null
+
+  const name = cleanGoogleMapsTitle(normalized.slice(0, addressStart).trim())
+  return name && !isLikelyGoogleMapsAddress(name) ? name : null
 }
 
 // Mobile Google Maps sharing often expands to `/maps?q=<full address> <place
@@ -315,8 +333,10 @@ function isLikelyGoogleMapsAddress(value: string) {
   const normalized = value.trim()
   return (
     /^\d{1,6}\b/.test(normalized) ||
+    /\b\d{3}-\d{4}\b/.test(normalized) ||
     /\d+.*(?:\u8def|\u8857|\u5df7|\u5f04|\u865f|\u53f7|\u6bb5|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized) ||
     /\b(?:Thanon|Soi)\s+[A-Za-z]/i.test(normalized) ||
+    /\b[A-Za-z][A-Za-z .'\-]{1,80},\s*[A-Za-z][A-Za-z .'\-]{1,80}\s+(?:Ward|City|Prefecture|District)\b/i.test(normalized) ||
     /\b(?:[A-Za-z0-9()'.-]+-)?(?:dong|gu|si|ga|ro|gil|daero|myeon|eup)\b.*,/i.test(normalized)
   )
 }
@@ -375,6 +395,32 @@ function extractGoogleMapsCoordinates(value: string) {
   }
 
   return null
+}
+
+function googleMapsUrlFallback(value: string) {
+  const pathPlaceName = decodeGoogleMapsPathPlaceName(value)
+  const urlQuery = decodeGoogleMapsQuery(value)
+  const addressQueryPlaceName = urlQuery ? extractGoogleMapsAddressPlaceName(urlQuery) : null
+  const title =
+    (pathPlaceName && isGoogleMapsPlacePath(value) ? pathPlaceName : '') ||
+    addressQueryPlaceName ||
+    cleanGoogleMapsQueryTitle(urlQuery) ||
+    pathPlaceName
+  const query = urlQuery ?? pathPlaceName ?? title
+  const coordinates = extractGoogleMapsCoordinates(value)
+  const googlePlaceId = extractGoogleMapsPlaceId(value)
+  const googleMapsDataId = extractGoogleMapsDataId(value)
+
+  if (!title && !query && !coordinates && !googlePlaceId && !googleMapsDataId) return null
+
+  return {
+    url: value,
+    ...(title ? { title } : {}),
+    ...(query ? { query } : {}),
+    ...(coordinates ? coordinates : {}),
+    ...(googlePlaceId ? { googlePlaceId } : {}),
+    ...(googleMapsDataId ? { googleMapsDataId } : {}),
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -441,10 +487,13 @@ export async function GET(request: NextRequest) {
     const query = decodeGoogleMapsQuery(resolvedUrl) ?? pathPlaceName
     const queryTitle = cleanGoogleMapsQueryTitle(query) ?? pathPlaceName
     const localizedHtmlTitle = extractGoogleMapsTitle(html)
-    // Prefer a localized HTML title when Google supplies one; the URL query
-    // is frequently just the English or abbreviated form used for navigation.
+    // Prefer a localized HTML title only when it is a venue label. Google can
+    // return a translated address (for example, a ward and postal code) as
+    // the HTML title even though the URL query contains the actual hotel.
     const title =
-      (localizedHtmlTitle && /[^\x00-\x7F]/.test(localizedHtmlTitle) ? localizedHtmlTitle : '') ||
+      (localizedHtmlTitle && /[^\x00-\x7F]/.test(localizedHtmlTitle) && !isLikelyGoogleMapsAddress(localizedHtmlTitle)
+        ? localizedHtmlTitle
+        : '') ||
       queryTitle ||
       localizedHtmlTitle
     const googlePlaceId = extractGoogleMapsPlaceId(resolvedUrl) ?? extractGoogleMapsPlaceId(html)
@@ -459,6 +508,11 @@ export async function GET(request: NextRequest) {
       ...(googleMapsDataId ? { googleMapsDataId } : {}),
     })
   } catch {
+    // Mobile share URLs often carry a complete address/name and feature ID in
+    // their query parameters. Keep that useful identity when Google's fetch
+    // rejects a truncated or otherwise unreachable expanded URL.
+    const fallback = isGoogleUrl ? googleMapsUrlFallback(rawUrl) : null
+    if (fallback) return NextResponse.json(fallback)
     return NextResponse.json({ error: 'resolve_failed' }, { status: 502 })
   } finally {
     clearTimeout(timeout)

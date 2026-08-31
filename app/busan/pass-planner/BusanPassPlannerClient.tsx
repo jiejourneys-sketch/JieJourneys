@@ -1956,8 +1956,12 @@ function cleanGoogleMapsQueryPlaceName(name: string) {
   const normalized = stripGoogleMapsPlusCode(name)
     .trim()
     .replace(/\s+/g, ' ')
+  const leadingPlaceName = extractGoogleMapsLeadingPlaceName(normalized)
+  if (leadingPlaceName) return leadingPlaceName
   const locationTailStripped = stripGoogleMapsLocationTail(normalized)
-  if (locationTailStripped !== normalized) return cleanGoogleMapsPlaceName(locationTailStripped)
+  if (locationTailStripped !== normalized) {
+    return isLikelyGoogleMapsAddress(locationTailStripped) ? '' : cleanGoogleMapsPlaceName(locationTailStripped)
+  }
   const embeddedPlaceName = extractEmbeddedNonLatinPlaceName(normalized)
   if (embeddedPlaceName && isLikelyGoogleMapsAddress(normalized)) return cleanGoogleMapsPlaceName(embeddedPlaceName)
   if (isLikelyGoogleMapsAddress(normalized)) return ''
@@ -1974,6 +1978,17 @@ function cleanGoogleMapsQueryPlaceName(name: string) {
     .trim()
   const candidate = stripped || normalized
   return isLikelyGoogleMapsAddress(candidate) ? '' : cleanGoogleMapsPlaceName(candidate)
+}
+
+function extractGoogleMapsLeadingPlaceName(value: string) {
+  const normalized = stripGoogleMapsPlusCode(value).replace(/\s+/g, ' ').trim()
+  const addressStart = normalized.search(
+    /,\s*(?:(?:\d+\s*(?:Chome|\u4e01\u76ee)\s*[-\u2212\u2013]\s*)?\d+(?:\s*[-\u2212\u2013]\s*\d+)+(?:\s|,)|\d{1,6}\s+[A-Za-z].*(?:Road|Rd\.?|Street|St\.?|Avenue|Ave\.?|Boulevard|Blvd\.?|Lane|Ln\.?|Drive|Dr\.?)\b)/i,
+  )
+  if (addressStart <= 1) return ''
+
+  const candidate = cleanGoogleMapsPlaceName(normalized.slice(0, addressStart).trim())
+  return candidate && !isLikelyGoogleMapsAddress(candidate) ? candidate : ''
 }
 
 function stripGoogleMapsLocationTail(value: string) {
@@ -2033,8 +2048,10 @@ function isLikelyGoogleMapsAddress(value: string) {
   const normalized = value.trim()
   return (
     /^\d{1,6}\b/.test(normalized) ||
+    /\b\d{3}-\d{4}\b/.test(normalized) ||
     /\d+.*(?:\u8def|\u8857|\u5df7|\u5f04|\u865f|\u53f7|\u6bb5|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized) ||
     /\b(?:Thanon|Soi)\s+[A-Za-z]/i.test(normalized) ||
+    /\b[A-Za-z][A-Za-z .'\-]{1,80},\s*[A-Za-z][A-Za-z .'\-]{1,80}\s+(?:Ward|City|Prefecture|District)\b/i.test(normalized) ||
     /\b(?:[A-Za-z0-9()'.-]+-)?(?:dong|gu|si|ga|ro|gil|daero|myeon|eup)\b.*,/i.test(normalized)
   )
 }

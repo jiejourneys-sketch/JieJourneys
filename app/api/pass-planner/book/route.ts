@@ -12,6 +12,7 @@ const MAX_USER_LINKS_PER_PLACE = 8
 const MAX_PRE_DEPARTURE_TRAVELERS = 12
 const MAX_PRE_DEPARTURE_CUSTOM_ITEMS = 80
 const MAX_PRE_DEPARTURE_CHECKED_ITEMS = 300
+const MAX_MAP_URL_LENGTH = 900
 const PRE_DEPARTURE_NOTE_KEY = '__pre_departure_v2'
 const PRE_DEPARTURE_OWNER = { id: 'traveler-owner', name: '我' }
 const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel'])
@@ -234,7 +235,7 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
       const lat = typeof source.lat === 'number' ? source.lat : Number(source.lat)
       const lng = typeof source.lng === 'number' ? source.lng : Number(source.lng)
       if (!id || !name || !Number.isFinite(lat) || !Number.isFinite(lng)) return
-      const googleUrl = typeof source.googleUrl === 'string' ? source.googleUrl.trim().slice(0, 500) : ''
+      const googleUrl = typeof source.googleUrl === 'string' ? source.googleUrl.trim().slice(0, MAX_MAP_URL_LENGTH) : ''
       const googlePlaceId = typeof source.googlePlaceId === 'string' ? source.googlePlaceId.trim().slice(0, 120) : ''
       const googlePlaceName = typeof source.googlePlaceName === 'string' ? source.googlePlaceName.trim().slice(0, 120) : ''
       const googlePlaceLat = typeof source.googlePlaceLat === 'number' ? source.googlePlaceLat : Number(source.googlePlaceLat)
