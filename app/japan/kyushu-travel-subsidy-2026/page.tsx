@@ -155,7 +155,7 @@ const faqItems = [
   },
   {
     q: '台灣旅客確定可以用九州旅遊補助嗎？',
-    a: '尚未確認。官方資料使用「國內旅客等」的表述，但沒有公開國籍、居住地或訪日外國旅客的適用定義；現階段不能寫成台灣旅客已確定享有熊本、鹿兒島住宿 4 折。',
+    a: '尚未確認。官方資料只提到「國內旅客等」，尚未說明國籍、居住地或訪日外國旅客是否適用。台灣旅客能否使用，仍要等各縣細則公布。',
   },
   {
     q: 'Agoda、Booking.com、楽天、じゃらん可以訂嗎？',
@@ -258,53 +258,6 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           </div>
         </section>
 
-        <section className="seo-content kyushu-update-hub" id="updates" aria-label="九州旅遊補助官方追蹤">
-          <div className="kyushu-update-heading">
-            <div>
-              <p className="kyushu-update-kicker">旅杰官方追蹤台</p>
-              <h2 className="seo-h2">有新消息，先在這裡幫你看懂</h2>
-            </div>
-          </div>
-          <div className="seo-prose">
-            <p>
-              開賣日、台灣旅客資格與可用平台一旦公布，最容易被零碎日文資訊搞混。旅杰會交叉追下面三份官方資料，把<strong>「台灣旅客能不能用、何時訂、已訂訂單怎麼辦」</strong>這些真正影響決定的內容先更新在這篇。
-            </p>
-          </div>
-          <ul className="kyushu-source-grid" aria-label="九州旅遊補助追蹤來源">
-            {officialSources.map((source) => (
-              <li key={source.event}>
-                <a
-                  className="kyushu-source-card"
-                  href={source.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-event={source.event}
-                  data-platform={source.platform}
-                  data-section="official_tracker"
-                >
-                  <span className="kyushu-source-label">官方來源</span>
-                  <strong>{source.label}</strong>
-                  <span>{source.purpose}</span>
-                  <span className="kyushu-source-link">查看原始公告 <span aria-hidden="true">→</span></span>
-                </a>
-              </li>
-            ))}
-          </ul>
-          <div className="kyushu-update-actions">
-            <div>
-              <strong>不想自己反覆找日文公告？</strong>
-              <p>追蹤旅杰，第一時間收到九州補助的最新消息。</p>
-            </div>
-            <SeoPurchaseMenu
-              className="kyushu-follow-details"
-              label="追蹤旅杰・開啟通知"
-              options={socialFollowLinks}
-              dataSection="official_tracker"
-              revealOnOpen={false}
-            />
-          </div>
-        </section>
-
         <section className="seo-content" id="discount" aria-label="九州復興旅遊補助折扣與上限">
           <h2 className="seo-h2">已確認：九州七縣、折扣率與每人最高折抵額</h2>
           <div className="seo-prose">
@@ -370,9 +323,9 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           <h2 className="seo-h2">現在不能確定的事：台灣旅客、平台與國際機票都還沒答案</h2>
           <div className="seo-prose">
             <p>
-              官方概要使用「<strong>國內旅客等</strong>」的表述，卻尚未公開國籍、居住地或訪日外國旅客的定義。因此現在最保守、也最正確的寫法是：<strong>台灣旅客資格待各縣細則確認</strong>，不能先宣稱「台灣人住熊本、鹿兒島確定打 4 折」。
+              官方資料目前只寫「<strong>國內旅客等</strong>」，尚未說明國籍、居住地或訪日外國旅客是否適用。<strong>台灣旅客能不能使用，仍要等各縣公布細則</strong>；在此之前，熊本、鹿兒島的 60% 折抵也還不能視為台灣旅客已適用。
             </p>
-            <h3 className="seo-h3">六個先不要寫滿的重點</h3>
+            <h3 className="seo-h3">出發前還要確認的 6 件事</h3>
             <ol>
               <li><strong>台灣旅客是否適用：</strong>沒有公布國籍或居住地門檻。</li>
               <li><strong>哪些平台可訂：</strong>官方執行架構列有旅行社、住宿業者與住宿預訂網站，但尚未點名楽天、じゃらん、Agoda、Booking.com 或台灣旅行社。</li>
@@ -445,6 +398,53 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               <li><strong>只追兩種一級資訊：</strong>觀光廳更新頁與實際入住縣的正式公告。新聞與社群適合得知消息，不適合決定是否取消或付款。</li>
               <li><strong>出發前確認交通：</strong>補助不代表所有交通狀態固定；若行程穿越熊本，仍應在出發前檢查 JR 九州與地方交通公告。</li>
             </ol>
+          </div>
+        </section>
+
+        <section className="seo-content kyushu-update-hub" id="updates" aria-label="九州旅遊補助官方追蹤">
+          <div className="kyushu-update-heading">
+            <div>
+              <p className="kyushu-update-kicker">旅杰官方追蹤台</p>
+              <h2 className="seo-h2">有新消息，先在這裡幫你看懂</h2>
+            </div>
+          </div>
+          <div className="seo-prose">
+            <p>
+              開賣日、台灣旅客資格與可用平台一旦公布，最容易被零碎日文資訊搞混。旅杰會交叉追下面三份官方資料，把<strong>「台灣旅客能不能用、何時訂、已訂訂單怎麼辦」</strong>這些真正影響決定的內容先更新在這篇。
+            </p>
+          </div>
+          <ul className="kyushu-source-grid" aria-label="九州旅遊補助追蹤來源">
+            {officialSources.map((source) => (
+              <li key={source.event}>
+                <a
+                  className="kyushu-source-card"
+                  href={source.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event={source.event}
+                  data-platform={source.platform}
+                  data-section="official_tracker"
+                >
+                  <span className="kyushu-source-label">官方來源</span>
+                  <strong>{source.label}</strong>
+                  <span>{source.purpose}</span>
+                  <span className="kyushu-source-link">查看原始公告 <span aria-hidden="true">→</span></span>
+                </a>
+              </li>
+            ))}
+          </ul>
+          <div className="kyushu-update-actions">
+            <div>
+              <strong>不想自己反覆找日文公告？</strong>
+              <p>追蹤旅杰，第一時間收到九州補助的最新消息。</p>
+            </div>
+            <SeoPurchaseMenu
+              className="kyushu-follow-details"
+              label="追蹤旅杰・開啟通知"
+              options={socialFollowLinks}
+              dataSection="official_tracker"
+              revealOnOpen={false}
+            />
           </div>
         </section>
 
