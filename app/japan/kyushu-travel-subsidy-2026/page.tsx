@@ -13,10 +13,10 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const PUBLISHED_AT = '2026-08-28'
-const UPDATED_AT = '2026-08-31'
+const UPDATED_AT = '2026-09-01'
 
 const JAPAN_TOURISM_AGENCY_URL = 'https://www.mlit.go.jp/kankocho/page04_00060.html'
-const JAPAN_TOURISM_AGENCY_PDF_URL = 'https://www.mlit.go.jp/kankocho/content/002018975.pdf'
+const JAPAN_TOURISM_AGENCY_DETAILS_URL = 'https://www.mlit.go.jp/kankocho/page13_00002.html'
 const CABINET_OFFICE_URL = 'https://www.bousai.go.jp/updates/r8kumamoto_jishin/index.html'
 const RAKUTEN_TRAVEL_URL = 'https://travel.rakuten.co.jp/special/kumamoto-offers/?l-id=dptop_widebnr_dp_kumamoto_202608'
 
@@ -45,9 +45,9 @@ const officialSources: ActionLink[] = [
     purpose: '優先確認七縣的開賣日、適用住宿日、可訂商品與平台名單。',
   },
   {
-    label: '官方事業概要 PDF',
-    href: JAPAN_TOURISM_AGENCY_PDF_URL,
-    event: 'kyushusubsidy_jta_pdf',
+    label: '官方補助詳細',
+    href: JAPAN_TOURISM_AGENCY_DETAILS_URL,
+    event: 'kyushusubsidy_jta_details',
     platform: 'Japan Tourism Agency',
     purpose: '核對折扣率、每人上限與「交通＋住宿」等制度範圍。',
   },
@@ -220,7 +220,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
       <CitySubpageHeader backHref={backHref} eventPrefix="kyushusubsidy" />
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
-          badge="九州旅遊速報｜2026/8/31 更新"
+          badge="九州旅遊速報｜2026/9/1 更新"
           h1="九州旅遊補助最高省 6 成｜2026 九州復興旅遊補助怎麼用？"
           intro="日本政府已公布九州復興旅遊補助，熊本、鹿兒島最高折抵 60%，其餘五縣 50%。不過 10/1 是住宿適用起點，不是統一開賣日；台灣旅客資格、訂房平台與既有訂單能否補折，都還要等各縣細則。"
           eventPrefix="kyushusubsidy"
@@ -336,8 +336,8 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
             </ol>
             <p>
               內閣府在 8 月 27 日公布的整體災後支援方案中，先以「九州應援割（暫稱）」列為觀光需求振興措施；隔日觀光廳公布最終名稱、折扣與限額。後續的購買細節仍是地方執行階段，請以
-              <a href={JAPAN_TOURISM_AGENCY_PDF_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_pending_pdf_inline" data-platform="Japan Tourism Agency" data-section="article_link">
-                <strong>觀光廳事業概要</strong>
+              <a href={JAPAN_TOURISM_AGENCY_DETAILS_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_pending_details_inline" data-platform="Japan Tourism Agency" data-section="article_link">
+                <strong>觀光廳補助詳細</strong>
               </a>
               與各縣公告為準。
             </p>
@@ -469,19 +469,19 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           intro="補助細則還沒齊，也不必停下整個行程。先完成入境、退稅與旅行資源準備；等開賣規則確認後，再決定住宿與交通怎麼下訂。"
           links={[
             {
-              label: 'Visit Japan Web｜入境卡教學',
+              label: '日本入境教學',
               href: '/japan/visit-japan-web-guide',
               event: 'kyushusubsidy_related_visit_japan_web',
               platform: 'internal',
             },
             {
-              label: '2026 日本退稅新制懶人包',
+              label: '日本退稅新制度',
               href: '/japan/tax-free-2026',
               event: 'kyushusubsidy_related_tax_free',
               platform: 'internal',
             },
             {
-              label: '日本旅遊優惠｜訂房、eSIM、租車',
+              label: '旅遊資源優惠',
               href: '/tools/resources',
               event: 'kyushusubsidy_related_resources',
               platform: 'internal',
