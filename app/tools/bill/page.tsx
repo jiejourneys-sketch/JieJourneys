@@ -14,6 +14,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<BookRow | null>(null)
+  const [deleteConfirmationName, setDeleteConfirmationName] = useState('')
   const [editingBookId, setEditingBookId] = useState<string | null>(null)
   const [editingBookName, setEditingBookName] = useState('')
   const [renamingBookId, setRenamingBookId] = useState<string | null>(null)
@@ -97,6 +99,18 @@ export default function Home() {
     setEditingBookName('')
   }
 
+  const openDeleteDialog = (book: BookRow) => {
+    setOpenMenuId(null)
+    setDeleteConfirmationName('')
+    setDeleteTarget(book)
+  }
+
+  const closeDeleteDialog = () => {
+    if (deletingId) return
+    setDeleteTarget(null)
+    setDeleteConfirmationName('')
+  }
+
   const saveBookName = async (bookId: string) => {
     const trimmed = editingBookName.trim()
     if (!trimmed) return alert('名稱不能為空')
@@ -119,7 +133,7 @@ export default function Home() {
   }
 
   const handleDeleteBook = async (bookId: string, bookName: string) => {
-    if (!confirm(`確定要刪除帳本「${bookName}」嗎？此操作無法復原。`)) return
+    if (deleteConfirmationName.trim() !== bookName) return
 
     setDeletingId(bookId)
     setOpenMenuId(null)
@@ -184,6 +198,8 @@ export default function Home() {
     setBooks((prev) => prev.filter((b) => b.id !== bookId))
     setRecentBookIds((prev) => prev.filter((id) => id !== bookId))
     setDeletingId(null)
+    setDeleteTarget(null)
+    setDeleteConfirmationName('')
   }
 
   return (
@@ -319,7 +335,7 @@ export default function Home() {
                     <button
                       type="button"
                       className="book-card-dropdown-item book-card-dropdown-item--danger"
-                      onClick={() => handleDeleteBook(b.id, b.name)}
+                      onClick={() => openDeleteDialog(b)}
                       disabled={deletingId === b.id}
                     >
                       {deletingId === b.id ? '刪除中...' : '刪除'}
@@ -331,6 +347,53 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <div className="bill-delete-overlay" role="presentation" onMouseDown={closeDeleteDialog}>
+          <section
+            className="bill-delete-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bill-delete-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button type="button" className="bill-delete-close" onClick={closeDeleteDialog} aria-label="關閉">
+              ×
+            </button>
+            <h2 id="bill-delete-title">刪除帳本？</h2>
+            <p>這會永久刪除「{deleteTarget.name}」及其所有帳目、付款與分攤資料，無法復原。</p>
+            <label className="bill-delete-confirmation" htmlFor="bill-delete-confirmation-name">
+              <span>請輸入帳本名稱 <strong>{deleteTarget.name}</strong> 以確認刪除</span>
+              <input
+                id="bill-delete-confirmation-name"
+                value={deleteConfirmationName}
+                onChange={(event) => setDeleteConfirmationName(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && deleteConfirmationName.trim() === deleteTarget.name) {
+                    void handleDeleteBook(deleteTarget.id, deleteTarget.name)
+                  }
+                }}
+                autoComplete="off"
+                autoFocus
+                spellCheck={false}
+              />
+            </label>
+            <div className="bill-delete-actions">
+              <button type="button" className="bill-delete-cancel" onClick={closeDeleteDialog} disabled={Boolean(deletingId)}>
+                取消
+              </button>
+              <button
+                type="button"
+                className="bill-delete-confirm"
+                onClick={() => void handleDeleteBook(deleteTarget.id, deleteTarget.name)}
+                disabled={deletingId === deleteTarget.id || deleteConfirmationName.trim() !== deleteTarget.name}
+              >
+                {deletingId === deleteTarget.id ? '刪除中...' : '永久刪除'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       <section className="tool-about" aria-labelledby="bill-about-title">
         <h2 id="bill-about-title">第一次用旅杰分帳？1 分鐘看懂</h2>

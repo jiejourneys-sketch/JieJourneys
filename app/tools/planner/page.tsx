@@ -372,6 +372,7 @@ export default function ToolsPlannerPage() {
   const [renameValue, setRenameValue] = useState('')
   const [renamingPlannerId, setRenamingPlannerId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<RecentPlanner | null>(null)
+  const [deleteConfirmationName, setDeleteConfirmationName] = useState('')
   const [deletingPlannerId, setDeletingPlannerId] = useState<string | null>(null)
   const [started, setStarted] = useState<{
     region: PlannerRegion
@@ -759,6 +760,17 @@ export default function ToolsPlannerPage() {
     setRenameValue(planner.countryName)
   }
 
+  const openDeleteDialog = (planner: RecentPlanner) => {
+    setDeleteConfirmationName('')
+    setDeleteTarget(planner)
+  }
+
+  const closeDeleteDialog = () => {
+    if (deletingPlannerId) return
+    setDeleteTarget(null)
+    setDeleteConfirmationName('')
+  }
+
   const saveRenamePlanner = async () => {
     const planner = renameTarget
     if (!planner || renamingPlannerId) return
@@ -800,9 +812,11 @@ export default function ToolsPlannerPage() {
     const planner = deleteTarget
     if (!planner) return
     if (deletingPlannerId) return
+    if (planner.access === 'edit' && deleteConfirmationName.trim() !== planner.countryName) return
     if (planner.access === 'preview') {
       setRecentPlanners(removeRecentPlanner(planner).slice(0, 8))
       setDeleteTarget(null)
+      setDeleteConfirmationName('')
       return
     }
     const storageKey = plannerStorageKey(planner.regionKey, planner.source ?? 'map')
@@ -835,6 +849,7 @@ export default function ToolsPlannerPage() {
         window.localStorage.removeItem(`${storageKey}:book-updated-at`)
       }
       setDeleteTarget(null)
+      setDeleteConfirmationName('')
     } finally {
       setDeletingPlannerId(null)
     }
@@ -1064,7 +1079,7 @@ export default function ToolsPlannerPage() {
                       onClick={(event) => {
                         event.preventDefault()
                         event.stopPropagation()
-                        setDeleteTarget(planner)
+                        openDeleteDialog(planner)
                       }}
                       disabled={deletingPlannerId === planner.id}
                       aria-label={
@@ -1189,7 +1204,7 @@ export default function ToolsPlannerPage() {
         </div>
       ) : null}
       {deleteTarget ? (
-        <div className={styles.confirmOverlay} role="presentation" onMouseDown={() => setDeleteTarget(null)}>
+        <div className={styles.confirmOverlay} role="presentation" onMouseDown={closeDeleteDialog}>
           <section
             className={styles.confirmDialog}
             role="dialog"
@@ -1197,7 +1212,7 @@ export default function ToolsPlannerPage() {
             aria-labelledby="planner-delete-title"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <button className={styles.confirmClose} type="button" onClick={() => setDeleteTarget(null)} aria-label="關閉">
+            <button className={styles.confirmClose} type="button" onClick={closeDeleteDialog} aria-label="關閉">
               ×
             </button>
             <h2 id="planner-delete-title">
@@ -1208,15 +1223,36 @@ export default function ToolsPlannerPage() {
                 ? `「${deleteTarget.countryName}」只會從這台裝置的最近行程移除，不會刪除朋友分享的行程。`
                 : `「${deleteTarget.countryName}」會從最近行程與雲端一併刪除，分享連結和預覽連結也會失效。`}
             </p>
+            {deleteTarget.access === 'edit' ? (
+              <label className={styles.deleteConfirmField} htmlFor="planner-delete-confirmation-name">
+                <span>請輸入行程名稱 <strong>{deleteTarget.countryName}</strong> 以確認刪除</span>
+                <input
+                  id="planner-delete-confirmation-name"
+                  value={deleteConfirmationName}
+                  onChange={(event) => setDeleteConfirmationName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && deleteConfirmationName.trim() === deleteTarget.countryName) {
+                      void deleteRecentPlanner()
+                    }
+                  }}
+                  autoComplete="off"
+                  autoFocus
+                  spellCheck={false}
+                />
+              </label>
+            ) : null}
             <div className={styles.confirmActions}>
-              <button type="button" className={styles.confirmCancel} onClick={() => setDeleteTarget(null)}>
+              <button type="button" className={styles.confirmCancel} onClick={closeDeleteDialog} disabled={Boolean(deletingPlannerId)}>
                 取消
               </button>
               <button
                 type="button"
                 className={styles.confirmDelete}
                 onClick={deleteRecentPlanner}
-                disabled={deletingPlannerId === deleteTarget.id}
+                disabled={
+                  deletingPlannerId === deleteTarget.id ||
+                  (deleteTarget.access === 'edit' && deleteConfirmationName.trim() !== deleteTarget.countryName)
+                }
               >
                 {deletingPlannerId === deleteTarget.id
                   ? '刪除中...'

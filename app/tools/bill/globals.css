@@ -363,6 +363,107 @@
   cursor:not-allowed;
   opacity:0.7;
 }
+.bill-app .bill-delete-overlay{
+  position:fixed;
+  inset:0;
+  z-index:80;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(15,23,42,.42);
+}
+.bill-app .bill-delete-dialog{
+  position:relative;
+  width:min(440px,100%);
+  padding:24px;
+  border:1px solid #fecaca;
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 24px 70px rgba(15,23,42,.24);
+}
+.bill-app .bill-delete-dialog h2{
+  margin:0 48px 10px 0;
+  color:#991b1b;
+  font-size:24px;
+  line-height:1.25;
+}
+.bill-app .bill-delete-dialog p{
+  margin:0;
+  color:#64748b;
+  font-size:15px;
+  line-height:1.7;
+}
+.bill-app .bill-delete-close{
+  position:absolute;
+  top:14px;
+  right:14px;
+  display:grid;
+  width:38px;
+  height:38px;
+  place-items:center;
+  border:0;
+  border-radius:999px;
+  background:#f1f5f9;
+  color:#64748b;
+  font-size:28px;
+  line-height:1;
+  cursor:pointer;
+}
+.bill-app .bill-delete-confirmation{
+  display:grid;
+  gap:8px;
+  margin-top:18px;
+  color:#374151;
+  font-size:14px;
+  font-weight:700;
+}
+.bill-app .bill-delete-confirmation strong{
+  color:#991b1b;
+}
+.bill-app .bill-delete-confirmation input{
+  width:100%;
+  min-height:48px;
+  border:2px solid #fecaca;
+  border-radius:14px;
+  padding:0 14px;
+  color:#16324f;
+  font:inherit;
+  background:#fff;
+}
+.bill-app .bill-delete-confirmation input:focus{
+  border-color:#dc2626;
+  outline:none;
+  box-shadow:0 0 0 4px rgba(220,38,38,.12);
+}
+.bill-app .bill-delete-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:20px;
+}
+.bill-app .bill-delete-cancel,
+.bill-app .bill-delete-confirm{
+  min-height:48px;
+  border-radius:14px;
+  font-size:16px;
+  font-weight:800;
+  cursor:pointer;
+}
+.bill-app .bill-delete-cancel{
+  border:1px solid #d9dee5;
+  background:#fff;
+  color:#475569;
+}
+.bill-app .bill-delete-confirm{
+  border:1px solid #b91c1c;
+  background:#b91c1c;
+  color:#fff;
+}
+.bill-app .bill-delete-cancel:disabled,
+.bill-app .bill-delete-confirm:disabled{
+  opacity:.55;
+  cursor:default;
+}
 .bill-app .book-icon{font-size:18px;margin-bottom:12px}
 .bill-app .book-name{font-size:15px;font-weight:600;line-height:1.4;word-break:break-word}
 .bill-app .empty-text{color:#9ca3af;margin:8px 0 0}

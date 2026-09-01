@@ -581,6 +581,36 @@
   box-shadow: 0 0 0 4px rgba(31, 122, 140, 0.12);
 }
 
+.deleteConfirmField {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.deleteConfirmField strong {
+  color: #991b1b;
+}
+
+.deleteConfirmField input {
+  width: 100%;
+  min-height: 48px;
+  border: 2px solid #fecaca;
+  border-radius: 14px;
+  padding: 0 14px;
+  color: #243044;
+  font: inherit;
+  background: #ffffff;
+}
+
+.deleteConfirmField input:focus {
+  border-color: #dc2626;
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
+}
+
 .confirmActions {
   display: grid;
   grid-template-columns: 1fr 1fr;
