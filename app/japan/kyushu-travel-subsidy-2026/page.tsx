@@ -19,6 +19,7 @@ const JAPAN_TOURISM_AGENCY_URL = 'https://www.mlit.go.jp/kankocho/page04_00060.h
 const JAPAN_TOURISM_AGENCY_DETAILS_URL = 'https://www.mlit.go.jp/kankocho/page13_00002.html'
 const CABINET_OFFICE_URL = 'https://www.bousai.go.jp/updates/r8kumamoto_jishin/index.html'
 const RAKUTEN_TRAVEL_URL = 'https://travel.rakuten.co.jp/special/kumamoto-offers/?l-id=dptop_widebnr_dp_kumamoto_202608'
+const INSTAGRAM_CHANNEL_URL = 'https://www.instagram.com/channel/AbZxb3pZjSFNqWvD/'
 
 type ActionLink = {
   label: string
@@ -435,16 +436,29 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           </ul>
           <div className="kyushu-update-actions">
             <div>
-              <strong>不想自己反覆找日文公告？</strong>
-              <p>追蹤旅杰，第一時間收到九州補助的最新消息。</p>
+              <strong>九州補助更新，第一時間通知</strong>
+              <p>開賣日、台灣旅客資格或可用平台有消息，會先通知你。</p>
             </div>
-            <SeoPurchaseMenu
-              className="kyushu-follow-details"
-              label="追蹤旅杰・開啟通知"
-              options={socialFollowLinks}
-              dataSection="official_tracker"
-              revealOnOpen={false}
-            />
+            <div className="kyushu-update-action-links">
+              <a
+                className="kyushu-channel-link"
+                href={INSTAGRAM_CHANNEL_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-event="kyushusubsidy_updates_ig_channel"
+                data-platform="Instagram Channel"
+                data-section="official_tracker"
+              >
+                加入即時通知
+              </a>
+              <SeoPurchaseMenu
+                className="kyushu-follow-details"
+                label="其他追蹤方式"
+                options={socialFollowLinks}
+                dataSection="official_tracker"
+                revealOnOpen={false}
+              />
+            </div>
           </div>
         </section>
 
@@ -478,6 +492,12 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               label: '日本退稅新制度',
               href: '/japan/tax-free-2026',
               event: 'kyushusubsidy_related_tax_free',
+              platform: 'internal',
+            },
+            {
+              label: '2026 日本賞楓預測',
+              href: '/japan/autumn-leaves-forecast-2026?from=kyushu-travel-subsidy-2026',
+              event: 'kyushusubsidy_related_autumn_leaves',
               platform: 'internal',
             },
             {

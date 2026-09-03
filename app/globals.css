@@ -1781,6 +1781,9 @@ a.link-item {
 .seo-page .kyushu-affiliate-details {
   width: min(100%, 272px);
 }
+.seo-page .seo-prose .japan-autumn-city-guides {
+  margin: 24px 0 0;
+}
 .seo-page .kyushu-update-actions {
   display: flex;
   align-items: center;
@@ -1806,6 +1809,39 @@ a.link-item {
 .seo-page .kyushu-update-actions .kyushu-follow-details {
   flex: 0 1 194px;
   width: 194px;
+}
+.seo-page .kyushu-update-actions .kyushu-update-action-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.seo-page .kyushu-update-actions .kyushu-channel-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 8px 14px;
+  border: 1px solid #ffffff;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+.seo-page .kyushu-update-actions .kyushu-channel-link:hover {
+  background: #d1fae5;
+  color: #0b5e58;
+  transform: translateY(-1px);
+}
+.seo-page .kyushu-update-actions .kyushu-channel-link:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 3px;
 }
 .seo-page .kyushu-update-actions .kyushu-follow-details > summary {
   border-color: rgba(255, 255, 255, 0.34);
@@ -1854,9 +1890,17 @@ a.link-item {
     flex-direction: column;
   }
   .seo-page .kyushu-update-actions > div:first-child,
+  .seo-page .kyushu-update-actions .kyushu-update-action-links,
   .seo-page .kyushu-update-actions .kyushu-follow-details {
     flex: none;
     max-width: none;
+    width: 100%;
+  }
+  .seo-page .kyushu-update-actions .kyushu-update-action-links {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .seo-page .kyushu-update-actions .kyushu-channel-link {
     width: 100%;
   }
   .seo-page .kyushu-source-grid {
