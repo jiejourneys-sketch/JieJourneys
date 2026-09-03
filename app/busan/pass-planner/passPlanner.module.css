@@ -2029,6 +2029,28 @@
   opacity: 0.5;
 }
 
+.primaryGoogleMapOption {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.primaryGoogleMapOption input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cta);
+}
+
+.primaryGoogleMapOption small {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .plannerLinkChip {
   display: inline-flex;
   align-items: center;
@@ -3387,6 +3409,10 @@
 .linksModal .userLinkForm button {
   min-height: 40px;
   border-radius: 10px;
+  font-size: 13px;
+}
+
+.linksModal .primaryGoogleMapOption {
   font-size: 13px;
 }
 

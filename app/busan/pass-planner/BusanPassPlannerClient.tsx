@@ -81,7 +81,7 @@ type ResolvedTransportNavigationIds = TransportNavigationPlaceIds & { key: strin
 type DayView = 'all' | number
 type PdfDownloadStatus = 'idle' | 'loading' | 'rendering'
 type CustomPlannerLink = { label: string; href: string }
-type PlannerUserLink = CustomPlannerLink
+type PlannerUserLink = CustomPlannerLink & { isPrimaryGoogleMap?: boolean }
 type PlannerCardImage = {
   id: string
   placeId: string
@@ -1824,6 +1824,7 @@ function cleanUserLinks(value: unknown): Record<string, PlannerUserLink[]> {
       .map((link) => ({
         label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
         href: typeof link.href === 'string' ? link.href.trim().slice(0, 500) : '',
+        ...(link.isPrimaryGoogleMap === true ? { isPrimaryGoogleMap: true } : {}),
       }))
       .filter((link) => link.label && link.href)
       .slice(0, 8)
@@ -2277,7 +2278,7 @@ function visiblePlannerUserLinks(place: MapPlace, actionLinks: readonly { label:
   return userLinks
     .map((link, index) => ({ link, index }))
     .filter(({ link }) => {
-      if (isPlannerUserMapLink(link.href, link.label) || hasMatchingPlannerLink(place, knownLinks, link)) return false
+      if (isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap) || hasMatchingPlannerLink(place, knownLinks, link)) return false
       knownLinks.push(link)
       return true
     })
@@ -4924,14 +4925,13 @@ function openPlannerMapLink(place: MapPlace, link: { href: string }) {
   window.open(link.href, '_blank', 'noopener,noreferrer')
 }
 
-function isPlannerUserMapLink(href: string, label = '') {
-  if (label.trim().startsWith('備選｜')) return false
-  return isNaverMapHref(href) || isGoogleMapHref(href)
+function isPlannerUserMapLink(href: string, isPrimaryGoogleMap = false) {
+  return isPrimaryGoogleMap && isGoogleMapHref(href)
 }
 
 function plannerMapLinks(place: MapPlace, userLinks: PlannerUserLink[] = []) {
   const naverUrl = naverMapUrl(place)
-  const userMapLinks = userLinks.filter((link) => isPlannerUserMapLink(link.href, link.label))
+  const userMapLinks = userLinks.filter((link) => isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
   const userGoogleMapLink = userMapLinks.find((link) => isGoogleMapHref(link.href))
   const userNaverMapLink = userMapLinks.find((link) => isNaverMapHref(link.href))
   const links = [
@@ -5048,6 +5048,7 @@ function SortablePlanItem({
   const [openPanel, setOpenPanel] = useState<'note' | 'links' | 'map' | 'images' | null>(null)
   const [linkLabel, setLinkLabel] = useState('')
   const [linkHref, setLinkHref] = useState('')
+  const [linkAsPrimaryGoogleMap, setLinkAsPrimaryGoogleMap] = useState(false)
   const [draftNote, setDraftNote] = useState(note)
   const [noteDeleteConfirm, setNoteDeleteConfirm] = useState(false)
   const [pendingUserLinkDelete, setPendingUserLinkDelete] = useState<{ index: number; label: string } | null>(null)
@@ -5072,7 +5073,7 @@ function SortablePlanItem({
   const customActionLinkCount = isCustomPlaceId(place.id)
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
-  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.label))
+  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
   const visibleUserLinkCount = visiblePlannerUserLinks(place, actionLinks, userLinks).length
   const userLinkCount = generalUserLinks.length
   const displayLinkCount = visibleUserLinkCount + customActionLinkCount
@@ -5298,11 +5299,17 @@ function SortablePlanItem({
           linkLabel={linkLabel}
           linkHref={linkHref}
           onLinkLabelChange={setLinkLabel}
-          onLinkHrefChange={setLinkHref}
+          onLinkHrefChange={(href) => {
+            setLinkHref(href)
+            if (!isGoogleMapHref(href)) setLinkAsPrimaryGoogleMap(false)
+          }}
+          linkAsPrimaryGoogleMap={linkAsPrimaryGoogleMap}
+          onLinkAsPrimaryGoogleMapChange={setLinkAsPrimaryGoogleMap}
           onAddUserLink={() => {
-            onAddUserLink({ label: linkLabel, href: linkHref })
+            onAddUserLink({ label: linkLabel, href: linkHref, isPrimaryGoogleMap: linkAsPrimaryGoogleMap })
             setLinkLabel('')
             setLinkHref('')
+            setLinkAsPrimaryGoogleMap(false)
           }}
           onRemoveUserLink={onRemoveUserLink}
           onRequestRemoveUserLink={(index, link) => setPendingUserLinkDelete({ index, label: link.label })}
@@ -5702,6 +5709,8 @@ function PlannerActionPanel({
   linkHref,
   onLinkLabelChange,
   onLinkHrefChange,
+  linkAsPrimaryGoogleMap,
+  onLinkAsPrimaryGoogleMapChange,
   onAddUserLink,
   onRemoveUserLink,
   onRequestRemoveUserLink,
@@ -5715,6 +5724,8 @@ function PlannerActionPanel({
   linkHref: string
   onLinkLabelChange: (value: string) => void
   onLinkHrefChange: (value: string) => void
+  linkAsPrimaryGoogleMap: boolean
+  onLinkAsPrimaryGoogleMapChange: (value: boolean) => void
   onAddUserLink: () => void
   onRemoveUserLink: (index: number) => void
   onRequestRemoveUserLink?: (index: number, link: PlannerUserLink) => void
@@ -5795,13 +5806,26 @@ function PlannerActionPanel({
         </div>
       ) : null}
           {!readOnly ? (
-            <div className={styles.userLinkForm}>
-              <input value={linkLabel} onChange={(event) => onLinkLabelChange(event.target.value)} placeholder="名稱" />
-              <input value={linkHref} onChange={(event) => onLinkHrefChange(event.target.value)} placeholder="連結" />
-              <button type="button" onClick={onAddUserLink} disabled={!linkLabel.trim() || !linkHref.trim()}>
-                新增
-              </button>
-            </div>
+            <>
+              <div className={styles.userLinkForm}>
+                <input value={linkLabel} onChange={(event) => onLinkLabelChange(event.target.value)} placeholder="名稱" />
+                <input value={linkHref} onChange={(event) => onLinkHrefChange(event.target.value)} placeholder="連結" />
+                <button type="button" onClick={onAddUserLink} disabled={!linkLabel.trim() || !linkHref.trim()}>
+                  新增
+                </button>
+              </div>
+              {isGoogleMapHref(linkHref) ? (
+                <label className={styles.primaryGoogleMapOption}>
+                  <input
+                    type="checkbox"
+                    checked={linkAsPrimaryGoogleMap}
+                    onChange={(event) => onLinkAsPrimaryGoogleMapChange(event.target.checked)}
+                  />
+                  <span>設為主要 Google Maps</span>
+                  <small>勾選後才會取代景點原本的地圖按鈕。</small>
+                </label>
+              ) : null}
+            </>
           ) : null}
         </div>
       </section>
@@ -5871,10 +5895,10 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
   const customActionLinkCount = isCustomPlaceId(place.id)
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
-  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.label))
+  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
   const visibleUserLinkCount = visiblePlannerUserLinks(place, actionLinks, userLinks).length
   const displayLinkCount = customActionLinkCount + visibleUserLinkCount
-  const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href, link.label))
+  const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
   const linkButtonClassName = `${styles.iconLink} ${styles.iconLinkActive} ${displayLinkCount > 0 ? styles.iconLinkPrimary : ''}`
   const linkButtonLabel = `\u9023\u7d50${displayLinkCount > 0 ? ` ${displayLinkCount}` : ''}`
 
@@ -5914,6 +5938,8 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
           linkHref={linkHref}
           onLinkLabelChange={setLinkLabel}
           onLinkHrefChange={setLinkHref}
+          linkAsPrimaryGoogleMap={false}
+          onLinkAsPrimaryGoogleMapChange={() => undefined}
           onAddUserLink={() => undefined}
           onRemoveUserLink={() => undefined}
           onClose={() => setOpenPanel(null)}
@@ -9337,12 +9363,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const label = link.label.trim().slice(0, 40)
     const href = normalizePlannerAffiliateHref(link.href).slice(0, 500)
     if (!label || !href) return
+    const isPrimaryGoogleMap = link.isPrimaryGoogleMap === true && isGoogleMapHref(href)
     const provider = hotelAffiliateProviderForLink({ label, href })
     if (provider) cancelHotelAffiliateLookupForCustomPlace(placeId, provider)
-    setPlaceUserLinks((links) => ({
-      ...links,
-      [placeId]: [...(links[placeId] ?? []), { label, href }].slice(0, 8),
-    }))
+    setPlaceUserLinks((links) => {
+      const existingLinks = links[placeId] ?? []
+      const nextLinks = isPrimaryGoogleMap
+        ? existingLinks.map((existingLink) =>
+            existingLink.isPrimaryGoogleMap && isGoogleMapHref(existingLink.href)
+              ? { ...existingLink, isPrimaryGoogleMap: false }
+              : existingLink,
+          )
+        : existingLinks
+      return {
+        ...links,
+        [placeId]: [...nextLinks, { label, href, ...(isPrimaryGoogleMap ? { isPrimaryGoogleMap: true } : {}) }].slice(0, 8),
+      }
+    })
   }
 
   const removePlaceUserLink = (placeId: string, index: number) => {

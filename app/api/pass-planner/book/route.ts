@@ -296,6 +296,7 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
         .map((link) => ({
           label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
           href: typeof link.href === 'string' ? link.href.trim().slice(0, 500) : '',
+          ...(link.isPrimaryGoogleMap === true ? { isPrimaryGoogleMap: true } : {}),
         }))
         .filter((link) => link.label && link.href)
       if (links.length > 0) userLinks[cleanPlaceId] = links
