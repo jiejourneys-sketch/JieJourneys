@@ -2273,12 +2273,13 @@ function uniquePlannerLinks<T extends { label: string; href: string }>(place: Ma
   return unique
 }
 
-function visiblePlannerUserLinks(place: MapPlace, actionLinks: readonly { label: string; href: string }[], userLinks: PlannerUserLink[]) {
+function visiblePlannerUserLinks(actionLinks: readonly { label: string; href: string }[], userLinks: PlannerUserLink[]) {
   const knownLinks: { label: string; href: string }[] = [...actionLinks]
   return userLinks
     .map((link, index) => ({ link, index }))
     .filter(({ link }) => {
-      if (isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap) || hasMatchingPlannerLink(place, knownLinks, link)) return false
+      if (isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap)) return false
+      if (knownLinks.some((knownLink) => plannerLinkKey(knownLink) === plannerLinkKey(link))) return false
       knownLinks.push(link)
       return true
     })
@@ -4929,6 +4930,57 @@ function isPlannerUserMapLink(href: string, isPrimaryGoogleMap = false) {
   return isPrimaryGoogleMap && isGoogleMapHref(href)
 }
 
+type DetectedPlannerNoteLink = {
+  raw: string
+  href: string
+  label: string
+}
+
+function plannerLinkLabelFromHref(href: string) {
+  const url = parsePlannerLinkUrl(href)
+  if (!url) return '網站連結'
+  const hostname = url.hostname.toLowerCase().replace(/^www\./, '')
+  if (hostname === 'kkday.com' || hostname.endsWith('.kkday.com')) return 'KKday'
+  if (hostname === 'klook.com' || hostname.endsWith('.klook.com')) return 'Klook'
+  if (hostname === 'agoda.com' || hostname.endsWith('.agoda.com')) return 'Agoda'
+  if (hostname === 'trip.com' || hostname.endsWith('.trip.com')) return 'Trip.com'
+  if (hostname === 'booking.com' || hostname.endsWith('.booking.com')) return 'Booking.com'
+  if (isGoogleMapHref(url.toString())) return 'Google Maps'
+  if (isNaverMapHref(url.toString())) return 'Naver Map'
+  return hostname.slice(0, 40) || '網站連結'
+}
+
+function detectedPlannerNoteLink(value: string): DetectedPlannerNoteLink | null {
+  // 網址可以合法包含中文、日文、韓文、數字與各種路徑符號；只在空白或引號等明確邊界停止。
+  const match = value.match(/(?:https?:\/\/|www\.)[^\s<>"'「」]+/i)
+  if (!match?.[0]) return null
+  const raw = match[0]
+  const linkValue = raw.replace(/[\])}>,，。；;！!？、.]+$/u, '')
+  const url = parsePlannerLinkUrl(linkValue)
+  if (!url || (url.protocol !== 'https:' && url.protocol !== 'http:')) return null
+  return {
+    raw,
+    href: linkValue,
+    label: plannerLinkLabelFromHref(linkValue),
+  }
+}
+
+function removePlannerNoteLink(value: string, raw: string) {
+  const linkIndex = value.indexOf(raw)
+  if (linkIndex < 0) return value
+  return `${value.slice(0, linkIndex)}${value.slice(linkIndex + raw.length)}`
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s+([，。；、！!？?])/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
+function plannerLinkHrefKey(href: string) {
+  return normalizePlannerAffiliateHref(href).trim()
+}
+
 function plannerMapLinks(place: MapPlace, userLinks: PlannerUserLink[] = []) {
   const naverUrl = naverMapUrl(place)
   const userMapLinks = userLinks.filter((link) => isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
@@ -5050,6 +5102,8 @@ function SortablePlanItem({
   const [linkHref, setLinkHref] = useState('')
   const [linkAsPrimaryGoogleMap, setLinkAsPrimaryGoogleMap] = useState(false)
   const [draftNote, setDraftNote] = useState(note)
+  const [noteLinkLabelOverride, setNoteLinkLabelOverride] = useState<{ key: string; value: string } | null>(null)
+  const [noteLinkHrefOverride, setNoteLinkHrefOverride] = useState<{ key: string; value: string } | null>(null)
   const [noteDeleteConfirm, setNoteDeleteConfirm] = useState(false)
   const [pendingUserLinkDelete, setPendingUserLinkDelete] = useState<{ index: number; label: string } | null>(null)
   const cardElementRef = useRef<HTMLElement | null>(null)
@@ -5074,12 +5128,22 @@ function SortablePlanItem({
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
   const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
-  const visibleUserLinkCount = visiblePlannerUserLinks(place, actionLinks, userLinks).length
+  const visibleUserLinkCount = visiblePlannerUserLinks(actionLinks, userLinks).length
   const userLinkCount = generalUserLinks.length
   const displayLinkCount = visibleUserLinkCount + customActionLinkCount
   const hasAnyLinks = actionLinkCount + userLinkCount > 0
   const imageCount = images.length
   const canEditCustom = Boolean(onEditCustom && isCustomPlaceId(place.id) && !readOnly)
+  const noteLink = useMemo(() => detectedPlannerNoteLink(draftNote), [draftNote])
+  const noteLinkKey = noteLink ? plannerLinkHrefKey(noteLink.href) : ''
+  const noteLinkLabel = noteLinkLabelOverride?.key === noteLinkKey ? noteLinkLabelOverride.value : noteLink?.label ?? ''
+  const noteLinkHref = noteLinkHrefOverride?.key === noteLinkKey ? noteLinkHrefOverride.value : noteLink?.href ?? ''
+  const noteLinkHrefKey = noteLinkHref ? plannerLinkHrefKey(noteLinkHref) : ''
+  const noteLinkAlreadyStored = Boolean(
+    noteLinkHrefKey &&
+      userLinks.some((link) => plannerLinkHrefKey(link.href) === noteLinkHrefKey),
+  )
+  const noteLinkLimitReached = !noteLinkAlreadyStored && userLinks.length >= 8
   const saveNote = () => {
     onNoteChange(draftNote)
     setNoteDeleteConfirm(false)
@@ -5098,6 +5162,29 @@ function SortablePlanItem({
     setDraftNote('')
     setNoteDeleteConfirm(false)
     setOpenPanel(null)
+  }
+
+  const openNoteEditor = () => {
+    setDraftNote(note)
+    setNoteLinkLabelOverride(null)
+    setNoteLinkHrefOverride(null)
+    setNoteDeleteConfirm(false)
+    setOpenPanel('note')
+  }
+
+  const addNoteLink = () => {
+    const href = noteLinkHref.trim()
+    if (!noteLink || noteLinkLimitReached || (!noteLinkAlreadyStored && (!noteLinkLabel.trim() || !href))) return
+    const linkTextToRemove = href && draftNote.includes(href) ? href : noteLink.raw
+    const nextNote = removePlannerNoteLink(draftNote, linkTextToRemove)
+    if (!noteLinkAlreadyStored) {
+      onAddUserLink({ label: noteLinkLabel, href })
+    }
+    onNoteChange(nextNote)
+    setDraftNote(nextNote)
+    setLinkLabel('')
+    setLinkHref('')
+    setOpenPanel('links')
   }
 
   const toggleCard = () => {
@@ -5119,7 +5206,9 @@ function SortablePlanItem({
 
   useEffect(() => {
     if (expanded) return
-    const id = window.setTimeout(() => setOpenPanel(null), 0)
+    const id = window.setTimeout(() => {
+      setOpenPanel(null)
+    }, 0)
     return () => window.clearTimeout(id)
   }, [expanded])
 
@@ -5159,9 +5248,7 @@ function SortablePlanItem({
                 if (!expanded) return
                 event.preventDefault()
                 event.stopPropagation()
-                setDraftNote(note)
-                setNoteDeleteConfirm(false)
-                setOpenPanel('note')
+                openNoteEditor()
               }}
             >
               {note}
@@ -5175,9 +5262,11 @@ function SortablePlanItem({
           type="button"
           disabled={readOnly && !note}
           onClick={() => {
-            setDraftNote(note)
-            setNoteDeleteConfirm(false)
-            setOpenPanel((panel) => (panel === 'note' ? null : 'note'))
+            if (openPanel === 'note') {
+              cancelNote()
+              return
+            }
+            openNoteEditor()
           }}
         >
           備註
@@ -5264,6 +5353,44 @@ function SortablePlanItem({
                 placeholder="輸入這張卡片的備註"
               />
             )}
+            {!readOnly && noteLink ? (
+              <div className={styles.noteLinkSuggestion}>
+                <div className={styles.noteLinkSuggestionContent}>
+                  <strong>偵測到網址</strong>
+                  {noteLinkAlreadyStored ? (
+                    <span>這個連結已在連結清單中，可從備註移除。</span>
+                  ) : noteLinkLimitReached ? (
+                    <span>這張卡片的連結已達 8 個上限。</span>
+                  ) : (
+                    <>
+                      <span>先確認網址並替它命名；網址本身可含中文等字，若後面直接接說明，請在下方網址欄刪掉說明。</span>
+                      <label className={styles.noteLinkLabelField}>
+                        <span>網址</span>
+                        <input
+                          value={noteLinkHref}
+                          maxLength={500}
+                          onChange={(event) => setNoteLinkHrefOverride({ key: noteLinkKey, value: event.target.value })}
+                        />
+                      </label>
+                      <label className={styles.noteLinkLabelField}>
+                        <span>連結名稱</span>
+                        <input
+                          value={noteLinkLabel}
+                          maxLength={40}
+                          onChange={(event) => setNoteLinkLabelOverride({ key: noteLinkKey, value: event.target.value })}
+                          placeholder={noteLink.label}
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
+                {!noteLinkLimitReached ? (
+                  <button type="button" onClick={addNoteLink} disabled={!noteLinkAlreadyStored && (!noteLinkLabel.trim() || !noteLinkHref.trim())}>
+                    {noteLinkAlreadyStored ? '從備註移除' : '加入連結'}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             <div className={styles.noteModalFooter}>
               {!readOnly ? <span>{draftNote.length}/500</span> : <span />}
               <div className={styles.noteModalActions}>
@@ -5733,7 +5860,8 @@ function PlannerActionPanel({
   readOnly: boolean
 }) {
   const actionLinks = plannerActionLinks(place)
-  const visibleUserLinks = visiblePlannerUserLinks(place, actionLinks, userLinks)
+  const visibleUserLinks = visiblePlannerUserLinks(actionLinks, userLinks)
+  const userLinkLimitReached = userLinks.length >= 8
   usePlannerBodyScrollLock(true)
 
   return (
@@ -5764,6 +5892,12 @@ function PlannerActionPanel({
           </button>
         </div>
         <div className={styles.linksModalBody}>
+      {!readOnly && visibleUserLinks.length === 0 ? (
+        <aside className={styles.userLinkHint}>
+          <strong>把常用連結收在這裡</strong>
+          <span>訂房、票券、菜單或預約連結都能一點開啟，例如：KKday、Klook、餐廳訂位。</span>
+        </aside>
+      ) : null}
       {actionLinks.length > 0 ? (
         <div className={styles.plannerLinksGrid}>
           {actionLinks.map((action) => (
@@ -5808,11 +5942,22 @@ function PlannerActionPanel({
           {!readOnly ? (
             <>
               <div className={styles.userLinkForm}>
-                <input value={linkLabel} onChange={(event) => onLinkLabelChange(event.target.value)} placeholder="名稱" />
-                <input value={linkHref} onChange={(event) => onLinkHrefChange(event.target.value)} placeholder="連結" />
-                <button type="button" onClick={onAddUserLink} disabled={!linkLabel.trim() || !linkHref.trim()}>
+                <input
+                  value={linkLabel}
+                  onChange={(event) => onLinkLabelChange(event.target.value)}
+                  placeholder="名稱，例如 KKday"
+                  aria-label="連結名稱"
+                />
+                <input
+                  value={linkHref}
+                  onChange={(event) => onLinkHrefChange(event.target.value)}
+                  placeholder="貼上連結"
+                  aria-label="連結網址"
+                />
+                <button type="button" onClick={onAddUserLink} disabled={!linkLabel.trim() || !linkHref.trim() || userLinkLimitReached}>
                   新增
                 </button>
+                {userLinkLimitReached ? <p className={styles.userLinkLimit}>最多可儲存 8 個連結</p> : null}
               </div>
               {isGoogleMapHref(linkHref) ? (
                 <label className={styles.primaryGoogleMapOption}>
@@ -5896,7 +6041,7 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
   const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
-  const visibleUserLinkCount = visiblePlannerUserLinks(place, actionLinks, userLinks).length
+  const visibleUserLinkCount = visiblePlannerUserLinks(actionLinks, userLinks).length
   const displayLinkCount = customActionLinkCount + visibleUserLinkCount
   const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
   const linkButtonClassName = `${styles.iconLink} ${styles.iconLinkActive} ${displayLinkCount > 0 ? styles.iconLinkPrimary : ''}`

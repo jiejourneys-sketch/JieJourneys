@@ -2051,6 +2051,31 @@
   font-size: 11px;
 }
 
+.userLinkHint {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 11px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.userLinkHint strong {
+  color: #334155;
+  font-size: 13px;
+}
+
+.userLinkLimit {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .plannerLinkChip {
   display: inline-flex;
   align-items: center;
@@ -2206,6 +2231,86 @@
   border-color: var(--cta);
   outline: none;
   box-shadow: 0 0 0 3px rgba(31, 122, 140, 0.12);
+}
+
+.noteLinkSuggestion {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 10px;
+  border: 1px solid #dbe5ec;
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.noteLinkSuggestion span {
+  min-width: 0;
+}
+
+.noteLinkSuggestionContent {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 5px;
+}
+
+.noteLinkSuggestionContent strong {
+  color: #334155;
+  font-size: 13px;
+}
+
+.noteLinkLabelField {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.noteLinkLabelField input {
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid rgba(31, 122, 140, 0.24);
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.noteLinkLabelField input:focus {
+  border-color: var(--cta);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(31, 122, 140, 0.1);
+}
+
+.noteLinkSuggestion button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  border: 1px solid rgba(31, 122, 140, 0.26);
+  border-radius: 8px;
+  padding: 5px 9px;
+  background: #ffffff;
+  color: var(--cta);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.noteLinkSuggestion button:disabled {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .noteModalFooter {
@@ -3438,6 +3543,16 @@
   .noteModalTextarea {
     min-height: 160px;
     max-height: 38dvh;
+    font-size: 16px;
+  }
+
+  .noteLinkSuggestion {
+    align-items: flex-start;
+    font-size: 13px;
+  }
+
+  .noteLinkLabelField input {
+    min-height: 38px;
     font-size: 16px;
   }
 
