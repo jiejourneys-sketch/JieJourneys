@@ -126,6 +126,7 @@ type PreDepartureChecklistStorage = {
 type PreDepartureUndoAction = { type: 'item' | 'category'; id: string; label: string }
 type PreDepartureTransferStatus = 'idle' | 'copied' | 'imported' | 'failed'
 type PreDepartureCloudStatus = 'local' | 'saving' | 'saved' | 'error'
+type PlannerCloudSaveStatus = 'local' | 'saving' | 'saved' | 'error'
 const PRE_DEPARTURE_OWNER: PreDepartureTraveler = { id: 'traveler-owner', name: '我' }
 type HotelAffiliateProvider = 'Agoda' | 'Trip'
 type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id' | 'skipped'
@@ -6721,6 +6722,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [plannerBookReadToken, setPlannerBookReadToken] = useState<string | null>(null)
   const [plannerBookEditToken, setPlannerBookEditToken] = useState<string | null>(null)
   const [plannerBookUpdatedAt, setPlannerBookUpdatedAt] = useState<string | null>(null)
+  const [plannerCloudSaveStatus, setPlannerCloudSaveStatus] = useState<PlannerCloudSaveStatus>('local')
   const [plannerLinkUnavailable, setPlannerLinkUnavailable] = useState(false)
   const [readOnlyPlan, setReadOnlyPlan] = useState(false)
   const [saveSheetUrl, setSaveSheetUrl] = useState<string | null>(null)
@@ -6751,6 +6753,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const preDepartureMigrationTargetRef = useRef<string | null>(null)
   const preDepartureLastCloudSignatureRef = useRef('')
   const preDepartureCloudSaveTimerRef = useRef<number | null>(null)
+  const plannerCloudLastSaveRef = useRef<{ bookId: string; signature: string } | null>(null)
+  const plannerCloudSaveTimerRef = useRef<number | null>(null)
+  const plannerCloudSaveRequestRef = useRef(0)
   const pdfDownloading = pdfDownloadStatus !== 'idle'
   const dayViewStorageKey = `${config.storageKey}:day-view:${plannerBookId ?? 'draft'}`
   const preDepartureStorageKey = `${config.storageKey}:pre-departure:${plannerBookId ?? 'draft'}`
@@ -7514,6 +7519,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const preDepartureChecklistSignature = useMemo(
     () => JSON.stringify(serializePreDepartureChecklistStorage(preDepartureChecklist)),
     [preDepartureChecklist],
+  )
+  const plannerCloudNotes = useMemo(
+    () => Object.fromEntries(validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note)),
+    [placeNotes, validPlanIds],
+  )
+  const plannerCloudSaveSignature = useMemo(
+    () =>
+      JSON.stringify({
+        items: validPlanItems,
+        notes: plannerCloudNotes,
+        customPlaces,
+        userLinks: placeUserLinks,
+        preDeparture: preDepartureChecklistSignature,
+      }),
+    [customPlaces, placeUserLinks, plannerCloudNotes, preDepartureChecklistSignature, validPlanItems],
   )
   const nearbyKnownPlacesStorageKey = `${config.storageKey}:nearby-known:${plannerBookId ?? 'draft'}`
   const nearbyKnownPlacesSuggestionForDraft = useMemo(() => {
@@ -8302,7 +8322,105 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (preDepartureCloudSaveTimerRef.current != null) {
       window.clearTimeout(preDepartureCloudSaveTimerRef.current)
     }
+    if (plannerCloudSaveTimerRef.current != null) {
+      window.clearTimeout(plannerCloudSaveTimerRef.current)
+    }
   }, [])
+
+  useEffect(() => {
+    if (
+      !storageReady ||
+      readOnlyPlan ||
+      !plannerBookId ||
+      !plannerBookEditToken ||
+      !hasSavablePlannerContent ||
+      shareSaving
+    ) {
+      if (!plannerBookId) {
+        plannerCloudLastSaveRef.current = null
+        setPlannerCloudSaveStatus('local')
+      }
+      return
+    }
+
+    const lastSave = plannerCloudLastSaveRef.current
+    if (!lastSave || lastSave.bookId !== plannerBookId) {
+      plannerCloudLastSaveRef.current = { bookId: plannerBookId, signature: plannerCloudSaveSignature }
+      setPlannerCloudSaveStatus('saved')
+      return
+    }
+    if (lastSave.signature === plannerCloudSaveSignature) {
+      setPlannerCloudSaveStatus('saved')
+      return
+    }
+
+    if (plannerCloudSaveTimerRef.current != null) {
+      window.clearTimeout(plannerCloudSaveTimerRef.current)
+    }
+
+    const snapshot = {
+      items: validPlanItems,
+      notes: plannerCloudNotes,
+      customPlaces,
+      userLinks: placeUserLinks,
+      preDeparture: preDepartureChecklist,
+      signature: plannerCloudSaveSignature,
+    }
+    plannerCloudSaveTimerRef.current = window.setTimeout(() => {
+      const requestId = plannerCloudSaveRequestRef.current + 1
+      plannerCloudSaveRequestRef.current = requestId
+      plannerCloudSaveTimerRef.current = null
+      setPlannerCloudSaveStatus('saving')
+      void savePlannerBook(
+        config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+        plannerBookId,
+        plannerBookEditToken,
+        snapshot.items,
+        snapshot.notes,
+        snapshot.customPlaces,
+        snapshot.userLinks,
+        snapshot.preDeparture,
+      )
+        .then((book) => {
+          if (plannerCloudSaveRequestRef.current !== requestId) return
+          if (!book) {
+            setPlannerCloudSaveStatus('error')
+            return
+          }
+          plannerCloudLastSaveRef.current = { bookId: plannerBookId, signature: snapshot.signature }
+          if (book.readToken) setPlannerBookReadToken(book.readToken)
+          if (book.editToken) setPlannerBookEditToken(book.editToken)
+          setPlannerBookUpdatedAt(new Date().toISOString())
+          setPlannerCloudSaveStatus('saved')
+        })
+        .catch(() => {
+          if (plannerCloudSaveRequestRef.current === requestId) setPlannerCloudSaveStatus('error')
+        })
+    }, 1_500)
+
+    return () => {
+      if (plannerCloudSaveTimerRef.current != null) {
+        window.clearTimeout(plannerCloudSaveTimerRef.current)
+        plannerCloudSaveTimerRef.current = null
+      }
+    }
+  }, [
+    config.plannerBookCityName,
+    config.recentCountryName,
+    config.shareTitle,
+    customPlaces,
+    hasSavablePlannerContent,
+    placeUserLinks,
+    plannerBookEditToken,
+    plannerBookId,
+    plannerCloudNotes,
+    plannerCloudSaveSignature,
+    preDepartureChecklist,
+    readOnlyPlan,
+    shareSaving,
+    storageReady,
+    validPlanItems,
+  ])
 
   useEffect(() => {
     if (
@@ -10839,7 +10957,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     return true
   }
 
-  const updateCustomGoogleUrl = (googleUrl: string) => {
+  const updateCustomGoogleUrl = (googleUrl: string, forceResolve = false) => {
     const extractedGoogleUrl = extractGoogleMapsUrlFromText(googleUrl)
     const trimmedGoogleUrl = extractedGoogleUrl.trim()
     const isGoogleMapsInput = Boolean(trimmedGoogleUrl && shouldResolveGoogleMapsUrl(trimmedGoogleUrl))
@@ -10879,11 +10997,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }))
     if (coordinates) revealResolvedCustomPlace(coordinates)
     const shouldResolveUrl =
-      isGoogleMapsInput && (isShortGoogleMapsUrl(trimmedGoogleUrl) || !coordinates || !parsedName)
+      isGoogleMapsInput && (forceResolve || isShortGoogleMapsUrl(trimmedGoogleUrl) || !coordinates || !parsedName)
     if (!shouldResolveUrl) return
 
     const cachedResolved = getResolvedMapUrlCache(trimmedGoogleUrl)
-    if (cachedResolved) {
+    if (cachedResolved && !forceResolve) {
       const resolvedCoordinates =
         typeof cachedResolved.lat === 'number' && typeof cachedResolved.lng === 'number'
           ? { lat: cachedResolved.lat, lng: cachedResolved.lng }
@@ -11993,10 +12111,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           <div>
             <h1>{config.title}</h1>
             <p>{config.description}</p>
-            {readOnlyPlan || plannerBookUpdatedAt ? (
+            {readOnlyPlan || plannerBookUpdatedAt || (storageReady && !plannerBookId) ? (
               <div className={styles.plannerMeta}>
                 {readOnlyPlan ? <span>唯讀行程・複製後可自由修改</span> : null}
                 {plannerBookUpdatedAt ? <span>最後更新 {formatPlannerUpdatedAt(plannerBookUpdatedAt)}</span> : null}
+                {storageReady && !plannerBookId && !readOnlyPlan ? <span>本機草稿已自動儲存；請按分享/保存以跨裝置保留</span> : null}
+                {plannerBookId && !readOnlyPlan && plannerCloudSaveStatus === 'saving' ? <span>雲端儲存中…</span> : null}
+                {plannerBookId && !readOnlyPlan && plannerCloudSaveStatus === 'error' ? <span>雲端同步失敗；內容仍保留在本機草稿</span> : null}
               </div>
             ) : null}
           </div>
@@ -12313,6 +12434,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                     ? '\u627e\u4e0d\u5230\u5b8c\u6574\u4f4d\u7f6e\uff0c\u5df2\u5207\u63db\u70ba\u624b\u52d5\u5efa\u7acb\u3002\u8acb\u78ba\u8a8d\u540d\u7a31\uff0c\u518d\u5230\u5730\u5716\u9ede\u4e00\u4e0b\u6a19\u8a18\u4f4d\u7f6e\u3002'
                                     : '\u8acb\u5148\u9078\u64c7\u4f4d\u7f6e\u3002'}
                               </p>
+                              {!customUrlResolving &&
+                              !customGoogleUrlNotice &&
+                              customDraft.googleUrl.trim() &&
+                              shouldResolveGoogleMapsUrl(customDraft.googleUrl) &&
+                              (customDraft.lat == null || customDraft.lng == null) ? (
+                                <button
+                                  type="button"
+                                  className={styles.customPlaceAdjust}
+                                  onClick={() => updateCustomGoogleUrl(customDraft.googleUrl, true)}
+                                >
+                                  重新嘗試讀取 Google Maps
+                                </button>
+                              ) : null}
                               {customDraft.lat == null || customDraft.lng == null ? (
                                 <button
                                   type="button"

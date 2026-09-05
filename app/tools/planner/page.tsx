@@ -89,10 +89,10 @@ function inAppBrowserName(browser: InAppBrowser) {
 function plannerStartUrl(start: PendingPlannerStart) {
   const origin = typeof window === 'undefined' ? PUBLIC_SITE_ORIGIN : window.location.origin
   const url = new URL('/tools/planner', origin)
-  if (start.shouldLoadKnownPlaces) {
-    url.searchParams.set('region', start.region.key)
-    if (start.source === 'pass') url.searchParams.set('source', 'pass')
-  }
+  url.searchParams.set('region', start.region.key)
+  url.searchParams.set('resume', '1')
+  if (start.source === 'pass') url.searchParams.set('source', 'pass')
+  if (start.countryName !== start.region.shortLabel) url.searchParams.set('name', start.countryName)
   return url.toString()
 }
 
@@ -301,6 +301,24 @@ function clearPlannerLocalDraft(regionKey: string, source: PlannerSource) {
   window.localStorage.removeItem(`${key}:pre-departure`)
 }
 
+function hasPlannerLocalDraft(regionKey: string, source: PlannerSource) {
+  const key = plannerStorageKey(regionKey, source)
+  const storageKeys = [key, `${key}:notes`, `${key}:custom-places`, `${key}:user-links`]
+
+  return storageKeys.some((storageKey) => {
+    const raw = window.localStorage.getItem(storageKey)
+    if (!raw) return false
+    try {
+      const value = JSON.parse(raw) as unknown
+      if (Array.isArray(value)) return value.length > 0
+      return Boolean(value && typeof value === 'object' && Object.keys(value).length > 0)
+    } catch {
+      // Keep an unreadable local value until the user explicitly starts over.
+      return true
+    }
+  })
+}
+
 function upsertRecentPlanner(planner: RecentPlanner) {
   const raw = window.localStorage.getItem(RECENT_PLANNERS_KEY)
   const current = cleanRecentPlannerItems(raw ? JSON.parse(raw) : [])
@@ -402,6 +420,7 @@ export default function ToolsPlannerPage() {
       const regionKey = params.get('region')?.trim() ?? ''
       const source = params.get('source') === 'pass' ? 'pass' : 'map'
       const resumeDraft = params.get('resume') === '1'
+      const requestedCountryName = params.get('name')?.trim() ?? ''
       setPreferredSource(source)
       const plannerId = params.get('p')?.trim() || ''
       const readToken = params.get('v')?.trim() || ''
@@ -577,13 +596,13 @@ export default function ToolsPlannerPage() {
         setStarted({
           region,
           loadKnownPlaces: true,
-          countryName: region.shortLabel,
+          countryName: requestedCountryName || region.shortLabel,
           source,
         })
         return
       }
       if (resumeDraft && regionKey) {
-        const countryName = plannerDisplayName(regionKey, regionKey)
+        const countryName = plannerDisplayName(requestedCountryName || regionKey, regionKey)
         setUnavailablePlanner(null)
         setCheckingSharedPlanner(false)
         setStarted({
@@ -653,13 +672,25 @@ export default function ToolsPlannerPage() {
     planner?: { id?: string; readToken?: string; editToken?: string },
     resetDraft = !planner,
   ) => {
+    let shouldClearLocalDraft = resetDraft && !planner
+    if (shouldClearLocalDraft && hasPlannerLocalDraft(region.key, source)) {
+      const shouldResumeDraft = window.confirm(
+        `偵測到「${countryName}」尚未分享保存的本機草稿。\n\n按「確定」繼續上次草稿；按「取消」清除草稿並建立新行程。`,
+      )
+      shouldClearLocalDraft = !shouldResumeDraft
+    }
+
     if (!planner && inAppBrowser) {
-      setPendingPlannerStart({ region, countryName, shouldLoadKnownPlaces, source, resetDraft })
+      setPendingPlannerStart({ region, countryName, shouldLoadKnownPlaces, source, resetDraft: shouldClearLocalDraft })
       setInAppPromptCopied(false)
       setInAppPromptOpen(true)
       return
     }
-    if (resetDraft && !planner) clearPlannerLocalDraft(region.key, source)
+    if (shouldClearLocalDraft) clearPlannerLocalDraft(region.key, source)
+    if (!planner) {
+      const url = new URL(plannerStartUrl({ region, countryName, shouldLoadKnownPlaces, source }), window.location.origin)
+      window.history.pushState(null, '', `${url.pathname}${url.search}${url.hash}`)
+    }
     setStarted({
       region,
       loadKnownPlaces: shouldLoadKnownPlaces,
