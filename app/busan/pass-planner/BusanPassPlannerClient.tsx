@@ -392,6 +392,7 @@ const defaultCategoryLabels: Partial<Record<CityMapPlaceCategory, string>> = {
   free: '價格中',
   food: '價格低',
   hotel: '住宿',
+  transport: '機場/車站',
 }
 
 const defaultCategoryItems: { key: CityMapPlaceCategory; label: string }[] = [
@@ -405,6 +406,7 @@ const defaultCustomCategoryItems: { key: CityMapPlaceCategory; label: string }[]
   { key: 'restaurant', label: '餐廳' },
   { key: 'shop', label: '商店' },
   { key: 'hotel', label: '住宿' },
+  { key: 'transport', label: '機場/車站' },
 ]
 
 const defaultTierLabels: Record<NonNullable<MapPlace['officialPassTier']>, string> = {
@@ -1228,6 +1230,7 @@ function plannerMarkerColor(category: CityMapPlaceCategory) {
   if (category === 'shop') return '#111827'
   if (category === 'food') return '#0f9d58'
   if (category === 'hotel') return '#8b5e34'
+  if (category === 'transport') return '#0f766e'
   return '#1f7a8c'
 }
 
@@ -1294,7 +1297,8 @@ function plannerMarkerLegendOrder(category: CityMapPlaceCategory, color: string,
   if (category === 'restaurant') return 110
   if (category === 'shop' || category === 'food') return 120
   if (category === 'hotel') return 130
-  return 140
+  if (category === 'transport') return 140
+  return 150
 }
 
 function plannerMarkerLegendLabel(
@@ -1688,6 +1692,7 @@ function cleanCustomPlaceCategory(value: unknown): CityMapPlaceCategory {
     value === 'restaurant' ||
     value === 'shop' ||
     value === 'hotel' ||
+    value === 'transport' ||
     value === 'free' ||
     value === 'food'
   ) {

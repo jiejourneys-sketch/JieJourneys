@@ -969,7 +969,7 @@ export default function ToolsPlannerPage() {
       mapZoom: region.zoom ?? 11,
       categoryLabels: semanticCategoryLabels,
       categoryItems: semanticCategories,
-      customCategoryItems: semanticCategories.filter((item) => item.key !== 'ticket'),
+      customCategoryItems: [...semanticCategories.filter((item) => item.key !== 'ticket'), { key: 'transport', label: '機場/車站' }],
       // 地圖仍只顯示本次選擇的地區；自訂景點則可比對旅杰所有已整理景點，
       // 讓跨城市行程（例如大阪行程加入晴空塔）也能繼承正確的既有連結。
       matchPlaces: allKnownPlannerPlaces,

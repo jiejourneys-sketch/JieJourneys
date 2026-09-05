@@ -16,6 +16,7 @@ export default function BusanPassPlannerPage() {
           { key: 'restaurant', label: '餐廳' },
           { key: 'shop', label: '商店' },
           { key: 'hotel', label: '住宿' },
+          { key: 'transport', label: '機場/車站' },
         ],
       }}
     />

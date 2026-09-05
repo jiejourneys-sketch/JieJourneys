@@ -15,7 +15,7 @@ const MAX_PRE_DEPARTURE_CHECKED_ITEMS = 300
 const MAX_MAP_URL_LENGTH = 900
 const PRE_DEPARTURE_NOTE_KEY = '__pre_departure_v2'
 const PRE_DEPARTURE_OWNER = { id: 'traveler-owner', name: '我' }
-const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel'])
+const CUSTOM_PLACE_CATEGORIES = new Set(['spot', 'free', 'food', 'restaurant', 'shop', 'hotel', 'transport'])
 const INVALID_TEXT_ENCODING_PATTERN = /[\u0080-\u009F\uFFFD]/
 
 function hasInvalidTextEncoding(value: unknown): boolean {

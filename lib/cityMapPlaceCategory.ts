@@ -1,10 +1,10 @@
 /** Shared city-map categories.
  *
- * New semantic categories are ticket / spot / restaurant / shop / hotel.
+ * New semantic categories are ticket / spot / restaurant / shop / hotel / transport.
  * free and food remain as legacy aliases while older data files are migrated.
  */
 
-export type CityMapSemanticCategory = 'ticket' | 'spot' | 'restaurant' | 'shop' | 'hotel'
+export type CityMapSemanticCategory = 'ticket' | 'spot' | 'restaurant' | 'shop' | 'hotel' | 'transport'
 export type CityMapLegacyCategory = 'free' | 'food'
 export type CityMapPlaceCategory = CityMapSemanticCategory | CityMapLegacyCategory
 
@@ -14,6 +14,7 @@ export const CITY_MAP_CATEGORY_LABEL: Record<CityMapPlaceCategory, string> = {
   restaurant: '餐廳',
   shop: '商店',
   hotel: '住宿',
+  transport: '機場/車站',
   free: '景點',
   food: '商店',
 }
@@ -24,6 +25,7 @@ export const DEFAULT_CITY_MAP_CATEGORY_ON: Record<CityMapPlaceCategory, boolean>
   restaurant: true,
   shop: true,
   hotel: true,
+  transport: true,
   free: true,
   food: true,
 }
@@ -50,6 +52,7 @@ export function cityMapSoloCategory(
     restaurant: key === 'restaurant',
     shop: key === 'shop',
     hotel: key === 'hotel',
+    transport: key === 'transport',
     free: key === 'free',
     food: key === 'food',
   }
