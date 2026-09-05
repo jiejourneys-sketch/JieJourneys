@@ -104,6 +104,8 @@ const cards: CityCard[] = [
     datasetKey: 'video',
     datasetValue: 'sakishima-cosmo-tower-guide',
     actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/Dc6BP-KBIU1/', className: 'btn primary', event: 'osakavideo_sakishimacosmotowerIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/a3rOhBTwRsY', className: 'btn', event: 'osakavideo_sakishimacosmotowerYT', platform: 'YouTube', section: 'video' },
       { label: '文章', href: '/osaka/sakishima-cosmo-tower-guide?from=osaka-video', className: 'btn', event: 'osakavideo_sakishimacosmotowerArticle', platform: 'article', section: 'video' },
     ],
   },
