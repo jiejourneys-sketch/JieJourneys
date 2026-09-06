@@ -313,6 +313,8 @@ const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v4:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
 const CUSTOM_MAP_URL_RESOLVE_TIMEOUT_MS = 25_000
+const PLANNER_CLOUD_SAVE_IDLE_MS = 1_500
+const PLANNER_CLOUD_SAVE_MIN_INTERVAL_MS = 3 * 60 * 1_000
 // Agoda now resolves against the local catalogue and browser Places API (New).
 // v19 also retries results made before multilingual aliases and named-match
 // dominance could distinguish hotels sharing one building.
@@ -6753,7 +6755,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const preDepartureMigrationTargetRef = useRef<string | null>(null)
   const preDepartureLastCloudSignatureRef = useRef('')
   const preDepartureCloudSaveTimerRef = useRef<number | null>(null)
-  const plannerCloudLastSaveRef = useRef<{ bookId: string; signature: string } | null>(null)
+  const plannerCloudLastSaveRef = useRef<{ bookId: string; signature: string; savedAt: number } | null>(null)
   const plannerCloudSaveTimerRef = useRef<number | null>(null)
   const plannerCloudSaveRequestRef = useRef(0)
   const pdfDownloading = pdfDownloadStatus !== 'idle'
@@ -8345,7 +8347,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     const lastSave = plannerCloudLastSaveRef.current
     if (!lastSave || lastSave.bookId !== plannerBookId) {
-      plannerCloudLastSaveRef.current = { bookId: plannerBookId, signature: plannerCloudSaveSignature }
+      const savedAt = Date.parse(plannerBookUpdatedAt ?? '')
+      plannerCloudLastSaveRef.current = {
+        bookId: plannerBookId,
+        signature: plannerCloudSaveSignature,
+        savedAt: Number.isFinite(savedAt) ? savedAt : Date.now(),
+      }
       setPlannerCloudSaveStatus('saved')
       return
     }
@@ -8366,6 +8373,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       preDeparture: preDepartureChecklist,
       signature: plannerCloudSaveSignature,
     }
+    const delay = Math.max(
+      PLANNER_CLOUD_SAVE_IDLE_MS,
+      PLANNER_CLOUD_SAVE_MIN_INTERVAL_MS - (Date.now() - lastSave.savedAt),
+    )
     plannerCloudSaveTimerRef.current = window.setTimeout(() => {
       const requestId = plannerCloudSaveRequestRef.current + 1
       plannerCloudSaveRequestRef.current = requestId
@@ -8387,7 +8398,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerCloudSaveStatus('error')
             return
           }
-          plannerCloudLastSaveRef.current = { bookId: plannerBookId, signature: snapshot.signature }
+          plannerCloudLastSaveRef.current = { bookId: plannerBookId, signature: snapshot.signature, savedAt: Date.now() }
           if (book.readToken) setPlannerBookReadToken(book.readToken)
           if (book.editToken) setPlannerBookEditToken(book.editToken)
           setPlannerBookUpdatedAt(new Date().toISOString())
@@ -8396,7 +8407,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         .catch(() => {
           if (plannerCloudSaveRequestRef.current === requestId) setPlannerCloudSaveStatus('error')
         })
-    }, 1_500)
+    }, delay)
 
     return () => {
       if (plannerCloudSaveTimerRef.current != null) {
@@ -8413,6 +8424,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     placeUserLinks,
     plannerBookEditToken,
     plannerBookId,
+    plannerBookUpdatedAt,
     plannerCloudNotes,
     plannerCloudSaveSignature,
     preDepartureChecklist,
@@ -8635,6 +8647,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               targetMode === 'order'
                 ? { mode: 'order', placeId: place.id, itemId: targetPlanItem }
                 : { mode: 'add', placeId: place.id },
+              'auto',
             )
           })
         })
@@ -8665,6 +8678,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       returnMode === 'order'
         ? { mode: 'order', placeId, itemId: returnItem ?? fallbackItem }
         : { mode: 'add', placeId },
+      'auto',
     )
   }
 
@@ -11430,6 +11444,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           setPlannerBookReadToken(savedReadToken)
           setPlannerBookEditToken(savedEditorToken || null)
           setPlannerBookUpdatedAt(updatedAt)
+          plannerCloudLastSaveRef.current = {
+            bookId: book.id,
+            signature: plannerCloudSaveSignature,
+            savedAt: Date.parse(updatedAt),
+          }
+          setPlannerCloudSaveStatus('saved')
           preDepartureLastCloudSignatureRef.current = preDepartureChecklistSignature
           setPreDepartureCloudStatus('saved')
           removeJsonCache(`planner-book:id=${encodeURIComponent(book.id)}`)
@@ -11551,6 +11571,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     plannerBookEditToken,
     plannerBookId,
     plannerBookReadToken,
+    plannerCloudSaveSignature,
     preDepartureChecklist,
     preDepartureChecklistSignature,
     trackPlannerEvent,
@@ -11588,6 +11609,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setPlannerBookReadToken(readToken)
         setPlannerBookEditToken(editorToken)
         setPlannerBookUpdatedAt(updatedAt)
+        plannerCloudLastSaveRef.current = {
+          bookId: book.id,
+          signature: plannerCloudSaveSignature,
+          savedAt: Date.parse(updatedAt),
+        }
+        setPlannerCloudSaveStatus('saved')
         setReadOnlyPlan(false)
         setPlannerImages([])
         if (editorToken) {
@@ -11664,6 +11691,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     placeNotes,
     placeUserLinks,
     plannerBookReadToken,
+    plannerCloudSaveSignature,
     preDepartureChecklist,
     preDepartureChecklistSignature,
     readOnlyPlan,
