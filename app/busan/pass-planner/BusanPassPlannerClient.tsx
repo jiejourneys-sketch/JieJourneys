@@ -114,11 +114,17 @@ type PreDepartureResource = {
   toggleLabel: string
   links: PreDepartureResourceLink[]
 }
+type PreDepartureGeneralLink = {
+  id: string
+  label: string
+  url: string
+}
 type PreDepartureChecklistStorage = {
   version: 2
   travelers: PreDepartureTraveler[]
   checked: Record<string, Record<string, true>>
   notes: Record<string, string>
+  generalLinks: PreDepartureGeneralLink[]
   customItems: PreDepartureChecklistItem[]
   removedItemIds: Record<string, true>
   hiddenCategoryIds: Record<string, true>
@@ -3945,7 +3951,27 @@ function coordinateIsInJapan(lat: number, lng: number) {
 }
 
 function emptyPreDepartureChecklistStorage(): PreDepartureChecklistStorage {
-  return { version: 2, travelers: [{ ...PRE_DEPARTURE_OWNER }], checked: {}, notes: {}, customItems: [], removedItemIds: {}, hiddenCategoryIds: {} }
+  return { version: 2, travelers: [{ ...PRE_DEPARTURE_OWNER }], checked: {}, notes: {}, generalLinks: [], customItems: [], removedItemIds: {}, hiddenCategoryIds: {} }
+}
+
+function cleanPreDepartureGeneralLinkUrl(value: unknown) {
+  if (typeof value !== 'string') return ''
+  const rawUrl = value.trim().slice(0, 1_000)
+  const url = /^www\./iu.test(rawUrl) ? `https://${rawUrl}` : rawUrl
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
+function preDepartureGeneralLinkLabel(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./u, '') || '網站連結'
+  } catch {
+    return '網站連結'
+  }
 }
 
 function cleanPreDepartureChecklistStorage(value: unknown): PreDepartureChecklistStorage {
@@ -4058,6 +4084,20 @@ function cleanPreDepartureChecklistStorage(value: unknown): PreDepartureChecklis
     .join('\n')
   const generalNote = (currentGeneralNote || legacyGeneralNote).slice(0, 500)
   const notes: Record<string, string> = generalNote ? { general: generalNote } : {}
+  const generalLinks: PreDepartureGeneralLink[] = []
+  const generalLinkIds = new Set<string>()
+  if (Array.isArray(stored.generalLinks)) {
+    stored.generalLinks.slice(0, 12).forEach((link) => {
+      if (!link || typeof link !== 'object' || Array.isArray(link)) return
+      const source = link as Record<string, unknown>
+      const id = typeof source.id === 'string' ? source.id.trim().slice(0, 80) : ''
+      const label = typeof source.label === 'string' ? source.label.trim().slice(0, 40) : ''
+      const url = cleanPreDepartureGeneralLinkUrl(source.url)
+      if (!id.startsWith('general-link-') || !label || !url || generalLinkIds.has(id)) return
+      generalLinkIds.add(id)
+      generalLinks.push({ id, label, url })
+    })
+  }
   const storedRemovedItemIds = Array.isArray(stored.removedItemIds)
     ? stored.removedItemIds
     : stored.removedItemIds && typeof stored.removedItemIds === 'object'
@@ -4079,7 +4119,7 @@ function cleanPreDepartureChecklistStorage(value: unknown): PreDepartureChecklis
       .map((id) => [id, true] as const),
   )
 
-  return { version: 2, travelers, checked, notes, customItems, removedItemIds, hiddenCategoryIds }
+  return { version: 2, travelers, checked, notes, generalLinks, customItems, removedItemIds, hiddenCategoryIds }
 }
 
 function serializePreDepartureChecklistStorage(value: PreDepartureChecklistStorage) {
@@ -4088,6 +4128,7 @@ function serializePreDepartureChecklistStorage(value: PreDepartureChecklistStora
     travelers: value.travelers,
     checked: value.checked,
     notes: value.notes,
+    generalLinks: value.generalLinks,
     customItems: value.customItems,
     removedItemIds: Object.keys(value.removedItemIds),
     hiddenCategoryIds: Object.keys(value.hiddenCategoryIds),
@@ -4551,11 +4592,14 @@ function PreDeparturePanelV2({
   activeTargetId,
   checkedItems,
   notes,
+  generalLinks,
   readOnly,
   cloudEnabled,
   onActiveTargetChange,
   onToggle,
   onNoteChange,
+  onAddGeneralLink,
+  onRemoveGeneralLink,
   onAdd,
   onRemove,
   onHideCategory,
@@ -4570,11 +4614,14 @@ function PreDeparturePanelV2({
   activeTargetId: string
   checkedItems: Record<string, Record<string, true>>
   notes: Record<string, string>
+  generalLinks: PreDepartureGeneralLink[]
   readOnly: boolean
   cloudEnabled: boolean
   onActiveTargetChange: (targetId: string) => void
   onToggle: (targetId: string, itemId: string) => void
   onNoteChange: (id: string, note: string) => void
+  onAddGeneralLink: (label: string, url: string) => void
+  onRemoveGeneralLink: (id: string) => void
   onAdd: (categoryId: string, label: string) => void
   onRemove: (id: string) => void
   onHideCategory: (categoryId: string, label: string) => void
@@ -4586,10 +4633,13 @@ function PreDeparturePanelV2({
 }) {
   const [customItemDraft, setCustomItemDraft] = useState('')
   const [addingCategoryId, setAddingCategoryId] = useState<string | null>(null)
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<Record<string, true>>({})
   const [expandedDetailItemId, setExpandedDetailItemId] = useState<string | null>(null)
-  const [generalNoteOpen, setGeneralNoteOpen] = useState(false)
-  const [generalNoteInitialValue, setGeneralNoteInitialValue] = useState('')
-  const [generalNoteSaveStatus, setGeneralNoteSaveStatus] = useState<'idle' | 'saving' | 'error'>('idle')
+  const [generalLinkFormOpen, setGeneralLinkFormOpen] = useState(false)
+  const [generalLinkLabelDraft, setGeneralLinkLabelDraft] = useState('')
+  const [generalLinkUrlDraft, setGeneralLinkUrlDraft] = useState('')
+  const [generalNoteLinkLabelOverride, setGeneralNoteLinkLabelOverride] = useState<{ key: string; value: string } | null>(null)
+  const [generalNoteLinkHrefOverride, setGeneralNoteLinkHrefOverride] = useState<{ key: string; value: string } | null>(null)
   const [travelerFormOpen, setTravelerFormOpen] = useState(false)
   const [travelerDraft, setTravelerDraft] = useState('')
   const [renamingTravelerId, setRenamingTravelerId] = useState<string | null>(null)
@@ -4597,6 +4647,7 @@ function PreDeparturePanelV2({
   const [pendingRemoveTraveler, setPendingRemoveTraveler] = useState<PreDepartureTraveler | null>(null)
   const [pendingRemoveItem, setPendingRemoveItem] = useState<PreDepartureChecklistItem | null>(null)
   const [pendingRemoveCategory, setPendingRemoveCategory] = useState<PreDepartureChecklistCategory | null>(null)
+  const [pendingRemoveGeneralLink, setPendingRemoveGeneralLink] = useState<PreDepartureGeneralLink | null>(null)
   const [copiedPromoEvent, setCopiedPromoEvent] = useState<string | null>(null)
   const [manualSaveStatus, setManualSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const resourceItemRefs = useRef<Record<string, HTMLLIElement | null>>({})
@@ -4630,7 +4681,23 @@ function PreDeparturePanelV2({
     [activeTargetId, itemTargets, visibleCategories],
   )
   const checkedItemCount = visibleSlots.filter(({ itemId, targetId }) => checkedItems[targetId]?.[itemId]).length
-  const generalNoteDirty = generalNoteOpen && (notes.general ?? '') !== generalNoteInitialValue
+  const detectedGeneralNoteLink = useMemo(() => detectedPlannerNoteLink(notes.general ?? ''), [notes.general])
+  const detectedGeneralNoteLinkKey = detectedGeneralNoteLink ? plannerLinkHrefKey(detectedGeneralNoteLink.href) : ''
+  const detectedGeneralNoteLinkLabel =
+    generalNoteLinkLabelOverride?.key === detectedGeneralNoteLinkKey
+      ? generalNoteLinkLabelOverride.value
+      : detectedGeneralNoteLink?.label ?? ''
+  const detectedGeneralNoteLinkHref =
+    generalNoteLinkHrefOverride?.key === detectedGeneralNoteLinkKey
+      ? generalNoteLinkHrefOverride.value
+      : detectedGeneralNoteLink?.href ?? ''
+  const detectedGeneralNoteLinkAlreadyAdded = Boolean(
+    detectedGeneralNoteLinkHref &&
+      generalLinks.some((link) => plannerLinkHrefKey(link.url) === plannerLinkHrefKey(detectedGeneralNoteLinkHref)),
+  )
+  const generalNoteLinkItems = useMemo(() => {
+    return generalLinks.map((link) => ({ ...link, manual: true }))
+  }, [generalLinks])
 
   useEffect(() => {
     if (!copiedPromoEvent) return
@@ -4699,35 +4766,20 @@ function PreDeparturePanelV2({
   const openAddItem = (categoryId: string) => {
     setCustomItemDraft('')
     setExpandedDetailItemId(null)
+    setExpandedCategoryIds((current) => ({ ...current, [categoryId]: true }))
     setAddingCategoryId(categoryId)
   }
 
-  const toggleOrSaveGeneralNote = async () => {
-    if (!generalNoteOpen) {
-      setGeneralNoteInitialValue(notes.general ?? '')
-      setGeneralNoteSaveStatus('idle')
-      setGeneralNoteOpen(true)
-      return
-    }
-    if (!generalNoteDirty) {
-      setGeneralNoteOpen(false)
-      return
-    }
-    if (!cloudEnabled) {
-      setGeneralNoteInitialValue(notes.general ?? '')
-      setGeneralNoteOpen(false)
-      return
-    }
-    if (generalNoteSaveStatus === 'saving') return
-    setGeneralNoteSaveStatus('saving')
-    const saved = await Promise.resolve(onSave()).catch(() => false)
-    if (!saved) {
-      setGeneralNoteSaveStatus('error')
-      return
-    }
-    setGeneralNoteInitialValue(notes.general ?? '')
-    setGeneralNoteSaveStatus('idle')
-    setGeneralNoteOpen(false)
+  const addDetectedGeneralNoteLink = () => {
+    if (!detectedGeneralNoteLink) return
+    const url = cleanPreDepartureGeneralLinkUrl(detectedGeneralNoteLinkHref)
+    const label = detectedGeneralNoteLinkLabel.trim().slice(0, 40)
+    if (!url || (!detectedGeneralNoteLinkAlreadyAdded && !label)) return
+    const nextNote = removePlannerNoteLink(notes.general ?? '', detectedGeneralNoteLink.raw)
+    if (!detectedGeneralNoteLinkAlreadyAdded) onAddGeneralLink(label, url)
+    onNoteChange('general', nextNote)
+    setGeneralNoteLinkLabelOverride(null)
+    setGeneralNoteLinkHrefOverride(null)
   }
 
   return (
@@ -4796,28 +4848,101 @@ function PreDeparturePanelV2({
               </section>
 
               <section className={styles.preDepartureGeneralNote}>
-                <button
-                  type="button"
-                  aria-label={generalNoteOpen ? generalNoteDirty ? '儲存行前備忘' : '收合行前備忘' : '開啟行前備忘'}
-                  aria-expanded={generalNoteOpen}
-                  aria-controls="pre-departure-general-note"
-                  onClick={() => void toggleOrSaveGeneralNote()}
-                >
-                  <span><strong>行前備忘</strong><small>{notes.general ? '已填寫，點擊查看或編輯' : '航班、訂房編號與其他提醒'}</small></span>
-                  <span className={`${styles.preDepartureGeneralNoteAction} ${generalNoteOpen && !generalNoteDirty ? styles.preDepartureGeneralNoteClose : ''}`} aria-hidden="true">
-                    {generalNoteOpen
-                      ? generalNoteDirty
-                        ? generalNoteSaveStatus === 'saving' ? '儲存中…' : generalNoteSaveStatus === 'error' ? '再試一次' : '儲存'
-                        : '×'
-                      : notes.general ? '查看 ▾' : '＋ 新增 ▾'}
-                  </span>
-                </button>
-                {generalNoteOpen ? (
-                  <div id="pre-departure-general-note" className={styles.preDepartureGeneralNoteField}>
-                    <textarea value={notes.general ?? ''} maxLength={500} rows={4} readOnly={readOnly} placeholder="例如：BR123 09:30、飯店訂房編號、票券提醒……" onChange={(event) => onNoteChange('general', event.target.value)} />
-                    {!readOnly ? <small>修改後自動儲存</small> : null}
-                  </div>
-                ) : null}
+                <div className={styles.preDepartureGeneralNoteHeader}>
+                  <span><strong>行前備忘</strong><small>航班、訂房編號與其他提醒；可直接貼上網址。</small></span>
+                  {!readOnly ? (
+                    <button
+                      className={styles.preDepartureGeneralNoteAddLink}
+                      type="button"
+                      onClick={() => {
+                        setGeneralLinkLabelDraft('')
+                        setGeneralLinkUrlDraft('')
+                        setGeneralLinkFormOpen(true)
+                      }}
+                    >
+                      ＋ 附上連結
+                    </button>
+                  ) : null}
+                </div>
+                <div id="pre-departure-general-note" className={styles.preDepartureGeneralNoteField}>
+                  <textarea value={notes.general ?? ''} maxLength={500} rows={4} readOnly={readOnly} placeholder="例如：BR123 09:30、飯店訂房編號、票券提醒……" onChange={(event) => onNoteChange('general', event.target.value)} />
+                  {!readOnly && detectedGeneralNoteLink ? (
+                    <div className={styles.noteLinkSuggestion}>
+                      <div className={styles.noteLinkSuggestionContent}>
+                        <strong>偵測到網址</strong>
+                        {detectedGeneralNoteLinkAlreadyAdded ? (
+                          <span>這個連結已加入下方備忘連結，可從備忘移除。</span>
+                        ) : (
+                          <>
+                            <span>確認網址並替它命名後，新增為下方的連結卡片。</span>
+                            <label className={styles.noteLinkLabelField}>
+                              <span>網址</span>
+                              <input
+                                type="url"
+                                inputMode="url"
+                                value={detectedGeneralNoteLinkHref}
+                                maxLength={1_000}
+                                onChange={(event) => setGeneralNoteLinkHrefOverride({ key: detectedGeneralNoteLinkKey, value: event.target.value })}
+                              />
+                            </label>
+                            <label className={styles.noteLinkLabelField}>
+                              <span>連結名稱</span>
+                              <input
+                                value={detectedGeneralNoteLinkLabel}
+                                maxLength={40}
+                                placeholder={detectedGeneralNoteLink.label}
+                                onChange={(event) => setGeneralNoteLinkLabelOverride({ key: detectedGeneralNoteLinkKey, value: event.target.value })}
+                              />
+                            </label>
+                          </>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addDetectedGeneralNoteLink}
+                        disabled={!detectedGeneralNoteLinkAlreadyAdded && (!detectedGeneralNoteLinkHref.trim() || !detectedGeneralNoteLinkLabel.trim())}
+                      >
+                        {detectedGeneralNoteLinkAlreadyAdded ? '從備忘移除' : '新增連結'}
+                      </button>
+                    </div>
+                  ) : null}
+                  {generalLinkFormOpen ? (
+                    <form
+                      className={styles.preDepartureGeneralNoteLinkForm}
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        const url = cleanPreDepartureGeneralLinkUrl(generalLinkUrlDraft)
+                        if (!url) return
+                        const label = generalLinkLabelDraft.trim() || preDepartureGeneralLinkLabel(url)
+                        onAddGeneralLink(label, url)
+                        setGeneralLinkLabelDraft('')
+                        setGeneralLinkUrlDraft('')
+                        setGeneralLinkFormOpen(false)
+                      }}
+                    >
+                      <input type="url" inputMode="url" value={generalLinkUrlDraft} maxLength={1_000} placeholder="貼上 https:// 網址" required onChange={(event) => setGeneralLinkUrlDraft(event.target.value)} />
+                      <input value={generalLinkLabelDraft} maxLength={40} placeholder="名稱（可留空），例如：住宿訂單" onChange={(event) => setGeneralLinkLabelDraft(event.target.value)} />
+                      <button type="submit" disabled={!generalLinkUrlDraft.trim()}>加入</button>
+                      <button type="button" onClick={() => setGeneralLinkFormOpen(false)}>取消</button>
+                    </form>
+                  ) : null}
+                  {generalNoteLinkItems.length > 0 ? (
+                    <div className={styles.preDepartureGeneralNoteAttachments} aria-label="備忘附件">
+                      {generalNoteLinkItems.map((link) => {
+                        return (
+                          <div key={link.id} className={styles.preDepartureGeneralNoteAttachment}>
+                            <a href={link.url} target="_blank" rel="noopener noreferrer">
+                              <strong>{link.label}</strong>
+                              <span>{preDepartureGeneralLinkLabel(link.url)} ↗</span>
+                            </a>
+                            {!readOnly && link.manual ? <button type="button" onClick={() => setPendingRemoveGeneralLink(link)} aria-label={`移除連結：${link.label}`}>×</button> : null}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                  {!readOnly ? <small>修改後自動儲存</small> : null}
+                </div>
               </section>
 
               <div className={styles.preDepartureCategoryList}>
@@ -4828,10 +4953,24 @@ function PreDeparturePanelV2({
                   })
                   const categoryCheckedCount = categorySlots.filter(({ itemId, targetId }) => checkedItems[targetId]?.[itemId]).length
                   const addingItem = addingCategoryId === category.id
+                  const categoryExpanded = Boolean(expandedCategoryIds[category.id])
                   return (
-                    <section key={category.id} className={styles.preDepartureCategory}>
+                    <section key={category.id} className={`${styles.preDepartureCategory} ${categoryExpanded ? styles.preDepartureCategoryExpanded : ''}`}>
                       <div className={styles.preDepartureCategoryHeader}>
-                        <h3>{category.label} <span>({categoryCheckedCount}/{categorySlots.length})</span></h3>
+                        <button
+                          className={styles.preDepartureCategoryToggle}
+                          type="button"
+                          aria-expanded={categoryExpanded}
+                          aria-controls={`pre-departure-category-${category.id}`}
+                          onClick={() => setExpandedCategoryIds((current) => {
+                            const next = { ...current }
+                            if (next[category.id]) delete next[category.id]
+                            else next[category.id] = true
+                            return next
+                          })}
+                        >
+                          <h3>{category.label} <span>({categoryCheckedCount}/{categorySlots.length})</span></h3>
+                        </button>
                         {!readOnly ? (
                           <div className={styles.preDepartureCategoryActions}>
                             <button className={styles.preDepartureCategoryAdd} type="button" onClick={() => openAddItem(category.id)} aria-label={`新增${category.label}項目`}>＋ 新增</button>
@@ -4839,40 +4978,44 @@ function PreDeparturePanelV2({
                           </div>
                         ) : null}
                       </div>
-                      {addingItem ? (
-                        <form className={styles.preDepartureAddForm} onSubmit={(event) => { event.preventDefault(); const label = customItemDraft.trim(); if (!label) return; onAdd(category.id, label); setCustomItemDraft(''); setAddingCategoryId(null) }}>
-                          <input value={customItemDraft} maxLength={30} placeholder="要準備什麼？" onChange={(event) => setCustomItemDraft(event.target.value)} />
-                          <button type="submit" disabled={!customItemDraft.trim()}>新增</button><button className={styles.preDepartureCancelButton} type="button" onClick={() => setAddingCategoryId(null)}>取消</button>
-                        </form>
-                      ) : null}
-                      {category.items.length === 0 ? <p className={styles.preDepartureEmptyCategory}>這個分類目前沒有項目</p> : null}
-                      <ul className={styles.preDepartureChecklist}>
-                        {category.items.map((item) => {
-                          const resource = item.resourceId ? PRE_DEPARTURE_RESOURCES[item.resourceId] : null
-                          const detailsExpanded = Boolean(resource && expandedDetailItemId === item.id)
-                          return (
-                            <li key={item.id} data-pre-departure-item-id={item.id} ref={(element) => { resourceItemRefs.current[item.id] = element }} className={resource ? styles.preDepartureResourceItem : undefined}>
-                              <div className={styles.preDepartureItemRow}>
-                                <label><input type="checkbox" disabled={readOnly} checked={Boolean(checkedItems[activeTargetId]?.[item.id])} onChange={() => onToggle(activeTargetId, item.id)} /><span>{item.label}</span></label>
-                                {resource ? <button className={`${styles.preDepartureResourceToggle} ${detailsExpanded ? styles.preDepartureResourceClose : ''}`} type="button" aria-label={detailsExpanded ? `收合${item.label}詳細資料` : undefined} aria-expanded={detailsExpanded} aria-controls={`pre-departure-resource-${item.id}`} onClick={() => setExpandedDetailItemId((current) => current === item.id ? null : item.id)}>{detailsExpanded ? '×' : <>{resource.toggleLabel}<span aria-hidden="true">▾</span></>}</button> : null}
-                                {!readOnly ? <button className={styles.preDepartureRemove} type="button" onClick={() => setPendingRemoveItem(item)} aria-label={`刪除${item.label}`}>×</button> : null}
-                              </div>
-                              {detailsExpanded ? (
-                                <aside id={`pre-departure-resource-${item.id}`} className={styles.preDepartureResourcePanel} aria-label={`${item.label}詳細資料`}>
-                                  <div className={styles.preDepartureResourceLinks}>
-                                    {resource?.links.map((link) => (
-                                      <div key={link.event} className={styles.preDepartureResourceEntry}>
-                                        <a className={styles.preDepartureResourceLink} href={link.href} target="_blank" rel="noopener noreferrer" data-event={link.event} data-platform={link.platform} data-section="planner_pre_departure"><strong>{link.label}</strong><span>開啟 ↗</span></a>
-                                        {link.promoCode ? <div className={styles.preDepartureResourcePromo}><span><small>優惠碼</small><code>{link.promoCode}</code></span><button className={styles.preDeparturePromoCopy} type="button" onClick={() => void copyPromoCode(link.event, link.promoCode ?? '')}>{copiedPromoEvent === link.event ? '已複製' : '複製'}</button></div> : null}
-                                      </div>
-                                    ))}
+                      {categoryExpanded ? (
+                        <div id={`pre-departure-category-${category.id}`}>
+                          {addingItem ? (
+                            <form className={styles.preDepartureAddForm} onSubmit={(event) => { event.preventDefault(); const label = customItemDraft.trim(); if (!label) return; onAdd(category.id, label); setCustomItemDraft(''); setAddingCategoryId(null) }}>
+                              <input value={customItemDraft} maxLength={30} placeholder="要準備什麼？" onChange={(event) => setCustomItemDraft(event.target.value)} />
+                              <button type="submit" disabled={!customItemDraft.trim()}>新增</button><button className={styles.preDepartureCancelButton} type="button" onClick={() => setAddingCategoryId(null)}>取消</button>
+                            </form>
+                          ) : null}
+                          {category.items.length === 0 ? <p className={styles.preDepartureEmptyCategory}>這個分類目前沒有項目</p> : null}
+                          <ul className={styles.preDepartureChecklist}>
+                            {category.items.map((item) => {
+                              const resource = item.resourceId ? PRE_DEPARTURE_RESOURCES[item.resourceId] : null
+                              const detailsExpanded = Boolean(resource && expandedDetailItemId === item.id)
+                              return (
+                                <li key={item.id} data-pre-departure-item-id={item.id} ref={(element) => { resourceItemRefs.current[item.id] = element }} className={resource ? styles.preDepartureResourceItem : undefined}>
+                                  <div className={styles.preDepartureItemRow}>
+                                    <label><input type="checkbox" disabled={readOnly} checked={Boolean(checkedItems[activeTargetId]?.[item.id])} onChange={() => onToggle(activeTargetId, item.id)} /><span>{item.label}</span></label>
+                                    {resource ? <button className={`${styles.preDepartureResourceToggle} ${detailsExpanded ? styles.preDepartureResourceClose : ''}`} type="button" aria-label={detailsExpanded ? `收合${item.label}詳細資料` : undefined} aria-expanded={detailsExpanded} aria-controls={`pre-departure-resource-${item.id}`} onClick={() => setExpandedDetailItemId((current) => current === item.id ? null : item.id)}>{detailsExpanded ? '×' : <>{resource.toggleLabel}<span aria-hidden="true">▾</span></>}</button> : null}
+                                    {!readOnly ? <button className={styles.preDepartureRemove} type="button" onClick={() => setPendingRemoveItem(item)} aria-label={`刪除${item.label}`}>×</button> : null}
                                   </div>
-                                </aside>
-                              ) : null}
-                            </li>
-                          )
-                        })}
-                      </ul>
+                                  {detailsExpanded ? (
+                                    <aside id={`pre-departure-resource-${item.id}`} className={styles.preDepartureResourcePanel} aria-label={`${item.label}詳細資料`}>
+                                      <div className={styles.preDepartureResourceLinks}>
+                                        {resource?.links.map((link) => (
+                                          <div key={link.event} className={styles.preDepartureResourceEntry}>
+                                            <a className={styles.preDepartureResourceLink} href={link.href} target="_blank" rel="noopener noreferrer" data-event={link.event} data-platform={link.platform} data-section="planner_pre_departure"><strong>{link.label}</strong><span>開啟 ↗</span></a>
+                                            {link.promoCode ? <div className={styles.preDepartureResourcePromo}><span><small>優惠碼</small><code>{link.promoCode}</code></span><button className={styles.preDeparturePromoCopy} type="button" onClick={() => void copyPromoCode(link.event, link.promoCode ?? '')}>{copiedPromoEvent === link.event ? '已複製' : '複製'}</button></div> : null}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </aside>
+                                  ) : null}
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        </div>
+                      ) : null}
                     </section>
                   )
                 })}
@@ -4910,6 +5053,7 @@ function PreDeparturePanelV2({
       </div>
 
       {pendingRemoveItem ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveItem(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-item-v2-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-item-v2-title">刪除「{pendingRemoveItem.label}」？</h2><p>會直接從所有人的行前清單刪除。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveItem(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onRemove(pendingRemoveItem.id); setExpandedDetailItemId(null); setPendingRemoveItem(null) }}>確認刪除</button></div></section></div> : null}
+      {pendingRemoveGeneralLink ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveGeneralLink(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-general-link-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-general-link-title">移除「{pendingRemoveGeneralLink.label}」？</h2><p>這只會移除這個備忘連結，不會影響備忘文字。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveGeneralLink(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onRemoveGeneralLink(pendingRemoveGeneralLink.id); setPendingRemoveGeneralLink(null) }}>移除連結</button></div></section></div> : null}
       {pendingRemoveCategory ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveCategory(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-category-v2-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-category-v2-title">刪除「{pendingRemoveCategory.label}」整個分類？</h2><p>分類會直接從所有人的清單刪除。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveCategory(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onHideCategory(pendingRemoveCategory.id, pendingRemoveCategory.label); setExpandedDetailItemId(null); setAddingCategoryId(null); setPendingRemoveCategory(null) }}>全部刪除</button></div></section></div> : null}
       {pendingRemoveTraveler ? <div className={styles.confirmBackdrop} role="presentation" onClick={() => setPendingRemoveTraveler(null)}><section className={styles.confirmDialog} role="dialog" aria-modal="true" aria-labelledby="delete-pre-departure-traveler-title" onClick={(event) => event.stopPropagation()}><h2 id="delete-pre-departure-traveler-title">刪除旅伴「{pendingRemoveTraveler.name}」？</h2><p>這位旅伴的勾選進度會一起刪除；其他人的清單不受影響。</p><div className={styles.confirmActions}><button type="button" className={styles.confirmSecondary} onClick={() => setPendingRemoveTraveler(null)}>取消</button><button type="button" className={styles.confirmDanger} onClick={() => { onRemoveTraveler(pendingRemoveTraveler.id); setPendingRemoveTraveler(null) }}>確認刪除</button></div></section></div> : null}
     </>
@@ -6752,6 +6896,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [preDepartureActiveTargetId, setPreDepartureActiveTargetId] = useState(PRE_DEPARTURE_OWNER.id)
   const [preDepartureChecked, setPreDepartureChecked] = useState<Record<string, Record<string, true>>>({})
   const [preDepartureNotes, setPreDepartureNotes] = useState<Record<string, string>>({})
+  const [preDepartureGeneralLinks, setPreDepartureGeneralLinks] = useState<PreDepartureGeneralLink[]>([])
   const [preDepartureCustomItems, setPreDepartureCustomItems] = useState<PreDepartureChecklistItem[]>([])
   const [preDepartureRemovedItemIds, setPreDepartureRemovedItemIds] = useState<Record<string, true>>({})
   const [preDepartureHiddenCategoryIds, setPreDepartureHiddenCategoryIds] = useState<Record<string, true>>({})
@@ -7514,12 +7659,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     travelers: preDepartureTravelers,
     checked: preDepartureChecked,
     notes: preDepartureNotes,
+    generalLinks: preDepartureGeneralLinks,
     customItems: preDepartureCustomItems,
     removedItemIds: preDepartureRemovedItemIds,
     hiddenCategoryIds: preDepartureHiddenCategoryIds,
   }), [
     preDepartureChecked,
     preDepartureCustomItems,
+    preDepartureGeneralLinks,
     preDepartureHiddenCategoryIds,
     preDepartureNotes,
     preDepartureRemovedItemIds,
@@ -8058,6 +8205,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               setPreDepartureTravelers(checklist.travelers)
               setPreDepartureChecked(checklist.checked)
               setPreDepartureNotes(checklist.notes)
+              setPreDepartureGeneralLinks(checklist.generalLinks)
               setPreDepartureCustomItems(checklist.customItems)
               setPreDepartureRemovedItemIds(checklist.removedItemIds)
               setPreDepartureHiddenCategoryIds(checklist.hiddenCategoryIds)
@@ -8072,6 +8220,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               setPreDepartureTravelers(checklist.travelers)
               setPreDepartureChecked({})
               setPreDepartureNotes({})
+              setPreDepartureGeneralLinks([])
               setPreDepartureCustomItems([])
               setPreDepartureRemovedItemIds({})
               setPreDepartureHiddenCategoryIds({})
@@ -8279,6 +8428,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPreDepartureTravelers(nextChecklist.travelers)
     setPreDepartureChecked(nextChecklist.checked)
     setPreDepartureNotes(nextChecklist.notes)
+    setPreDepartureGeneralLinks(nextChecklist.generalLinks)
     setPreDepartureCustomItems(nextChecklist.customItems)
     setPreDepartureRemovedItemIds(nextChecklist.removedItemIds)
     setPreDepartureHiddenCategoryIds(nextChecklist.hiddenCategoryIds)
@@ -8516,6 +8666,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setPreDepartureTravelers(checklist.travelers)
       setPreDepartureChecked(checklist.checked)
       setPreDepartureNotes(checklist.notes)
+      setPreDepartureGeneralLinks(checklist.generalLinks)
       setPreDepartureCustomItems(checklist.customItems)
       setPreDepartureRemovedItemIds(checklist.removedItemIds)
       setPreDepartureHiddenCategoryIds(checklist.hiddenCategoryIds)
@@ -8553,6 +8704,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPreDepartureTravelers(checklist.travelers)
     setPreDepartureChecked(checklist.checked)
     setPreDepartureNotes(checklist.notes)
+    setPreDepartureGeneralLinks(checklist.generalLinks)
     setPreDepartureCustomItems(checklist.customItems)
     setPreDepartureRemovedItemIds(checklist.removedItemIds)
     setPreDepartureHiddenCategoryIds(checklist.hiddenCategoryIds)
@@ -12161,7 +12313,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               <div className={styles.plannerMeta}>
                 {readOnlyPlan ? <span>唯讀行程・複製後可自由修改</span> : null}
                 {plannerBookUpdatedAt ? <span>最後更新 {formatPlannerUpdatedAt(plannerBookUpdatedAt)}</span> : null}
-                {storageReady && !plannerBookId && !readOnlyPlan ? <span>本機草稿已自動儲存；請按分享/保存以跨裝置保留</span> : null}
+                {storageReady && !plannerBookId && !readOnlyPlan ? <span>草稿已自動儲存；分享/保存可跨裝置使用</span> : null}
                 {plannerBookId && !readOnlyPlan && plannerCloudSaveStatus === 'saving' ? <span>雲端儲存中…</span> : null}
                 {plannerBookId && !readOnlyPlan && plannerCloudSaveStatus === 'error' ? <span>雲端同步失敗；內容仍保留在本機草稿</span> : null}
               </div>
@@ -13131,6 +13283,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             activeTargetId={preDepartureActiveTargetId}
             checkedItems={preDepartureChecked}
             notes={preDepartureNotes}
+            generalLinks={preDepartureGeneralLinks}
             readOnly={readOnlyPlan}
             cloudEnabled={Boolean(plannerBookId)}
             onActiveTargetChange={setPreDepartureActiveTargetId}
@@ -13154,6 +13307,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 else delete next[id]
                 return next
               })
+            }}
+            onAddGeneralLink={(label, url) => {
+              const cleanUrl = cleanPreDepartureGeneralLinkUrl(url)
+              const cleanLabel = label.trim().slice(0, 40) || preDepartureGeneralLinkLabel(cleanUrl)
+              if (!cleanLabel || !cleanUrl) return
+              setPreDepartureGeneralLinks((links) => [
+                ...links,
+                {
+                  id: `general-link-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+                  label: cleanLabel,
+                  url: cleanUrl,
+                },
+              ].slice(0, 12))
+            }}
+            onRemoveGeneralLink={(id) => {
+              setPreDepartureGeneralLinks((links) => links.filter((link) => link.id !== id))
             }}
             onAdd={(categoryId, label) => {
               setPreDepartureCustomItems((items) => [
