@@ -13309,7 +13309,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               })
             }}
             onAddGeneralLink={(label, url) => {
-              const cleanUrl = cleanPreDepartureGeneralLinkUrl(url)
+              const cleanUrl = cleanPreDepartureGeneralLinkUrl(normalizePlannerAffiliateHref(url))
               const cleanLabel = label.trim().slice(0, 40) || preDepartureGeneralLinkLabel(cleanUrl)
               if (!cleanLabel || !cleanUrl) return
               setPreDepartureGeneralLinks((links) => [
