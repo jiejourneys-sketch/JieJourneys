@@ -5748,6 +5748,12 @@ function PlannerImagesPanel({
                   })
                 }}
               />
+              {imageBusy ? (
+                <p className={styles.plannerImageUploadStatus} role="status" aria-live="polite">
+                  <i aria-hidden="true" />
+                  正在處理並上傳照片，請稍候…
+                </p>
+              ) : null}
               <span>可選原始照片（最多 30MB），會在裝置上自動等比例縮小後上傳；不會裁切或改變比例。</span>
             </div>
           ) : null}
@@ -6684,6 +6690,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     plannerCategoriesOn(config.categoryItems),
   )
   const [customOnly, setCustomOnly] = useState(false)
+  const [customCategoryFilter, setCustomCategoryFilter] = useState<CityMapPlaceCategory | null>(null)
   const [tier, setTier] = useState<TierFilter>('all')
   const [planItems, setPlanItems] = useState<PlannerItem[]>([])
   const [placeNotes, setPlaceNotes] = useState<Record<string, string>>({})
@@ -7683,7 +7690,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const filteredPlaces = useMemo(() => {
     return allPlaces.filter((place) => {
-      if (customOnly) return isCustomPlaceId(place.id)
+      if (customOnly) {
+        if (!isCustomPlaceId(place.id)) return false
+        return !customCategoryFilter || plannerPlaceCategory(place, customCategoryItems) === customCategoryFilter
+      }
       const markerCategoryItems =
         isCustomPlaceId(place.id) && customCategoryItems.length > 0 ? customCategoryItems : plannerCategoryItems
       const category = plannerPlaceCategory(place, markerCategoryItems)
@@ -7691,7 +7701,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (tier !== 'all' && place.officialPassTier !== tier) return false
       return true
     })
-  }, [allPlaces, categoryOn, customCategoryItems, customOnly, plannerCategoryItems, tier])
+  }, [allPlaces, categoryOn, customCategoryItems, customCategoryFilter, customOnly, plannerCategoryItems, tier])
 
   const mapMarkerLegendItems = useMemo(() => {
     const items: {
@@ -7777,6 +7787,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [customPlaceCount, knownSourcePlaces, readOnlyPlan, storageReady])
 
   const selectedPlace = selectedId ? placeById.get(selectedId) ?? null : null
+  const customTransportCategoryItem = customCategoryItems.find((item) => item.key === 'transport')
   const customDraftCategoryLabel =
     customCategoryItems.find((item) => item.key === customDraft.category)?.label ?? '景點'
   const customDraftLinks = customDraft.id ? (placeUserLinks[customDraft.id] ?? customPlaces[customDraft.id]?.links ?? []) : []
@@ -8614,6 +8625,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (targetMode === 'add') {
         const isCustomPlace = isCustomPlaceId(place.id)
         setCustomOnly(isCustomPlace)
+        setCustomCategoryFilter(
+          isCustomPlace && plannerPlaceCategory(place, customCategoryItems) === 'transport' ? 'transport' : null,
+        )
         if (!isCustomPlace) {
           const category = plannerPlaceCategory(place, plannerCategoryItems)
           setCategoryOn((prev) => ({
@@ -8655,6 +8669,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     },
     [
       customPlaces,
+      customCategoryItems,
       findPlanItemDayView,
       exitLocationFollowMode,
       placeById,
@@ -11229,7 +11244,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const returnMode = customDraftReturnMode
     const returnItem = customDraftReturnItem && planItemPlaceId(customDraftReturnItem) === id ? customDraftReturnItem : null
     setMode(returnMode)
-    if (returnMode === 'add') setCustomOnly(true)
+    if (returnMode === 'add') {
+      setCustomOnly(true)
+      setCustomCategoryFilter(customPlace.category === 'transport' ? 'transport' : null)
+    }
     if (returnMode === 'order') setSelectedPlanItem(returnItem ?? planItems.find((item) => planItemPlaceId(item) === id) ?? null)
     else setSelectedPlanItem(null)
     setMobilePanelOpen(true)
@@ -12317,6 +12335,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         data-area={key}
                         onClick={() => {
                           setCustomOnly(false)
+                          setCustomCategoryFilter(null)
                           setCategoryOn((prev) => {
                             if (customOnly || plannerCategoriesAllOn(prev, plannerCategoryItems)) return cityMapSoloCategory(key)
                             const next = { ...prev, [key]: !prev[key] }
@@ -12331,12 +12350,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       </button>
                     ))}
                     <button
-                      className={`tab ${customOnly ? 'active' : ''}`}
+                      className={`tab ${customOnly && !customCategoryFilter ? 'active' : ''}`}
                       type="button"
-                      aria-pressed={customOnly}
+                      aria-pressed={customOnly && !customCategoryFilter}
                       data-area="custom"
                       onClick={() => {
                         setCustomOnly(true)
+                        setCustomCategoryFilter(null)
                         setTier('all')
                         setSelectedPlanItem(null)
                         setSelectedId(null)
@@ -12344,6 +12364,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     >
                       自定
                     </button>
+                    {customTransportCategoryItem ? (
+                      <button
+                        className={`tab ${customOnly && customCategoryFilter === customTransportCategoryItem.key ? 'active' : ''}`}
+                        type="button"
+                        aria-pressed={customOnly && customCategoryFilter === customTransportCategoryItem.key}
+                        data-area="custom-transport"
+                        onClick={() => {
+                          setCustomOnly(true)
+                          setCustomCategoryFilter(customTransportCategoryItem.key)
+                          setTier('all')
+                          setSelectedPlanItem(null)
+                          setSelectedId(null)
+                        }}
+                      >
+                        {customTransportCategoryItem.label}
+                      </button>
+                    ) : null}
                   </div>
                   {showNearbyKnownPlacesManualAction && nearbyKnownPlacesSuggestionForDraft ? (
                     <div className={styles.nearbyKnownPlacesHint}>
