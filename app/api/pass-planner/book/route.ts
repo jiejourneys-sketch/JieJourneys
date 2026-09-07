@@ -12,6 +12,7 @@ const MAX_USER_LINKS_PER_PLACE = 8
 const MAX_PRE_DEPARTURE_TRAVELERS = 12
 const MAX_PRE_DEPARTURE_CUSTOM_ITEMS = 80
 const MAX_PRE_DEPARTURE_CHECKED_ITEMS = 300
+const MAX_PRE_DEPARTURE_GENERAL_LINKS = 20
 const MAX_MAP_URL_LENGTH = 900
 const PRE_DEPARTURE_NOTE_KEY = '__pre_departure_v2'
 const PRE_DEPARTURE_OWNER = { id: 'traveler-owner', name: '我' }
@@ -142,6 +143,27 @@ function cleanPreDeparture(value: unknown): Record<string, unknown> | undefined 
     ? (input.notes as Record<string, unknown>)
     : {}
   const generalNote = typeof rawNotes.general === 'string' ? rawNotes.general.trim().slice(0, 500) : ''
+  const generalLinks: { id: string; label: string; url: string }[] = []
+  const generalLinkIds = new Set<string>()
+  if (Array.isArray(input.generalLinks)) {
+    input.generalLinks.slice(0, MAX_PRE_DEPARTURE_GENERAL_LINKS).forEach((link) => {
+      if (!link || typeof link !== 'object' || Array.isArray(link)) return
+      const source = link as Record<string, unknown>
+      const id = typeof source.id === 'string' ? source.id.trim().slice(0, 80) : ''
+      const label = typeof source.label === 'string' ? source.label.trim().slice(0, 40) : ''
+      const rawUrl = typeof source.url === 'string' ? source.url.trim().slice(0, 1_000) : ''
+      const url = /^www\./iu.test(rawUrl) ? `https://${rawUrl}` : rawUrl
+      if (!id.startsWith('general-link-') || !label || generalLinkIds.has(id)) return
+      try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return
+        generalLinkIds.add(id)
+        generalLinks.push({ id, label, url: parsed.toString() })
+      } catch {
+        // Ignore invalid URLs rather than rejecting an otherwise valid checklist save.
+      }
+    })
+  }
   const cleanIdList = (rawValue: unknown, max: number) =>
     Array.isArray(rawValue)
       ? [...new Set(rawValue.filter((id): id is string => typeof id === 'string').map((id) => id.trim().slice(0, 80)).filter(Boolean))].slice(0, max)
@@ -152,6 +174,7 @@ function cleanPreDeparture(value: unknown): Record<string, unknown> | undefined 
     travelers,
     checked,
     notes: generalNote ? { general: generalNote } : {},
+    generalLinks,
     customItems,
     removedItemIds: cleanIdList(input.removedItemIds, 200),
     hiddenCategoryIds: cleanIdList(input.hiddenCategoryIds, 20),

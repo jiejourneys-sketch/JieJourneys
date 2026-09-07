@@ -134,6 +134,7 @@ type PreDepartureTransferStatus = 'idle' | 'copied' | 'imported' | 'failed'
 type PreDepartureCloudStatus = 'local' | 'saving' | 'saved' | 'error'
 type PlannerCloudSaveStatus = 'local' | 'saving' | 'saved' | 'error'
 const PRE_DEPARTURE_OWNER: PreDepartureTraveler = { id: 'traveler-owner', name: '我' }
+const MAX_PRE_DEPARTURE_GENERAL_LINKS = 20
 type HotelAffiliateProvider = 'Agoda' | 'Trip'
 type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id' | 'skipped'
 type HotelAffiliateCooldownStatus = Extract<
@@ -4087,7 +4088,7 @@ function cleanPreDepartureChecklistStorage(value: unknown): PreDepartureChecklis
   const generalLinks: PreDepartureGeneralLink[] = []
   const generalLinkIds = new Set<string>()
   if (Array.isArray(stored.generalLinks)) {
-    stored.generalLinks.slice(0, 12).forEach((link) => {
+    stored.generalLinks.slice(0, MAX_PRE_DEPARTURE_GENERAL_LINKS).forEach((link) => {
       if (!link || typeof link !== 'object' || Array.isArray(link)) return
       const source = link as Record<string, unknown>
       const id = typeof source.id === 'string' ? source.id.trim().slice(0, 80) : ''
@@ -13319,7 +13320,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   label: cleanLabel,
                   url: cleanUrl,
                 },
-              ].slice(0, 12))
+              ].slice(0, MAX_PRE_DEPARTURE_GENERAL_LINKS))
             }}
             onRemoveGeneralLink={(id) => {
               setPreDepartureGeneralLinks((links) => links.filter((link) => link.id !== id))
