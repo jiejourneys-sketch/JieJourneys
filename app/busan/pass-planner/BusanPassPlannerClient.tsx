@@ -1689,8 +1689,8 @@ function isCustomPlaceId(id: string) {
 }
 
 function cleanCustomPlaceCategory(value: unknown): CityMapPlaceCategory {
+  if (value === 'ticket') return 'spot'
   if (
-    value === 'ticket' ||
     value === 'spot' ||
     value === 'restaurant' ||
     value === 'shop' ||
@@ -12349,21 +12349,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         {label}
                       </button>
                     ))}
-                    <button
-                      className={`tab ${customOnly && !customCategoryFilter ? 'active' : ''}`}
-                      type="button"
-                      aria-pressed={customOnly && !customCategoryFilter}
-                      data-area="custom"
-                      onClick={() => {
-                        setCustomOnly(true)
-                        setCustomCategoryFilter(null)
-                        setTier('all')
-                        setSelectedPlanItem(null)
-                        setSelectedId(null)
-                      }}
-                    >
-                      自定
-                    </button>
                     {customTransportCategoryItem ? (
                       <button
                         className={`tab ${customOnly && customCategoryFilter === customTransportCategoryItem.key ? 'active' : ''}`}
@@ -12381,6 +12366,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         {customTransportCategoryItem.label}
                       </button>
                     ) : null}
+                    <button
+                      className={`tab ${customOnly && !customCategoryFilter ? 'active' : ''}`}
+                      type="button"
+                      aria-pressed={customOnly && !customCategoryFilter}
+                      data-area="custom"
+                      onClick={() => {
+                        setCustomOnly(true)
+                        setCustomCategoryFilter(null)
+                        setTier('all')
+                        setSelectedPlanItem(null)
+                        setSelectedId(null)
+                      }}
+                    >
+                      自定
+                    </button>
                   </div>
                   {showNearbyKnownPlacesManualAction && nearbyKnownPlacesSuggestionForDraft ? (
                     <div className={styles.nearbyKnownPlacesHint}>

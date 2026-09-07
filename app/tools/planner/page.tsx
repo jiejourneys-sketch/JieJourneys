@@ -149,12 +149,16 @@ const knownRegions: PlannerRegion[] = [
   },
 ]
 
+function toPlannerDisplayPlace(place: MapPlace): MapPlace {
+  if (place.plannerCategory !== 'ticket' && place.category !== 'ticket') return place
+  return { ...place, plannerCategory: 'spot' }
+}
+
 const allKnownPlannerPlaces = uniquePlaces(
-  knownRegions.flatMap((region) => [...region.places, ...(region.matchPlaces ?? [])]),
+  knownRegions.flatMap((region) => [...region.places, ...(region.matchPlaces ?? [])].map(toPlannerDisplayPlace)),
 )
 
 const semanticCategories: NonNullable<PlannerConfig['categoryItems']> = [
-  { key: 'ticket', label: '票券' },
   { key: 'spot', label: '景點' },
   { key: 'restaurant', label: '餐廳' },
   { key: 'shop', label: '商店' },
@@ -162,7 +166,6 @@ const semanticCategories: NonNullable<PlannerConfig['categoryItems']> = [
 ]
 
 const semanticCategoryLabels: NonNullable<PlannerConfig['categoryLabels']> = {
-  ticket: '票券',
   spot: '景點',
   restaurant: '餐廳',
   shop: '商店',
@@ -964,7 +967,7 @@ export default function ToolsPlannerPage() {
   if (started) {
     const { region, countryName, source } = started
     const sourcePlaces = source === 'pass' && region.matchPlaces?.length ? region.matchPlaces : region.places
-    const places = started.loadKnownPlaces ? sourcePlaces : []
+    const places = started.loadKnownPlaces ? sourcePlaces.map(toPlannerDisplayPlace) : []
     const config: Partial<PlannerConfig> = {
       storageKey: plannerStorageKey(region.key, source),
       headerBackHref: '/tools/planner',
@@ -1000,7 +1003,7 @@ export default function ToolsPlannerPage() {
       mapZoom: region.zoom ?? 11,
       categoryLabels: semanticCategoryLabels,
       categoryItems: semanticCategories,
-      customCategoryItems: [...semanticCategories.filter((item) => item.key !== 'ticket'), { key: 'transport', label: '機場/車站' }],
+      customCategoryItems: [...semanticCategories, { key: 'transport', label: '機場/車站' }],
       // 地圖仍只顯示本次選擇的地區；自訂景點則可比對旅杰所有已整理景點，
       // 讓跨城市行程（例如大阪行程加入晴空塔）也能繼承正確的既有連結。
       matchPlaces: allKnownPlannerPlaces,
