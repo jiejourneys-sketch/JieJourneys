@@ -114,6 +114,28 @@ test('prefers a hotel name in the Maps query over an address-like HTML title', a
   })
 })
 
+test('keeps a numbered hotel branch name from a Google Maps place path', async () => {
+  const url =
+    'https://www.google.com/maps/place/%E6%9D%B1%E6%A9%ABINN+%E9%87%9C%E5%B1%B1%E6%B5%B7%E9%9B%B2%E5%8F%B02%E8%99%9F%E5%BA%97/data=!4m9!3m8!1s0x35688d12293941ff:0xe2d7c8aa86ed2329!5m2!4m1!1i2!8m2!3d35.1595422!4d129.1573807!16s%2Fg%2F11c530kv31'
+  globalThis.fetch = (async () => new Response(
+    '<meta property="og:title" content="釜山海雲台 - Google Maps">',
+    { status: 200, headers: { 'content-type': 'text/html' } },
+  )) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(url))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload).toMatchObject({
+    url,
+    title: '東橫INN 釜山海雲台2號店',
+    query: '東橫INN 釜山海雲台2號店',
+    lat: 35.1595422,
+    lng: 129.1573807,
+    googleMapsDataId: '0x35688d12293941ff:0xe2d7c8aa86ed2329',
+  })
+})
+
 test('keeps address-style Google Maps identity when fetching the expanded URL fails', async () => {
   const url =
     'https://www.google.com/maps?q=Japan+556-0005+Osaka,+Naniwa+Ward,+Nipponbashi,+3+Chome-1-25+Apartment+Hotel+11+Kuromon+5&ftid=0x6000e761b2d83803:0x129706af2bd8c1c9'

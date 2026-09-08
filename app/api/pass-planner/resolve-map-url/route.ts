@@ -331,10 +331,14 @@ function extractEmbeddedNonLatinPlaceName(value: string) {
 
 function isLikelyGoogleMapsAddress(value: string) {
   const normalized = value.trim()
+  // A numbered hotel branch such as `東橫INN 釜山海雲台2號店` is a venue
+  // name, not a street address.  Keep that suffix from triggering the
+  // otherwise useful Chinese address-number heuristic below.
+  const withoutVenueBranchNumber = normalized.replace(/\d+\s*(?:號|号)\s*(?:店|館|馆)/gu, '')
   return (
     /^\d{1,6}\b/.test(normalized) ||
     /\b\d{3}-\d{4}\b/.test(normalized) ||
-    /\d+.*(?:\u8def|\u8857|\u5df7|\u5f04|\u865f|\u53f7|\u6bb5|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(normalized) ||
+    /\d+.*(?:\u8def|\u8857|\u5df7|\u5f04|\u865f|\u53f7|\u6bb5|Road|Rd\.?|Street|St\.?|Avenue|Ave\.?)/i.test(withoutVenueBranchNumber) ||
     /\b(?:Thanon|Soi)\s+[A-Za-z]/i.test(normalized) ||
     /\b[A-Za-z][A-Za-z .'\-]{1,80},\s*[A-Za-z][A-Za-z .'\-]{1,80}\s+(?:Ward|City|Prefecture|District)\b/i.test(normalized) ||
     /\b(?:[A-Za-z0-9()'.-]+-)?(?:dong|gu|si|ga|ro|gil|daero|myeon|eup)\b.*,/i.test(normalized)
