@@ -314,6 +314,12 @@ const PLANNER_IMAGE_MAX_BYTES = 600 * 1024
 const PLANNER_IMAGE_SOURCE_MAX_BYTES = 30 * 1024 * 1024
 const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
+const LEGACY_DIAMOND_BAY_RESERVATION_URL = 'https://diamondbay-tw.imweb.me/vbp-tw'
+const DIAMOND_BAY_RESERVATION_URL = 'https://diamondbay.co.kr/zh-TW/visit-busan-pass/'
+const BUSAN_METRO_MAP_LINK = {
+  label: '釜山地鐵圖（官方）',
+  href: 'https://www2.humetro.busan.kr/homepage/chs/page/subLocation.do?menu_no=10010101',
+}
 // v4 drops the old permanent "not found" result.  A short Google Maps link
 // often has a feature ID (`g/...`) rather than a reusable `ChIJ...` Place ID,
 // so an intermittent lookup failure must be retried instead of cached forever.
@@ -1773,6 +1779,10 @@ function customPlaceToMapPlace(
   }
 }
 
+function normalizeLegacyPlannerLink(href: string) {
+  return href === LEGACY_DIAMOND_BAY_RESERVATION_URL ? DIAMOND_BAY_RESERVATION_URL : href
+}
+
 function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
   const places: Record<string, CustomPlannerPlace> = {}
@@ -1802,10 +1812,13 @@ function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
           .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
           .map((link) => ({
             label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
-            href: typeof link.href === 'string' ? link.href.trim() : '',
+            href: normalizeLegacyPlannerLink(typeof link.href === 'string' ? link.href.trim() : ''),
           }))
           .filter((link) => link.label && link.href)
       : []
+    if (id === 'custom:busan-connectivity' && !links.some((link) => link.href === BUSAN_METRO_MAP_LINK.href)) {
+      links.push({ ...BUSAN_METRO_MAP_LINK })
+    }
     places[id] = {
       id,
       ...(sourcePlaceId ? { sourcePlaceId } : {}),
@@ -1838,7 +1851,7 @@ function cleanUserLinks(value: unknown): Record<string, PlannerUserLink[]> {
       .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
       .map((link) => ({
         label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
-        href: typeof link.href === 'string' ? link.href.trim().slice(0, 500) : '',
+        href: normalizeLegacyPlannerLink(typeof link.href === 'string' ? link.href.trim().slice(0, 500) : ''),
         ...(link.isPrimaryGoogleMap === true ? { isPrimaryGoogleMap: true } : {}),
       }))
       .filter((link) => link.label && link.href)

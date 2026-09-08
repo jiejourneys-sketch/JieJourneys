@@ -354,7 +354,7 @@ export const busanJourneyCustomPlaces = {
       { label: '實體／電子 Pass 選擇', href: 'https://www.instagram.com/reel/DN-uWhB4gI2/' },
       { label: '釜山 Pass 景點地圖', href: 'https://www.google.com/maps/d/edit?mid=1XsSQewsHL9iIolJLr7wTnD0bz44jOIs&usp=sharing' },
       { label: '膠囊列車訂票', href: 'https://www.kkday.com/zh-tw/product/123012-haeundae-blueline-park-sky-capsule-beach-train-ticket?cid=22312' },
-      { label: '鑽石灣遊艇官網', href: 'https://diamondbay-tw.imweb.me/vbp-tw' },
+      { label: '鑽石灣遊艇官網', href: 'https://diamondbay.co.kr/zh-TW/visit-busan-pass/' },
     ],
   },
   'custom:busan-connectivity': {
@@ -365,6 +365,7 @@ export const busanJourneyCustomPlaces = {
       { label: 'Wifi 分享器', href: 'https://www.kkday.com/zh-tw/product/7452-unlimited-4g-pocket-wi-fi-rental-with-airports-and-seoul-pick-up-south-korea?cid=22312' },
       { label: 'WOWPASS', href: 'https://www.kkday.com/zh-tw/product/149562?cid=22312' },
       { label: 'T-money', href: 'https://www.kkday.com/zh-tw/product/132542-korea-4g-high-speed-esim?cid=22312' },
+      { label: '釜山地鐵圖（官方）', href: 'https://www2.humetro.busan.kr/homepage/chs/page/subLocation.do?menu_no=10010101' },
     ],
   },
   'custom:busan-transport-apps': {
@@ -499,7 +500,7 @@ const busanJourneyManualUserLinks: Record<string, JourneyPlannerLink[]> = {
     { label: 'Club D Oasis 樓層指南', href: 'https://www.clubdoasis.com/guide/cn/floor' },
   ],
   'busan-pass-high-diamond-bay-yacht': [
-    { label: '鑽石灣遊艇預約', href: 'https://diamondbay-tw.imweb.me/vbp-tw' },
+    { label: '鑽石灣遊艇預約', href: 'https://diamondbay.co.kr/zh-TW/visit-busan-pass/' },
   ],
   'busan-pass-high-lotte-world-adventure': [
     { label: '遊樂設施', href: 'https://adventurebusan.lotteworld.com/enjoy/attrctn/list' },

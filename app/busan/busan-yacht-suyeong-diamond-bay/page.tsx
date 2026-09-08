@@ -57,7 +57,7 @@ const linkGroups = {
     { label: '地圖', href: '/busan/map?place=busan-yacht-holic', event: 'busanyacht_suyeong_map', platform: 'map' },
   ],
   diamond: [
-    { label: 'Pass預約', href: 'https://diamondbay-tw.imweb.me/vbp-tw', event: 'busanyacht_diamond_reserve', platform: 'Official', primary: true },
+    { label: 'Pass預約', href: 'https://diamondbay.co.kr/zh-TW/visit-busan-pass/', event: 'busanyacht_diamond_reserve', platform: 'Official', primary: true },
     { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/138477-visit-busan-pass-discount-free-attractions?cid=22312', event: 'busanyacht_diamond_pass_kkday', platform: 'KKDAY' },
     { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/81576-visit-busan-pass/?aid=93798', event: 'busanyacht_diamond_pass_klook', platform: 'KLOOK' },
     { label: '地圖', href: '/busan/map?place=busan-diamond-bay-yacht', event: 'busanyacht_diamond_map', platform: 'map' },

@@ -539,7 +539,7 @@ export const busanTicketCards = [
     actions: [
       {
         label: "官網釜山Pass預約",
-        href: "https://diamondbay-tw.imweb.me/vbp-tw",
+        href: "https://diamondbay.co.kr/zh-TW/visit-busan-pass/",
         className: "btn primary",
         event: "busanticket_diamond_bay_yacht_official",
         mapEvent: "busanmap_ticket_diamond_bay_yacht_official",
