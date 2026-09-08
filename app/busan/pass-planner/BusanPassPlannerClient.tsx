@@ -6932,6 +6932,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const plannerPdfModuleRef = useRef<Promise<typeof import('./plannerPdf')> | null>(null)
   const preDepartureMigrationTargetRef = useRef<string | null>(null)
   const preDepartureLastCloudSignatureRef = useRef('')
+  const preDepartureCloudInitializedBookIdRef = useRef<string | null>(null)
   const preDepartureCloudSaveTimerRef = useRef<number | null>(null)
   const plannerCloudLastSaveRef = useRef<{ bookId: string; signature: string; savedAt: number } | null>(null)
   const plannerCloudSaveTimerRef = useRef<number | null>(null)
@@ -8557,7 +8558,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       !plannerBookId ||
       !plannerBookEditToken ||
       !hasSavablePlannerContent ||
-      shareSaving
+      shareSaving ||
+      preDepartureStorageReadyKey !== preDepartureStorageKey
     ) {
       if (!plannerBookId) {
         plannerCloudLastSaveRef.current = null
@@ -8654,6 +8656,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     plannerCloudNotes,
     plannerCloudSaveSignature,
     preDepartureChecklist,
+    preDepartureStorageReadyKey,
+    preDepartureStorageKey,
     readOnlyPlan,
     shareSaving,
     storageReady,
@@ -8668,7 +8672,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       !plannerBookEditToken ||
       preDepartureStorageReadyKey !== preDepartureStorageKey
     ) {
-      if (!plannerBookId) setPreDepartureCloudStatus('local')
+      if (!plannerBookId) {
+        preDepartureCloudInitializedBookIdRef.current = null
+        setPreDepartureCloudStatus('local')
+      }
+      return
+    }
+    // Opening an editable link must not write a canonicalised checklist back
+    // to the book.  Establish the local snapshot only after its storage has
+    // finished hydrating; later user changes will still autosave normally.
+    if (preDepartureCloudInitializedBookIdRef.current !== plannerBookId) {
+      preDepartureCloudInitializedBookIdRef.current = plannerBookId
+      preDepartureLastCloudSignatureRef.current = preDepartureChecklistSignature
+      setPreDepartureCloudStatus('saved')
       return
     }
     if (preDepartureChecklistSignature === preDepartureLastCloudSignatureRef.current) {
