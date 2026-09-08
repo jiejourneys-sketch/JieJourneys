@@ -297,6 +297,8 @@ export type PlannerConfig = {
   recentCountryName?: string
   recentSource?: 'map' | 'pass'
   plannerBookCityName?: string
+  plannerBookRegionKey?: string
+  plannerBookSource?: 'map' | 'pass'
   agodaCityId?: number
 }
 
@@ -453,6 +455,8 @@ const defaultPlannerConfig: PlannerConfig = {
   matchPlaces: [],
   tierLabels: defaultTierLabels,
   tierItems: defaultTierItems,
+  plannerBookRegionKey: 'busan',
+  plannerBookSource: 'pass',
 }
 
 const destinationGeoHints: Array<{
@@ -3137,7 +3141,11 @@ async function fetchShortSharedPlan(search: string, placeById: Map<string, MapPl
 
 function plannerBookEditTokenFromSearch(search: string) {
   const token = new URLSearchParams(search).get(PLANNER_BOOK_EDIT_PARAM)?.trim() ?? ''
-  return /^[a-f0-9]{64}$/.test(token) ? token : null
+  return isPlannerBookEditToken(token) ? token : null
+}
+
+function isPlannerBookEditToken(value: unknown): value is string {
+  return typeof value === 'string' && (/^[a-f0-9]{64}$/.test(value) || /^[A-Za-z0-9_-]{22}$/.test(value))
 }
 
 function plannerBookEditTokenStorageKey(storageKey: string, bookId: string) {
@@ -3160,7 +3168,7 @@ async function recoverPlannerBookEditToken(bookId: string, imageOwnerToken: stri
   })
   if (!response.ok) return null
   const data = (await response.json().catch(() => null)) as { edit_token?: unknown } | null
-  return typeof data?.edit_token === 'string' && /^[a-f0-9]{64}$/.test(data.edit_token) ? data.edit_token : null
+  return isPlannerBookEditToken(data?.edit_token) ? data.edit_token : null
 }
 
 async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>, storedEditToken?: string | null) {
@@ -3182,6 +3190,9 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
     read_token?: unknown
     edit_token?: unknown
     readonly?: unknown
+    link_version?: unknown
+    region_key?: unknown
+    planner_source?: unknown
     updated_at?: unknown
     items?: unknown
     notes?: unknown
@@ -3221,7 +3232,10 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
     ? {
         id: bookId,
         readToken: typeof data.read_token === 'string' ? data.read_token : null,
-        editToken: typeof data.edit_token === 'string' && /^[a-f0-9]{64}$/.test(data.edit_token) ? data.edit_token : null,
+        editToken: isPlannerBookEditToken(data.edit_token) ? data.edit_token : null,
+        linkVersion: data.link_version === 2 ? 2 as const : 1 as const,
+        regionKey: typeof data.region_key === 'string' ? data.region_key.trim() : '',
+        source: data.planner_source === 'pass' ? 'pass' as const : 'map' as const,
         readonly: data.readonly === true || Boolean(viewToken),
         updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
         items,
@@ -3396,6 +3410,8 @@ async function imageFromFile(file: File) {
 
 async function savePlannerBook(
   city: string,
+  regionKey: string,
+  plannerSource: 'map' | 'pass',
   id: string | null,
   editorToken: string | null,
   items: PlannerItem[],
@@ -3409,6 +3425,7 @@ async function savePlannerBook(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       city,
+      ...(id ? {} : { region_key: regionKey, planner_source: plannerSource }),
       id,
       ...(editorToken ? { edit_token: editorToken } : {}),
       items,
@@ -3419,12 +3436,13 @@ async function savePlannerBook(
     }),
   })
   if (!res.ok) return null
-  const data = (await res.json()) as { id?: unknown; read_token?: unknown; edit_token?: unknown }
+  const data = (await res.json()) as { id?: unknown; read_token?: unknown; edit_token?: unknown; created?: unknown }
   return typeof data.id === 'string' && data.id
     ? {
         id: data.id,
         readToken: typeof data.read_token === 'string' ? data.read_token : null,
-        editToken: typeof data.edit_token === 'string' && /^[a-f0-9]{64}$/.test(data.edit_token) ? data.edit_token : null,
+        editToken: isPlannerBookEditToken(data.edit_token) ? data.edit_token : null,
+        created: data.created === true,
       }
     : null
 }
@@ -6881,6 +6899,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
   const [plannerBookReadToken, setPlannerBookReadToken] = useState<string | null>(null)
   const [plannerBookEditToken, setPlannerBookEditToken] = useState<string | null>(null)
+  const [plannerBookLinkVersion, setPlannerBookLinkVersion] = useState<1 | 2>(1)
   const [plannerBookUpdatedAt, setPlannerBookUpdatedAt] = useState<string | null>(null)
   const [plannerCloudSaveStatus, setPlannerCloudSaveStatus] = useState<PlannerCloudSaveStatus>('local')
   const [plannerLinkUnavailable, setPlannerLinkUnavailable] = useState(false)
@@ -8182,11 +8201,36 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           )
           const plannerBook = await fetchPlannerBook(initialSearch, placeById, recoveredEditorToken)
           if (plannerBook) {
+            const hasStoredRegionMismatch =
+              plannerBook.linkVersion === 2 &&
+              Boolean(config.plannerBookRegionKey) &&
+              plannerBook.regionKey !== config.plannerBookRegionKey
+            const hasStoredSourceMismatch =
+              plannerBook.linkVersion === 2 &&
+              Boolean(config.plannerBookSource) &&
+              plannerBook.source !== config.plannerBookSource
+            if (hasStoredRegionMismatch || hasStoredSourceMismatch) {
+              // A v2 book owns its region/source in the database.  If someone
+              // pastes it under a different fixed-city planner route, hand it
+              // to the universal planner instead of rendering against the
+              // wrong city data.
+              const universalUrl = new URL('/tools/planner', window.location.origin)
+              if (plannerBook.readonly) {
+                universalUrl.searchParams.set(PLANNER_PREVIEW_PARAM, plannerBook.readToken ?? initialParams.get(PLANNER_PREVIEW_PARAM) ?? '')
+              } else if (plannerBook.id) {
+                universalUrl.searchParams.set(PLANNER_BOOK_PARAM, plannerBook.id)
+                const token = plannerBook.editToken ?? recoveredEditorToken
+                if (token) universalUrl.searchParams.set(PLANNER_BOOK_EDIT_PARAM, token)
+              }
+              window.location.replace(`${universalUrl.pathname}${universalUrl.search}`)
+              return
+            }
             const hasOrderedPlaces = plannerBook.items.some((item) => Boolean(planItemPlaceId(item)))
             const hasCustomPlaces = Boolean(plannerBook.customPlaces && Object.keys(plannerBook.customPlaces).length > 0)
             setPlannerLinkUnavailable(false)
             setPlannerBookId(plannerBook.id)
             setPlannerBookReadToken(plannerBook.readToken)
+            setPlannerBookLinkVersion(plannerBook.linkVersion)
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
             setReadOnlyPlan(plannerBook.readonly)
             setPlannerImages([])
@@ -8194,7 +8238,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerBookEditToken(activeEditorToken)
             if (plannerBook.id && activeEditorToken) {
               window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, plannerBook.id), activeEditorToken)
-              if (urlEditorToken || initialParams.get(LEGACY_PLANNER_IMAGE_OWNER_PARAM)) {
+              if (plannerBook.linkVersion !== 2 && (urlEditorToken || initialParams.get(LEGACY_PLANNER_IMAGE_OWNER_PARAM))) {
                 const cleanUrl = new URL(window.location.href)
                 cleanUrl.searchParams.delete(PLANNER_BOOK_EDIT_PARAM)
                 cleanUrl.searchParams.delete(LEGACY_PLANNER_IMAGE_OWNER_PARAM)
@@ -8257,6 +8301,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerBookEditToken(null)
             setPlannerBookId(null)
             setPlannerBookReadToken(null)
+            setPlannerBookLinkVersion(1)
             setPlannerBookUpdatedAt(null)
             setReadOnlyPlan(true)
             return
@@ -8323,7 +8368,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })()
     }, 0)
     return () => window.clearTimeout(id)
-  }, [config.initialSearchParams, config.storageKey, lookupPlaces, placeById, setMobilePanelOpen])
+  }, [
+    config.initialSearchParams,
+    config.plannerBookRegionKey,
+    config.plannerBookSource,
+    config.storageKey,
+    lookupPlaces,
+    placeById,
+    setMobilePanelOpen,
+  ])
 
   useEffect(() => {
     if (!storageReady || readOnlyPlan) return
@@ -8552,6 +8605,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setPlannerCloudSaveStatus('saving')
       void savePlannerBook(
         config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+        config.plannerBookRegionKey ?? 'custom',
+        config.plannerBookSource ?? config.recentSource ?? 'map',
         plannerBookId,
         plannerBookEditToken,
         snapshot.items,
@@ -8585,7 +8640,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
   }, [
     config.plannerBookCityName,
+    config.plannerBookRegionKey,
+    config.plannerBookSource,
     config.recentCountryName,
+    config.recentSource,
     config.shareTitle,
     customPlaces,
     hasSavablePlannerContent,
@@ -11585,6 +11643,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     let savedPlannerBookId = currentPlannerBookId
     let savedReadToken = plannerBookReadToken
     let savedEditorToken = currentPlannerBookEditToken
+    let savedBookUsesStoredRegion = plannerBookLinkVersion === 2 || !currentPlannerBookId
 
     try {
       if (!hasSavablePlannerContent) {
@@ -11602,6 +11661,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         )
         const book = await savePlannerBook(
           config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+          config.plannerBookRegionKey ?? 'custom',
+          config.plannerBookSource ?? config.recentSource ?? 'map',
           currentPlannerBookId,
           currentPlannerBookEditToken || null,
           validPlanItems,
@@ -11615,11 +11676,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           savedPlannerBookId = book.id
           savedReadToken = book.readToken ?? plannerBookReadToken
           savedEditorToken = book.editToken ?? currentPlannerBookEditToken
+          savedBookUsesStoredRegion = book.created || plannerBookLinkVersion === 2 || !currentPlannerBookId
           const updatedAt = new Date().toISOString()
           if (!plannerBookId) preDepartureMigrationTargetRef.current = book.id
           setPlannerBookId(book.id)
           setPlannerBookReadToken(savedReadToken)
           setPlannerBookEditToken(savedEditorToken || null)
+          if (book.created) setPlannerBookLinkVersion(2)
           setPlannerBookUpdatedAt(updatedAt)
           plannerCloudLastSaveRef.current = {
             bookId: book.id,
@@ -11658,7 +11721,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             window.localStorage.setItem(config.recentListKey, JSON.stringify(nextRecent))
           }
           url.search = ''
-          Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
+          Object.entries(savedBookUsesStoredRegion ? {} : config.shareSearchParams ?? {}).forEach(([key, value]) => {
             if (value) url.searchParams.set(key, value)
           })
           url.searchParams.set(PLANNER_BOOK_PARAM, book.id)
@@ -11676,9 +11739,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         return
       }
       const shareUrl = url.toString()
+      if (savedBookUsesStoredRegion) {
+        window.history.replaceState(null, '', `${url.pathname}${url.search}`)
+      }
       const previewUrl = savedReadToken ? new URL(window.location.pathname, PUBLIC_SITE_ORIGIN) : null
       if (previewUrl) {
-        Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
+        Object.entries(savedBookUsesStoredRegion ? {} : config.shareSearchParams ?? {}).forEach(([key, value]) => {
           if (value) previewUrl.searchParams.set(key, value)
         })
         previewUrl.searchParams.set(PLANNER_PREVIEW_PARAM, savedReadToken ?? '')
@@ -11738,6 +11804,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     config.recentRegionKey,
     config.recentSource,
     config.plannerBookCityName,
+    config.plannerBookRegionKey,
+    config.plannerBookSource,
     config.storageKey,
     customPlaceCount,
     lookupPlaces,
@@ -11747,6 +11815,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     placeNotes,
     plannerBookEditToken,
     plannerBookId,
+    plannerBookLinkVersion,
     plannerBookReadToken,
     plannerCloudSaveSignature,
     preDepartureChecklist,
@@ -11766,6 +11835,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         )
         const book = await savePlannerBook(
           config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+          config.plannerBookRegionKey ?? 'custom',
+          config.plannerBookSource ?? config.recentSource ?? 'map',
           null,
           null,
           validPlanItems,
@@ -11785,6 +11856,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setPlannerBookId(book.id)
         setPlannerBookReadToken(readToken)
         setPlannerBookEditToken(editorToken)
+        setPlannerBookLinkVersion(2)
         setPlannerBookUpdatedAt(updatedAt)
         plannerCloudLastSaveRef.current = {
           bookId: book.id,
@@ -11844,10 +11916,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         }
 
         const url = new URL(window.location.pathname, window.location.origin)
-        Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
-          if (value) url.searchParams.set(key, value)
-        })
         url.searchParams.set(PLANNER_BOOK_PARAM, book.id)
+        if (editorToken) url.searchParams.set(PLANNER_BOOK_EDIT_PARAM, editorToken)
         window.history.replaceState(null, '', `${url.pathname}${url.search}`)
         setPlannerNotice('copy-complete')
       } finally {
@@ -11856,11 +11926,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })()
   }, [
     config.plannerBookCityName,
+    config.plannerBookRegionKey,
+    config.plannerBookSource,
     config.recentCountryName,
     config.recentListKey,
     config.recentRegionKey,
     config.recentSource,
-    config.shareSearchParams,
     config.shareTitle,
     config.storageKey,
     customPlaces,
@@ -13620,14 +13691,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               )}
               <div className={styles.saveLinkGroup}>
                 <div className={styles.saveLinkHeader}>
-                  <span>我的編輯連結（私密）</span>
+                  <span>共同編輯連結（可修改）</span>
                 </div>
-                <p className={styles.saveHint}>只留給自己在其他裝置繼續編輯；不要傳給買家或朋友。</p>
+                <p className={styles.saveHint}>可分享給信任的同行者共同編輯；拿到連結的人可修改此行程。</p>
                 <div className={styles.saveUrlRow}>
-                  <div className={styles.saveUrl}>{saveSheetUrl}</div>
-                  <button type="button" className={styles.saveCopyButton} onClick={copySavedLink}>
-                    {saveLinkCopied ? '已複製' : '複製給自己'}
-                  </button>
+                  <div className={styles.saveUrl} title={saveSheetUrl}>{saveSheetUrl}</div>
+                  <div className={styles.saveLinkActions}>
+                    <button type="button" className={styles.saveCopyButton} onClick={copySavedLink}>
+                      {saveLinkCopied ? '已複製' : '複製'}
+                    </button>
+                    <button type="button" className={styles.saveCopyButton} onClick={shareSavedLink}>
+                      分享共同編輯
+                    </button>
+                  </div>
                 </div>
               </div>
               {saveSheetPreviewUrl ? (
@@ -13637,7 +13713,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   </div>
                   <p className={styles.saveHint}>朋友可先查看；想調整時按「複製成我的行程」，會建立自己的副本，不會改到你的原始行程。</p>
                   <div className={styles.saveUrlRow}>
-                    <div className={styles.saveUrl}>{saveSheetPreviewUrl}</div>
+                    <div className={styles.saveUrl} title={saveSheetPreviewUrl}>{saveSheetPreviewUrl}</div>
                     <button type="button" className={styles.saveCopyButton} onClick={copyPreviewLink}>
                       {savePreviewCopied ? '已複製' : '複製'}
                     </button>

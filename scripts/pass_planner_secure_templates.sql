@@ -4,6 +4,10 @@
 -- Part 1 of 2. Run this once in the Supabase SQL editor BEFORE deploying the
 -- matching app and planner-images function changes. It is additive and keeps
 -- the currently published planner working until the final lockdown script.
+--
+-- Historical setup only: on a database using Planner link v2, apply
+-- supabase/migrations/20260908110000_planner_book_link_v2.sql afterwards so
+-- new books retain their stored region/source and require an edit token.
 
 begin;
 

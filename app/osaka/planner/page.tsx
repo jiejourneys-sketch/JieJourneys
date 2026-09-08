@@ -5,6 +5,8 @@ import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 
 const osakaPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:osaka-map-planner:v1',
+  plannerBookRegionKey: 'osaka',
+  plannerBookSource: 'map',
   headerBackHref: '/osaka/map',
   eventPrefix: 'osakamapplanner',
   title: '大阪景點排序',

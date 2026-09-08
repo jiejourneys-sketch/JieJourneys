@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const URL_TOKEN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+const LEGACY_EDIT_TOKEN_PATTERN = /^[a-f0-9]{64}$/
+const V2_URL_TOKEN_PATTERN = /^[A-Za-z0-9_-]{22}$/
 const MAX_ITEMS = 240
 const MAX_NOTES = 160
 const MAX_NOTE_LENGTH = 500
@@ -43,6 +46,8 @@ function cleanGooglePlaceTypes(value: unknown) {
 type PlannerBookPayload = {
   id?: string
   edit_token?: string
+  region_key?: string
+  planner_source?: 'map' | 'pass'
   city: string
   items: string[]
   notes?: Record<string, string>
@@ -55,6 +60,9 @@ type StoredPlannerBook = {
   id?: string
   read_token?: string
   edit_token?: string
+  link_version?: number
+  region_key?: string
+  planner_source?: string
   city: string
   items: unknown
   notes: unknown
@@ -193,25 +201,44 @@ function getTripSupabase() {
   })
 }
 
-function shortId(length = 7) {
+function randomToken(length: number, alphabet = ID_ALPHABET) {
   const values = new Uint8Array(length)
   crypto.getRandomValues(values)
-  return Array.from(values, (value) => ID_ALPHABET[value % ID_ALPHABET.length]).join('')
+  return Array.from(values, (value) => alphabet[value % alphabet.length]).join('')
+}
+
+// This is an opaque record identifier, not an access credential.  Keeping it
+// at 12 base-62 characters makes collisions impractical while the separate
+// reader/editor tokens remain the actual permissions.
+function shortId(length = 12) {
+  return randomToken(length)
 }
 
 function readToken() {
-  return shortId(12)
+  return randomToken(22, URL_TOKEN_ALPHABET)
 }
 
 function editToken() {
-  const values = new Uint8Array(32)
-  crypto.getRandomValues(values)
-  return Array.from(values, (value) => value.toString(16).padStart(2, '0')).join('')
+  return randomToken(22, URL_TOKEN_ALPHABET)
 }
 
 function cleanEditToken(value: unknown) {
   const token = typeof value === 'string' ? value.trim() : ''
-  return /^[a-f0-9]{64}$/.test(token) ? token : ''
+  return LEGACY_EDIT_TOKEN_PATTERN.test(token) || V2_URL_TOKEN_PATTERN.test(token) ? token : ''
+}
+
+function cleanReadToken(value: unknown) {
+  const token = typeof value === 'string' ? value.trim() : ''
+  return /^[A-Za-z0-9]{8,64}$/.test(token) || V2_URL_TOKEN_PATTERN.test(token) ? token : ''
+}
+
+function cleanRegionKey(value: unknown) {
+  const regionKey = typeof value === 'string' ? value.trim().slice(0, 40) : ''
+  return /^[a-z0-9\u4e00-\u9fa5][a-z0-9\u4e00-\u9fa5-]{0,39}$/i.test(regionKey) ? regionKey : ''
+}
+
+function cleanPlannerSource(value: unknown): 'map' | 'pass' {
+  return value === 'pass' ? 'pass' : 'map'
 }
 
 function cleanLegacyImageOwnerToken(value: unknown) {
@@ -224,6 +251,8 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
   const input = value as Record<string, unknown>
   const id = typeof input.id === 'string' ? input.id.trim().slice(0, 32) : undefined
   const editorToken = cleanEditToken(input.edit_token)
+  const regionKey = cleanRegionKey(input.region_key)
+  const plannerSource = cleanPlannerSource(input.planner_source)
   const city = typeof input.city === 'string' ? input.city.trim().slice(0, 32) : ''
   const rawItems = Array.isArray(input.items) ? input.items : []
   const items = rawItems
@@ -328,6 +357,8 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
   return {
     id,
     ...(editorToken ? { edit_token: editorToken } : {}),
+    ...(regionKey ? { region_key: regionKey } : {}),
+    planner_source: plannerSource,
     city,
     items,
     notes: Object.keys(notes).length > 0 ? notes : undefined,
@@ -409,6 +440,9 @@ export async function POST(req: NextRequest) {
       p_id: id,
       p_read_token: token,
       p_edit_token: editorToken,
+      p_link_version: 2,
+      p_region_key: payload.region_key || 'custom',
+      p_planner_source: payload.planner_source ?? 'map',
       p_city: payload.city,
       p_items: payload.items,
       p_notes: {
@@ -435,7 +469,7 @@ export async function GET(req: NextRequest) {
   if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
 
   const id = req.nextUrl.searchParams.get('id')?.trim()
-  const viewToken = req.nextUrl.searchParams.get('v')?.trim()
+  const viewToken = cleanReadToken(req.nextUrl.searchParams.get('v'))
   const editorToken = cleanEditToken(req.nextUrl.searchParams.get('e'))
   if (!id && !viewToken) return NextResponse.json({ error: 'missing_id' }, { status: 400 })
 
@@ -465,6 +499,9 @@ export async function GET(req: NextRequest) {
     read_token: book.read_token,
     ...(legacyIdLink && cleanEditToken(book.edit_token) ? { edit_token: cleanEditToken(book.edit_token) } : {}),
     readonly: Boolean(viewToken),
+    link_version: book.link_version === 2 ? 2 : 1,
+    ...(book.link_version === 2 && cleanRegionKey(book.region_key) ? { region_key: cleanRegionKey(book.region_key) } : {}),
+    ...(book.link_version === 2 ? { planner_source: cleanPlannerSource(book.planner_source) } : {}),
     city: book.city,
     items: Array.isArray(book.items) ? book.items : [],
     notes: placeNotes,

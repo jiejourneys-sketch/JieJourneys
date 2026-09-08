@@ -5,6 +5,8 @@ import { fujiPassMapPlaces } from '@/data/fuji/pass-map/places'
 
 const fujiPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:fuji-map-planner:v1',
+  plannerBookRegionKey: 'fuji',
+  plannerBookSource: 'map',
   headerBackHref: '/fuji/map',
   eventPrefix: 'fujimapplanner',
   title: '富士河口湖景點排序',

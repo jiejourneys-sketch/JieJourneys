@@ -4384,7 +4384,10 @@
 }
 
 .saveUrl {
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   border: 1px solid rgba(31, 122, 140, 0.18);
   border-radius: 8px;
   padding: 10px 12px;
@@ -4410,6 +4413,13 @@
 .saveCopyButton:hover {
   border-color: rgba(31, 122, 140, 0.42);
   background: #eef7fa;
+}
+
+.saveLinkActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .saveActions {
@@ -4556,7 +4566,12 @@
     grid-template-columns: 1fr;
   }
 
+  .saveLinkActions {
+    justify-content: stretch;
+  }
+
   .saveCopyButton {
+    flex: 1 1 0;
     min-height: 42px;
   }
 }

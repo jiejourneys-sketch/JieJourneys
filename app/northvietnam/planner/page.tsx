@@ -4,6 +4,8 @@ import { NORTH_VIETNAM_MAP_CENTER, northVietnamMapPlaces } from '@/data/northvie
 
 const northVietnamPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:northvietnam-map-planner:v1',
+  plannerBookRegionKey: 'northvietnam',
+  plannerBookSource: 'map',
   headerBackHref: '/northvietnam/map',
   eventPrefix: 'northvietnammapplanner',
   title: '北越景點排序',

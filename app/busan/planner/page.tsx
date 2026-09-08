@@ -5,6 +5,8 @@ import { busanPassMapPlaces } from '@/data/busan/pass-map/places'
 
 const busanPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:busan-map-planner:v1',
+  plannerBookRegionKey: 'busan',
+  plannerBookSource: 'map',
   headerBackHref: '/busan/map',
   eventPrefix: 'busanmapplanner',
   title: '釜山景點排序',

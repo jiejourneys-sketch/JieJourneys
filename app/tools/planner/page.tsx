@@ -44,6 +44,9 @@ type PlannerBookMeta = {
   readToken?: string
   editToken?: string
   city?: string
+  linkVersion?: 1 | 2
+  regionKey?: string
+  source?: PlannerSource
 }
 
 type PlannerBookMetaLookup = {
@@ -222,7 +225,7 @@ function customRegionFromUrl(regionKey: string, countryName: string): PlannerReg
 
 function cleanPlannerEditToken(value: string | null | undefined) {
   const token = value?.trim() ?? ''
-  return /^[a-f0-9]{64}$/.test(token) ? token : ''
+  return /^[a-f0-9]{64}$/.test(token) || /^[A-Za-z0-9_-]{22}$/.test(token) ? token : ''
 }
 
 function plannerBookEditTokenStorageKey(storageKey: string, bookId: string) {
@@ -252,7 +255,15 @@ async function fetchPlannerBookMeta(plannerId: string, readToken: string, editor
   const res = await fetch(`/api/pass-planner/book?${query}`, { cache: 'no-store' })
   if (res.status === 404 || res.status === 410) return { book: null, unavailable: true }
   if (!res.ok) return { book: null, unavailable: false }
-  const data = (await res.json()) as { id?: unknown; read_token?: unknown; edit_token?: unknown; city?: unknown }
+  const data = (await res.json()) as {
+    id?: unknown
+    read_token?: unknown
+    edit_token?: unknown
+    city?: unknown
+    link_version?: unknown
+    region_key?: unknown
+    planner_source?: unknown
+  }
   return {
     book: {
       id: typeof data.id === 'string' && data.id.trim() ? data.id.trim() : undefined,
@@ -262,6 +273,9 @@ async function fetchPlannerBookMeta(plannerId: string, readToken: string, editor
           : undefined,
       editToken: cleanPlannerEditToken(typeof data.edit_token === 'string' ? data.edit_token : '' ) || undefined,
       city: typeof data.city === 'string' && data.city.trim() ? data.city.trim() : undefined,
+      linkVersion: data.link_version === 2 ? 2 : 1,
+      regionKey: typeof data.region_key === 'string' && data.region_key.trim() ? data.region_key.trim() : undefined,
+      source: data.planner_source === 'pass' ? 'pass' : 'map',
     },
     unavailable: false,
   }
@@ -400,6 +414,7 @@ export default function ToolsPlannerPage() {
     loadKnownPlaces: boolean
     countryName: string
     source: PlannerSource
+    linkVersion: 1 | 2
     plannerId?: string
     readToken?: string
     editToken?: string
@@ -420,206 +435,171 @@ export default function ToolsPlannerPage() {
     try {
       const params = new URLSearchParams(window.location.search)
       setInAppBrowser(detectInAppBrowser())
-      const regionKey = params.get('region')?.trim() ?? ''
-      const source = params.get('source') === 'pass' ? 'pass' : 'map'
+      const legacyRegionKey = params.get('region')?.trim() ?? ''
+      const legacySource = params.get('source') === 'pass' ? 'pass' : 'map'
       const resumeDraft = params.get('resume') === '1'
       const requestedCountryName = params.get('name')?.trim() ?? ''
-      setPreferredSource(source)
       const plannerId = params.get('p')?.trim() || ''
       const readToken = params.get('v')?.trim() || ''
       const urlEditorToken = cleanPlannerEditToken(params.get('e'))
-      const linkStorageKey = plannerStorageKey(regionKey, source)
-      if (plannerId && urlEditorToken) {
-        window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), urlEditorToken)
-      }
-      let editorToken = plannerId ? urlEditorToken || localPlannerEditToken(linkStorageKey, plannerId) : ''
+      const legacyStorageKey = plannerStorageKey(legacyRegionKey, legacySource)
+      let editorToken = plannerId ? urlEditorToken || localPlannerEditToken(legacyStorageKey, plannerId) : ''
       const legacyOwnerToken = plannerId
-        ? params.get('i')?.trim() || window.localStorage.getItem(`${linkStorageKey}:planner-image-owner:${plannerId}`)?.trim() || ''
+        ? params.get('i')?.trim() || window.localStorage.getItem(`${legacyStorageKey}:planner-image-owner:${plannerId}`)?.trim() || ''
         : ''
       const planParam = params.get('plan')?.trim() || ''
-      const shouldLoadSharedPlan = Boolean(plannerId || readToken || planParam)
-      const region = knownRegions.find((item) => item.key === regionKey)
-      if (region && shouldLoadSharedPlan) {
-        if (plannerId || readToken) {
-          setCheckingSharedPlanner(true)
-          ;(async () => {
-            try {
-              if (plannerId && !editorToken) {
-                editorToken = await recoverPlannerEditToken(plannerId, legacyOwnerToken)
-                if (editorToken) window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), editorToken)
-              }
-              const lookup = await fetchPlannerBookMeta(plannerId, readToken, editorToken)
-              if (cancelled) return
-              const book = lookup.book
-              setCheckingSharedPlanner(false)
-              if (!book) {
-                if (lookup.unavailable && plannerId) {
-                  setRecentPlanners(
-                    removeRecentPlanner({
-                      id: plannerId,
-                      readToken: readToken || undefined,
-                      regionKey: region.key,
-                      source,
-                    }).slice(0, 8),
-                  )
-                }
-                setUnavailablePlanner({ countryName: region.shortLabel })
-                setStarted(null)
-                return
-              }
-              const countryName = plannerDisplayName(book.city, region.key)
-              if (plannerId && book.editToken && !editorToken) {
-                editorToken = book.editToken
-                window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), editorToken)
-              }
-              if (book.id) {
+      const hasBookLink = Boolean(plannerId || readToken)
+      const legacyRegion = knownRegions.find((item) => item.key === legacyRegionKey)
+      setPreferredSource(legacySource)
+
+      if (hasBookLink) {
+        setCheckingSharedPlanner(true)
+        void (async () => {
+          try {
+            if (plannerId && !editorToken) {
+              editorToken = await recoverPlannerEditToken(plannerId, legacyOwnerToken)
+              if (editorToken) window.localStorage.setItem(plannerBookEditTokenStorageKey(legacyStorageKey, plannerId), editorToken)
+            }
+            const lookup = await fetchPlannerBookMeta(plannerId, readToken, editorToken)
+            if (cancelled) return
+            const book = lookup.book
+            setCheckingSharedPlanner(false)
+            if (!book) {
+              if (lookup.unavailable && plannerId && legacyRegionKey) {
                 setRecentPlanners(
-                  upsertRecentPlanner({
-                    id: book.id ?? plannerId,
-                    readToken: (book.readToken ?? readToken) || undefined,
-                    access: plannerId ? 'edit' : 'preview',
-                    regionKey: region.key,
-                    source,
-                    countryName,
-                    updatedAt: new Date().toISOString(),
+                  removeRecentPlanner({
+                    id: plannerId,
+                    readToken: readToken || undefined,
+                    regionKey: legacyRegionKey,
+                    source: legacySource,
                   }).slice(0, 8),
                 )
               }
-              setUnavailablePlanner(null)
-              setStarted({
-                region,
-                loadKnownPlaces: true,
-                countryName,
-                source,
-                plannerId: plannerId || undefined,
-                readToken: plannerId ? undefined : readToken || undefined,
-                editToken: plannerId ? editorToken || undefined : undefined,
-              })
-            } catch {
-              if (cancelled) return
-              setCheckingSharedPlanner(false)
-              setUnavailablePlanner({ countryName: region.shortLabel })
+              setUnavailablePlanner({ countryName: legacyRegion?.shortLabel || legacyRegionKey || '行程' })
               setStarted(null)
+              return
             }
-          })()
-          return () => {
-            cancelled = true
-          }
-        }
 
+            const linkVersion: 1 | 2 = book.linkVersion === 2 ? 2 : 1
+            const resolvedRegionKey = linkVersion === 2 ? book.regionKey : legacyRegionKey
+            const resolvedSource = linkVersion === 2 ? book.source ?? 'map' : legacySource
+            if (!resolvedRegionKey) {
+              setUnavailablePlanner({ countryName: '行程' })
+              setStarted(null)
+              return
+            }
+
+            const resolvedKnownRegion = knownRegions.find((item) => item.key === resolvedRegionKey)
+            const countryName = plannerDisplayName(book.city, resolvedRegionKey)
+            const resolvedRegion = resolvedKnownRegion ?? customRegionFromUrl(resolvedRegionKey, countryName)
+            const storageKey = plannerStorageKey(resolvedRegion.key, resolvedSource)
+            if (plannerId && book.editToken && !editorToken) editorToken = book.editToken
+            if (plannerId && editorToken) {
+              window.localStorage.setItem(plannerBookEditTokenStorageKey(storageKey, plannerId), editorToken)
+            }
+
+            if (linkVersion === 2) {
+              const canonicalUrl = new URL(window.location.pathname, window.location.origin)
+              if (plannerId) {
+                canonicalUrl.searchParams.set('p', plannerId)
+                if (editorToken) canonicalUrl.searchParams.set('e', editorToken)
+              } else {
+                canonicalUrl.searchParams.set('v', readToken)
+              }
+              window.history.replaceState(null, '', `${canonicalUrl.pathname}${canonicalUrl.search}`)
+            }
+
+            setPreferredSource(resolvedSource)
+            if (book.id) {
+              setRecentPlanners(
+                upsertRecentPlanner({
+                  id: book.id,
+                  readToken: (book.readToken ?? readToken) || undefined,
+                  access: plannerId ? 'edit' : 'preview',
+                  regionKey: resolvedRegion.key,
+                  source: resolvedSource,
+                  countryName,
+                  updatedAt: new Date().toISOString(),
+                }).slice(0, 8),
+              )
+            }
+            setUnavailablePlanner(null)
+            setStarted({
+              region: resolvedRegion,
+              loadKnownPlaces: Boolean(resolvedKnownRegion),
+              countryName,
+              source: resolvedSource,
+              linkVersion,
+              plannerId: plannerId || undefined,
+              readToken: plannerId ? undefined : readToken || undefined,
+              editToken: plannerId ? editorToken || undefined : undefined,
+            })
+          } catch {
+            if (cancelled) return
+            setCheckingSharedPlanner(false)
+            setUnavailablePlanner({ countryName: legacyRegion?.shortLabel || legacyRegionKey || '行程' })
+            setStarted(null)
+          }
+        })()
+        return () => {
+          cancelled = true
+        }
+      }
+
+      if (planParam && legacyRegion) {
         setUnavailablePlanner(null)
         setCheckingSharedPlanner(false)
         setStarted({
-          region,
+          region: legacyRegion,
           loadKnownPlaces: true,
-          countryName: region.shortLabel,
-          source,
+          countryName: legacyRegion.shortLabel,
+          source: legacySource,
+          linkVersion: 2,
         })
         return
       }
-      if (shouldLoadSharedPlan && regionKey) {
-        const startCustomSharedPlanner = (book?: PlannerBookMeta | null) => {
-          const countryName = plannerDisplayName(book?.city, regionKey)
-          const customRegion = customRegionFromUrl(regionKey, countryName)
-          if (plannerId && book?.editToken && !editorToken) {
-            editorToken = book.editToken
-            window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), editorToken)
-          }
-          if (book?.id) {
-            setRecentPlanners(
-              upsertRecentPlanner({
-                id: book?.id ?? plannerId,
-                readToken: (book?.readToken ?? readToken) || undefined,
-                access: plannerId ? 'edit' : 'preview',
-                regionKey: customRegion.key,
-                source,
-                countryName,
-                updatedAt: new Date().toISOString(),
-              }).slice(0, 8),
-            )
-          }
-          setUnavailablePlanner(null)
-          setStarted({
-            region: customRegion,
-            loadKnownPlaces: false,
-            countryName,
-            source,
-            plannerId: plannerId || undefined,
-            readToken: plannerId ? undefined : readToken || undefined,
-            editToken: plannerId ? editorToken || undefined : undefined,
-          })
-        }
-
-        if (plannerId || readToken) {
-          setCheckingSharedPlanner(true)
-          ;(async () => {
-            try {
-              if (plannerId && !editorToken) {
-                editorToken = await recoverPlannerEditToken(plannerId, legacyOwnerToken)
-                if (editorToken) window.localStorage.setItem(plannerBookEditTokenStorageKey(linkStorageKey, plannerId), editorToken)
-              }
-              const lookup = await fetchPlannerBookMeta(plannerId, readToken, editorToken)
-              if (cancelled) return
-              const book = lookup.book
-              setCheckingSharedPlanner(false)
-              if (!book) {
-                if (lookup.unavailable && plannerId) {
-                  setRecentPlanners(
-                    removeRecentPlanner({
-                      id: plannerId,
-                      readToken: readToken || undefined,
-                      regionKey,
-                      source,
-                    }).slice(0, 8),
-                  )
-                }
-                setUnavailablePlanner({ countryName: regionKey })
-                setStarted(null)
-                return
-              }
-              startCustomSharedPlanner(book)
-            } catch {
-              if (cancelled) return
-              setCheckingSharedPlanner(false)
-              setUnavailablePlanner({ countryName: regionKey })
-              setStarted(null)
-            }
-          })()
-          return () => {
-            cancelled = true
-          }
-        }
-
-        startCustomSharedPlanner()
-        return
-      }
-      if (region && resumeDraft) {
+      if (planParam && legacyRegionKey) {
+        const countryName = plannerDisplayName(requestedCountryName || legacyRegionKey, legacyRegionKey)
         setUnavailablePlanner(null)
         setCheckingSharedPlanner(false)
         setStarted({
-          region,
-          loadKnownPlaces: true,
-          countryName: requestedCountryName || region.shortLabel,
-          source,
-        })
-        return
-      }
-      if (resumeDraft && regionKey) {
-        const countryName = plannerDisplayName(requestedCountryName || regionKey, regionKey)
-        setUnavailablePlanner(null)
-        setCheckingSharedPlanner(false)
-        setStarted({
-          region: customRegionFromUrl(regionKey, countryName),
+          region: customRegionFromUrl(legacyRegionKey, countryName),
           loadKnownPlaces: false,
           countryName,
-          source,
+          source: legacySource,
+          linkVersion: 2,
         })
         return
       }
-      if (region) {
-        setCountryInput(region.shortLabel)
-      } else if (regionKey) {
-        setCountryInput(regionKey)
+      if (legacyRegion && resumeDraft) {
+        setUnavailablePlanner(null)
+        setCheckingSharedPlanner(false)
+        setStarted({
+          region: legacyRegion,
+          loadKnownPlaces: true,
+          countryName: requestedCountryName || legacyRegion.shortLabel,
+          source: legacySource,
+          linkVersion: 2,
+        })
+        return
+      }
+      if (resumeDraft && legacyRegionKey) {
+        const countryName = plannerDisplayName(requestedCountryName || legacyRegionKey, legacyRegionKey)
+        setUnavailablePlanner(null)
+        setCheckingSharedPlanner(false)
+        setStarted({
+          region: customRegionFromUrl(legacyRegionKey, countryName),
+          loadKnownPlaces: false,
+          countryName,
+          source: legacySource,
+          linkVersion: 2,
+        })
+        return
+      }
+      if (legacyRegion) {
+        setCountryInput(legacyRegion.shortLabel)
+      } else if (legacyRegionKey) {
+        setCountryInput(legacyRegionKey)
       }
       setCheckingSharedPlanner(false)
 
@@ -672,7 +652,7 @@ export default function ToolsPlannerPage() {
     countryName = region.shortLabel,
     shouldLoadKnownPlaces = true,
     source: PlannerSource = 'map',
-    planner?: { id?: string; readToken?: string; editToken?: string },
+    planner?: { id?: string; readToken?: string; editToken?: string; linkVersion?: 1 | 2 },
     resetDraft = !planner,
   ) => {
     let shouldClearLocalDraft = resetDraft && !planner
@@ -699,6 +679,7 @@ export default function ToolsPlannerPage() {
       loadKnownPlaces: shouldLoadKnownPlaces,
       countryName,
       source,
+      linkVersion: planner?.linkVersion ?? 2,
       plannerId: planner?.id,
       readToken: planner?.id ? undefined : planner?.readToken,
       editToken: planner?.id ? planner.editToken : undefined,
@@ -718,6 +699,7 @@ export default function ToolsPlannerPage() {
       loadKnownPlaces: pending.shouldLoadKnownPlaces,
       countryName: pending.countryName,
       source: pending.source,
+      linkVersion: 2,
     })
   }
 
@@ -742,15 +724,6 @@ export default function ToolsPlannerPage() {
       alert('這個預覽連結已無法使用，已從最近行程移除。')
       return
     }
-    const region =
-      knownRegions.find((item) => item.key === planner.regionKey) ?? {
-        key: planner.regionKey,
-        label: planner.countryName,
-        shortLabel: planner.countryName,
-        center: GENERIC_CENTER,
-        places: [],
-        zoom: 7,
-      }
     const editorToken =
       planner.access === 'edit'
         ? localPlannerEditToken(plannerStorageKey(planner.regionKey, planner.source ?? 'map'), planner.id)
@@ -770,21 +743,39 @@ export default function ToolsPlannerPage() {
       return
     }
 
-    const countryName = plannerDisplayName(lookup.book.city, planner.regionKey)
-    const nextPlanner = { id: planner.id, readToken: planner.readToken, editToken: editorToken, countryName }
+    const linkVersion: 1 | 2 = lookup.book.linkVersion === 2 ? 2 : 1
+    const regionKey = linkVersion === 2 ? lookup.book.regionKey : planner.regionKey
+    if (!regionKey) return
+    const source = linkVersion === 2 ? lookup.book.source ?? 'map' : planner.source ?? 'map'
+    const region =
+      knownRegions.find((item) => item.key === regionKey) ?? {
+        key: regionKey,
+        label: planner.countryName,
+        shortLabel: planner.countryName,
+        center: GENERIC_CENTER,
+        places: [],
+        zoom: 7,
+      }
+    const countryName = plannerDisplayName(lookup.book.city, regionKey)
+    const nextPlanner = { id: planner.id, readToken: planner.readToken, editToken: editorToken, countryName, linkVersion }
     const params = new URLSearchParams()
-    params.set('region', region.key)
-    if (planner.source === 'pass') params.set('source', 'pass')
+    if (linkVersion === 1) {
+      params.set('region', region.key)
+      if (source === 'pass') params.set('source', 'pass')
+    }
     if (planner.access === 'preview') params.set('v', planner.readToken ?? '')
-    else params.set('p', planner.id)
+    else {
+      params.set('p', planner.id)
+      if (linkVersion === 2 && editorToken) params.set('e', editorToken)
+    }
     window.history.replaceState(null, '', `/tools/planner?${params.toString()}`)
     startPlanner(
       region,
       countryName,
       true,
-      planner.source ?? 'map',
+      source,
       planner.access === 'preview'
-        ? { readToken: planner.readToken }
+        ? { readToken: planner.readToken, linkVersion }
         : nextPlanner,
     )
   }
@@ -966,6 +957,7 @@ export default function ToolsPlannerPage() {
 
   if (started) {
     const { region, countryName, source } = started
+    const usesStoredRegion = started.linkVersion === 2
     const sourcePlaces = source === 'pass' && region.matchPlaces?.length ? region.matchPlaces : region.places
     const places = started.loadKnownPlaces ? sourcePlaces.map(toPlannerDisplayPlace) : []
     const config: Partial<PlannerConfig> = {
@@ -988,10 +980,9 @@ export default function ToolsPlannerPage() {
         href: 'https://www.instagram.com/reel/Dap0wcrBB6_/',
         event: 'plannerIG_workspace',
       },
-      shareSearchParams: { region: region.key, ...(source === 'pass' ? { source: 'pass' } : {}) },
+      shareSearchParams: usesStoredRegion ? {} : { region: region.key, ...(source === 'pass' ? { source: 'pass' } : {}) },
       initialSearchParams: {
-        region: region.key,
-        ...(source === 'pass' ? { source: 'pass' } : {}),
+        ...(!usesStoredRegion ? { region: region.key, ...(source === 'pass' ? { source: 'pass' } : {}) } : {}),
         ...(started.plannerId ? { p: started.plannerId } : started.readToken ? { v: started.readToken } : {}),
         ...(started.plannerId && started.editToken ? { e: started.editToken } : {}),
       },
@@ -1000,6 +991,8 @@ export default function ToolsPlannerPage() {
       recentSource: source,
       recentCountryName: countryName,
       plannerBookCityName: countryName,
+      plannerBookRegionKey: region.key,
+      plannerBookSource: source,
       mapZoom: region.zoom ?? 11,
       categoryLabels: semanticCategoryLabels,
       categoryItems: semanticCategories,

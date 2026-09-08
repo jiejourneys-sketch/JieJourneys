@@ -4,6 +4,8 @@ import { TOKYO_MAP_CENTER, tokyoMapPlaces } from '@/data/tokyo'
 
 const tokyoPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:tokyo-map-planner:v1',
+  plannerBookRegionKey: 'tokyo',
+  plannerBookSource: 'map',
   headerBackHref: '/tokyo/map',
   eventPrefix: 'tokyomapplanner',
   title: '東京景點排序',

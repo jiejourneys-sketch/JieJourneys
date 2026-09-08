@@ -5,6 +5,8 @@ import { FUJI_PASS_MAP_CENTER, fujiPassMapPlaces } from '@/data/fuji/pass-map/pl
 
 const fujiPassPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:fuji-pass-planner:v1',
+  plannerBookRegionKey: 'fuji',
+  plannerBookSource: 'pass',
   headerBackHref: '/fuji/pass-map',
   eventPrefix: 'fujipassplanner',
   title: '富士山周遊券景點排序',

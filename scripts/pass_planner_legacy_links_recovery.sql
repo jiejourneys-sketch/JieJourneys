@@ -3,6 +3,10 @@
 -- Restores pre-edit-token planner URLs (`?p=<id>`) as editor links to the
 -- same existing itinerary. No copy or duplicate row is created. Protected
 -- source templates remain excluded.
+--
+-- Historical recovery only: on a database using Planner link v2, apply
+-- supabase/migrations/20260908110000_planner_book_link_v2.sql afterwards;
+-- otherwise this script would also expose new v2 `p` identifiers.
 
 begin;
 

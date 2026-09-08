@@ -7,6 +7,8 @@ const kinmenPlaces: MapPlace[] = []
 
 const kinmenPlannerConfig: Partial<PlannerConfig> = {
   storageKey: 'jiejourneys:kinmen-map-planner:v1',
+  plannerBookRegionKey: 'kinmen',
+  plannerBookSource: 'map',
   headerBackHref: '/',
   eventPrefix: 'kinmenmapplanner',
   title: '金門景點排序',
