@@ -4377,10 +4377,7 @@
 }
 
 .saveUrlRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: stretch;
+  min-width: 0;
 }
 
 .saveUrl {
@@ -4416,10 +4413,21 @@
 }
 
 .saveLinkActions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.saveShareButton {
+  border-color: var(--cta);
+  background: var(--cta);
+  color: #ffffff;
+}
+
+.saveShareButton:hover {
+  border-color: var(--brand);
+  background: var(--brand);
 }
 
 .saveActions {
@@ -4562,16 +4570,7 @@
     font-size: 11.5px;
   }
 
-  .saveUrlRow {
-    grid-template-columns: 1fr;
-  }
-
-  .saveLinkActions {
-    justify-content: stretch;
-  }
-
   .saveCopyButton {
-    flex: 1 1 0;
     min-height: 42px;
   }
 }

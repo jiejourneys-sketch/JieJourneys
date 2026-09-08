@@ -13712,14 +13712,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 <p className={styles.saveHint}>可分享給信任的同行者共同編輯；拿到連結的人可修改此行程。</p>
                 <div className={styles.saveUrlRow}>
                   <div className={styles.saveUrl} title={saveSheetUrl}>{saveSheetUrl}</div>
-                  <div className={styles.saveLinkActions}>
-                    <button type="button" className={styles.saveCopyButton} onClick={copySavedLink}>
-                      {saveLinkCopied ? '已複製' : '複製'}
-                    </button>
-                    <button type="button" className={styles.saveCopyButton} onClick={shareSavedLink}>
-                      分享共同編輯
-                    </button>
-                  </div>
+                </div>
+                <div className={styles.saveLinkActions}>
+                  <button type="button" className={styles.saveCopyButton} onClick={copySavedLink}>
+                    {saveLinkCopied ? '已複製' : '複製'}
+                  </button>
+                  <button type="button" className={`${styles.saveCopyButton} ${styles.saveShareButton}`} onClick={shareSavedLink}>
+                    傳到手機／分享
+                  </button>
                 </div>
               </div>
               {saveSheetPreviewUrl ? (
@@ -13730,17 +13730,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   <p className={styles.saveHint}>朋友可先查看；想調整時按「複製成我的行程」，會建立自己的副本，不會改到你的原始行程。</p>
                   <div className={styles.saveUrlRow}>
                     <div className={styles.saveUrl} title={saveSheetPreviewUrl}>{saveSheetPreviewUrl}</div>
+                  </div>
+                  <div className={styles.saveLinkActions}>
                     <button type="button" className={styles.saveCopyButton} onClick={copyPreviewLink}>
                       {savePreviewCopied ? '已複製' : '複製'}
+                    </button>
+                    <button type="button" className={`${styles.saveCopyButton} ${styles.saveShareButton}`} onClick={sharePreviewLink}>
+                      傳到手機／分享
                     </button>
                   </div>
                 </div>
               ) : null}
-              <div className={styles.saveActions}>
-                <button type="button" className={styles.confirmPrimary} onClick={saveSheetPreviewUrl ? sharePreviewLink : shareSavedLink}>
-                  {saveSheetPreviewUrl ? '分享範本連結' : '分享連結'}
-                </button>
-              </div>
             </section>
           </div>
         ) : null}
