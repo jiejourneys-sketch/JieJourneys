@@ -316,10 +316,6 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const LEGACY_DIAMOND_BAY_RESERVATION_URL = 'https://diamondbay-tw.imweb.me/vbp-tw'
 const DIAMOND_BAY_RESERVATION_URL = 'https://diamondbay.co.kr/zh-TW/visit-busan-pass/'
-const BUSAN_METRO_MAP_LINK = {
-  label: '釜山地鐵圖（官方）',
-  href: 'https://www2.humetro.busan.kr/homepage/chs/page/subLocation.do?menu_no=10010101',
-}
 // v4 drops the old permanent "not found" result.  A short Google Maps link
 // often has a feature ID (`g/...`) rather than a reusable `ChIJ...` Place ID,
 // so an intermittent lookup failure must be retried instead of cached forever.
@@ -1816,9 +1812,6 @@ function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
           }))
           .filter((link) => link.label && link.href)
       : []
-    if (id === 'custom:busan-connectivity' && !links.some((link) => link.href === BUSAN_METRO_MAP_LINK.href)) {
-      links.push({ ...BUSAN_METRO_MAP_LINK })
-    }
     places[id] = {
       id,
       ...(sourcePlaceId ? { sourcePlaceId } : {}),

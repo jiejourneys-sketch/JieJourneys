@@ -365,7 +365,6 @@ export const busanJourneyCustomPlaces = {
       { label: 'Wifi 分享器', href: 'https://www.kkday.com/zh-tw/product/7452-unlimited-4g-pocket-wi-fi-rental-with-airports-and-seoul-pick-up-south-korea?cid=22312' },
       { label: 'WOWPASS', href: 'https://www.kkday.com/zh-tw/product/149562?cid=22312' },
       { label: 'T-money', href: 'https://www.kkday.com/zh-tw/product/132542-korea-4g-high-speed-esim?cid=22312' },
-      { label: '釜山地鐵圖（官方）', href: 'https://www2.humetro.busan.kr/homepage/chs/page/subLocation.do?menu_no=10010101' },
     ],
   },
   'custom:busan-transport-apps': {
