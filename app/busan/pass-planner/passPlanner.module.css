@@ -4288,11 +4288,12 @@
   position: fixed;
   inset: 0;
   z-index: 70;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   padding: 16px;
   background: rgba(15, 23, 42, 0.46);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .saveSheet {
@@ -4312,24 +4313,31 @@
 
 .saveClose {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 999px;
   background: #f1f5f9;
   color: #64748b;
-  font-size: 20px;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
+  touch-action: manipulation;
+}
+
+.saveClose:hover {
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .saveSheet h2 {
-  margin: 0 34px 8px 0;
+  margin: 0 52px 8px 0;
   color: var(--brand);
   font-size: 20px;
   line-height: 1.3;
@@ -4397,6 +4405,7 @@
 
 .saveCopyButton {
   min-width: 76px;
+  min-height: 44px;
   border: 1px solid rgba(31, 122, 140, 0.2);
   border-radius: 8px;
   background: #ffffff;
@@ -5141,17 +5150,19 @@
   }
 
   .saveBackdrop {
-    padding: 0;
+    padding:
+      max(16px, env(safe-area-inset-top, 0px))
+      max(16px, env(safe-area-inset-right, 0px))
+      max(16px, env(safe-area-inset-bottom, 0px))
+      max(16px, env(safe-area-inset-left, 0px));
   }
 
   .saveSheet {
-    width: 100%;
-    max-height: calc(100dvh - env(safe-area-inset-top, 0px));
-    border-right: none;
-    border-bottom: none;
-    border-left: none;
-    border-radius: 18px 18px 0 0;
-    padding: 24px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+    width: min(480px, 100%);
+    max-height: calc(100dvh - 32px);
+    border: 2px solid rgba(31, 122, 140, 0.24);
+    border-radius: 16px;
+    padding: 22px 20px;
   }
 
   /* iOS Safari/WebView may zoom the whole page when a text control is below 16px. */

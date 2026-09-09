@@ -12080,10 +12080,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const existingTarget = sharedCopyPrompt?.existingTarget
     if (!existingTarget) return
     const url = new URL(window.location.pathname, window.location.origin)
+    if (plannerBookLinkVersion === 1) {
+      Object.entries(config.shareSearchParams ?? {}).forEach(([key, value]) => {
+        if (value) url.searchParams.set(key, value)
+      })
+    }
     url.searchParams.set(PLANNER_BOOK_PARAM, existingTarget.id)
-    url.searchParams.set(PLANNER_BOOK_EDIT_PARAM, existingTarget.editToken)
+    if (plannerBookLinkVersion === 2) {
+      url.searchParams.set(PLANNER_BOOK_EDIT_PARAM, existingTarget.editToken)
+    }
     window.location.assign(`${url.pathname}${url.search}`)
-  }, [sharedCopyPrompt])
+  }, [config.shareSearchParams, plannerBookLinkVersion, sharedCopyPrompt])
 
   const handleShare = useCallback(() => {
     if (readOnlyPlan) return
