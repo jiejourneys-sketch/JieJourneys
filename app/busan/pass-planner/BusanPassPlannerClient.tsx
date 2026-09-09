@@ -6937,6 +6937,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const plannerCloudLastSaveRef = useRef<{ bookId: string; signature: string; savedAt: number } | null>(null)
   const plannerCloudSaveTimerRef = useRef<number | null>(null)
   const plannerCloudSaveRequestRef = useRef(0)
+  // Loading a shared book can enrich custom-place metadata in the background.
+  // Do not let that read-time work modify the owner's itinerary; autosave starts
+  // only after this visitor makes a content change.
+  const plannerCloudUserEditedRef = useRef(false)
   const pdfDownloading = pdfDownloadStatus !== 'idle'
   const dayViewStorageKey = `${config.storageKey}:day-view:${plannerBookId ?? 'draft'}`
   const preDepartureStorageKey = `${config.storageKey}:pre-departure:${plannerBookId ?? 'draft'}`
@@ -6946,6 +6950,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     config.initialSearchParams?.[PLANNER_PREVIEW_PARAM] ??
     ''
   const mobilePanelOpen = mobilePanelState !== 'collapsed'
+  const markPlannerCloudUserEdit = useCallback(() => {
+    plannerCloudUserEditedRef.current = true
+  }, [])
   useLayoutEffect(() => {
     customPlacesRef.current = customPlaces
   }, [customPlaces])
@@ -8228,6 +8235,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             }
             const hasOrderedPlaces = plannerBook.items.some((item) => Boolean(planItemPlaceId(item)))
             const hasCustomPlaces = Boolean(plannerBook.customPlaces && Object.keys(plannerBook.customPlaces).length > 0)
+            plannerCloudUserEditedRef.current = false
             setPlannerLinkUnavailable(false)
             setPlannerBookId(plannerBook.id)
             setPlannerBookReadToken(plannerBook.readToken)
@@ -8580,6 +8588,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
     if (lastSave.signature === plannerCloudSaveSignature) {
+      setPlannerCloudSaveStatus('saved')
+      return
+    }
+    if (!plannerCloudUserEditedRef.current) {
+      // Keep the locally enriched snapshot as the comparison baseline.  This
+      // makes opening an editable link read-only from the owner's perspective.
+      plannerCloudLastSaveRef.current = {
+        ...lastSave,
+        signature: plannerCloudSaveSignature,
+      }
       setPlannerCloudSaveStatus('saved')
       return
     }
@@ -9560,6 +9578,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addPlaceToPlan = (place: MapPlace, dayNumber: number | 'end' = 'end', initialNote = '') => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     const itemId = canRepeatPlanPlace(place) ? createVisitItem(place.id) : place.id
     setPlanItems((ids) => {
       if (!canRepeatPlanPlace(place) && ids.some((item) => planItemPlaceId(item) === place.id)) return ids
@@ -9605,6 +9624,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const removePlace = (itemId: string) => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     setPlanItems((ids) => {
       const placeId = planItemPlaceId(itemId) ?? itemId
       const place = placeById.get(placeId)
@@ -9625,6 +9645,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const deleteCustomPlace = (placeId: string) => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     cancelHotelAffiliateLookupForCustomPlace(placeId)
     setPlanItems((ids) => ids.filter((item) => planItemPlaceId(item) !== placeId))
     if (isCustomPlaceId(placeId)) {
@@ -9671,6 +9692,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addTransportAfter = (itemId: PlannerItem | null) => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     const transportItem = createTransportItem()
     setMode('order')
     setMobilePanelState(isMobilePlannerViewport() ? 'full' : 'half')
@@ -9712,6 +9734,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const updateTransportItem = (itemId: PlannerItem, info: TransportInfo) => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     const nextItem = serializeTransportItem(info)
     setPlanItems((items) => items.map((item) => (item === itemId ? nextItem : item)))
     setExpandedPlanItem(null)
@@ -9730,6 +9753,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const removeTransport = (itemId: string) => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     setPlanItems((items) => items.filter((item) => item !== itemId))
   }
 
@@ -9748,6 +9772,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
   const addDayDivider = () => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     const dividerId = createDayItem()
     pendingDayDividerScrollRef.current = dividerId
     setMode('order')
@@ -9783,11 +9808,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const removeDayDivider = (itemId: string) => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     setPlanItems((items) => items.filter((item) => item !== itemId))
   }
 
   const updateDayDividerTitle = (itemId: string, title: string) => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     const nextItem = updateDayItemTitle(itemId, title)
     setPlanItems((items) => items.map((item) => (item === itemId ? nextItem : item)))
     setSelectedPlanItem((item) => (item === itemId ? nextItem : item))
@@ -9798,6 +9825,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const trimmedNote = note.slice(0, 500)
     const uniqueKeys = Array.from(new Set(keys.filter(Boolean)))
     if (uniqueKeys.length === 0) return
+    markPlannerCloudUserEdit()
     setPlaceNotes((notes) => {
       const nextNotes = { ...notes }
       uniqueKeys.forEach((key) => {
@@ -9893,6 +9921,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const label = link.label.trim().slice(0, 40)
     const href = normalizePlannerAffiliateHref(link.href).slice(0, 500)
     if (!label || !href) return
+    markPlannerCloudUserEdit()
     const isPrimaryGoogleMap = link.isPrimaryGoogleMap === true && isGoogleMapHref(href)
     const provider = hotelAffiliateProviderForLink({ label, href })
     if (provider) cancelHotelAffiliateLookupForCustomPlace(placeId, provider)
@@ -9914,6 +9943,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const removePlaceUserLink = (placeId: string, index: number) => {
     if (readOnlyPlan) return
+    markPlannerCloudUserEdit()
     setPlaceUserLinks((links) => {
       const nextLinks = (links[placeId] ?? []).filter((_, linkIndex) => linkIndex !== index)
       if (nextLinks.length === 0) {
@@ -9930,6 +9960,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const label = labelValue.trim().slice(0, 40)
     const href = normalizePlannerAffiliateHref(hrefValue).slice(0, 500)
     if (!label || !href) return
+    markPlannerCloudUserEdit()
     const provider = hotelAffiliateProviderForLink({ label, href })
     if (provider) cancelHotelAffiliateLookupForCustomPlace(placeId, provider)
     const nextPrimary = { label, href }
@@ -10875,6 +10906,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     (placeId: string) => {
       const place = customPlaces[placeId]
       if (!place || readOnlyPlan) return
+      markPlannerCloudUserEdit()
       const manualPlace: CustomPlannerPlace = { ...place, hotelAffiliateManual: true }
       hotelAffiliateForceRefreshRef.current.add(placeId)
       setCustomPlaces((current) => ({ ...current, [placeId]: manualPlace }))
@@ -10887,6 +10919,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [
       cancelHotelAffiliateLookupForCustomPlace,
       customPlaces,
+      markPlannerCloudUserEdit,
       readOnlyPlan,
       resolveGooglePlaceDetailsForCustomPlace,
     ],
@@ -11422,6 +11455,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setCustomPlaceSaveError('location')
       return
     }
+    markPlannerCloudUserEdit()
     const linkLabel = customDraft.linkLabel.trim()
     const linkUrl = customDraft.linkUrl.trim()
     const cleanGoogleUrl = googleMapsUrlFromInput(customDraft.googleUrl)
@@ -11565,6 +11599,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan) return
     const { active, over } = event
     if (!over || active.id === over.id) return
+    markPlannerCloudUserEdit()
     setPlanItems((items) => {
       const oldIndex = items.indexOf(String(active.id))
       const newIndex = items.indexOf(String(over.id))
@@ -13383,6 +13418,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             onActiveTargetChange={setPreDepartureActiveTargetId}
             onToggle={(targetId, itemId) => {
               if (readOnlyPlan) return
+              markPlannerCloudUserEdit()
               setPreDepartureChecked((current) => {
                 const targetItems = { ...(current[targetId] ?? {}) }
                 if (targetItems[itemId]) delete targetItems[itemId]
@@ -13394,6 +13430,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               })
             }}
             onNoteChange={(id, note) => {
+              markPlannerCloudUserEdit()
               setPreDepartureNotes((items) => {
                 const next = { ...items }
                 const cleanNote = note.slice(0, 500)
@@ -13406,6 +13443,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               const cleanUrl = cleanPreDepartureGeneralLinkUrl(normalizePlannerAffiliateHref(url))
               const cleanLabel = label.trim().slice(0, 40) || preDepartureGeneralLinkLabel(cleanUrl)
               if (!cleanLabel || !cleanUrl) return
+              markPlannerCloudUserEdit()
               setPreDepartureGeneralLinks((links) => [
                 ...links,
                 {
@@ -13416,9 +13454,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               ].slice(0, MAX_PRE_DEPARTURE_GENERAL_LINKS))
             }}
             onRemoveGeneralLink={(id) => {
+              markPlannerCloudUserEdit()
               setPreDepartureGeneralLinks((links) => links.filter((link) => link.id !== id))
             }}
             onAdd={(categoryId, label) => {
+              markPlannerCloudUserEdit()
               setPreDepartureCustomItems((items) => [
                 ...items,
                 {
@@ -13433,6 +13473,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             onRemove={(id) => {
               const item = preDepartureAllCategories.flatMap((category) => category.items).find((entry) => entry.id === id)
               if (!item) return
+              markPlannerCloudUserEdit()
               if (item.custom) {
                 setPreDepartureCustomItems((items) => items.filter((entry) => entry.id !== id))
               } else {
@@ -13452,19 +13493,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               })
             }}
             onHideCategory={(categoryId) => {
+              markPlannerCloudUserEdit()
               setPreDepartureHiddenCategoryIds((items) => ({ ...items, [categoryId]: true }))
             }}
             onAddTraveler={(name) => {
+              markPlannerCloudUserEdit()
               const id = `traveler-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
               setPreDepartureTravelers((travelers) => [...travelers, { id, name: name.slice(0, 16) }])
               setPreDepartureActiveTargetId(id)
             }}
             onRenameTraveler={(id, name) => {
+              markPlannerCloudUserEdit()
               setPreDepartureTravelers((travelers) => travelers.map((traveler) => (
                 traveler.id === id ? { ...traveler, name: name.slice(0, 16) } : traveler
               )))
             }}
             onRemoveTraveler={(id) => {
+              markPlannerCloudUserEdit()
               setPreDepartureTravelers((travelers) => travelers.filter((traveler) => traveler.id !== id))
               setPreDepartureChecked((checked) => {
                 if (!checked[id]) return checked
