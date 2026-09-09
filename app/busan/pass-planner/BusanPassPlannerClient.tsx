@@ -13674,9 +13674,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 </>
               ) : plannerNotice === 'copy-complete' ? (
                 <>
-                  <h2 id="planner-notice-title">已建立你的專屬行程</h2>
-                  <p>現在開始調整景點、備註、交通和照片，都不會影響原始模板或其他人的版本。</p>
-                  <p className={styles.confirmNotice}>這份行程已自動存到這台裝置；請保留自己的私密編輯連結。</p>
+                  <h2 id="planner-notice-title">已建立自己的行程</h2>
+                  <p>現在可以自行修改。</p>
                   <div className={styles.confirmActions}>
                     <button type="button" className={styles.confirmPrimary} onClick={() => setPlannerNotice(null)}>
                       開始編輯
@@ -13709,9 +13708,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             >
               {sharedCopyPrompt.existingTarget?.kind === 'original' ? (
                 <>
-                  <h2 id="shared-copy-title">這是你建立的行程預覽</h2>
-                  <p>你已經能編輯原始行程；直接回原始行程修改，就不會多建立一份副本。</p>
-                  <p className={styles.confirmNotice}>只有想保留另一個獨立版本時，才建立副本。</p>
+                  <h2 id="shared-copy-title">這是你的原始行程</h2>
+                  <p>直接編輯即可，不必再複製。</p>
                   <div className={styles.confirmActions}>
                     <button type="button" className={styles.confirmSecondary} onClick={() => setSharedCopyPrompt(null)}>
                       取消
@@ -13725,18 +13723,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       }}
                       disabled={shareSaving}
                     >
-                      仍要建立獨立副本
+                      仍要複製
                     </button>
                     <button type="button" className={styles.confirmPrimary} onClick={openSharedEditTarget}>
-                      編輯我的原始行程
+                      編輯原行程
                     </button>
                   </div>
                 </>
               ) : sharedCopyPrompt.existingTarget ? (
                 <>
-                  <h2 id="shared-copy-title">這台裝置已有你的副本</h2>
-                  <p>繼續編輯既有副本即可，不會再建立一份重複的雲端行程。</p>
-                  <p className={styles.confirmNotice}>只有在你想保留兩份獨立版本時，才選擇再建立一份。</p>
+                  <h2 id="shared-copy-title">你已有自己的行程</h2>
+                  <p>直接編輯即可，不必再建立一份。</p>
                   <div className={styles.confirmActions}>
                     <button type="button" className={styles.confirmSecondary} onClick={() => setSharedCopyPrompt(null)}>
                       取消
@@ -13750,20 +13747,20 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       }}
                       disabled={shareSaving}
                     >
-                      仍要建立另一份
+                      仍要複製
                     </button>
                     <button type="button" className={styles.confirmPrimary} onClick={openSharedEditTarget}>
-                      繼續編輯既有副本
+                      編輯我的行程
                     </button>
                   </div>
                 </>
               ) : (
                 <>
-                  <h2 id="shared-copy-title">建立你的專屬副本？</h2>
-                  <p>副本會獨立儲存在雲端；之後調整景點、備註、交通或照片，都不會影響原行程。</p>
+                  <h2 id="shared-copy-title">複製成自己的行程？</h2>
+                  <p>複製後可自行修改，不會影響原行程。</p>
                   <div className={styles.confirmActions}>
                     <button type="button" className={styles.confirmSecondary} onClick={() => setSharedCopyPrompt(null)}>
-                      先查看
+                      取消
                     </button>
                     <button
                       type="button"
@@ -13774,7 +13771,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       }}
                       disabled={shareSaving}
                     >
-                      建立我的副本
+                      複製行程
                     </button>
                   </div>
                 </>
@@ -13912,20 +13909,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               >
                 ×
               </button>
-              <h2 id="save-plan-title">行程與清單已儲存</h2>
-              <p>景點與行前清單都已同步雲端；用同一個編輯連結即可跨裝置更新。</p>
-              {inAppBrowser ? (
-                <p className={styles.saveHint}>
-                  建議複製到 {preferredBrowserName()} 開啟，或傳到 LINE / 備忘錄保存。
-                </p>
-              ) : (
-                <p className={styles.saveHint}>電腦排完也可以傳到手機，出發時直接打開。</p>
-              )}
+              <h2 id="save-plan-title">行程已儲存</h2>
               <div className={styles.saveLinkGroup}>
                 <div className={styles.saveLinkHeader}>
-                  <span>共同編輯連結（可修改）</span>
+                  <span>一起編輯這份行程</span>
                 </div>
-                <p className={styles.saveHint}>可分享給信任的同行者共同編輯；拿到連結的人可修改此行程。</p>
+                <p className={styles.saveHint}>自己或同行者可直接修改原始行程。</p>
                 <div className={styles.saveUrlRow}>
                   <div className={styles.saveUrl} title={saveSheetUrl}>{saveSheetUrl}</div>
                 </div>
@@ -13941,9 +13930,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               {saveSheetPreviewUrl ? (
                 <div className={styles.saveLinkGroup}>
                   <div className={styles.saveLinkHeader}>
-                    <span>可分享範本連結</span>
+                    <span>分享給朋友查看</span>
                   </div>
-                  <p className={styles.saveHint}>朋友可先查看；想調整時按「複製成我的行程」，會建立自己的副本，不會改到你的原始行程。</p>
+                  <p className={styles.saveHint}>朋友可查看，也可複製一份自行修改。</p>
                   <div className={styles.saveUrlRow}>
                     <div className={styles.saveUrl} title={saveSheetPreviewUrl}>{saveSheetPreviewUrl}</div>
                   </div>
