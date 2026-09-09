@@ -1888,7 +1888,10 @@ function parseGoogleMapsUrl(value: string) {
 
 function extractGoogleMapsUrlFromText(value: string) {
   const trimmed = value.trim()
-  const match = trimmed.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.[^\s/]+|(?:www\.)?google\.[^\s/]+\/maps)[^\s<>"']*/i)
+  // Apostrophes are valid in a Maps place path (for example, `L'Osteria` or
+  // `dell'Arco`). Treating them as a text boundary silently saved a truncated
+  // link after a short Maps URL had been expanded.
+  const match = trimmed.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.[^\s/]+|(?:www\.)?google\.[^\s/]+\/maps)[^\s<>"]*/i)
   return (match?.[0] ?? trimmed).replace(/[)\].,，。]+$/g, '')
 }
 
