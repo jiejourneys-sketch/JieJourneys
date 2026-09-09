@@ -133,6 +133,11 @@ type PreDepartureUndoAction = { type: 'item' | 'category'; id: string; label: st
 type PreDepartureTransferStatus = 'idle' | 'copied' | 'imported' | 'failed'
 type PreDepartureCloudStatus = 'local' | 'saving' | 'saved' | 'error'
 type PlannerCloudSaveStatus = 'local' | 'saving' | 'saved' | 'error'
+type SharedPlannerEditTarget = {
+  id: string
+  editToken: string
+  kind: 'original' | 'copy'
+}
 const PRE_DEPARTURE_OWNER: PreDepartureTraveler = { id: 'traveler-owner', name: '我' }
 const MAX_PRE_DEPARTURE_GENERAL_LINKS = 20
 type HotelAffiliateProvider = 'Agoda' | 'Trip'
@@ -3150,6 +3155,19 @@ function isPlannerBookEditToken(value: unknown): value is string {
 
 function plannerBookEditTokenStorageKey(storageKey: string, bookId: string) {
   return `${storageKey}:${PLANNER_BOOK_EDIT_KEY}:${bookId}`
+}
+
+function sharedPlannerCopyStorageKey(storageKey: string, readToken: string) {
+  return `${storageKey}:shared-copy:v1:${readToken}`
+}
+
+function cleanSharedPlannerEditTarget(value: unknown): SharedPlannerEditTarget | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const { id, editToken, kind } = value as Record<string, unknown>
+  const cleanId = typeof id === 'string' ? id.trim() : ''
+  return /^[A-Za-z0-9_-]{7,32}$/.test(cleanId) && isPlannerBookEditToken(editToken)
+    ? { id: cleanId, editToken, kind: kind === 'original' ? 'original' : 'copy' }
+    : null
 }
 
 function legacyPlannerImageOwnerToken(search: string, storageKey: string, bookId: string) {
@@ -6886,6 +6904,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [mobilePanelDragHeight, setMobilePanelDragHeight] = useState<number | null>(null)
   const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
   const [plannerNotice, setPlannerNotice] = useState<'save-before-photo' | 'copy-complete' | 'copy-failed' | null>(null)
+  const [sharedCopyPrompt, setSharedCopyPrompt] = useState<{ existingTarget: SharedPlannerEditTarget | null } | null>(null)
   const [pendingAddPlace, setPendingAddPlace] = useState<MapPlace | null>(null)
   const [pendingAddPlaceNote, setPendingAddPlaceNote] = useState('')
   const [pendingDelete, setPendingDelete] = useState<
@@ -8247,6 +8266,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerBookEditToken(activeEditorToken)
             if (plannerBook.id && activeEditorToken) {
               window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, plannerBook.id), activeEditorToken)
+              if (plannerBook.readToken) {
+                try {
+                  window.localStorage.setItem(
+                    sharedPlannerCopyStorageKey(config.storageKey, plannerBook.readToken),
+                    JSON.stringify({ id: plannerBook.id, editToken: activeEditorToken, kind: 'original' }),
+                  )
+                } catch {
+                  // Browser storage only improves preview-to-editor routing.
+                }
+              }
               if (plannerBook.linkVersion !== 2 && (urlEditorToken || initialParams.get(LEGACY_PLANNER_IMAGE_OWNER_PARAM))) {
                 const cleanUrl = new URL(window.location.href)
                 cleanUrl.searchParams.delete(PLANNER_BOOK_EDIT_PARAM)
@@ -11749,6 +11778,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           if (savedEditorToken) {
             window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, book.id), savedEditorToken)
           }
+          if (savedReadToken && savedEditorToken) {
+            try {
+              window.localStorage.setItem(
+                sharedPlannerCopyStorageKey(config.storageKey, savedReadToken),
+                JSON.stringify({ id: book.id, editToken: savedEditorToken, kind: 'original' }),
+              )
+            } catch {
+              // Browser storage only improves preview-to-editor routing.
+            }
+          }
           if (savedReadToken) window.localStorage.setItem(`${config.storageKey}:book-read-token`, savedReadToken)
           window.localStorage.setItem(`${config.storageKey}:book-updated-at`, updatedAt)
           if (config.recentListKey && config.recentRegionKey) {
@@ -11904,6 +11943,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const updatedAt = new Date().toISOString()
         const readToken = book.readToken ?? null
         const editorToken = book.editToken ?? null
+        if (plannerBookReadToken && editorToken) {
+          try {
+            window.localStorage.setItem(
+              sharedPlannerCopyStorageKey(config.storageKey, plannerBookReadToken),
+              JSON.stringify({ id: book.id, editToken: editorToken, kind: 'copy' }),
+            )
+          } catch {
+            // The copy still succeeds when browser storage is unavailable.
+          }
+        }
         setPlannerBookId(book.id)
         setPlannerBookReadToken(readToken)
         setPlannerBookEditToken(editorToken)
@@ -11998,6 +12047,43 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     validPlanIds,
     validPlanItems,
   ])
+
+  const requestForkSharedPlan = useCallback(() => {
+    if (!readOnlyPlan || shareSaving || !hasSavablePlannerContent) return
+    let existingTarget: SharedPlannerEditTarget | null = null
+    if (plannerBookReadToken) {
+      try {
+        const raw = window.localStorage.getItem(sharedPlannerCopyStorageKey(config.storageKey, plannerBookReadToken))
+        existingTarget = cleanSharedPlannerEditTarget(raw ? JSON.parse(raw) : null)
+        if (!existingTarget) {
+          const savedReadToken = window.localStorage.getItem(`${config.storageKey}:book-read-token`)
+          const savedBookId = window.localStorage.getItem(`${config.storageKey}:book-id`)?.trim() ?? ''
+          const savedEditToken = savedBookId
+            ? window.localStorage.getItem(plannerBookEditTokenStorageKey(config.storageKey, savedBookId))
+            : null
+          if (
+            savedReadToken === plannerBookReadToken &&
+            /^[A-Za-z0-9_-]{7,32}$/.test(savedBookId) &&
+            isPlannerBookEditToken(savedEditToken)
+          ) {
+            existingTarget = { id: savedBookId, editToken: savedEditToken, kind: 'original' }
+          }
+        }
+      } catch {
+        // A blocked or malformed local entry must not prevent a deliberate copy.
+      }
+    }
+    setSharedCopyPrompt({ existingTarget })
+  }, [config.storageKey, hasSavablePlannerContent, plannerBookReadToken, readOnlyPlan, shareSaving])
+
+  const openSharedEditTarget = useCallback(() => {
+    const existingTarget = sharedCopyPrompt?.existingTarget
+    if (!existingTarget) return
+    const url = new URL(window.location.pathname, window.location.origin)
+    url.searchParams.set(PLANNER_BOOK_PARAM, existingTarget.id)
+    url.searchParams.set(PLANNER_BOOK_EDIT_PARAM, existingTarget.editToken)
+    window.location.assign(`${url.pathname}${url.search}`)
+  }, [sharedCopyPrompt])
 
   const handleShare = useCallback(() => {
     if (readOnlyPlan) return
@@ -12463,7 +12549,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               </a>
             ) : null}
             {readOnlyPlan ? (
-              <button className={styles.shareAction} type="button" onClick={forkSharedPlan} disabled={shareSaving || !hasSavablePlannerContent}>
+              <button className={styles.shareAction} type="button" onClick={requestForkSharedPlan} disabled={shareSaving || !hasSavablePlannerContent}>
                 {shareSaving ? '建立副本中...' : '複製成我的行程'}
               </button>
             ) : (
@@ -13604,6 +13690,91 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   <div className={styles.confirmActions}>
                     <button type="button" className={styles.confirmPrimary} onClick={() => setPlannerNotice(null)}>
                       知道了
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
+          </div>
+        ) : null}
+
+        {sharedCopyPrompt ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={() => setSharedCopyPrompt(null)}>
+            <section
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="shared-copy-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {sharedCopyPrompt.existingTarget?.kind === 'original' ? (
+                <>
+                  <h2 id="shared-copy-title">這是你建立的行程預覽</h2>
+                  <p>你已經能編輯原始行程；直接回原始行程修改，就不會多建立一份副本。</p>
+                  <p className={styles.confirmNotice}>只有想保留另一個獨立版本時，才建立副本。</p>
+                  <div className={styles.confirmActions}>
+                    <button type="button" className={styles.confirmSecondary} onClick={() => setSharedCopyPrompt(null)}>
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.confirmSecondary}
+                      onClick={() => {
+                        setSharedCopyPrompt(null)
+                        forkSharedPlan()
+                      }}
+                      disabled={shareSaving}
+                    >
+                      仍要建立獨立副本
+                    </button>
+                    <button type="button" className={styles.confirmPrimary} onClick={openSharedEditTarget}>
+                      編輯我的原始行程
+                    </button>
+                  </div>
+                </>
+              ) : sharedCopyPrompt.existingTarget ? (
+                <>
+                  <h2 id="shared-copy-title">這台裝置已有你的副本</h2>
+                  <p>繼續編輯既有副本即可，不會再建立一份重複的雲端行程。</p>
+                  <p className={styles.confirmNotice}>只有在你想保留兩份獨立版本時，才選擇再建立一份。</p>
+                  <div className={styles.confirmActions}>
+                    <button type="button" className={styles.confirmSecondary} onClick={() => setSharedCopyPrompt(null)}>
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.confirmSecondary}
+                      onClick={() => {
+                        setSharedCopyPrompt(null)
+                        forkSharedPlan()
+                      }}
+                      disabled={shareSaving}
+                    >
+                      仍要建立另一份
+                    </button>
+                    <button type="button" className={styles.confirmPrimary} onClick={openSharedEditTarget}>
+                      繼續編輯既有副本
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 id="shared-copy-title">建立你的專屬副本？</h2>
+                  <p>副本會獨立儲存在雲端；之後調整景點、備註、交通或照片，都不會影響原行程。</p>
+                  <div className={styles.confirmActions}>
+                    <button type="button" className={styles.confirmSecondary} onClick={() => setSharedCopyPrompt(null)}>
+                      先查看
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.confirmPrimary}
+                      onClick={() => {
+                        setSharedCopyPrompt(null)
+                        forkSharedPlan()
+                      }}
+                      disabled={shareSaving}
+                    >
+                      建立我的副本
                     </button>
                   </div>
                 </>
