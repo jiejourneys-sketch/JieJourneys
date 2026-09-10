@@ -1356,6 +1356,29 @@
   border-radius: 16px;
 }
 
+.orderControlBarBatchSelecting {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.batchSelectionClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 86px;
+  min-height: 40px;
+  border: 1px solid rgba(31, 122, 140, 0.24);
+  border-radius: 12px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: var(--cta);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
 .orderTools {
   position: absolute;
   top: calc(100% + 8px);
@@ -1487,10 +1510,12 @@
 
 .dayMenuItem,
 .dayMenuItemActive {
+  display: block;
+  width: 100%;
   min-height: 32px;
   border: 1px solid rgba(31, 122, 140, 0.16);
   border-radius: 9px;
-  padding: 6px 10px;
+  padding: 6px 40px 6px 10px;
   background: #ffffff;
   color: var(--cta);
   font-family: inherit;
@@ -1505,6 +1530,43 @@
   border-color: var(--cta);
   background: #eaf7f9;
   color: var(--brand);
+}
+
+.dayMenuSortableItem {
+  position: relative;
+  min-height: 32px;
+}
+
+.dayMenuSortableItemDragging {
+  opacity: 0.55;
+}
+
+.dayMenuDragHandle {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--brand);
+  font-size: 13px;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dayMenuDragHandle:hover {
+  background: rgba(31, 122, 140, 0.12);
+}
+
+.dayMenuDragHandle:active {
+  cursor: grabbing;
 }
 
 .planItem {
@@ -1533,6 +1595,59 @@
   user-select: none;
 }
 
+.planItemBatchDragging {
+  opacity: 0.48;
+  pointer-events: none;
+  user-select: none;
+}
+
+.batchDragOverlay {
+  display: grid;
+  width: min(300px, calc(100vw - 48px));
+  gap: 6px;
+  pointer-events: none;
+}
+
+.batchDragOverlayCard {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  gap: 9px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--planner-category-color, var(--cta)) 48%, #ffffff);
+  border-left: 5px solid var(--planner-category-color, var(--cta));
+  border-radius: 11px;
+  padding: 8px 12px 8px 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(13, 50, 60, 0.18);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.batchDragOverlayGrip {
+  flex: 0 0 auto;
+  color: var(--planner-category-color, var(--cta));
+  font-size: 16px;
+}
+
+.batchDragOverlayCard > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batchDragOverlayCount {
+  justify-self: end;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--cta);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .planCardCollapsed {
   grid-template-areas: "drag main";
   grid-template-columns: 38px minmax(0, 1fr);
@@ -1544,6 +1659,64 @@
 .planCardCollapsed .planMain {
   min-height: 48px;
   padding: 4px 0;
+}
+
+.planCardBatchSelected {
+  border-color: var(--planner-category-color, var(--cta));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--planner-category-color, var(--cta)) 26%, transparent);
+}
+
+.batchSelectionToggle {
+  display: none;
+  grid-area: remove;
+  position: relative;
+  z-index: 2;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: 38px;
+  margin: 0;
+  border: none;
+  border-left: 1px solid rgba(31, 122, 140, 0.12);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--planner-category-color, var(--cta)) 10%, #ffffff);
+  color: var(--planner-category-color, var(--cta));
+  font-family: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.planCardBatchSelecting .batchSelectionToggle {
+  display: inline-flex;
+}
+
+.planCardCollapsed.planCardBatchSelecting {
+  grid-template-areas: "drag main remove";
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  padding-right: 7px;
+}
+
+.planCardBatchSelected .batchSelectionToggle {
+  background: color-mix(in srgb, var(--planner-category-color, var(--cta)) 18%, #ffffff);
+}
+
+.batchSelectionToggle span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid currentColor;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.planCardBatchSelected .batchSelectionToggle span {
+  background: var(--planner-category-color, var(--cta));
 }
 
 .dayDivider {
@@ -4904,7 +5077,7 @@
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
 
-  .orderTools button {
+.orderTools button {
     min-height: 30px;
     padding: 5px 9px;
     font-size: 11px;
@@ -4914,6 +5087,17 @@
     gap: 7px;
     touch-action: pan-x;
     overscroll-behavior: contain;
+  }
+
+  .orderControlBarBatchSelecting {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .batchSelectionClose {
+    min-width: 76px;
+    min-height: 36px;
+    padding: 0 8px;
+    font-size: 12px;
   }
 
   .dayViewControl {
@@ -5001,6 +5185,16 @@
     grid-template-rows: auto;
     min-height: 54px;
     padding-right: 10px;
+  }
+
+  .planCardCollapsed.planCardBatchSelecting {
+    grid-template-areas: "drag main remove";
+    grid-template-columns: 48px minmax(0, 1fr) 42px;
+    padding-right: 8px;
+  }
+
+  .batchSelectionToggle {
+    width: 42px;
   }
 
   .planCardCollapsed .planMain {

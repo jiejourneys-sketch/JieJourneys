@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { NextRequest } from 'next/server'
+import { POST as postAffiliateLink } from '../app/api/pass-planner/book/affiliate-link/route'
 import { POST as postAgodaAffiliate } from '../app/api/pass-planner/hotel-affiliate/agoda/route'
 import { POST as postTripAffiliate } from '../app/api/pass-planner/hotel-affiliate/trip/route'
 
@@ -25,7 +26,84 @@ function affiliateRequest(path: string) {
   })
 }
 
-test('Agoda stays local while Trip searches the Maps English name first', async () => {
+test('a matched hotel link uses the narrow planner merge RPC and rejects other domains', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSupabaseUrl = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
+  const previousSupabaseKey = process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY
+  const requests: Request[] = []
+  process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL = 'https://planner-affiliate-test.supabase.co'
+  process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY = 'planner-affiliate-test-key'
+  globalThis.fetch = (async (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init)
+    requests.push(request)
+    return new Response(JSON.stringify({
+      id: 'bookId12',
+      read_token: 'abcdefghijklmnopqrstuv',
+      updated_at: '2026-09-10T12:00:00.000Z',
+      changed: true,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const response = await postAffiliateLink(new NextRequest(
+      'http://localhost/api/pass-planner/book/affiliate-link',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: 'bookId12',
+          edit_token: 'abcdefghijklmnopqrstuv',
+          place_id: 'custom:hotel-1',
+          provider: 'Agoda',
+          href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=665695',
+        }),
+      },
+    ))
+    const result = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(result).toEqual({
+      id: 'bookId12',
+      read_token: 'abcdefghijklmnopqrstuv',
+      updated_at: '2026-09-10T12:00:00.000Z',
+      changed: true,
+    })
+    expect(requests).toHaveLength(1)
+    expect(requests[0].url).toBe('https://planner-affiliate-test.supabase.co/rest/v1/rpc/planner_book_add_affiliate_link')
+    expect(await requests[0].json()).toEqual({
+      p_id: 'bookId12',
+      p_edit_token: 'abcdefghijklmnopqrstuv',
+      p_place_id: 'custom:hotel-1',
+      p_provider: 'Agoda',
+      p_href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=665695',
+    })
+
+    const rejected = await postAffiliateLink(new NextRequest(
+      'http://localhost/api/pass-planner/book/affiliate-link',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          id: 'bookId12',
+          edit_token: 'abcdefghijklmnopqrstuv',
+          place_id: 'custom:hotel-1',
+          provider: 'Agoda',
+          href: 'https://www.agoda.com.example.invalid/hotel',
+        }),
+      },
+    ))
+    expect(rejected.status).toBe(400)
+    expect(requests).toHaveLength(1)
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSupabaseUrl === 'string') process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL = previousSupabaseUrl
+    else delete process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
+    if (typeof previousSupabaseKey === 'string') process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY = previousSupabaseKey
+    else delete process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY
+  }
+})
+
+test('Agoda stays local while Trip falls back from the verified catalogue identity to the Maps English name', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
@@ -69,6 +147,7 @@ test('Agoda stays local while Trip searches the Maps English name first', async 
     const trip = await tripResponse.json()
 
     expect(requestedQueries).toEqual([
+      'site:trip.com/hotels Centurion Hotel & Spa Ueno Station -Artificial Radium Hot Spring Trip.com',
       'site:trip.com/hotels Centurion Hotel & Spa Ueno Station Trip.com',
     ])
     expect(agodaResponse.status).toBe(200)

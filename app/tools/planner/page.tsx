@@ -13,6 +13,7 @@ import { FUJI_MAP_CENTER, fujiMapPlaces } from '@/data/fuji'
 import { fujiPassMapPlaces } from '@/data/fuji/pass-map/places'
 import { NORTH_VIETNAM_MAP_CENTER, northVietnamMapPlaces } from '@/data/northvietnam'
 import type { MapPlace } from '@/lib/mapPlace'
+import { isPlannerInspectionMode, PLANNER_INSPECTION_PARAM } from '@/lib/plannerInspection'
 import styles from './toolsPlanner.module.css'
 
 type PlannerRegion = {
@@ -330,7 +331,6 @@ function hasPlannerLocalDraft(regionKey: string, source: PlannerSource) {
       if (Array.isArray(value)) return value.length > 0
       return Boolean(value && typeof value === 'object' && Object.keys(value).length > 0)
     } catch {
-      // Keep an unreadable local value until the user explicitly starts over.
       return true
     }
   })
@@ -418,6 +418,7 @@ export default function ToolsPlannerPage() {
     plannerId?: string
     readToken?: string
     editToken?: string
+    inspectionMode?: boolean
   } | null>(null)
   const [unavailablePlanner, setUnavailablePlanner] = useState<{
     countryName: string
@@ -427,6 +428,7 @@ export default function ToolsPlannerPage() {
   const [inAppPromptOpen, setInAppPromptOpen] = useState(false)
   const [inAppPromptCopied, setInAppPromptCopied] = useState(false)
   const [pendingPlannerStart, setPendingPlannerStart] = useState<PendingPlannerStart | null>(null)
+  const [pendingLocalDraftStart, setPendingLocalDraftStart] = useState<PendingPlannerStart | null>(null)
   const trimmedCountryInput = countryInput.trim()
 
   useEffect(() => {
@@ -442,6 +444,7 @@ export default function ToolsPlannerPage() {
       const plannerId = params.get('p')?.trim() || ''
       const readToken = params.get('v')?.trim() || ''
       const urlEditorToken = cleanPlannerEditToken(params.get('e'))
+      const inspectionMode = isPlannerInspectionMode(window.location.search)
       const legacyStorageKey = plannerStorageKey(legacyRegionKey, legacySource)
       let editorToken = plannerId ? urlEditorToken || localPlannerEditToken(legacyStorageKey, plannerId) : ''
       const legacyOwnerToken = plannerId
@@ -458,7 +461,9 @@ export default function ToolsPlannerPage() {
           try {
             if (plannerId && !editorToken) {
               editorToken = await recoverPlannerEditToken(plannerId, legacyOwnerToken)
-              if (editorToken) window.localStorage.setItem(plannerBookEditTokenStorageKey(legacyStorageKey, plannerId), editorToken)
+              if (editorToken && !inspectionMode) {
+                window.localStorage.setItem(plannerBookEditTokenStorageKey(legacyStorageKey, plannerId), editorToken)
+              }
             }
             const lookup = await fetchPlannerBookMeta(plannerId, readToken, editorToken)
             if (cancelled) return
@@ -494,7 +499,7 @@ export default function ToolsPlannerPage() {
             const resolvedRegion = resolvedKnownRegion ?? customRegionFromUrl(resolvedRegionKey, countryName)
             const storageKey = plannerStorageKey(resolvedRegion.key, resolvedSource)
             if (plannerId && book.editToken && !editorToken) editorToken = book.editToken
-            if (plannerId && editorToken) {
+            if (plannerId && editorToken && !inspectionMode) {
               window.localStorage.setItem(plannerBookEditTokenStorageKey(storageKey, plannerId), editorToken)
             }
 
@@ -506,11 +511,12 @@ export default function ToolsPlannerPage() {
               } else {
                 canonicalUrl.searchParams.set('v', readToken)
               }
+              if (inspectionMode) canonicalUrl.searchParams.set(PLANNER_INSPECTION_PARAM, '1')
               window.history.replaceState(null, '', `${canonicalUrl.pathname}${canonicalUrl.search}`)
             }
 
             setPreferredSource(resolvedSource)
-            if (book.id) {
+            if (book.id && !inspectionMode) {
               setRecentPlanners(
                 upsertRecentPlanner({
                   id: book.id,
@@ -533,6 +539,7 @@ export default function ToolsPlannerPage() {
               plannerId: plannerId || undefined,
               readToken: plannerId ? undefined : readToken || undefined,
               editToken: plannerId ? editorToken || undefined : undefined,
+              inspectionMode,
             })
           } catch {
             if (cancelled) return
@@ -653,15 +660,15 @@ export default function ToolsPlannerPage() {
     shouldLoadKnownPlaces = true,
     source: PlannerSource = 'map',
     planner?: { id?: string; readToken?: string; editToken?: string; linkVersion?: 1 | 2 },
-    resetDraft = !planner,
+    resetDraft = false,
+    skipLocalDraftChoice = false,
   ) => {
-    let shouldClearLocalDraft = resetDraft && !planner
-    if (shouldClearLocalDraft && hasPlannerLocalDraft(region.key, source)) {
-      const shouldResumeDraft = window.confirm(
-        `偵測到「${countryName}」尚未分享保存的本機草稿。\n\n按「確定」繼續上次草稿；按「取消」清除草稿並建立新行程。`,
-      )
-      shouldClearLocalDraft = !shouldResumeDraft
+    const shouldClearLocalDraft = resetDraft && !planner
+    if (!planner && !shouldClearLocalDraft && !skipLocalDraftChoice && hasPlannerLocalDraft(region.key, source)) {
+      setPendingLocalDraftStart({ region, countryName, shouldLoadKnownPlaces, source })
+      return
     }
+    setPendingLocalDraftStart(null)
 
     if (!planner && inAppBrowser) {
       setPendingPlannerStart({ region, countryName, shouldLoadKnownPlaces, source, resetDraft: shouldClearLocalDraft })
@@ -684,6 +691,20 @@ export default function ToolsPlannerPage() {
       readToken: planner?.id ? undefined : planner?.readToken,
       editToken: planner?.id ? planner.editToken : undefined,
     })
+  }
+
+  const resolvePendingLocalDraftStart = (startFresh: boolean) => {
+    const pending = pendingLocalDraftStart
+    if (!pending) return
+    startPlanner(
+      pending.region,
+      pending.countryName,
+      pending.shouldLoadKnownPlaces,
+      pending.source,
+      undefined,
+      startFresh,
+      true,
+    )
   }
 
   const continuePendingPlanner = () => {
@@ -906,6 +927,9 @@ export default function ToolsPlannerPage() {
       },
       countryName,
       false,
+      'map',
+      undefined,
+      forceBlank,
     )
   }
 
@@ -985,6 +1009,7 @@ export default function ToolsPlannerPage() {
         ...(!usesStoredRegion ? { region: region.key, ...(source === 'pass' ? { source: 'pass' } : {}) } : {}),
         ...(started.plannerId ? { p: started.plannerId } : started.readToken ? { v: started.readToken } : {}),
         ...(started.plannerId && started.editToken ? { e: started.editToken } : {}),
+        ...(started.inspectionMode ? { [PLANNER_INSPECTION_PARAM]: '1' } : {}),
       },
       recentListKey: RECENT_PLANNERS_KEY,
       recentRegionKey: region.key,
@@ -1031,7 +1056,10 @@ export default function ToolsPlannerPage() {
           <span>國家 / 城市</span>
           <input
             value={countryInput}
-            onChange={(event) => setCountryInput(event.target.value)}
+            onChange={(event) => {
+              setCountryInput(event.target.value)
+              setPendingLocalDraftStart(null)
+            }}
             placeholder="例如：釜山、大阪、東京、北越"
             suppressHydrationWarning
           />
@@ -1060,6 +1088,20 @@ export default function ToolsPlannerPage() {
               <em>空白開始</em>
             </button>
           </div>
+        ) : null}
+
+        {pendingLocalDraftStart ? (
+          <section className={styles.localDraftChoice} aria-label="本機草稿選擇">
+            <p>「{pendingLocalDraftStart.countryName}」有尚未分享的本機草稿</p>
+            <div>
+              <button type="button" className={styles.localDraftResume} onClick={() => resolvePendingLocalDraftStart(false)}>
+                繼續草稿
+              </button>
+              <button type="button" className={styles.localDraftFresh} onClick={() => resolvePendingLocalDraftStart(true)}>
+                建立新行程
+              </button>
+            </div>
+          </section>
         ) : null}
 
         <div className={styles.actions}>

@@ -23,6 +23,7 @@ import {
   closestCenter,
   type CollisionDetection,
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   MouseSensor,
   pointerWithin,
@@ -30,6 +31,8 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
 import {
   arrayMove,
@@ -53,6 +56,7 @@ import {
 import { hotelAffiliateGooglePlaceTypeSignal, hotelAffiliatePlaceNameSignal } from '@/lib/hotelAffiliatePlaceSignals'
 import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import type { MapPlace } from '@/lib/mapPlace'
+import { isPlannerInspectionMode, PLANNER_INSPECTION_PARAM } from '@/lib/plannerInspection'
 import styles from './passPlanner.module.css'
 
 type PlannerMode = 'add' | 'order'
@@ -352,6 +356,7 @@ const HOTEL_AFFILIATE_TRANSIENT_ERROR_COOLDOWN_MS = 5 * 60 * 1000
 const HOTEL_AFFILIATE_NOT_CONFIGURED_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const NEARBY_KNOWN_PLACE_RADIUS_METERS = 25_000
 const DAY_ITEM_PREFIX = 'day:'
+const DAY_MENU_ITEM_PREFIX = 'day-menu:'
 const VISIT_ITEM_PREFIX = 'visit:'
 const CUSTOM_PLACE_PREFIX = 'custom:'
 const TRANSPORT_ITEM_PREFIX = 'transport:'
@@ -2835,6 +2840,23 @@ function dayTitle(dayNumber: number, item?: PlannerItem | null) {
   return dayItemTitle(item) || `第 ${dayNumber} 天`
 }
 
+function dayMenuItemId(dayDivider: PlannerItem | null, dayIndex: number) {
+  return `${DAY_MENU_ITEM_PREFIX}${dayDivider ?? `first-${dayIndex}`}`
+}
+
+function movePlanDayGroups(items: PlannerItem[], fromDayIndex: number, toDayIndex: number) {
+  if (fromDayIndex === toDayIndex || fromDayIndex < 0 || toDayIndex < 0) return items
+
+  const dayStarts = [0]
+  items.forEach((item, index) => {
+    if (index > 0 && isDayItem(item)) dayStarts.push(index)
+  })
+  const dayGroups = dayStarts.map((start, index) => items.slice(start, dayStarts[index + 1] ?? items.length))
+  if (fromDayIndex >= dayGroups.length || toDayIndex >= dayGroups.length) return items
+
+  return arrayMove(dayGroups, fromDayIndex, toDayIndex).flat()
+}
+
 function updateDayItemTitle(item: PlannerItem, title: string) {
   const rawId = item.slice(DAY_ITEM_PREFIX.length).split('|')[0] || Date.now().toString(36)
   const trimmedTitle = title.trim().slice(0, 40)
@@ -3464,6 +3486,35 @@ async function savePlannerBook(
         readToken: typeof data.read_token === 'string' ? data.read_token : null,
         editToken: isPlannerBookEditToken(data.edit_token) ? data.edit_token : null,
         created: data.created === true,
+      }
+    : null
+}
+
+async function savePlannerAffiliateLink(
+  bookId: string,
+  editToken: string,
+  placeId: string,
+  provider: HotelAffiliateProvider,
+  href: string,
+) {
+  if (!bookId || !isPlannerBookEditToken(editToken) || !placeId || !href) return null
+  const res = await fetch('/api/pass-planner/book/affiliate-link', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: bookId,
+      edit_token: editToken,
+      place_id: placeId,
+      provider,
+      href,
+    }),
+  })
+  if (!res.ok) return null
+  const data = (await res.json().catch(() => null)) as { id?: unknown; updated_at?: unknown; changed?: unknown } | null
+  return typeof data?.id === 'string' && data.id === bookId
+    ? {
+        updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
+        changed: data.changed === true,
       }
     : null
 }
@@ -5264,6 +5315,11 @@ function SortablePlanItem({
   customCategoryItems,
   tierLabels,
   readOnly,
+  batchSelectionActive,
+  batchSelected,
+  batchDragDelta,
+  onToggleBatchSelection,
+  onStartBatchSelection,
 }: {
   itemId: PlannerItem
   place: MapPlace
@@ -5290,6 +5346,11 @@ function SortablePlanItem({
   customCategoryItems?: PlannerConfig['customCategoryItems']
   tierLabels: PlannerConfig['tierLabels']
   readOnly: boolean
+  batchSelectionActive: boolean
+  batchSelected: boolean
+  batchDragDelta: { x: number; y: number } | null
+  onToggleBatchSelection: () => void
+  onStartBatchSelection: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
@@ -5307,11 +5368,24 @@ function SortablePlanItem({
   const cardElementRef = useRef<HTMLElement | null>(null)
   const detailElementRef = useRef<HTMLDivElement | null>(null)
   const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const batchLongPressTimerRef = useRef<number | null>(null)
+  const batchLongPressOriginRef = useRef<{ x: number; y: number } | null>(null)
+  const batchLongPressTriggeredRef = useRef(false)
+  const dragHandlePointerOriginRef = useRef<{ x: number; y: number } | null>(null)
+  const dragHandleMovedRef = useRef(false)
+  const batchCardDragOriginRef = useRef<{ x: number; y: number } | null>(null)
+  const batchCardDragMovedRef = useRef(false)
   const displayName = plannerPlaceName(place)
+  const batchSiblingDragging = Boolean(batchDragDelta && batchSelected && !isDragging)
+  const sortableTransform = CSS.Transform.toString(transform)
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: batchSiblingDragging
+      ? `translate3d(${batchDragDelta?.x ?? 0}px, ${batchDragDelta?.y ?? 0}px, 0)${sortableTransform ? ` ${sortableTransform}` : ''}`
+      : sortableTransform,
+    transition: batchSiblingDragging ? undefined : transition,
   }
+  const dragHandleListeners = batchSelectionActive ? undefined : listeners
+  const cardDragListeners = batchSelectionActive && batchSelected ? listeners : undefined
 
   const setRefs = (el: HTMLElement | null) => {
     cardElementRef.current = el
@@ -5390,7 +5464,99 @@ function SortablePlanItem({
     onToggleExpanded()
   }
 
+  const clearBatchLongPress = () => {
+    if (batchLongPressTimerRef.current != null) {
+      window.clearTimeout(batchLongPressTimerRef.current)
+      batchLongPressTimerRef.current = null
+    }
+    batchLongPressOriginRef.current = null
+  }
+
+  const canStartBatchLongPress = (target: HTMLElement | null) => {
+    if (!target || readOnly || batchSelectionActive) return false
+    if (target.closest(`.${styles.dragHandle}, .${styles.batchSelectionToggle}, a, textarea, input, [data-no-card-focus="true"]`)) {
+      return false
+    }
+    const button = target.closest('button')
+    return !button || button.classList.contains(styles.planMain)
+  }
+
+  const startBatchLongPress = (event: ReactPointerEvent<HTMLElement>) => {
+    if (
+      event.button !== 0 ||
+      (event.pointerType !== 'touch' && event.pointerType !== 'mouse') ||
+      !canStartBatchLongPress(event.target as HTMLElement)
+    ) {
+      return
+    }
+    clearBatchLongPress()
+    batchLongPressOriginRef.current = { x: event.clientX, y: event.clientY }
+    batchLongPressTimerRef.current = window.setTimeout(() => {
+      batchLongPressTimerRef.current = null
+      batchLongPressOriginRef.current = null
+      batchLongPressTriggeredRef.current = true
+      onStartBatchSelection()
+      navigator.vibrate?.(10)
+    }, 500)
+  }
+
+  const cancelBatchLongPressOnMove = (event: ReactPointerEvent<HTMLElement>) => {
+    const origin = batchLongPressOriginRef.current
+    if (!origin || Math.hypot(event.clientX - origin.x, event.clientY - origin.y) <= 10) return
+    clearBatchLongPress()
+  }
+
+  const startDragHandlePointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== 'mouse') return
+    dragHandlePointerOriginRef.current = { x: event.clientX, y: event.clientY }
+    dragHandleMovedRef.current = false
+  }
+
+  const trackDragHandlePointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const origin = dragHandlePointerOriginRef.current
+    if (!origin || Math.hypot(event.clientX - origin.x, event.clientY - origin.y) <= 6) return
+    dragHandleMovedRef.current = true
+  }
+
+  const finishDragHandlePointer = () => {
+    dragHandlePointerOriginRef.current = null
+    window.setTimeout(() => {
+      dragHandleMovedRef.current = false
+    }, 0)
+  }
+
+  const startBatchCardDragPointer = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!batchSelectionActive || !batchSelected || event.button !== 0) return
+    batchCardDragOriginRef.current = { x: event.clientX, y: event.clientY }
+    batchCardDragMovedRef.current = false
+  }
+
+  const trackBatchCardDragPointer = (event: ReactPointerEvent<HTMLElement>) => {
+    const origin = batchCardDragOriginRef.current
+    if (!origin || Math.hypot(event.clientX - origin.x, event.clientY - origin.y) <= 6) return
+    batchCardDragMovedRef.current = true
+  }
+
+  const finishBatchCardDragPointer = () => {
+    batchCardDragOriginRef.current = null
+    window.setTimeout(() => {
+      batchCardDragMovedRef.current = false
+    }, 0)
+  }
+
+  const handleDragHandleClick = () => {
+    if (readOnly || dragHandleMovedRef.current || batchCardDragMovedRef.current) return
+    if (batchSelectionActive) {
+      onToggleBatchSelection()
+      return
+    }
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+    onStartBatchSelection()
+  }
+
   usePlannerBodyScrollLock(Boolean(openPanel || noteDeleteConfirm || pendingUserLinkDelete))
+
+  useEffect(() => clearBatchLongPress, [])
 
   useEffect(() => {
     if (!openPanel) return
@@ -5414,22 +5580,124 @@ function SortablePlanItem({
     <div
       ref={setRefs}
       style={style}
-      className={`${styles.planItem} ${isDragging ? styles.planCardDragging : ''}`}
+      className={`${styles.planItem} ${isDragging ? styles.planCardDragging : ''} ${batchSiblingDragging ? styles.planItemBatchDragging : ''}`}
       data-plan-item-id={itemId}
     >
       <article
-        className={`${styles.planCard} ${expanded ? styles.planCardExpanded : styles.planCardCollapsed} ${selected ? styles.planCardActive : ''}`}
+        className={`${styles.planCard} ${expanded ? styles.planCardExpanded : styles.planCardCollapsed} ${selected ? styles.planCardActive : ''} ${batchSelectionActive ? styles.planCardBatchSelecting : ''} ${batchSelected ? styles.planCardBatchSelected : ''}`}
         style={plannerPlaceStyle(place, categoryItems)}
+        {...cardDragListeners}
+        onPointerDown={(event) => {
+          startBatchLongPress(event)
+          startBatchCardDragPointer(event)
+          cardDragListeners?.onPointerDown?.(event)
+        }}
+        onPointerMove={(event) => {
+          cancelBatchLongPressOnMove(event)
+          trackBatchCardDragPointer(event)
+          cardDragListeners?.onPointerMove?.(event)
+        }}
+        onPointerUp={(event) => {
+          clearBatchLongPress()
+          finishBatchCardDragPointer()
+          cardDragListeners?.onPointerUp?.(event)
+        }}
+        onPointerCancel={(event) => {
+          clearBatchLongPress()
+          finishBatchCardDragPointer()
+          cardDragListeners?.onPointerCancel?.(event)
+        }}
         onClick={(event) => {
+          if (batchLongPressTriggeredRef.current) {
+            event.preventDefault()
+            batchLongPressTriggeredRef.current = false
+            return
+          }
+          if (batchCardDragMovedRef.current) {
+            event.preventDefault()
+            return
+          }
           const target = event.target as HTMLElement | null
+          if (batchSelectionActive) {
+            if (target?.closest(`.${styles.dragHandle}, .${styles.batchSelectionToggle}, a, textarea, input, select, [data-no-card-focus="true"]`)) {
+              return
+            }
+            if (target?.closest('button')) return
+            onToggleBatchSelection()
+            return
+          }
           if (target?.closest('a, button, textarea, input, [data-no-card-focus="true"]')) return
           toggleCard()
         }}
       >
-      <button className={styles.dragHandle} type="button" aria-label={`拖曳排序 ${displayName}`} disabled={readOnly} {...attributes} {...listeners}>
+      <button
+        className={styles.dragHandle}
+        type="button"
+        aria-label={
+          batchSelectionActive
+            ? `${batchSelected ? '拖曳已選景點；點一下取消選取' : '點一下選取'} ${displayName}`
+            : `拖曳排序；點一下多選 ${displayName}`
+        }
+        disabled={readOnly}
+        {...attributes}
+        {...dragHandleListeners}
+        onPointerDown={(event) => {
+          startDragHandlePointer(event)
+          dragHandleListeners?.onPointerDown?.(event)
+        }}
+        onPointerMove={(event) => {
+          trackDragHandlePointer(event)
+          dragHandleListeners?.onPointerMove?.(event)
+        }}
+        onPointerUp={(event) => {
+          finishDragHandlePointer()
+          dragHandleListeners?.onPointerUp?.(event)
+        }}
+        onPointerCancel={(event) => {
+          finishDragHandlePointer()
+          dragHandleListeners?.onPointerCancel?.(event)
+        }}
+        onClick={handleDragHandleClick}
+      >
         <span aria-hidden>☰</span>
       </button>
-      <button className={styles.planMain} type="button" onClick={toggleCard} aria-expanded={expanded}>
+      {!readOnly ? (
+        <button
+          className={styles.batchSelectionToggle}
+          type="button"
+          aria-label={`${batchSelected ? '取消選取' : '選取'} ${displayName}`}
+          aria-pressed={batchSelected}
+          tabIndex={batchSelectionActive ? 0 : -1}
+          onClick={() => {
+            if (batchCardDragMovedRef.current) return
+            onToggleBatchSelection()
+          }}
+        >
+          <span aria-hidden>{batchSelected ? '✓' : ''}</span>
+        </button>
+      ) : null}
+      <button
+        className={styles.planMain}
+        type="button"
+        onClick={(event) => {
+          if (batchLongPressTriggeredRef.current) {
+            event.preventDefault()
+            batchLongPressTriggeredRef.current = false
+            return
+          }
+          if (batchCardDragMovedRef.current) {
+            event.preventDefault()
+            return
+          }
+          if (batchSelectionActive) {
+            event.stopPropagation()
+            onToggleBatchSelection()
+            return
+          }
+          toggleCard()
+        }}
+        aria-expanded={expanded}
+      >
           <span className={styles.planNumber}>{label}</span>
         <span className={styles.planText}>
           <span className={styles.placeName}>{displayName}</span>
@@ -5498,7 +5766,7 @@ function SortablePlanItem({
           地圖
         </button>
       </span> : null}
-      {expanded && !readOnly ? (
+      {expanded && !readOnly && !batchSelectionActive ? (
         <span className={styles.planCardManage}>
           {canEditCustom ? (
             <button className={styles.cardEditButton} type="button" onClick={onEditCustom} aria-label={`編輯 ${displayName}`}>
@@ -6321,6 +6589,7 @@ function SortableTransportItem({
   onRemoveImage,
   cardRef,
   readOnly,
+  dragDisabled = false,
 }: {
   itemId: PlannerItem
   info: TransportInfo
@@ -6336,6 +6605,7 @@ function SortableTransportItem({
   onRemoveImage: (imageId: string) => Promise<void>
   cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
+  dragDisabled?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
@@ -6547,7 +6817,7 @@ function SortableTransportItem({
           onToggleExpanded()
         }}
       >
-        <button className={styles.transportDragHandle} type="button" aria-label="拖曳交通" disabled={readOnly} {...attributes} {...listeners}>
+        <button className={styles.transportDragHandle} type="button" aria-label="拖曳交通" disabled={readOnly || dragDisabled} {...attributes} {...listeners}>
           <span aria-hidden>☰</span>
         </button>
         <div className={styles.transportMain}>
@@ -6674,6 +6944,7 @@ function SortableDayDivider({
   onTitleChange,
   onRemove,
   readOnly,
+  dragDisabled = false,
   dividerRef,
 }: {
   id: string
@@ -6683,6 +6954,7 @@ function SortableDayDivider({
   onRemove: () => void
   cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
+  dragDisabled?: boolean
   dividerRef?: (el: HTMLDivElement | null) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: readOnly })
@@ -6713,7 +6985,7 @@ function SortableDayDivider({
       style={style}
       className={`${styles.dayDivider} ${isDragging ? styles.dayDividerDragging : ''}`}
     >
-      <button className={styles.dayDragHandle} type="button" aria-label={`拖曳第 ${dayNumber} 天`} disabled={readOnly} {...attributes} {...listeners}>
+      <button className={styles.dayDragHandle} type="button" aria-label={`拖曳第 ${dayNumber} 天`} disabled={readOnly || dragDisabled} {...attributes} {...listeners}>
         <span aria-hidden>☰</span>
       </button>
       <span className={styles.dayDividerLine} aria-hidden />
@@ -6754,6 +7026,54 @@ function SortableDayDivider({
       {!readOnly ? (
         <button className={styles.dayRemoveButton} type="button" onClick={onRemove} aria-label={`移除第 ${dayNumber} 天分隔`}>
           ×
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function SortableDayMenuItem({
+  id,
+  title,
+  selected,
+  onSelect,
+  readOnly,
+}: {
+  id: string
+  title: string
+  selected: boolean
+  onSelect: () => void
+  readOnly: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: readOnly })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${styles.dayMenuSortableItem} ${isDragging ? styles.dayMenuSortableItemDragging : ''}`}
+    >
+      <button
+        type="button"
+        className={selected ? styles.dayMenuItemActive : styles.dayMenuItem}
+        onClick={onSelect}
+      >
+        {title}
+      </button>
+      {!readOnly ? (
+        <button
+          type="button"
+          className={styles.dayMenuDragHandle}
+          aria-label={`拖曳${title}的整日行程`}
+          title="拖曳調整整日行程順序"
+          {...attributes}
+          {...listeners}
+        >
+          <span aria-hidden>☰</span>
         </button>
       ) : null}
     </div>
@@ -6867,6 +7187,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const transportGroupScrollAnchorRef = useRef<{ element: HTMLElement; top: number; container: HTMLElement } | null>(null)
   const hotelAffiliateLookupRequestRef = useRef<Map<string, ActiveHotelAffiliateLookup>>(new Map())
   const hotelAffiliateForceRefreshRef = useRef<Set<string>>(new Set())
+  // Affiliate lookups may write a matched link back to the shared plan.  Keep
+  // them tied to an explicit lodging edit instead of merely opening a plan.
+  const hotelAffiliateAutoResolvePlaceIdsRef = useRef<Set<string>>(new Set())
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
   const googlePlaceTypeResolveRef = useRef<Set<string>>(new Set())
   const customPlaceGoogleIdentityResolveRef = useRef<Set<string>>(new Set())
@@ -6901,6 +7224,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [storageReady, setStorageReady] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedPlanItem, setSelectedPlanItem] = useState<PlannerItem | null>(null)
+  const [batchSelectedPlanItems, setBatchSelectedPlanItems] = useState<PlannerItem[]>([])
+  const [activeBatchDragItem, setActiveBatchDragItem] = useState<PlannerItem | null>(null)
+  const [activeBatchDragDelta, setActiveBatchDragDelta] = useState<{ x: number; y: number } | null>(null)
   const [mobilePageHeight, setMobilePageHeight] = useState<number | null>(null)
   const [mobilePanelState, setMobilePanelState] = useState<MobilePanelState>('collapsed')
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
@@ -6963,6 +7289,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   // Do not let that read-time work modify the owner's itinerary; autosave starts
   // only after this visitor makes a content change.
   const plannerCloudUserEditedRef = useRef(false)
+  useLayoutEffect(() => {
+    if (isPlannerInspectionMode(window.location.search)) setReadOnlyPlan(true)
+  }, [])
   const pdfDownloading = pdfDownloadStatus !== 'idle'
   const dayViewStorageKey = `${config.storageKey}:day-view:${plannerBookId ?? 'draft'}`
   const preDepartureStorageKey = `${config.storageKey}:pre-departure:${plannerBookId ?? 'draft'}`
@@ -7779,6 +8108,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [validPlanItems],
   )
   const hasDayDividers = useMemo(() => validPlanItems.some(isDayItem), [validPlanItems])
+  const batchSelectedPlanItemSet = useMemo(() => new Set(batchSelectedPlanItems), [batchSelectedPlanItems])
+  const batchSelectionActive = batchSelectedPlanItems.length > 0
+  const batchDragPreviewPlaces = useMemo(() => {
+    if (!activeBatchDragItem || !batchSelectedPlanItemSet.has(activeBatchDragItem)) return []
+    return validPlanItems.flatMap((item) => {
+      if (!batchSelectedPlanItemSet.has(item)) return []
+      const place = planItemPlace(item, placeById)
+      return place ? [{ item, place }] : []
+    })
+  }, [activeBatchDragItem, batchSelectedPlanItemSet, placeById, validPlanItems])
   const findPlanItemDayView = useCallback((targetItem: PlannerItem | null | undefined): DayView => {
     if (!targetItem) return 'all'
     const dayIndex = plannedDays.findIndex((day) => day.items.includes(targetItem))
@@ -8028,6 +8367,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }, [planItems, validPlanItems])
 
   useEffect(() => {
+    setBatchSelectedPlanItems((items) => {
+      const nextItems = items.filter((item) => validPlanItems.includes(item))
+      return nextItems.length === items.length ? items : nextItems
+    })
+  }, [validPlanItems])
+
+  useEffect(() => {
     const dividerId = pendingDayDividerScrollRef.current
     if (!dividerId) return
     if (!visiblePlanItems.includes(dividerId)) return
@@ -8210,6 +8556,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             ? `?${new URLSearchParams(config.initialSearchParams).toString()}`
             : window.location.search
           const initialParams = new URLSearchParams(initialSearch)
+          const inspectionMode = isPlannerInspectionMode(window.location.search)
           const requestedBookId = initialParams.get(PLANNER_BOOK_PARAM)?.trim() ?? ''
           const urlEditorToken = plannerBookEditTokenFromSearch(initialSearch)
           const storedEditorToken = requestedBookId
@@ -8252,20 +8599,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 const token = plannerBook.editToken ?? recoveredEditorToken
                 if (token) universalUrl.searchParams.set(PLANNER_BOOK_EDIT_PARAM, token)
               }
+              if (inspectionMode) universalUrl.searchParams.set(PLANNER_INSPECTION_PARAM, '1')
               window.location.replace(`${universalUrl.pathname}${universalUrl.search}`)
               return
             }
             const hasOrderedPlaces = plannerBook.items.some((item) => Boolean(planItemPlaceId(item)))
             const hasCustomPlaces = Boolean(plannerBook.customPlaces && Object.keys(plannerBook.customPlaces).length > 0)
             plannerCloudUserEditedRef.current = false
+            hotelAffiliateAutoResolvePlaceIdsRef.current.clear()
             setPlannerLinkUnavailable(false)
             setPlannerBookId(plannerBook.id)
             setPlannerBookReadToken(plannerBook.readToken)
             setPlannerBookLinkVersion(plannerBook.linkVersion)
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
-            setReadOnlyPlan(plannerBook.readonly)
+            setReadOnlyPlan(plannerBook.readonly || inspectionMode)
             setPlannerImages([])
-            const activeEditorToken = plannerBook.readonly ? null : plannerBook.editToken ?? recoveredEditorToken
+            const activeEditorToken = plannerBook.readonly || inspectionMode ? null : plannerBook.editToken ?? recoveredEditorToken
             setPlannerBookEditToken(activeEditorToken)
             if (plannerBook.id && activeEditorToken) {
               window.localStorage.setItem(plannerBookEditTokenStorageKey(config.storageKey, plannerBook.id), activeEditorToken)
@@ -8333,6 +8682,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             return
           }
           if (hasPlannerBookLink) {
+            hotelAffiliateAutoResolvePlaceIdsRef.current.clear()
             setPlannerLinkUnavailable(true)
             setPlanItems([])
             setPlaceNotes({})
@@ -9678,6 +10028,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const deleteCustomPlace = (placeId: string) => {
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
+    hotelAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
     cancelHotelAffiliateLookupForCustomPlace(placeId)
     setPlanItems((ids) => ids.filter((item) => planItemPlaceId(item) !== placeId))
     if (isCustomPlaceId(placeId)) {
@@ -9787,6 +10138,21 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
     setPlanItems((items) => items.filter((item) => item !== itemId))
+  }
+
+  const toggleBatchPlanItem = (itemId: PlannerItem) => {
+    if (readOnlyPlan) return
+    setBatchSelectedPlanItems((items) => (items.includes(itemId) ? items.filter((item) => item !== itemId) : [...items, itemId]))
+  }
+
+  const startBatchPlanItemSelection = (itemId: PlannerItem) => {
+    if (readOnlyPlan) return
+    setExpandedPlanItem(null)
+    setBatchSelectedPlanItems((items) => (items.includes(itemId) ? items : [...items, itemId]))
+  }
+
+  const cancelBatchPlanItemSelection = () => {
+    setBatchSelectedPlanItems([])
   }
 
   const confirmPendingDelete = () => {
@@ -10042,6 +10408,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
     })
   }, [])
+
+  const persistMatchedHotelAffiliateLink = useCallback((
+    placeId: string,
+    provider: HotelAffiliateProvider,
+    bookingUrl: string,
+  ) => {
+    if (!plannerBookId || !plannerBookEditToken || readOnlyPlan) return
+    void savePlannerAffiliateLink(plannerBookId, plannerBookEditToken, placeId, provider, bookingUrl)
+      .then((saved) => {
+        if (saved?.updatedAt) setPlannerBookUpdatedAt(saved.updatedAt)
+      })
+      .catch(() => {
+        // Keep the visible verified link even if this small background write is
+        // temporarily unavailable.  It can be safely retried on the next load.
+      })
+  }, [plannerBookEditToken, plannerBookId, readOnlyPlan])
 
   const setCustomPlaceGoogleTypes = useCallback((placeId: string, googlePlaceId: string, typesValue: unknown, resolved = true) => {
     const types = cleanGooglePlaceTypes(typesValue)
@@ -10698,6 +11080,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         persist: !readOnlyPlan,
         replaceProvider: options.replaceExisting === true,
       })
+      persistMatchedHotelAffiliateLink(place.id, provider, cachedBookingUrl)
       setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
       return
     }
@@ -10781,6 +11164,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           persist: !readOnlyPlan,
           replaceProvider: options.replaceExisting === true,
         })
+        persistMatchedHotelAffiliateLink(place.id, provider, bookingUrl)
         setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
       })
       .catch(() => {
@@ -10794,7 +11178,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const currentRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
         if (currentRequest?.controller === controller) hotelAffiliateLookupRequestRef.current.delete(requestKey)
       })
-  }, [appendHotelAffiliateLink, config, readOnlyPlan])
+  }, [appendHotelAffiliateLink, config, persistMatchedHotelAffiliateLink, readOnlyPlan])
 
   const resolveTripAffiliateLinkForCustomPlace = useCallback((
     place: CustomPlannerPlace,
@@ -10845,6 +11229,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         persist: !readOnlyPlan,
         replaceProvider: options.replaceExisting === true,
       })
+      persistMatchedHotelAffiliateLink(place.id, provider, cachedBookingUrl)
       setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
       return
     }
@@ -10920,6 +11305,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           persist: !readOnlyPlan,
           replaceProvider: options.replaceExisting === true,
         })
+        persistMatchedHotelAffiliateLink(place.id, provider, bookingUrl)
         setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
       })
       .catch(() => {
@@ -10932,7 +11318,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const currentRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
         if (currentRequest?.controller === controller) hotelAffiliateLookupRequestRef.current.delete(requestKey)
       })
-  }, [appendHotelAffiliateLink, config, readOnlyPlan])
+  }, [appendHotelAffiliateLink, config, persistMatchedHotelAffiliateLink, readOnlyPlan])
 
   const forceHotelAffiliateLookupForCustomPlace = useCallback(
     (placeId: string) => {
@@ -10982,8 +11368,20 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   ])
 
   useEffect(() => {
-    if (!storageReady) return
+    if (!storageReady || readOnlyPlan) {
+      // A readonly or inspection visit must not keep provider work alive after
+      // the plan becomes readonly.  In particular, it must never write a
+      // newly matched link to someone else's plan.
+      if (readOnlyPlan) {
+        hotelAffiliateLookupRequestRef.current.forEach((request) => request.controller.abort())
+        hotelAffiliateLookupRequestRef.current.clear()
+      }
+      return
+    }
     const currentPlaceIds = new Set(Object.keys(customPlaces))
+    hotelAffiliateAutoResolvePlaceIdsRef.current.forEach((placeId) => {
+      if (!currentPlaceIds.has(placeId)) hotelAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
+    })
     hotelAffiliateLookupRequestRef.current.forEach((request, requestKey) => {
       const placeId = requestKey.slice(requestKey.indexOf(':') + 1)
       if (currentPlaceIds.has(placeId)) return
@@ -10994,6 +11392,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     Object.values(customPlaces).forEach((place) => {
       const eligibility = customPlaceHotelAffiliateEligibility(place)
       if (eligibility !== 'eligible') {
+        // Keep an explicit edit pending while Google is still determining the
+        // place type.  It may become an eligible lodging on the next pass.
+        if (eligibility === 'skipped') hotelAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         if (eligibility === 'skipped') {
           setAgodaAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
@@ -11021,6 +11422,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
 
       const forceRefresh = hotelAffiliateForceRefreshRef.current.delete(place.id)
+      const editedLodging = hotelAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
+      // Opening a shared collaborative plan is a read-only action from the
+      // data perspective.  Provider lookups (and their narrow link write)
+      // start only after the visitor saves a lodging or explicitly retries it.
+      if (!forceRefresh && !editedLodging) {
+        cancelHotelAffiliateLookupForCustomPlace(place.id)
+        return
+      }
       if (forceRefresh || !hasHotelAffiliateProviderLink(links, 'Agoda')) {
         resolveAgodaAffiliateLinkForCustomPlace(place, {
           forceRefresh,
@@ -11530,6 +11939,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ...(nextLinks.length > 0 ? { links: nextLinks } : {}),
     }
 
+    hotelAffiliateAutoResolvePlaceIdsRef.current.add(id)
     setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
     setPlaceUserLinks((links) => {
       if (nextLinks.length === 0) {
@@ -11627,10 +12037,81 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }
 
+  const handlePlanDragStart = (event: DragStartEvent) => {
+    const activeItem = String(event.active.id)
+    if (!batchSelectedPlanItemSet.has(activeItem)) return
+    setActiveBatchDragItem(activeItem)
+    setActiveBatchDragDelta({ x: 0, y: 0 })
+  }
+
+  const handlePlanDragMove = (event: DragMoveEvent) => {
+    setActiveBatchDragDelta({ x: event.delta.x, y: event.delta.y })
+  }
+
+  const clearActiveBatchDrag = () => {
+    setActiveBatchDragItem(null)
+    setActiveBatchDragDelta(null)
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
+    clearActiveBatchDrag()
     if (readOnlyPlan) return
     const { active, over } = event
     if (!over || active.id === over.id) return
+    const activeItem = String(active.id)
+    const selectedItems = new Set(batchSelectedPlanItems)
+
+    if (batchSelectionActive && selectedItems.has(activeItem)) {
+      if (selectedItems.has(String(over.id))) return
+      markPlannerCloudUserEdit()
+      setPlanItems((items) => {
+        const activeIndex = items.indexOf(activeItem)
+        const overIndex = items.indexOf(String(over.id))
+        if (activeIndex < 0 || overIndex < 0) return items
+
+        const targetIndex = mobileDragTargetIndex(activeIndex, overIndex, event.delta.y)
+        if (targetIndex === activeIndex) return items
+
+        const movingDown = targetIndex > activeIndex
+        const movedItems = items.filter((item) => selectedItems.has(item) && Boolean(planItemPlace(item, placeById)))
+        if (movedItems.length === 0) return items
+        const remainingItems = items.filter((item) => !selectedItems.has(item))
+        let anchorIndex = targetIndex
+        const direction = movingDown ? 1 : -1
+        while (anchorIndex >= 0 && anchorIndex < items.length && selectedItems.has(items[anchorIndex])) {
+          anchorIndex += direction
+        }
+
+        const anchorRemainingIndex =
+          anchorIndex >= 0 && anchorIndex < items.length ? remainingItems.indexOf(items[anchorIndex]) : -1
+        const insertIndex =
+          anchorIndex < 0
+            ? 0
+            : anchorIndex >= items.length
+              ? remainingItems.length
+              : isDayItem(items[anchorIndex]) && anchorRemainingIndex === 0 && !movingDown
+                ? 1
+                : Math.max(0, anchorRemainingIndex + (movingDown ? 1 : 0))
+        const nextItems = [
+          ...remainingItems.slice(0, insertIndex),
+          ...movedItems,
+          ...remainingItems.slice(insertIndex),
+        ]
+        if (nextItems.every((item, index) => item === items[index])) return items
+
+        trackPlannerEvent('drag_sort_multi', {
+          item_count: movedItems.length,
+          from_index: activeIndex + 1,
+          to_index: insertIndex + 1,
+          plan_count: nextItems.length,
+          plan_code: encodeSharedPlan(nextItems, lookupPlaces),
+        })
+        return nextItems
+      })
+      cancelBatchPlanItemSelection()
+      return
+    }
+
     markPlannerCloudUserEdit()
     setPlanItems((items) => {
       const oldIndex = items.indexOf(String(active.id))
@@ -11651,6 +12132,39 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
       return nextIds
     })
+  }
+
+  const handleDayMenuDragEnd = (event: DragEndEvent) => {
+    if (readOnlyPlan) return
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const fromDayIndex = plannedDays.findIndex((day, index) => dayMenuItemId(day.divider, index) === String(active.id))
+    const toDayIndex = plannedDays.findIndex((day, index) => dayMenuItemId(day.divider, index) === String(over.id))
+    if (fromDayIndex < 0 || toDayIndex < 0 || fromDayIndex === toDayIndex) return
+
+    const selectedDayDivider = dayView === 'all' ? null : (plannedDays[dayView - 1]?.divider ?? null)
+    markPlannerCloudUserEdit()
+    setPlanItems((items) => {
+      const nextItems = movePlanDayGroups(items, fromDayIndex, toDayIndex)
+      if (nextItems === items) return items
+
+      trackPlannerEvent('drag_sort_day', {
+        from_day: fromDayIndex + 1,
+        to_day: toDayIndex + 1,
+        day_count: plannedDays.length,
+        plan_count: nextItems.length,
+        plan_code: encodeSharedPlan(nextItems, lookupPlaces),
+      })
+      return nextItems
+    })
+
+    if (selectedDayDivider) {
+      const nextDayIndex = arrayMove(plannedDays, fromDayIndex, toDayIndex).findIndex(
+        (day) => day.divider === selectedDayDivider,
+      )
+      if (nextDayIndex >= 0) setDayView(nextDayIndex + 1)
+    }
   }
 
 
@@ -12428,7 +12942,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const handlePanelBodyTouchStart = useCallback((e: ReactTouchEvent<HTMLDivElement>) => {
     if (!mobilePanelOpen || e.touches.length !== 1) return
     const target = e.target as HTMLElement
-    if (target.closest(`.${styles.dragHandle}, .${styles.transportDragHandle}, .${styles.dayDragHandle}`)) {
+    if (target.closest(`.${styles.dragHandle}, .${styles.transportDragHandle}, .${styles.dayDragHandle}, .${styles.planCardBatchSelected}`)) {
       panelBodyTouchStartYRef.current = null
       panelBodyPullCanCollapseRef.current = false
       return
@@ -13131,7 +13645,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   </div>
                 ) : (
                   <>
-                    <div className={styles.orderControlBar}>
+                    <div className={`${styles.orderControlBar} ${batchSelectionActive ? styles.orderControlBarBatchSelecting : ''}`}>
                       <div className={styles.dayViewControl} aria-label="行程查看範圍">
                         {hasDayDividers ? (
                           <div className={styles.dayMenu} data-planner-menu="true">
@@ -13154,19 +13668,30 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               >
                                 全行程
                               </button>
-                              {plannedDays.map((day, index) => (
-                                <button
-                                  key={day.divider ?? `day-${index + 1}`}
-                                  type="button"
-                                  className={dayView === index + 1 ? styles.dayMenuItemActive : styles.dayMenuItem}
-                                  onClick={() => {
-                                    selectDayView(index + 1)
-                                    setOpenPlannerMenu(null)
-                                  }}
+                              <DndContext
+                                sensors={sensors}
+                                collisionDetection={plannerCollisionDetection}
+                                onDragEnd={handleDayMenuDragEnd}
+                              >
+                                <SortableContext
+                                  items={plannedDays.map((day, index) => dayMenuItemId(day.divider, index))}
+                                  strategy={verticalListSortingStrategy}
                                 >
-                                  {day.title}
-                                </button>
-                              ))}
+                                  {plannedDays.map((day, index) => (
+                                    <SortableDayMenuItem
+                                      key={day.divider ?? `day-${index + 1}`}
+                                      id={dayMenuItemId(day.divider, index)}
+                                      title={day.title}
+                                      selected={dayView === index + 1}
+                                      onSelect={() => {
+                                        selectDayView(index + 1)
+                                        setOpenPlannerMenu(null)
+                                      }}
+                                      readOnly={readOnlyPlan}
+                                    />
+                                  ))}
+                                </SortableContext>
+                              </DndContext>
                             </div>
                             ) : null}
                           </div>
@@ -13218,8 +13743,28 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         </div>
                         ) : null}
                       </div>
+                      {batchSelectionActive ? (
+                        <button
+                          type="button"
+                          className={styles.batchSelectionClose}
+                          aria-label="結束多選"
+                          onClick={() => {
+                            cancelBatchPlanItemSelection()
+                            setOpenPlannerMenu(null)
+                          }}
+                        >
+                          取消勾選
+                        </button>
+                      ) : null}
                     </div>
-                    <DndContext sensors={sensors} collisionDetection={plannerCollisionDetection} onDragEnd={handleDragEnd}>
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={plannerCollisionDetection}
+                      onDragStart={handlePlanDragStart}
+                      onDragMove={handlePlanDragMove}
+                      onDragCancel={clearActiveBatchDrag}
+                      onDragEnd={handleDragEnd}
+                    >
                       <SortableContext items={visiblePlanItems} strategy={verticalListSortingStrategy}>
                         <div
                           ref={planListRef}
@@ -13244,6 +13789,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   onTitleChange={(title) => updateDayDividerTitle(item, title)}
                                   onRemove={() => requestRemoveDayDivider(item)}
                                   readOnly={readOnlyPlan}
+                                  dragDisabled={batchSelectionActive}
                                   dividerRef={(el) => {
                                     dayDividerRefs.current[item] = el
                                   }}
@@ -13275,6 +13821,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                     transportCardRefs.current[item] = el
                                   }}
                                   readOnly={readOnlyPlan}
+                                  dragDisabled={batchSelectionActive}
                                 />
                               )
                             }
@@ -13316,6 +13863,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   customCategoryItems={customCategoryItems}
                                   tierLabels={tierLabels}
                                   readOnly={readOnlyPlan}
+                                  batchSelectionActive={batchSelectionActive}
+                                  batchSelected={batchSelectedPlanItemSet.has(item)}
+                                  batchDragDelta={activeBatchDragItem ? activeBatchDragDelta : null}
+                                  onToggleBatchSelection={() => toggleBatchPlanItem(item)}
+                                  onStartBatchSelection={() => startBatchPlanItemSelection(item)}
                                 />
                               </Fragment>
                             )
@@ -13345,6 +13897,28 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           })}
                         </div>
                       </SortableContext>
+                      <DragOverlay dropAnimation={null}>
+                        {batchDragPreviewPlaces.length > 1 ? (
+                          <div className={styles.batchDragOverlay} aria-hidden="true">
+                            {batchDragPreviewPlaces.slice(0, 3).map(({ item, place }, index) => (
+                              <div
+                                key={item}
+                                className={styles.batchDragOverlayCard}
+                                style={{
+                                  '--batch-drag-index': index,
+                                  '--planner-category-color': plannerPlaceColor(place, plannerCategoryItems),
+                                } as CSSProperties}
+                              >
+                                <span className={styles.batchDragOverlayGrip}>☰</span>
+                                <span>{plannerPlaceName(place)}</span>
+                              </div>
+                            ))}
+                            {batchDragPreviewPlaces.length > 3 ? (
+                              <span className={styles.batchDragOverlayCount}>+{batchDragPreviewPlaces.length - 3}</span>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </DragOverlay>
                     </DndContext>
                   </>
                 )}
