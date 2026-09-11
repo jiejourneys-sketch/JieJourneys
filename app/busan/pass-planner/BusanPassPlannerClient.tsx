@@ -2309,7 +2309,6 @@ function visiblePlannerUserLinks(actionLinks: readonly { label: string; href: st
   return userLinks
     .map((link, index) => ({ link, index }))
     .filter(({ link }) => {
-      if (isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap)) return false
       if (knownLinks.some((knownLink) => plannerLinkKey(knownLink) === plannerLinkKey(link))) return false
       knownLinks.push(link)
       return true
@@ -3021,26 +3020,25 @@ function batchMoveItemSet(items: PlannerItem[], selectedItems: Set<PlannerItem>,
   const movingItems = new Set(
     items.filter((item) => selectedItems.has(item) && Boolean(planItemPlace(item, placeById))),
   )
-  let previousPlaceItem: PlannerItem | null = null
-  let transportItems: PlannerItem[] = []
+  let incomingTransportItems: PlannerItem[] = []
 
   items.forEach((item) => {
     if (isDayItem(item)) {
-      previousPlaceItem = null
-      transportItems = []
+      incomingTransportItems = []
       return
     }
     if (isTransportItem(item)) {
-      transportItems.push(item)
+      incomingTransportItems.push(item)
       return
     }
     if (!planItemPlace(item, placeById)) return
 
-    if (previousPlaceItem && movingItems.has(previousPlaceItem) && movingItems.has(item)) {
-      transportItems.forEach((transportItem) => movingItems.add(transportItem))
+    // A transport segment describes arriving at the following stop. Keeping it
+    // with that destination prevents it from being left behind as a stale edge.
+    if (movingItems.has(item)) {
+      incomingTransportItems.forEach((transportItem) => movingItems.add(transportItem))
     }
-    previousPlaceItem = item
-    transportItems = []
+    incomingTransportItems = []
   })
 
   return movingItems
@@ -5340,6 +5338,8 @@ function SortablePlanItem({
   batchSelectionActive,
   batchSelected,
   batchDragDelta,
+  dragOverlayActive,
+  batchDropPosition,
   onToggleBatchSelection,
   onStartBatchSelection,
 }: {
@@ -5371,6 +5371,8 @@ function SortablePlanItem({
   batchSelectionActive: boolean
   batchSelected: boolean
   batchDragDelta: { x: number; y: number } | null
+  dragOverlayActive: boolean
+  batchDropPosition: 'before' | 'after' | null
   onToggleBatchSelection: () => void
   onStartBatchSelection: () => void
 }) {
@@ -5398,13 +5400,12 @@ function SortablePlanItem({
   const batchCardDragOriginRef = useRef<{ x: number; y: number } | null>(null)
   const batchCardDragMovedRef = useRef(false)
   const displayName = plannerPlaceName(place)
-  const batchSiblingDragging = Boolean(batchDragDelta && batchSelected && !isDragging)
-  const sortableTransform = CSS.Transform.toString(transform)
+  const batchSiblingDragging = Boolean(batchDragDelta && batchSelected)
+  const dragSourceDragging = Boolean(dragOverlayActive && isDragging)
+  const batchDropTarget = Boolean(batchDropPosition && !isDragging && !batchSelected)
   const style = {
-    transform: batchSiblingDragging
-      ? `translate3d(${batchDragDelta?.x ?? 0}px, ${batchDragDelta?.y ?? 0}px, 0)${sortableTransform ? ` ${sortableTransform}` : ''}`
-      : sortableTransform,
-    transition: batchSiblingDragging ? undefined : transition,
+    transform: dragOverlayActive ? undefined : CSS.Transform.toString(transform),
+    transition: dragOverlayActive ? undefined : transition,
   }
   // Keep the familiar desktop grip drag available after entering multi-select.
   // A click still selects/deselects; a drag from a selected grip moves the whole selection.
@@ -5425,9 +5426,8 @@ function SortablePlanItem({
   const customActionLinkCount = isCustomPlaceId(place.id)
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
-  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
   const visibleUserLinkCount = visiblePlannerUserLinks(actionLinks, userLinks).length
-  const userLinkCount = generalUserLinks.length
+  const userLinkCount = visibleUserLinkCount
   const displayLinkCount = visibleUserLinkCount + customActionLinkCount
   const hasAnyLinks = actionLinkCount + userLinkCount > 0
   const imageCount = images.length
@@ -5606,10 +5606,11 @@ function SortablePlanItem({
     <div
       ref={setRefs}
       style={style}
-      className={`${styles.planItem} ${isDragging ? styles.planCardDragging : ''} ${batchSiblingDragging ? styles.planItemBatchDragging : ''}`}
+      className={`${styles.planItem} ${isDragging ? styles.planCardDragging : ''} ${dragSourceDragging ? styles.planItemDragSource : ''} ${batchSiblingDragging ? styles.planItemBatchDragging : ''} ${batchDropTarget ? styles.planItemBatchDropTarget : ''} ${batchDropTarget ? (batchDropPosition === 'after' ? styles.planItemBatchDropTargetAfter : styles.planItemBatchDropTargetBefore) : ''}`}
       data-plan-item-id={itemId}
     >
       <article
+        data-plan-item-card={itemId}
         className={`${styles.planCard} ${expanded ? styles.planCardExpanded : styles.planCardCollapsed} ${selected ? styles.planCardActive : ''} ${batchSelectionActive ? styles.planCardBatchSelecting : ''} ${batchSelected ? styles.planCardBatchSelected : ''}`}
         style={plannerPlaceStyle(place, categoryItems)}
         {...cardDragListeners}
@@ -6547,10 +6548,9 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
   const customActionLinkCount = isCustomPlaceId(place.id)
     ? actionLinks.filter((link) => link.event === 'custom_place_link').length
     : 0
-  const generalUserLinks = userLinks.filter((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
   const visibleUserLinkCount = visiblePlannerUserLinks(actionLinks, userLinks).length
   const displayLinkCount = customActionLinkCount + visibleUserLinkCount
-  const hasInlineLinks = actionLinks.length > 0 || userLinks.some((link) => !isPlannerUserMapLink(link.href, link.isPrimaryGoogleMap))
+  const hasInlineLinks = actionLinks.length > 0 || visibleUserLinkCount > 0
   const linkButtonClassName = `${styles.iconLink} ${styles.iconLinkActive} ${displayLinkCount > 0 ? styles.iconLinkPrimary : ''}`
   const linkButtonLabel = `\u9023\u7d50${displayLinkCount > 0 ? ` ${displayLinkCount}` : ''}`
 
@@ -6626,6 +6626,7 @@ function SortableTransportItem({
   readOnly,
   dragDisabled = false,
   batchDragDelta = null,
+  batchDragActive = false,
 }: {
   itemId: PlannerItem
   info: TransportInfo
@@ -6643,18 +6644,16 @@ function SortableTransportItem({
   readOnly: boolean
   dragDisabled?: boolean
   batchDragDelta?: { x: number; y: number } | null
+  batchDragActive?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
     disabled: readOnly,
   })
   const batchTransportDragging = Boolean(batchDragDelta && !isDragging)
-  const sortableTransform = CSS.Transform.toString(transform)
   const style = {
-    transform: batchTransportDragging
-      ? `translate3d(${batchDragDelta?.x ?? 0}px, ${batchDragDelta?.y ?? 0}px, 0)${sortableTransform ? ` ${sortableTransform}` : ''}`
-      : sortableTransform,
-    transition: batchTransportDragging ? undefined : transition,
+    transform: batchDragActive ? undefined : CSS.Transform.toString(transform),
+    transition: batchDragActive ? undefined : transition,
   }
   const [draft, setDraft] = useState(info)
   const [photosOpen, setPhotosOpen] = useState(false)
@@ -6847,7 +6846,7 @@ function SortableTransportItem({
     <div
       ref={setCardRefs}
       style={style}
-      className={`${styles.transportItem} ${isDragging ? styles.planCardDragging : ''}`}
+      className={`${styles.transportItem} ${isDragging ? styles.planCardDragging : ''} ${batchTransportDragging ? styles.transportItemBatchDragging : ''}`}
       data-plan-item-id={itemId}
     >
       <article
@@ -6970,8 +6969,7 @@ function TransportItemGroup({
   return (
     <section
       ref={groupRef}
-      style={batchTransportGroupDragging ? { transform: `translate3d(${batchDragDelta?.x ?? 0}px, ${batchDragDelta?.y ?? 0}px, 0)` } : undefined}
-      className={`${styles.transportGroup} ${expanded ? styles.transportGroupExpanded : ''}`}
+      className={`${styles.transportGroup} ${expanded ? styles.transportGroupExpanded : ''} ${batchTransportGroupDragging ? styles.transportGroupBatchDragging : ''}`}
     >
       {expanded ? (
         <div className={styles.transportGroupToggle}>{summary}</div>
@@ -6993,6 +6991,7 @@ function SortableDayDivider({
   onRemove,
   readOnly,
   dragDisabled = false,
+  batchDragActive = false,
   dividerRef,
 }: {
   id: string
@@ -7003,6 +7002,7 @@ function SortableDayDivider({
   cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
   dragDisabled?: boolean
+  batchDragActive?: boolean
   dividerRef?: (el: HTMLDivElement | null) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: readOnly })
@@ -7013,8 +7013,8 @@ function SortableDayDivider({
     dividerRef?.(el)
   }
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: batchDragActive ? undefined : CSS.Transform.toString(transform),
+    transition: batchDragActive ? undefined : transition,
   }
   const fallbackTitle = dayTitle(dayNumber)
   const displayTitle = title.trim() || fallbackTitle
@@ -7278,8 +7278,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedPlanItem, setSelectedPlanItem] = useState<PlannerItem | null>(null)
   const [batchSelectedPlanItems, setBatchSelectedPlanItems] = useState<PlannerItem[]>([])
+  const [activePlanDragItem, setActivePlanDragItem] = useState<PlannerItem | null>(null)
   const [activeBatchDragItem, setActiveBatchDragItem] = useState<PlannerItem | null>(null)
   const [activeBatchDragDelta, setActiveBatchDragDelta] = useState<{ x: number; y: number } | null>(null)
+  const [activeBatchDropTarget, setActiveBatchDropTarget] = useState<PlannerItem | null>(null)
+  const [activeBatchDropPosition, setActiveBatchDropPosition] = useState<'before' | 'after'>('before')
+  const activeBatchDropTargetRef = useRef<PlannerItem | null>(null)
+  const activeBatchDropPositionRef = useRef<'before' | 'after'>('before')
   const [mobilePageHeight, setMobilePageHeight] = useState<number | null>(null)
   const [mobilePanelState, setMobilePanelState] = useState<MobilePanelState>('collapsed')
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
@@ -7317,7 +7322,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [locationRequesting, setLocationRequesting] = useState(false)
   const [dayView, setDayView] = useState<DayView>('all')
   const [dayViewStorageReadyKey, setDayViewStorageReadyKey] = useState('')
-  const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions'>(null)
+  const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions' | 'batch-move'>(null)
   const [preDepartureOpen, setPreDepartureOpen] = useState(false)
   const [preDepartureTravelers, setPreDepartureTravelers] = useState<PreDepartureTraveler[]>([{ ...PRE_DEPARTURE_OWNER }])
   const [preDepartureActiveTargetId, setPreDepartureActiveTargetId] = useState(PRE_DEPARTURE_OWNER.id)
@@ -8167,14 +8172,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (!activeBatchDragItem || !batchSelectedPlanItemSet.has(activeBatchDragItem)) return new Set<PlannerItem>()
     return batchMoveItemSet(validPlanItems, batchSelectedPlanItemSet, placeById)
   }, [activeBatchDragItem, batchSelectedPlanItemSet, placeById, validPlanItems])
+  const batchDragTransportCount = useMemo(
+    () => [...batchDragItemSet].filter(isTransportItem).length,
+    [batchDragItemSet],
+  )
   const batchDragPreviewPlaces = useMemo(() => {
-    if (!activeBatchDragItem || !batchSelectedPlanItemSet.has(activeBatchDragItem)) return []
+    if (!activePlanDragItem) return []
+    const selectedBatchDrag = batchSelectedPlanItemSet.has(activePlanDragItem)
     return validPlanItems.flatMap((item) => {
-      if (!batchSelectedPlanItemSet.has(item)) return []
+      if (selectedBatchDrag ? !batchSelectedPlanItemSet.has(item) : item !== activePlanDragItem) return []
       const place = planItemPlace(item, placeById)
       return place ? [{ item, place }] : []
     })
-  }, [activeBatchDragItem, batchSelectedPlanItemSet, placeById, validPlanItems])
+  }, [activePlanDragItem, batchSelectedPlanItemSet, placeById, validPlanItems])
   const findPlanItemDayView = useCallback((targetItem: PlannerItem | null | undefined): DayView => {
     if (!targetItem) return 'all'
     const dayIndex = plannedDays.findIndex((day) => day.items.includes(targetItem))
@@ -10245,6 +10255,42 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setBatchSelectedPlanItems([])
   }
 
+  const moveBatchPlanItemsToDay = (targetDayDivider: PlannerItem | null, targetDayIndex: number) => {
+    if (readOnlyPlan || batchSelectedPlanItems.length === 0) return
+    const selectedItems = new Set(batchSelectedPlanItems)
+    markPlannerCloudUserEdit()
+    setPlanItems((items) => {
+      const movedItemSet = batchMoveItemSet(items, selectedItems, placeById)
+      const movedItems = items.filter((item) => movedItemSet.has(item))
+      if (movedItems.length === 0) return items
+
+      const remainingItems = items.filter((item) => !movedItemSet.has(item))
+      const targetDividerIndex = targetDayDivider ? remainingItems.indexOf(targetDayDivider) : -1
+      if (targetDayDivider && targetDividerIndex < 0) return items
+
+      const targetStartIndex = targetDividerIndex >= 0 ? targetDividerIndex + 1 : 0
+      const nextDividerOffset = remainingItems.slice(targetStartIndex).findIndex(isDayItem)
+      const insertIndex = nextDividerOffset < 0 ? remainingItems.length : targetStartIndex + nextDividerOffset
+      const nextItems = [
+        ...remainingItems.slice(0, insertIndex),
+        ...movedItems,
+        ...remainingItems.slice(insertIndex),
+      ]
+      if (nextItems.every((item, index) => item === items[index])) return items
+
+      trackPlannerEvent('move_selected_to_day', {
+        item_count: movedItems.length,
+        to_day: targetDayIndex + 1,
+        plan_count: nextItems.length,
+        plan_code: encodeSharedPlan(nextItems, lookupPlaces),
+      })
+      return nextItems
+    })
+    selectDayView(targetDayIndex + 1)
+    cancelBatchPlanItemSelection()
+    setOpenPlannerMenu(null)
+  }
+
   const confirmPendingDelete = () => {
     if (!pendingDelete) return
     if (pendingDelete.type === 'custom') deleteCustomPlace(pendingDelete.placeId)
@@ -10441,6 +10487,24 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       return { ...links, [placeId]: nextLinks }
     })
+    if (isCustomPlaceId(placeId)) {
+      setCustomPlaces((places) => {
+        const place = places[placeId]
+        if (!place?.links?.length) return places
+        const nextLinks = place.links.filter((_, linkIndex) => linkIndex !== index)
+        if (nextLinks.length === 0) {
+          const { links: _links, ...placeWithoutLinks } = place
+          return { ...places, [placeId]: placeWithoutLinks }
+        }
+        return {
+          ...places,
+          [placeId]: {
+            ...place,
+            links: nextLinks,
+          },
+        }
+      })
+    }
   }
 
   const setCustomPlacePrimaryUserLink = (placeId: string, labelValue: string, hrefValue: string) => {
@@ -11995,7 +12059,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       Boolean(existingPlace?.googleUrl && cleanGoogleUrl) &&
       normalizePlaceMatchUrl(existingPlace?.googleUrl) !== normalizePlaceMatchUrl(cleanGoogleUrl)
     const sourcePlaceId = directMatchedKnownPlace?.id ?? (googleUrlChanged ? undefined : existingPlace?.sourcePlaceId)
-    const baseLinks = placeUserLinks[id] ?? existingPlace?.links ?? []
+    const baseLinks = placeUserLinks[id] ?? []
     const pendingLinks = linkLabel && linkUrl ? [{ label: linkLabel, href: linkUrl }] : []
     const seenCustomLinks = new Set<string>()
     const nextLinks = [...baseLinks, ...pendingLinks]
@@ -12130,13 +12194,61 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const handlePlanDragStart = (event: DragStartEvent) => {
     planDragActiveRef.current = true
     const activeItem = String(event.active.id)
+    setActivePlanDragItem(activeItem)
+    activeBatchDropTargetRef.current = null
+    activeBatchDropPositionRef.current = 'before'
+    setActiveBatchDropTarget(null)
+    setActiveBatchDropPosition('before')
     if (!batchSelectedPlanItemSet.has(activeItem)) return
     setActiveBatchDragItem(activeItem)
     setActiveBatchDragDelta({ x: 0, y: 0 })
   }
 
+  const updatePlanDragDropTarget = (activeItem: PlannerItem, translatedRect: { top: number; height: number } | null) => {
+    if (!translatedRect) return
+    const movingItemSet = batchSelectedPlanItemSet.has(activeItem)
+      ? batchMoveItemSet(validPlanItems, batchSelectedPlanItemSet, placeById)
+      : new Set<PlannerItem>([activeItem])
+    const cardElements = new Map(
+      Array.from(planListRef.current?.querySelectorAll<HTMLElement>('[data-plan-item-card]') ?? [])
+        .map((element) => [element.dataset.planItemCard, element] as const)
+        .filter(([itemId]) => Boolean(itemId)),
+    )
+    const candidates = validPlanItems.flatMap((item) => {
+      if (movingItemSet.has(item) || !planItemPlace(item, placeById)) return []
+      const element = cardElements.get(item)
+      if (!element) return []
+      const rect = element.getBoundingClientRect()
+      return rect.height > 0 ? [{ item, rect }] : []
+    })
+    if (candidates.length === 0) {
+      activeBatchDropTargetRef.current = null
+      setActiveBatchDropTarget(null)
+      return
+    }
+
+    const translatedCenterY = translatedRect.top + translatedRect.height / 2
+    let target = candidates[candidates.length - 1]
+    let position: 'before' | 'after' = 'after'
+    for (const candidate of candidates) {
+      if (translatedCenterY <= candidate.rect.top + candidate.rect.height / 2) {
+        target = candidate
+        position = 'before'
+        break
+      }
+    }
+
+    if (activeBatchDropTargetRef.current === target.item && activeBatchDropPositionRef.current === position) return
+    activeBatchDropTargetRef.current = target.item
+    activeBatchDropPositionRef.current = position
+    setActiveBatchDropTarget(target.item)
+    setActiveBatchDropPosition(position)
+  }
+
   const handlePlanDragMove = (event: DragMoveEvent) => {
-    if (!batchSelectedPlanItemSet.has(String(event.active.id))) return
+    const activeItem = String(event.active.id)
+    updatePlanDragDropTarget(activeItem, event.active.rect.current.translated)
+    if (!batchSelectedPlanItemSet.has(activeItem)) return
     batchDragDeltaRef.current = { x: event.delta.x, y: event.delta.y }
     if (batchDragFrameRef.current != null) return
     batchDragFrameRef.current = window.requestAnimationFrame(() => {
@@ -12159,26 +12271,34 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     setActiveBatchDragItem(null)
     setActiveBatchDragDelta(null)
+    setActivePlanDragItem(null)
+    activeBatchDropTargetRef.current = null
+    activeBatchDropPositionRef.current = 'before'
+    setActiveBatchDropTarget(null)
+    setActiveBatchDropPosition('before')
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
+    const dropTarget = activeBatchDropTargetRef.current
+    const dropPosition = activeBatchDropPositionRef.current
     clearActiveBatchDrag()
     if (readOnlyPlan) return
     const { active, over } = event
-    if (!over || active.id === over.id) return
+    const overItem = dropTarget ?? (over ? String(over.id) : null)
+    if (!overItem || active.id === overItem) return
     const activeItem = String(active.id)
     const selectedItems = new Set(batchSelectedPlanItems)
 
     if (batchSelectionActive && selectedItems.has(activeItem)) {
-      if (selectedItems.has(String(over.id))) return
+      if (selectedItems.has(overItem)) return
       markPlannerCloudUserEdit()
       setPlanItems((items) => {
         const activeIndex = items.indexOf(activeItem)
-        const overIndex = items.indexOf(String(over.id))
+        const overIndex = items.indexOf(overItem)
         if (activeIndex < 0 || overIndex < 0) return items
 
         const movedItemSet = batchMoveItemSet(items, selectedItems, placeById)
-        if (movedItemSet.has(String(over.id))) return items
+        if (movedItemSet.has(overItem)) return items
 
         const targetIndex = overIndex
         if (targetIndex === activeIndex) return items
@@ -12195,14 +12315,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
         const anchorRemainingIndex =
           anchorIndex >= 0 && anchorIndex < items.length ? remainingItems.indexOf(items[anchorIndex]) : -1
+        const visualDropPosition = dropTarget === overItem ? dropPosition : null
+        const insertAfterAnchor = visualDropPosition ? visualDropPosition === 'after' : movingDown
         const insertIndex =
           anchorIndex < 0
             ? 0
             : anchorIndex >= items.length
               ? remainingItems.length
-              : isDayItem(items[anchorIndex]) && anchorRemainingIndex === 0 && !movingDown
-                ? 1
-                : Math.max(0, anchorRemainingIndex + (movingDown ? 1 : 0))
+              : isDayItem(items[anchorIndex])
+                ? Math.max(0, anchorRemainingIndex + 1)
+                : Math.max(0, anchorRemainingIndex + (insertAfterAnchor ? 1 : 0))
         const nextItems = [
           ...remainingItems.slice(0, insertIndex),
           ...movedItems,
@@ -12226,10 +12348,31 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     markPlannerCloudUserEdit()
     setPlanItems((items) => {
       const oldIndex = items.indexOf(String(active.id))
-      const newIndex = items.indexOf(String(over.id))
+      const newIndex = items.indexOf(overItem)
       if (oldIndex < 0 || newIndex < 0) return items
-      const targetIndex = newIndex
-      const nextIds = arrayMove(items, oldIndex, targetIndex)
+      const targetItem = overItem
+      const visualDropPosition = dropTarget === targetItem ? dropPosition : null
+      const movedItemSet = batchMoveItemSet(items, new Set<PlannerItem>([activeItem]), placeById)
+      if (movedItemSet.has(targetItem)) return items
+      const movedItems = items.filter((item) => movedItemSet.has(item))
+      if (movedItems.length === 0) return items
+      const remainingItems = items.filter((item) => !movedItemSet.has(item))
+      const targetRemainingIndex = remainingItems.indexOf(targetItem)
+      const fallbackInsertAfterTarget = newIndex > oldIndex
+      const insertIndex =
+        targetRemainingIndex < 0
+          ? newIndex
+          : visualDropPosition
+            ? targetRemainingIndex + (visualDropPosition === 'after' ? 1 : 0)
+            : isDayItem(targetItem)
+              ? targetRemainingIndex + 1
+              : targetRemainingIndex + (fallbackInsertAfterTarget ? 1 : 0)
+      const targetIndex = Math.max(0, Math.min(insertIndex, remainingItems.length))
+      const nextIds = [
+        ...remainingItems.slice(0, targetIndex),
+        ...movedItems,
+        ...remainingItems.slice(targetIndex),
+      ]
       const placeId = planItemPlaceId(String(active.id)) ?? String(active.id)
       const place = placeById.get(placeId)
       trackPlannerEvent('drag_sort', {
@@ -13757,6 +13900,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 ) : (
                   <>
                     <div className={`${styles.orderControlBar} ${batchSelectionActive ? styles.orderControlBarBatchSelecting : ''}`}>
+                      {!batchSelectionActive ? (
                       <div className={styles.dayViewControl} aria-label="行程查看範圍">
                         {hasDayDividers ? (
                           <div className={styles.dayMenu} data-planner-menu="true">
@@ -13810,6 +13954,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           <span className={styles.dayViewStatic}>全行程</span>
                         )}
                       </div>
+                      ) : null}
+                      {!batchSelectionActive ? (
                       <div className={styles.orderMenu} data-planner-menu="true">
                         <button
                           type="button"
@@ -13854,18 +14000,45 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         </div>
                         ) : null}
                       </div>
+                      ) : null}
                       {batchSelectionActive ? (
-                        <button
-                          type="button"
-                          className={styles.batchSelectionClose}
-                          aria-label="結束多選"
-                          onClick={() => {
-                            cancelBatchPlanItemSelection()
-                            setOpenPlannerMenu(null)
-                          }}
-                        >
-                          取消勾選
-                        </button>
+                        <>
+                          <div className={styles.batchMoveMenu} data-planner-menu="true">
+                            <button
+                              type="button"
+                              className={openPlannerMenu === 'batch-move' ? styles.batchSelectionMoveActive : styles.batchSelectionMove}
+                              onClick={() => setOpenPlannerMenu((menu) => (menu === 'batch-move' ? null : 'batch-move'))}
+                            >
+                              移動
+                            </button>
+                            {openPlannerMenu === 'batch-move' ? (
+                              <div className={styles.batchMoveMenuList} role="menu" aria-label="移動到指定日期">
+                                <span className={styles.batchMoveMenuTitle}>移動至</span>
+                                {plannedDays.map((day, index) => (
+                                  <button
+                                    key={day.divider ?? `batch-move-day-${index + 1}`}
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => moveBatchPlanItemsToDay(day.divider, index)}
+                                  >
+                                    {day.title}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.batchSelectionClose}
+                            aria-label="結束多選"
+                            onClick={() => {
+                              cancelBatchPlanItemSelection()
+                              setOpenPlannerMenu(null)
+                            }}
+                          >
+                            取消勾選
+                          </button>
+                        </>
                       ) : null}
                     </div>
                     <DndContext
@@ -13901,6 +14074,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   onRemove={() => requestRemoveDayDivider(item)}
                                   readOnly={readOnlyPlan}
                                   dragDisabled={batchSelectionActive}
+                                  batchDragActive={Boolean(activePlanDragItem)}
                                   dividerRef={(el) => {
                                     dayDividerRefs.current[item] = el
                                   }}
@@ -13934,6 +14108,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   readOnly={readOnlyPlan}
                                   dragDisabled={batchSelectionActive}
                                   batchDragDelta={batchDragItemSet.has(item) ? activeBatchDragDelta : null}
+                                  batchDragActive={Boolean(activePlanDragItem)}
                                 />
                               )
                             }
@@ -13978,6 +14153,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   batchSelectionActive={batchSelectionActive}
                                   batchSelected={batchSelectedPlanItemSet.has(item)}
                                   batchDragDelta={activeBatchDragItem ? activeBatchDragDelta : null}
+                                  dragOverlayActive={Boolean(activePlanDragItem)}
+                                  batchDropPosition={activeBatchDropTarget === item ? activeBatchDropPosition : null}
                                   onToggleBatchSelection={() => toggleBatchPlanItem(item)}
                                   onStartBatchSelection={() => startBatchPlanItemSelection(item)}
                                 />
@@ -14013,24 +14190,28 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         </div>
                       </SortableContext>
                       <DragOverlay dropAnimation={null}>
-                        {batchDragPreviewPlaces.length > 1 ? (
-                          <div className={styles.batchDragOverlay} aria-hidden="true">
-                            {batchDragPreviewPlaces.slice(0, 3).map(({ item, place }, index) => (
+                        {batchDragPreviewPlaces.length > 0 ? (
+                          <div
+                            className={`${styles.batchDragOverlay} ${batchDragPreviewPlaces.length > 1 ? styles.batchDragOverlayStacked : styles.batchDragOverlaySingle}`}
+                            aria-hidden="true"
+                          >
+                            {batchDragPreviewPlaces.slice(0, 1).map(({ item, place }) => (
                               <div
                                 key={item}
                                 className={styles.batchDragOverlayCard}
                                 style={{
-                                  '--batch-drag-index': index,
                                   '--planner-category-color': plannerPlaceColor(place, plannerCategoryItems),
                                 } as CSSProperties}
                               >
                                 <span className={styles.batchDragOverlayGrip}>☰</span>
                                 <span>{plannerPlaceName(place)}</span>
+                                {batchDragPreviewPlaces.length > 1 ? (
+                                  <span className={styles.batchDragOverlayCount}>
+                                    {batchDragPreviewPlaces.length} 張{batchDragTransportCount > 0 ? `・${batchDragTransportCount} 段交通` : ''}
+                                  </span>
+                                ) : null}
                               </div>
                             ))}
-                            {batchDragPreviewPlaces.length > 3 ? (
-                              <span className={styles.batchDragOverlayCount}>+{batchDragPreviewPlaces.length - 3}</span>
-                            ) : null}
                           </div>
                         ) : null}
                       </DragOverlay>
