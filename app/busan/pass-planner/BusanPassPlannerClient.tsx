@@ -195,13 +195,6 @@ const plannerCollisionDetection: CollisionDetection = (args) => {
   return pointerCollisions.length > 0 ? pointerCollisions : closestCenter(args)
 }
 
-const mobileDragTargetIndex = (fromIndex: number, toIndex: number, deltaY: number) => {
-  if (!isMobilePlannerViewport() || Math.abs(toIndex - fromIndex) <= 1) return toIndex
-  const dragDirection = Math.sign(toIndex - fromIndex)
-  const maxSteps = Math.max(1, Math.ceil(Math.abs(deltaY) / 56))
-  return fromIndex + dragDirection * Math.min(Math.abs(toIndex - fromIndex), maxSteps)
-}
-
 type CustomPlannerPlace = {
   id: string
   sourcePlaceId?: string
@@ -3024,6 +3017,35 @@ function transportNavigationPlaces(items: PlannerItem[], itemId: PlannerItem, pl
   return from && to ? { from, to } : null
 }
 
+function batchMoveItemSet(items: PlannerItem[], selectedItems: Set<PlannerItem>, placeById: Map<string, MapPlace>) {
+  const movingItems = new Set(
+    items.filter((item) => selectedItems.has(item) && Boolean(planItemPlace(item, placeById))),
+  )
+  let previousPlaceItem: PlannerItem | null = null
+  let transportItems: PlannerItem[] = []
+
+  items.forEach((item) => {
+    if (isDayItem(item)) {
+      previousPlaceItem = null
+      transportItems = []
+      return
+    }
+    if (isTransportItem(item)) {
+      transportItems.push(item)
+      return
+    }
+    if (!planItemPlace(item, placeById)) return
+
+    if (previousPlaceItem && movingItems.has(previousPlaceItem) && movingItems.has(item)) {
+      transportItems.forEach((transportItem) => movingItems.add(transportItem))
+    }
+    previousPlaceItem = item
+    transportItems = []
+  })
+
+  return movingItems
+}
+
 function normalizePlanItems(items: PlannerItem[], placeById: Map<string, MapPlace>) {
   const seenPlaceIds = new Set<string>()
   const seenVisitItems = new Set<string>()
@@ -5384,8 +5406,12 @@ function SortablePlanItem({
       : sortableTransform,
     transition: batchSiblingDragging ? undefined : transition,
   }
-  const dragHandleListeners = batchSelectionActive ? undefined : listeners
+  // Keep the familiar desktop grip drag available after entering multi-select.
+  // A click still selects/deselects; a drag from a selected grip moves the whole selection.
+  const dragHandleListeners = !batchSelectionActive || batchSelected ? listeners : undefined
   const cardDragListeners = batchSelectionActive && batchSelected ? listeners : undefined
+  const isDragHandleTarget = (target: EventTarget | null) =>
+    target instanceof HTMLElement && Boolean(target.closest(`.${styles.dragHandle}`))
 
   const setRefs = (el: HTMLElement | null) => {
     cardElementRef.current = el
@@ -5587,6 +5613,15 @@ function SortablePlanItem({
         className={`${styles.planCard} ${expanded ? styles.planCardExpanded : styles.planCardCollapsed} ${selected ? styles.planCardActive : ''} ${batchSelectionActive ? styles.planCardBatchSelecting : ''} ${batchSelected ? styles.planCardBatchSelected : ''}`}
         style={plannerPlaceStyle(place, categoryItems)}
         {...cardDragListeners}
+        onMouseDown={(event) => {
+          if (!isDragHandleTarget(event.target)) cardDragListeners?.onMouseDown?.(event)
+        }}
+        onTouchStart={(event) => {
+          if (!isDragHandleTarget(event.target)) cardDragListeners?.onTouchStart?.(event)
+        }}
+        onKeyDown={(event) => {
+          if (!isDragHandleTarget(event.target)) cardDragListeners?.onKeyDown?.(event)
+        }}
         onPointerDown={(event) => {
           startBatchLongPress(event)
           startBatchCardDragPointer(event)
@@ -6590,6 +6625,7 @@ function SortableTransportItem({
   cardRef,
   readOnly,
   dragDisabled = false,
+  batchDragDelta = null,
 }: {
   itemId: PlannerItem
   info: TransportInfo
@@ -6606,14 +6642,19 @@ function SortableTransportItem({
   cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
   dragDisabled?: boolean
+  batchDragDelta?: { x: number; y: number } | null
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
     disabled: readOnly,
   })
+  const batchTransportDragging = Boolean(batchDragDelta && !isDragging)
+  const sortableTransform = CSS.Transform.toString(transform)
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: batchTransportDragging
+      ? `translate3d(${batchDragDelta?.x ?? 0}px, ${batchDragDelta?.y ?? 0}px, 0)${sortableTransform ? ` ${sortableTransform}` : ''}`
+      : sortableTransform,
+    transition: batchTransportDragging ? undefined : transition,
   }
   const [draft, setDraft] = useState(info)
   const [photosOpen, setPhotosOpen] = useState(false)
@@ -6907,15 +6948,18 @@ function TransportItemGroup({
   expanded,
   onExpand,
   groupRef,
+  batchDragDelta = null,
   children,
 }: {
   items: PlannerItem[]
   expanded: boolean
   onExpand: () => void
   groupRef?: (el: HTMLElement | null) => void
+  batchDragDelta?: { x: number; y: number } | null
   children: ReactNode
 }) {
   const preview = transportGroupPreview(items)
+  const batchTransportGroupDragging = Boolean(batchDragDelta && !expanded)
   const summary = (
     <>
       <span className={styles.transportGroupBadge}>{items.length} 段交通</span>
@@ -6924,7 +6968,11 @@ function TransportItemGroup({
     </>
   )
   return (
-    <section ref={groupRef} className={`${styles.transportGroup} ${expanded ? styles.transportGroupExpanded : ''}`}>
+    <section
+      ref={groupRef}
+      style={batchTransportGroupDragging ? { transform: `translate3d(${batchDragDelta?.x ?? 0}px, ${batchDragDelta?.y ?? 0}px, 0)` } : undefined}
+      className={`${styles.transportGroup} ${expanded ? styles.transportGroupExpanded : ''}`}
+    >
       {expanded ? (
         <div className={styles.transportGroupToggle}>{summary}</div>
       ) : (
@@ -7176,6 +7224,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const pendingCustomMapFocusRef = useRef<{ lat: number; lng: number } | null>(null)
   const customMapFocusTimersRef = useRef<number[]>([])
   const planListRef = useRef<HTMLDivElement | null>(null)
+  const planDragActiveRef = useRef(false)
+  const planDragWheelDeltaRef = useRef({ x: 0, y: 0 })
+  const planDragWheelFrameRef = useRef<number | null>(null)
+  const batchDragDeltaRef = useRef<{ x: number; y: number } | null>(null)
+  const batchDragFrameRef = useRef<number | null>(null)
   const mobilePanelStateRef = useRef<MobilePanelState>('collapsed')
   const pendingHalfPanelFocusRef = useRef<PlannerFocusTarget | null>(null)
   const pendingHalfPanelExpandItemRef = useRef<PlannerItem | null>(null)
@@ -8110,6 +8163,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const hasDayDividers = useMemo(() => validPlanItems.some(isDayItem), [validPlanItems])
   const batchSelectedPlanItemSet = useMemo(() => new Set(batchSelectedPlanItems), [batchSelectedPlanItems])
   const batchSelectionActive = batchSelectedPlanItems.length > 0
+  const batchDragItemSet = useMemo(() => {
+    if (!activeBatchDragItem || !batchSelectedPlanItemSet.has(activeBatchDragItem)) return new Set<PlannerItem>()
+    return batchMoveItemSet(validPlanItems, batchSelectedPlanItemSet, placeById)
+  }, [activeBatchDragItem, batchSelectedPlanItemSet, placeById, validPlanItems])
   const batchDragPreviewPlaces = useMemo(() => {
     if (!activeBatchDragItem || !batchSelectedPlanItemSet.has(activeBatchDragItem)) return []
     return validPlanItems.flatMap((item) => {
@@ -9439,6 +9496,39 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       expandedPlanScrollCollapseTimerRef.current = null
     }, 140)
   }, [expandedPlanItem, expandedTransportGroups, rememberTransportGroupScrollAnchor, setExpandedPlanItemWithScrollCompensation, visiblePlanItemGroups])
+
+  const handlePlanListWheel = useCallback((event: ReactWheelEvent<HTMLDivElement>) => {
+    scheduleExpandedPlanItemCollapseIfNearlyOutside(event)
+  }, [scheduleExpandedPlanItemCollapseIfNearlyOutside])
+
+  useEffect(() => {
+    const scrollPlanListDuringDrag = (event: WheelEvent) => {
+      if (!planDragActiveRef.current) return
+      const planList = planListRef.current
+      if (!planList) return
+
+      // DragOverlay is rendered outside the list, so intercept at the window
+      // to reliably keep the physical wheel inside the itinerary.
+      event.preventDefault()
+      event.stopPropagation()
+      planDragWheelDeltaRef.current.x += event.deltaX
+      planDragWheelDeltaRef.current.y += event.deltaY
+      if (planDragWheelFrameRef.current != null) return
+      planDragWheelFrameRef.current = window.requestAnimationFrame(() => {
+        planDragWheelFrameRef.current = null
+        if (!planDragActiveRef.current) return
+        const delta = planDragWheelDeltaRef.current
+        planDragWheelDeltaRef.current = { x: 0, y: 0 }
+        planList.scrollBy({ top: delta.y, left: delta.x })
+      })
+    }
+
+    window.addEventListener('wheel', scrollPlanListDuringDrag, { capture: true, passive: false })
+    return () => {
+      window.removeEventListener('wheel', scrollPlanListDuringDrag, true)
+      if (planDragWheelFrameRef.current != null) window.cancelAnimationFrame(planDragWheelFrameRef.current)
+    }
+  }, [])
 
   const fitMapToPlaces = useCallback((force = false) => {
     const map = mapRef.current
@@ -12038,6 +12128,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
 
   const handlePlanDragStart = (event: DragStartEvent) => {
+    planDragActiveRef.current = true
     const activeItem = String(event.active.id)
     if (!batchSelectedPlanItemSet.has(activeItem)) return
     setActiveBatchDragItem(activeItem)
@@ -12045,10 +12136,27 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
 
   const handlePlanDragMove = (event: DragMoveEvent) => {
-    setActiveBatchDragDelta({ x: event.delta.x, y: event.delta.y })
+    if (!batchSelectedPlanItemSet.has(String(event.active.id))) return
+    batchDragDeltaRef.current = { x: event.delta.x, y: event.delta.y }
+    if (batchDragFrameRef.current != null) return
+    batchDragFrameRef.current = window.requestAnimationFrame(() => {
+      batchDragFrameRef.current = null
+      if (batchDragDeltaRef.current) setActiveBatchDragDelta(batchDragDeltaRef.current)
+    })
   }
 
   const clearActiveBatchDrag = () => {
+    planDragActiveRef.current = false
+    planDragWheelDeltaRef.current = { x: 0, y: 0 }
+    if (planDragWheelFrameRef.current != null) {
+      window.cancelAnimationFrame(planDragWheelFrameRef.current)
+      planDragWheelFrameRef.current = null
+    }
+    batchDragDeltaRef.current = null
+    if (batchDragFrameRef.current != null) {
+      window.cancelAnimationFrame(batchDragFrameRef.current)
+      batchDragFrameRef.current = null
+    }
     setActiveBatchDragItem(null)
     setActiveBatchDragDelta(null)
   }
@@ -12069,16 +12177,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const overIndex = items.indexOf(String(over.id))
         if (activeIndex < 0 || overIndex < 0) return items
 
-        const targetIndex = mobileDragTargetIndex(activeIndex, overIndex, event.delta.y)
+        const movedItemSet = batchMoveItemSet(items, selectedItems, placeById)
+        if (movedItemSet.has(String(over.id))) return items
+
+        const targetIndex = overIndex
         if (targetIndex === activeIndex) return items
 
         const movingDown = targetIndex > activeIndex
-        const movedItems = items.filter((item) => selectedItems.has(item) && Boolean(planItemPlace(item, placeById)))
+        const movedItems = items.filter((item) => movedItemSet.has(item))
         if (movedItems.length === 0) return items
-        const remainingItems = items.filter((item) => !selectedItems.has(item))
+        const remainingItems = items.filter((item) => !movedItemSet.has(item))
         let anchorIndex = targetIndex
         const direction = movingDown ? 1 : -1
-        while (anchorIndex >= 0 && anchorIndex < items.length && selectedItems.has(items[anchorIndex])) {
+        while (anchorIndex >= 0 && anchorIndex < items.length && movedItemSet.has(items[anchorIndex])) {
           anchorIndex += direction
         }
 
@@ -12117,7 +12228,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const oldIndex = items.indexOf(String(active.id))
       const newIndex = items.indexOf(String(over.id))
       if (oldIndex < 0 || newIndex < 0) return items
-      const targetIndex = mobileDragTargetIndex(oldIndex, newIndex, event.delta.y)
+      const targetIndex = newIndex
       const nextIds = arrayMove(items, oldIndex, targetIndex)
       const placeId = planItemPlaceId(String(active.id)) ?? String(active.id)
       const place = placeById.get(placeId)
@@ -13772,7 +13883,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           data-planner-scroll-list="true"
                           onScroll={scheduleExpandedPlanItemCollapseIfNearlyOutside}
                           onTouchMove={scheduleExpandedPlanItemCollapseIfNearlyOutside}
-                          onWheel={scheduleExpandedPlanItemCollapseIfNearlyOutside}
+                          onWheelCapture={handlePlanListWheel}
                         >
                           {visiblePlanItemGroups.map((displayItem) => {
                             const renderPlanListItem = (item: PlannerItem) => {
@@ -13822,6 +13933,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   }}
                                   readOnly={readOnlyPlan}
                                   dragDisabled={batchSelectionActive}
+                                  batchDragDelta={batchDragItemSet.has(item) ? activeBatchDragDelta : null}
                                 />
                               )
                             }
@@ -13883,6 +13995,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                 key={displayItem.key}
                                 items={displayItem.items}
                                 expanded={expanded}
+                                batchDragDelta={
+                                  displayItem.items.every((item) => batchDragItemSet.has(item)) ? activeBatchDragDelta : null
+                                }
                                 groupRef={(el) => {
                                   transportGroupRefs.current[displayItem.key] = el
                                 }}
