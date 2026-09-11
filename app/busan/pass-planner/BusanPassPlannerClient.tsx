@@ -1748,13 +1748,6 @@ function customPlaceToMapPlace(
           },
         ]
       : []),
-    ...(place.links ?? []).map((link) => ({
-      label: link.label,
-      href: link.href,
-      platform: link.label,
-      event: 'custom_place_link',
-      mapSection: 'planner_card',
-    })),
   ]
 
   return {
@@ -2219,35 +2212,55 @@ function preparePlannerActionLinkClick(
   event.currentTarget.href = plannerReturnAwareHref(action.href)
 }
 
+type PlannerBodyScrollLockSnapshot = Pick<CSSStyleDeclaration, 'position' | 'top' | 'left' | 'right' | 'width' | 'overflow'>
+
+let plannerBodyScrollLockCount = 0
+let plannerBodyScrollLockSnapshot: PlannerBodyScrollLockSnapshot | null = null
+let plannerBodyScrollLockScrollY = 0
+
 function usePlannerBodyScrollLock(locked: boolean) {
   useEffect(() => {
     if (!locked || typeof window === 'undefined') return
     const body = document.body
-    const scrollY = window.scrollY
-    const previous = {
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      right: body.style.right,
-      width: body.style.width,
-      overflow: body.style.overflow,
-    }
+    if (plannerBodyScrollLockCount === 0) {
+      plannerBodyScrollLockScrollY = window.scrollY
+      plannerBodyScrollLockSnapshot = {
+        position: body.style.position,
+        top: body.style.top,
+        left: body.style.left,
+        right: body.style.right,
+        width: body.style.width,
+        overflow: body.style.overflow,
+      }
 
-    body.style.position = 'fixed'
-    body.style.top = `-${scrollY}px`
-    body.style.left = '0'
-    body.style.right = '0'
-    body.style.width = '100%'
-    body.style.overflow = 'hidden'
+      body.style.position = 'fixed'
+      body.style.top = `-${plannerBodyScrollLockScrollY}px`
+      body.style.left = '0'
+      body.style.right = '0'
+      body.style.width = '100%'
+      body.style.overflow = 'hidden'
+    }
+    plannerBodyScrollLockCount += 1
+    let released = false
 
     return () => {
-      body.style.position = previous.position
-      body.style.top = previous.top
-      body.style.left = previous.left
-      body.style.right = previous.right
-      body.style.width = previous.width
-      body.style.overflow = previous.overflow
-      window.scrollTo(0, scrollY)
+      if (released) return
+      released = true
+      plannerBodyScrollLockCount = Math.max(0, plannerBodyScrollLockCount - 1)
+      if (plannerBodyScrollLockCount > 0) return
+
+      const snapshot = plannerBodyScrollLockSnapshot
+      if (snapshot) {
+        body.style.position = snapshot.position
+        body.style.top = snapshot.top
+        body.style.left = snapshot.left
+        body.style.right = snapshot.right
+        body.style.width = snapshot.width
+        body.style.overflow = snapshot.overflow
+        window.scrollTo(0, plannerBodyScrollLockScrollY)
+      }
+      plannerBodyScrollLockSnapshot = null
+      plannerBodyScrollLockScrollY = 0
     }
   }, [locked])
 }
@@ -2313,6 +2326,24 @@ function visiblePlannerUserLinks(actionLinks: readonly { label: string; href: st
       knownLinks.push(link)
       return true
     })
+}
+
+function plannerUserLinksForPlace(
+  placeId: string,
+  userLinks: Record<string, PlannerUserLink[]>,
+  customPlaces: Record<string, CustomPlannerPlace>,
+): PlannerUserLink[] {
+  const savedLinks = userLinks[placeId] ?? []
+  const legacyCustomLinks = isCustomPlaceId(placeId) ? customPlaces[placeId]?.links ?? [] : []
+  if (legacyCustomLinks.length === 0) return savedLinks
+
+  const seen = new Set<string>()
+  return [...savedLinks, ...legacyCustomLinks].filter((link) => {
+    const key = plannerLinkKey(link)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
 }
 
 function shortName(name: string) {
@@ -5423,12 +5454,9 @@ function SortablePlanItem({
   const noteDirty = draftNote !== note
   const actionLinks = plannerActionLinks(place)
   const actionLinkCount = actionLinks.length
-  const customActionLinkCount = isCustomPlaceId(place.id)
-    ? actionLinks.filter((link) => link.event === 'custom_place_link').length
-    : 0
   const visibleUserLinkCount = visiblePlannerUserLinks(actionLinks, userLinks).length
   const userLinkCount = visibleUserLinkCount
-  const displayLinkCount = visibleUserLinkCount + customActionLinkCount
+  const displayLinkCount = visibleUserLinkCount
   const hasAnyLinks = actionLinkCount + userLinkCount > 0
   const imageCount = images.length
   const canEditCustom = Boolean(onEditCustom && isCustomPlaceId(place.id) && !readOnly)
@@ -6545,11 +6573,8 @@ function PlannerInlineCardLinks({ place, userLinks = [] }: { place: MapPlace; us
   const actionLinks = plannerActionLinks(place)
   const [linkLabel, setLinkLabel] = useState('')
   const [linkHref, setLinkHref] = useState('')
-  const customActionLinkCount = isCustomPlaceId(place.id)
-    ? actionLinks.filter((link) => link.event === 'custom_place_link').length
-    : 0
   const visibleUserLinkCount = visiblePlannerUserLinks(actionLinks, userLinks).length
-  const displayLinkCount = customActionLinkCount + visibleUserLinkCount
+  const displayLinkCount = visibleUserLinkCount
   const hasInlineLinks = actionLinks.length > 0 || visibleUserLinkCount > 0
   const linkButtonClassName = `${styles.iconLink} ${styles.iconLinkActive} ${displayLinkCount > 0 ? styles.iconLinkPrimary : ''}`
   const linkButtonLabel = `\u9023\u7d50${displayLinkCount > 0 ? ` ${displayLinkCount}` : ''}`
@@ -8399,7 +8424,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customTransportCategoryItem = customCategoryItems.find((item) => item.key === 'transport')
   const customDraftCategoryLabel =
     customCategoryItems.find((item) => item.key === customDraft.category)?.label ?? '景點'
-  const customDraftLinks = customDraft.id ? (placeUserLinks[customDraft.id] ?? customPlaces[customDraft.id]?.links ?? []) : []
+  const customDraftLinks = customDraft.id
+    ? plannerUserLinksForPlace(customDraft.id, placeUserLinks, customPlaces)
+    : []
   const customDraftSavedPlace = customDraft.id ? customPlaces[customDraft.id] : undefined
   const customDraftHasAgodaLink = hasHotelAffiliateProviderLink(customDraftLinks, 'Agoda')
   const customDraftHasTripLink = hasHotelAffiliateProviderLink(customDraftLinks, 'Trip')
@@ -10460,7 +10487,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const provider = hotelAffiliateProviderForLink({ label, href })
     if (provider) cancelHotelAffiliateLookupForCustomPlace(placeId, provider)
     setPlaceUserLinks((links) => {
-      const existingLinks = links[placeId] ?? []
+      const existingLinks = plannerUserLinksForPlace(placeId, links, customPlacesRef.current)
       const nextLinks = isPrimaryGoogleMap
         ? existingLinks.map((existingLink) =>
             existingLink.isPrimaryGoogleMap && isGoogleMapHref(existingLink.href)
@@ -10477,9 +10504,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const removePlaceUserLink = (placeId: string, index: number) => {
     if (readOnlyPlan) return
+    const currentLinks = plannerUserLinksForPlace(placeId, placeUserLinks, customPlaces)
+    if (!currentLinks[index]) return
+    const nextLinks = currentLinks.filter((_, linkIndex) => linkIndex !== index)
     markPlannerCloudUserEdit()
     setPlaceUserLinks((links) => {
-      const nextLinks = (links[placeId] ?? []).filter((_, linkIndex) => linkIndex !== index)
       if (nextLinks.length === 0) {
         const cleanLinks = { ...links }
         delete cleanLinks[placeId]
@@ -10490,8 +10519,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (isCustomPlaceId(placeId)) {
       setCustomPlaces((places) => {
         const place = places[placeId]
-        if (!place?.links?.length) return places
-        const nextLinks = place.links.filter((_, linkIndex) => linkIndex !== index)
+        if (!place) return places
         if (nextLinks.length === 0) {
           const { links: _links, ...placeWithoutLinks } = place
           return { ...places, [placeId]: placeWithoutLinks }
@@ -10518,7 +10546,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const nextPrimary = { label, href }
     const nextPrimaryKey = label + '::' + href
     setPlaceUserLinks((links) => {
-      const restLinks = (links[placeId] ?? [])
+      const restLinks = plannerUserLinksForPlace(placeId, links, customPlacesRef.current)
         .slice(1)
         .filter((link) => link.label.trim() + '::' + link.href.trim() !== nextPrimaryKey)
       return {
@@ -11637,8 +11665,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       : selectedPlanItem && planItemPlaceId(selectedPlanItem) === placeId
         ? selectedPlanItem
         : planItems.find((item) => planItemPlaceId(item) === placeId)
-    if ((place.links?.length ?? 0) > 0 && (placeUserLinks[placeId]?.length ?? 0) === 0) {
-      setPlaceUserLinks((links) => ({ ...links, [placeId]: place.links ?? [] }))
+    const mergedUserLinks = plannerUserLinksForPlace(placeId, placeUserLinks, customPlaces)
+    if (
+      mergedUserLinks.length !== (placeUserLinks[placeId]?.length ?? 0) ||
+      mergedUserLinks.some((link, index) => plannerLinkKey(link) !== plannerLinkKey(placeUserLinks[placeId]?.[index] ?? { label: '', href: '' }))
+    ) {
+      setPlaceUserLinks((links) => ({ ...links, [placeId]: mergedUserLinks }))
     }
     setCustomDraftReturnMode(returnMode)
     setCustomDraftReturnItem(returnItem)
@@ -12059,7 +12091,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       Boolean(existingPlace?.googleUrl && cleanGoogleUrl) &&
       normalizePlaceMatchUrl(existingPlace?.googleUrl) !== normalizePlaceMatchUrl(cleanGoogleUrl)
     const sourcePlaceId = directMatchedKnownPlace?.id ?? (googleUrlChanged ? undefined : existingPlace?.sourcePlaceId)
-    const baseLinks = placeUserLinks[id] ?? []
+    const baseLinks = plannerUserLinksForPlace(id, placeUserLinks, customPlaces)
     const pendingLinks = linkLabel && linkUrl ? [{ label: linkLabel, href: linkUrl }] : []
     const seenCustomLinks = new Set<string>()
     const nextLinks = [...baseLinks, ...pendingLinks]
@@ -12959,7 +12991,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             { label: 'Google Maps', href: googleMapsPinUrl(place) },
             ...(naverUrl ? [{ label: 'Naver', href: naverUrl }] : []),
             ...plannerActionLinks(place).map((link) => ({ label: link.label, href: link.href })),
-            ...(placeUserLinks[place.id] ?? []),
+            ...plannerUserLinksForPlace(place.id, placeUserLinks, customPlaces),
           ]
           const seenLinks = new Set<string>()
           const links = rawLinks
@@ -13013,6 +13045,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     categoryLabels,
     config.shareTitle,
     customCategoryItems,
+    customPlaces,
     pdfDownloading,
     placeById,
     placeNotes,
@@ -13846,7 +13879,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         <span className={styles.addCardControls}>
                           {customHotelHasAffiliateLink ? (
                             <span className={styles.inlineMapLinks}>
-                              <PlannerInlineCardLinks place={place} userLinks={placeUserLinks[place.id] ?? []} />
+                              <PlannerInlineCardLinks place={place} userLinks={plannerUserLinksForPlace(place.id, placeUserLinks, customPlaces)} />
                             </span>
                           ) : null}
                           {hotelAffiliateStatuses.map((status) => (
@@ -13863,7 +13896,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           ) : null}
                           {!customHotelHasAffiliateLink ? (
                             <span className={styles.inlineMapLinks}>
-                              <PlannerInlineCardLinks place={place} userLinks={placeUserLinks[place.id] ?? []} />
+                              <PlannerInlineCardLinks place={place} userLinks={plannerUserLinksForPlace(place.id, placeUserLinks, customPlaces)} />
                             </span>
                           ) : null}
                           {!readOnlyPlan ? (
@@ -14134,7 +14167,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   onRemove={() => requestRemovePlace(item)}
                                   onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id, 'order', item) : undefined}
                                   onNoteChange={(note) => updatePlaceNote(item, note)}
-                                  userLinks={placeUserLinks[place.id] ?? []}
+                                  userLinks={plannerUserLinksForPlace(place.id, placeUserLinks, customPlaces)}
                                   onAddUserLink={(link) => addPlaceUserLink(place.id, link)}
                                   onRemoveUserLink={(index) => removePlaceUserLink(place.id, index)}
                                   images={plannerImages.filter((image) => image.placeId === plannerImagePlaceIdForPlanItem(item))}
