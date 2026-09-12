@@ -1707,6 +1707,33 @@
   bottom: 6px;
 }
 
+.planListEndDropTarget {
+  position: relative;
+  flex: 0 0 4px;
+  height: 4px;
+}
+
+.planListEndDropTargetActive {
+  flex-basis: 58px;
+  height: 58px;
+}
+
+.planListEndDropTargetActive::after {
+  content: "放到最後";
+  position: absolute;
+  inset: 4px 0 4px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(31, 122, 140, 0.54);
+  border-radius: 10px;
+  background: rgba(225, 241, 243, 0.58);
+  color: var(--cta);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
 .batchDragOverlay {
   position: relative;
   width: min(300px, calc(100vw - 48px));
@@ -1870,6 +1897,84 @@
 
 .dayDividerDragging {
   opacity: 0.74;
+}
+
+.dayDividerBatchDropTarget {
+  position: relative;
+}
+
+.dayDividerBatchDropTargetBefore {
+  padding-top: 58px;
+}
+
+.dayDividerBatchDropTargetAfter {
+  padding-bottom: 58px;
+}
+
+.dayDividerBatchDropTarget::after {
+  content: "放在這裡";
+  position: absolute;
+  right: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  height: 46px;
+  border: 2px dashed rgba(31, 122, 140, 0.54);
+  border-radius: 10px;
+  background: rgba(225, 241, 243, 0.58);
+  color: var(--cta);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.dayDividerBatchDropTargetBefore::after {
+  top: 4px;
+}
+
+.dayDividerBatchDropTargetAfter::after {
+  bottom: 4px;
+}
+
+.dayDragOverlay {
+  display: flex;
+  align-items: center;
+  width: min(300px, calc(100vw - 48px));
+  min-height: 46px;
+  gap: 9px;
+  overflow: hidden;
+  border: 1px solid rgba(31, 122, 140, 0.45);
+  border-radius: 11px;
+  padding: 8px 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(13, 50, 60, 0.18);
+  color: var(--brand);
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.dayDragOverlayGrip {
+  flex: 0 0 auto;
+  color: var(--cta);
+  font-size: 16px;
+}
+
+.dayDragOverlay > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dayDragOverlayCount {
+  flex: 0 0 auto;
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #eaf7f9;
+  color: var(--cta);
+  font-size: 12px;
 }
 
 .dayDragHandle,

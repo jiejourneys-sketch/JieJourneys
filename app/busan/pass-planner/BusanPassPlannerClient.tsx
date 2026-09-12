@@ -350,6 +350,7 @@ const HOTEL_AFFILIATE_NOT_CONFIGURED_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const NEARBY_KNOWN_PLACE_RADIUS_METERS = 25_000
 const DAY_ITEM_PREFIX = 'day:'
 const DAY_MENU_ITEM_PREFIX = 'day-menu:'
+const PLAN_LIST_END_DROP_TARGET = '__planner-list-end-drop-target__'
 const VISIT_ITEM_PREFIX = 'visit:'
 const CUSTOM_PLACE_PREFIX = 'custom:'
 const TRANSPORT_ITEM_PREFIX = 'transport:'
@@ -2867,14 +2868,18 @@ function dayMenuItemId(dayDivider: PlannerItem | null, dayIndex: number) {
   return `${DAY_MENU_ITEM_PREFIX}${dayDivider ?? `first-${dayIndex}`}`
 }
 
-function movePlanDayGroups(items: PlannerItem[], fromDayIndex: number, toDayIndex: number) {
-  if (fromDayIndex === toDayIndex || fromDayIndex < 0 || toDayIndex < 0) return items
-
+function plannerDayGroups(items: PlannerItem[]) {
   const dayStarts = [0]
   items.forEach((item, index) => {
     if (index > 0 && isDayItem(item)) dayStarts.push(index)
   })
-  const dayGroups = dayStarts.map((start, index) => items.slice(start, dayStarts[index + 1] ?? items.length))
+  return dayStarts.map((start, index) => items.slice(start, dayStarts[index + 1] ?? items.length))
+}
+
+function movePlanDayGroups(items: PlannerItem[], fromDayIndex: number, toDayIndex: number) {
+  if (fromDayIndex === toDayIndex || fromDayIndex < 0 || toDayIndex < 0) return items
+
+  const dayGroups = plannerDayGroups(items)
   if (fromDayIndex >= dayGroups.length || toDayIndex >= dayGroups.length) return items
 
   return arrayMove(dayGroups, fromDayIndex, toDayIndex).flat()
@@ -7017,6 +7022,7 @@ function SortableDayDivider({
   readOnly,
   dragDisabled = false,
   batchDragActive = false,
+  batchDropPosition = null,
   dividerRef,
 }: {
   id: string
@@ -7028,6 +7034,7 @@ function SortableDayDivider({
   readOnly: boolean
   dragDisabled?: boolean
   batchDragActive?: boolean
+  batchDropPosition?: 'before' | 'after' | null
   dividerRef?: (el: HTMLDivElement | null) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: readOnly })
@@ -7056,9 +7063,18 @@ function SortableDayDivider({
     <div
       ref={setRefs}
       style={style}
-      className={`${styles.dayDivider} ${isDragging ? styles.dayDividerDragging : ''}`}
+      className={`${styles.dayDivider} ${isDragging ? styles.dayDividerDragging : ''} ${batchDropPosition && !isDragging ? styles.dayDividerBatchDropTarget : ''} ${batchDropPosition === 'after' ? styles.dayDividerBatchDropTargetAfter : batchDropPosition === 'before' ? styles.dayDividerBatchDropTargetBefore : ''}`}
+      data-plan-item-card={id}
     >
-      <button className={styles.dayDragHandle} type="button" aria-label={`拖曳第 ${dayNumber} 天`} disabled={readOnly || dragDisabled} {...attributes} {...listeners}>
+      <button
+        className={styles.dayDragHandle}
+        type="button"
+        aria-label={`拖曳第 ${dayNumber} 天分隔線`}
+        title="拖曳調整這個天數分隔線的位置"
+        disabled={readOnly || dragDisabled}
+        {...attributes}
+        {...listeners}
+      >
         <span aria-hidden>☰</span>
       </button>
       <span className={styles.dayDividerLine} aria-hidden />
@@ -8210,6 +8226,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return place ? [{ item, place }] : []
     })
   }, [activePlanDragItem, batchSelectedPlanItemSet, placeById, validPlanItems])
+  const activePlanDragDay = useMemo(() => {
+    if (!activePlanDragItem || !isDayItem(activePlanDragItem)) return null
+    const itemIndex = validPlanItems.indexOf(activePlanDragItem)
+    if (itemIndex < 0) return null
+    const dayNumber = validPlanItems.slice(0, itemIndex + 1).filter(isDayItem).length
+    return { dayNumber, title: dayTitle(dayNumber, activePlanDragItem) }
+  }, [activePlanDragItem, validPlanItems])
   const findPlanItemDayView = useCallback((targetItem: PlannerItem | null | undefined): DayView => {
     if (!targetItem) return 'all'
     const dayIndex = plannedDays.findIndex((day) => day.items.includes(targetItem))
@@ -12246,8 +12269,29 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         .map((element) => [element.dataset.planItemCard, element] as const)
         .filter(([itemId]) => Boolean(itemId)),
     )
+    const endDropTarget = planListRef.current?.querySelector<HTMLElement>('[data-plan-list-end-drop-target]')
+    const lastVisibleItem = endDropTarget?.previousElementSibling as HTMLElement | null
+    const translatedCenterY = translatedRect.top + translatedRect.height / 2
+
+    // Keep an explicit end-of-list slot.  This also covers a collapsed transport
+    // group at the end, whose individual transport cards are not in the DOM.
+    if (lastVisibleItem && translatedCenterY >= lastVisibleItem.getBoundingClientRect().bottom - 4) {
+      if (
+        activeBatchDropTargetRef.current === PLAN_LIST_END_DROP_TARGET &&
+        activeBatchDropPositionRef.current === 'after'
+      ) {
+        return
+      }
+      activeBatchDropTargetRef.current = PLAN_LIST_END_DROP_TARGET
+      activeBatchDropPositionRef.current = 'after'
+      setActiveBatchDropTarget(PLAN_LIST_END_DROP_TARGET)
+      setActiveBatchDropPosition('after')
+      return
+    }
     const candidates = validPlanItems.flatMap((item) => {
-      if (movingItemSet.has(item) || !planItemPlace(item, placeById)) return []
+      // Day dividers are real insertion boundaries too.  Without them, a final
+      // day divider is skipped and there is no way to drop a card underneath it.
+      if (movingItemSet.has(item) || (!planItemPlace(item, placeById) && !isDayItem(item))) return []
       const element = cardElements.get(item)
       if (!element) return []
       const rect = element.getBoundingClientRect()
@@ -12259,7 +12303,6 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       return
     }
 
-    const translatedCenterY = translatedRect.top + translatedRect.height / 2
     let target = candidates[candidates.length - 1]
     let position: 'before' | 'after' = 'after'
     for (const candidate of candidates) {
@@ -12316,21 +12359,63 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     clearActiveBatchDrag()
     if (readOnlyPlan) return
     const { active, over } = event
-    const overItem = dropTarget ?? (over ? String(over.id) : null)
-    if (!overItem || active.id === overItem) return
+    const droppingAtListEnd = dropTarget === PLAN_LIST_END_DROP_TARGET
+    const overItem = droppingAtListEnd ? null : dropTarget ?? (over ? String(over.id) : null)
+    if ((!overItem && !droppingAtListEnd) || active.id === overItem) return
     const activeItem = String(active.id)
+
+    // In the main list, a day divider behaves like a card: moving it changes
+    // the day boundary at that exact point.  The day-menu drag remains the
+    // separate control for moving a whole day together with its contents.
+    if (isDayItem(activeItem)) {
+      markPlannerCloudUserEdit()
+      setPlanItems((items) => {
+        const oldIndex = items.indexOf(activeItem)
+        const newIndex = droppingAtListEnd ? items.length : items.indexOf(overItem ?? '')
+        if (oldIndex < 0 || (!droppingAtListEnd && newIndex < 0)) return items
+
+        const remainingItems = items.filter((item) => item !== activeItem)
+        const targetRemainingIndex = droppingAtListEnd ? remainingItems.length : remainingItems.indexOf(overItem ?? '')
+        const fallbackInsertAfterTarget = newIndex > oldIndex
+        const insertIndex =
+          droppingAtListEnd
+            ? remainingItems.length
+            : targetRemainingIndex < 0
+              ? newIndex
+              : dropTarget === overItem
+                ? targetRemainingIndex + (dropPosition === 'after' ? 1 : 0)
+                : targetRemainingIndex + (fallbackInsertAfterTarget ? 1 : 0)
+        const targetIndex = Math.max(0, Math.min(insertIndex, remainingItems.length))
+        const nextItems = [
+          ...remainingItems.slice(0, targetIndex),
+          activeItem,
+          ...remainingItems.slice(targetIndex),
+        ]
+        if (nextItems.every((item, index) => item === items[index])) return items
+
+        trackPlannerEvent('drag_sort_day_divider', {
+          from_index: oldIndex + 1,
+          to_index: targetIndex + 1,
+          plan_count: nextItems.length,
+          plan_code: encodeSharedPlan(nextItems, lookupPlaces),
+        })
+        return nextItems
+      })
+      return
+    }
+
     const selectedItems = new Set(batchSelectedPlanItems)
 
     if (batchSelectionActive && selectedItems.has(activeItem)) {
-      if (selectedItems.has(overItem)) return
+      if (!droppingAtListEnd && selectedItems.has(overItem ?? '')) return
       markPlannerCloudUserEdit()
       setPlanItems((items) => {
         const activeIndex = items.indexOf(activeItem)
-        const overIndex = items.indexOf(overItem)
-        if (activeIndex < 0 || overIndex < 0) return items
+        const overIndex = droppingAtListEnd ? items.length : items.indexOf(overItem ?? '')
+        if (activeIndex < 0 || (!droppingAtListEnd && overIndex < 0)) return items
 
         const movedItemSet = batchMoveItemSet(items, selectedItems, placeById)
-        if (movedItemSet.has(overItem)) return items
+        if (!droppingAtListEnd && movedItemSet.has(overItem ?? '')) return items
 
         const targetIndex = overIndex
         if (targetIndex === activeIndex) return items
@@ -12354,8 +12439,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             ? 0
             : anchorIndex >= items.length
               ? remainingItems.length
-              : isDayItem(items[anchorIndex])
-                ? Math.max(0, anchorRemainingIndex + 1)
+                : isDayItem(items[anchorIndex])
+                  ? Math.max(0, anchorRemainingIndex + (visualDropPosition === 'before' ? 0 : 1))
                 : Math.max(0, anchorRemainingIndex + (insertAfterAnchor ? 1 : 0))
         const nextItems = [
           ...remainingItems.slice(0, insertIndex),
@@ -12380,23 +12465,25 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     markPlannerCloudUserEdit()
     setPlanItems((items) => {
       const oldIndex = items.indexOf(String(active.id))
-      const newIndex = items.indexOf(overItem)
-      if (oldIndex < 0 || newIndex < 0) return items
+      const newIndex = droppingAtListEnd ? items.length : items.indexOf(overItem ?? '')
+      if (oldIndex < 0 || (!droppingAtListEnd && newIndex < 0)) return items
       const targetItem = overItem
       const visualDropPosition = dropTarget === targetItem ? dropPosition : null
       const movedItemSet = batchMoveItemSet(items, new Set<PlannerItem>([activeItem]), placeById)
-      if (movedItemSet.has(targetItem)) return items
+      if (!droppingAtListEnd && movedItemSet.has(targetItem ?? '')) return items
       const movedItems = items.filter((item) => movedItemSet.has(item))
       if (movedItems.length === 0) return items
       const remainingItems = items.filter((item) => !movedItemSet.has(item))
-      const targetRemainingIndex = remainingItems.indexOf(targetItem)
+      const targetRemainingIndex = droppingAtListEnd ? remainingItems.length : remainingItems.indexOf(targetItem ?? '')
       const fallbackInsertAfterTarget = newIndex > oldIndex
       const insertIndex =
-        targetRemainingIndex < 0
+        droppingAtListEnd
+          ? remainingItems.length
+          : targetRemainingIndex < 0
           ? newIndex
           : visualDropPosition
             ? targetRemainingIndex + (visualDropPosition === 'after' ? 1 : 0)
-            : isDayItem(targetItem)
+            : isDayItem(targetItem ?? '')
               ? targetRemainingIndex + 1
               : targetRemainingIndex + (fallbackInsertAfterTarget ? 1 : 0)
       const targetIndex = Math.max(0, Math.min(insertIndex, remainingItems.length))
@@ -14108,6 +14195,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   readOnly={readOnlyPlan}
                                   dragDisabled={batchSelectionActive}
                                   batchDragActive={Boolean(activePlanDragItem)}
+                                  batchDropPosition={activeBatchDropTarget === item ? activeBatchDropPosition : null}
                                   dividerRef={(el) => {
                                     dayDividerRefs.current[item] = el
                                   }}
@@ -14220,6 +14308,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               </TransportItemGroup>
                             )
                           })}
+                          <div
+                            className={
+                              activeBatchDropTarget === PLAN_LIST_END_DROP_TARGET
+                                ? `${styles.planListEndDropTarget} ${styles.planListEndDropTargetActive}`
+                                : styles.planListEndDropTarget
+                            }
+                            data-plan-list-end-drop-target="true"
+                            aria-hidden="true"
+                          />
                         </div>
                       </SortableContext>
                       <DragOverlay dropAnimation={null}>
@@ -14245,6 +14342,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                 ) : null}
                               </div>
                             ))}
+                          </div>
+                        ) : activePlanDragDay ? (
+                          <div className={styles.dayDragOverlay} aria-hidden="true">
+                            <span className={styles.dayDragOverlayGrip}>☰</span>
+                            <span>{activePlanDragDay.title}</span>
+                            <span className={styles.dayDragOverlayCount}>第 {activePlanDragDay.dayNumber} 天</span>
                           </div>
                         ) : null}
                       </DragOverlay>
