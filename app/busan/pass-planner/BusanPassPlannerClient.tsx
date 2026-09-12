@@ -2876,6 +2876,14 @@ function plannerDayGroups(items: PlannerItem[]) {
   return dayStarts.map((start, index) => items.slice(start, dayStarts[index + 1] ?? items.length))
 }
 
+function plannerDayEndInsertIndex(items: PlannerItem[], dayDivider: PlannerItem | null) {
+  const dayStartIndex = dayDivider ? items.indexOf(dayDivider) : 0
+  if (dayStartIndex < 0) return items.length
+
+  const nextDayDividerIndex = items.findIndex((item, index) => index > dayStartIndex && isDayItem(item))
+  return nextDayDividerIndex >= 0 ? nextDayDividerIndex : items.length
+}
+
 function movePlanDayGroups(items: PlannerItem[], fromDayIndex: number, toDayIndex: number) {
   if (fromDayIndex === toDayIndex || fromDayIndex < 0 || toDayIndex < 0) return items
 
@@ -12363,6 +12371,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const overItem = droppingAtListEnd ? null : dropTarget ?? (over ? String(over.id) : null)
     if ((!overItem && !droppingAtListEnd) || active.id === overItem) return
     const activeItem = String(active.id)
+    const selectedDay = dayView === 'all' ? null : plannedDays[dayView - 1] ?? null
 
     // In the main list, a day divider behaves like a card: moving it changes
     // the day boundary at that exact point.  The day-menu drag remains the
@@ -12434,13 +12443,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           anchorIndex >= 0 && anchorIndex < items.length ? remainingItems.indexOf(items[anchorIndex]) : -1
         const visualDropPosition = dropTarget === overItem ? dropPosition : null
         const insertAfterAnchor = visualDropPosition ? visualDropPosition === 'after' : movingDown
-        const insertIndex =
-          anchorIndex < 0
+        const insertIndex = droppingAtListEnd
+          ? selectedDay
+            ? plannerDayEndInsertIndex(remainingItems, selectedDay.divider)
+            : remainingItems.length
+          : anchorIndex < 0
             ? 0
             : anchorIndex >= items.length
               ? remainingItems.length
-                : isDayItem(items[anchorIndex])
-                  ? Math.max(0, anchorRemainingIndex + (visualDropPosition === 'before' ? 0 : 1))
+              : isDayItem(items[anchorIndex])
+                ? Math.max(0, anchorRemainingIndex + (visualDropPosition === 'before' ? 0 : 1))
                 : Math.max(0, anchorRemainingIndex + (insertAfterAnchor ? 1 : 0))
         const nextItems = [
           ...remainingItems.slice(0, insertIndex),
@@ -12474,11 +12486,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const movedItems = items.filter((item) => movedItemSet.has(item))
       if (movedItems.length === 0) return items
       const remainingItems = items.filter((item) => !movedItemSet.has(item))
-      const targetRemainingIndex = droppingAtListEnd ? remainingItems.length : remainingItems.indexOf(targetItem ?? '')
+      const targetRemainingIndex = droppingAtListEnd
+        ? selectedDay
+          ? plannerDayEndInsertIndex(remainingItems, selectedDay.divider)
+          : remainingItems.length
+        : remainingItems.indexOf(targetItem ?? '')
       const fallbackInsertAfterTarget = newIndex > oldIndex
       const insertIndex =
         droppingAtListEnd
-          ? remainingItems.length
+          ? targetRemainingIndex
           : targetRemainingIndex < 0
           ? newIndex
           : visualDropPosition
