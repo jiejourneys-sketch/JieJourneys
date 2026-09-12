@@ -116,6 +116,8 @@ const cards: CityCard[] = [
     datasetKey: 'video',
     datasetValue: 'osaka-amazing-pass-hidden-spots-guide',
     actions: [
+      { label: 'IG Reels', href: 'https://www.instagram.com/reel/DdMCwztBHar/', className: 'btn primary', event: 'osakavideo_amazingpasshiddenIG', platform: 'IG', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/6vIii4-Ldss', className: 'btn', event: 'osakavideo_amazingpasshiddenYT', platform: 'YouTube', section: 'video' },
       { label: '文章', href: '/osaka/osaka-amazing-pass-hidden-spots-guide?from=osaka-video', className: 'btn', event: 'osakavideo_amazingpasshiddenArticle', platform: 'article', section: 'video' },
     ],
   },
