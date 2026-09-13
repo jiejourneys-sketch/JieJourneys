@@ -1,88 +1,74 @@
 import Link from 'next/link'
 
+type Destination = {
+  label: string
+  href?: string
+  event?: string
+  comingSoon?: boolean
+}
+
+type Country = {
+  name: string
+  event: string
+  destinations: Destination[]
+}
+
+const countries: Country[] = [
+  {
+    name: '日本',
+    event: 'home_destination_japan_toggle',
+    destinations: [
+      { label: '東京', href: '/tokyo', event: 'home_destination_japan_tokyo' },
+      { label: '大阪', href: '/osaka', event: 'home_destination_japan_osaka' },
+      { label: '富士河口湖', href: '/fuji', event: 'home_destination_japan_fuji' },
+      { label: '京都', comingSoon: true },
+    ],
+  },
+  {
+    name: '韓國',
+    event: 'home_destination_korea_toggle',
+    destinations: [{ label: '釜山', href: '/busan', event: 'home_destination_korea_busan' }],
+  },
+  {
+    name: '越南',
+    event: 'home_destination_vietnam_toggle',
+    destinations: [{ label: '北越', href: '/northvietnam', event: 'home_destination_vietnam_north' }],
+  },
+]
+
 export default function PopularGrid() {
   return (
-    <div className="popular-grid">
-      <Link
-        href="/busan"
-        className="card"
-        data-event="home_card_busan"
-        data-item="busan"
-        data-section="popular"
-        data-tags="韓國 釜山 busan korea"
-        aria-label="前往釜山攻略頁面"
-      >
-        <div className="card-body">
-          <h3>韓國｜釜山</h3>
-        </div>
-      </Link>
-      <Link
-        href="/tokyo"
-        className="card"
-        data-event="home_card_tokyo"
-        data-item="tokyo"
-        data-section="popular"
-        data-tags="日本 東京 tokyo japan"
-        aria-label="前往東京攻略頁面"
-      >
-        <div className="card-body">
-          <h3>日本｜東京</h3>
-        </div>
-      </Link>
-      <Link
-        href="/fuji"
-        className="card"
-        data-event="home_card_fuji"
-        data-item="fuji"
-        data-section="popular"
-        data-tags="日本 富士河口湖 富士山 fuji kawaguchiko japan"
-        aria-label="前往富士河口湖攻略頁面"
-      >
-        <div className="card-body">
-          <h3>日本｜富士河口湖</h3>
-        </div>
-      </Link>
-      <Link
-        href="/osaka"
-        className="card"
-        data-event="home_card_osaka"
-        data-item="osaka"
-        data-section="popular"
-        data-tags="日本 大阪 osaka japan 環球影城 USJ"
-        aria-label="前往大阪攻略頁面"
-      >
-        <div className="card-body">
-          <h3>日本｜大阪</h3>
-        </div>
-      </Link>
-      <Link
-        href="/northvietnam"
-        className="card"
-        data-event="home_card_northvietnam"
-        data-item="northvietnam"
-        data-section="popular"
-        data-tags="越南 北越 河內 hanoi vietnam 下龍"
-        aria-label="前往北越攻略頁面"
-      >
-        <div className="card-body">
-          <h3>越南｜北越</h3>
-        </div>
-      </Link>
-      {/*
-      <Link
-        href="/countries"
-        className="card"
-        data-event="home_card_countries"
-        data-item="countries"
-        data-section="popular"
-        data-tags="其他國家 越南 東南亞 更多國家 地區"
-        aria-label="前往其他國家與地區攻略列表"
-      >
-        <div className="card-body">
-          <h3>其他國家</h3>
-        </div>
-      </Link>
-      */}
+    <div className="destination-grid" aria-label="選擇旅遊目的地">
+      {countries.map((country) => (
+        <details key={country.name} className="destination-country">
+          <summary data-event={country.event} data-item="country" data-section="popular">
+            <span className="destination-country-copy">
+              <strong>{country.name}</strong>
+            </span>
+          </summary>
+          <div className="destination-city-list" aria-label={`${country.name}目的地`}>
+            {country.destinations.map((destination) =>
+              destination.comingSoon ? (
+                <span key={destination.label} className="destination-city destination-city-coming-soon" aria-label={`${destination.label}攻略即將推出`}>
+                  {destination.label}
+                  <small>即將推出</small>
+                </span>
+              ) : (
+                <Link
+                  key={destination.href}
+                  href={destination.href ?? '#'}
+                  className="destination-city"
+                  data-event={destination.event}
+                  data-item={destination.label}
+                  data-section="popular"
+                >
+                  {destination.label}
+                </Link>
+              ),
+            )}
+          </div>
+        </details>
+      ))}
     </div>
   )
 }

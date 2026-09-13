@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { useEffect } from 'react'
 import PopularGrid from '@/components/PopularGrid'
 import Footer from '@/components/Footer'
-import PromoLink from '@/components/PromoLink'
 
 export default function HomePage() {
   useEffect(() => {
@@ -56,45 +55,41 @@ export default function HomePage() {
         <h1 className="sr-only">旅杰 JieJourneys－自由行旅遊攻略</h1>
         <section id="popular" className="section" aria-label="熱門攻略">
           <h2>熱門攻略</h2>
-          <p className="sub">點擊國家卡片，會有連結總整理</p>
+          <p className="sub">先選國家，再選要去的城市</p>
           <PopularGrid />
         </section>
 
         <section id="tools" className="section" aria-label="旅遊資源">
           <h2>旅遊資源</h2>
-          <p className="sub">自由行需要的工具、優惠與服務整理</p>
-          <div className="tools-row">
-            <a
-              href="/tools/planner"
-              className="tool-bill-link"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="home_tools_planner"
-              data-item="tool"
-            >
-              {'\u65c5\u6770\u898f\u5283'}
-            </a>
-            <a
-              href="/tools/bill"
-              className="tool-bill-link"
-              target="_blank"
-              rel="noopener noreferrer"
-              data-event="sitetobill"
-              data-item="tool"
-            >
-              {'\u65c5\u6770\u5206\u5e33'}
-            </a>
-            <PromoLink
-              href="https://af-wamazing.catsys.jp/c5e3c193y273353e/cl/?bId=g222b339"
-              promoCode="GGGT6XAA"
-              data-event="home_tools_wamazingbuy"
-              data-item="tool"
-            >
-              {'\u5b8c\u7f8e\u884c\u8cfc\u7269(\u5408\u4f5c)'}
-            </PromoLink>
-            <a href="/tools/resources" className="tool-bill-link" data-event="home_tools_travel_promos" data-item="tool">
-              {'\u65c5\u904a\u512a\u60e0'}
-            </a>
+          <p className="sub">行前會用到的工具與優惠</p>
+          <div className="home-resource-grid">
+            <section className="home-resource-card" aria-labelledby="home-tools-title">
+              <h3 id="home-tools-title">旅遊工具</h3>
+              <div className="home-resource-links">
+                <a
+                  href="/tools/planner"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="home_tools_planner"
+                  data-item="tool"
+                >
+                  {'\u65c5\u6770\u898f\u5283'}
+                </a>
+                <a
+                  href="/tools/bill"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="sitetobill"
+                  data-item="tool"
+                >
+                  {'\u65c5\u6770\u5206\u5e33'}
+                </a>
+              </div>
+            </section>
+            <Link href="/tools/resources" className="home-resource-card home-resource-card-link" data-event="home_tools_travel_promos" data-item="tool">
+              <h3>旅遊優惠</h3>
+              <span>查看優惠碼</span>
+            </Link>
           </div>
         </section>
 
