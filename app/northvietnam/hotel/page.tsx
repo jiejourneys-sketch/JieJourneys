@@ -16,10 +16,25 @@ export default function NorthVietnamHotelPage() {
           badge="越南北越自由行攻略"
           h1="北越住宿推薦｜河內、沙壩、下龍灣住哪裡？區域完整分析"
           intro="北越各地住宿選擇差異大，河內、沙壩、下龍灣各有不同住宿生態。本頁整理各區特色，幫你快速選出最適合行程的住宿地點。"
+          videoTitle="30 秒看懂北越住宿與交通"
           eventPrefix="northvietnamhotel"
           showVisual={false}
+          videoLinks={[
+            {
+              label: 'IG Reels',
+              href: 'https://www.instagram.com/reel/DQHMfk_EY-x/',
+              dataEvent: 'northvietnamhotel_IGvideo',
+              platform: 'IG',
+            },
+            {
+              label: 'YouTube',
+              href: 'https://youtube.com/shorts/2R9SE2KoEaY?si=39u_j-bZVeZF8iZi',
+              dataEvent: 'northvietnamhotel_YTvideo',
+              platform: 'YouTube',
+            },
+          ]}
           ctaLinks={[
-            { label: '北越短影片攻略', href: 'https://www.jiejourneys.com/northvietnam/video', dataEvent: 'northvietnamhotel_allvideos', platform: 'video' },
+            { label: '北越旅遊攻略合輯', href: 'https://www.jiejourneys.com/northvietnam/video', dataEvent: 'northvietnamhotel_allvideos', platform: 'video' },
             { label: '北越票券總整理', href: 'https://www.jiejourneys.com/northvietnam/ticket', dataEvent: 'northvietnamhotel_alltickets', platform: 'ticket' },
             { label: '通訊&交通攻略', href: 'https://www.jiejourneys.com/northvietnam/transport', dataEvent: 'northvietnamhotel_alltransport', platform: 'transport' },
           ]}

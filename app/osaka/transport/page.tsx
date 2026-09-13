@@ -162,7 +162,7 @@ export default function OsakaTransportPage() {
               platform: 'ticket',
             },
             {
-              label: '大阪短影片攻略',
+              label: '大阪旅遊攻略合輯',
               href: 'https://www.jiejourneys.com/osaka/video',
               dataEvent: 'osakatransport_allvideos',
               platform: 'video',

@@ -76,7 +76,7 @@ export default function TokyoTransportPage() {
           eventPrefix="tokyotransport"
           showVisual={false}
           ctaLinks={[
-            { label: '東京短影片攻略', href: 'https://www.jiejourneys.com/tokyo/video', dataEvent: 'tokyotransport_allvideos', platform: 'video' },
+            { label: '東京旅遊攻略合輯', href: 'https://www.jiejourneys.com/tokyo/video', dataEvent: 'tokyotransport_allvideos', platform: 'video' },
             { label: '東京住宿推薦', href: 'https://www.jiejourneys.com/tokyo/hotel', dataEvent: 'tokyotransport_allhotels', platform: 'hotel' },
             { label: '東京票券總整理', href: 'https://www.jiejourneys.com/tokyo/ticket', dataEvent: 'tokyotransport_alltickets', platform: 'ticket' },
           ]}

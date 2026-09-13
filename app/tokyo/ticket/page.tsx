@@ -39,7 +39,7 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
           eventPrefix="tokyoticket"
           showVisual={false}
           ctaLinks={[
-            { label: '東京短影片攻略', href: 'https://www.jiejourneys.com/tokyo/video', dataEvent: 'tokyoticket_allvideos', platform: 'video' },
+            { label: '東京旅遊攻略合輯', href: 'https://www.jiejourneys.com/tokyo/video', dataEvent: 'tokyoticket_allvideos', platform: 'video' },
             { label: '東京住宿推薦', href: 'https://www.jiejourneys.com/tokyo/hotel', dataEvent: 'tokyoticket_allhotels', platform: 'hotel' },
             { label: '通訊&交通攻略', href: 'https://www.jiejourneys.com/tokyo/transport', dataEvent: 'tokyoticket_alltransport', platform: 'transport' },
           ]}

@@ -652,7 +652,7 @@ export default async function OsakaTicketPage({ searchParams }: OsakaTicketPageP
               platform: 'hotel',
             },
             {
-              label: '大阪短影片攻略',
+              label: '大阪旅遊攻略合輯',
               href: 'https://www.jiejourneys.com/osaka/video',
               dataEvent: 'osakaticket_allvideos',
               platform: 'video',

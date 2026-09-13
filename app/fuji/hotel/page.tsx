@@ -16,11 +16,26 @@ export default function FujiHotelPage() {
           badge="富士河口湖自由行攻略"
           h1="富士河口湖住宿推薦｜富士山景、湖景溫泉、交通方便/高CP住宿完整分析"
           intro="富士河口湖住宿選區影響你整趟旅程的體驗。這頁整理富士山景、湖景溫泉與交通方便/高CP住宿特色，幫你快速鎖定最值得住的地點。"
+          videoTitle="30 秒看懂河口湖住宿"
           eventPrefix="fujihotel"
           showVisual={false}
+          videoLinks={[
+            {
+              label: 'IG Reels',
+              href: 'https://www.instagram.com/reel/DYrpvj3yPso/',
+              dataEvent: 'fujihotel_IGvideo',
+              platform: 'IG',
+            },
+            {
+              label: 'YouTube',
+              href: 'https://www.youtube.com/shorts/oyBnxGBgYDg',
+              dataEvent: 'fujihotel_YTvideo',
+              platform: 'YouTube',
+            },
+          ]}
           ctaLinks={[
             {
-              label: '富士河口湖短影片攻略',
+              label: '富士河口湖旅遊攻略合輯',
               href: 'https://www.jiejourneys.com/fuji/video',
               dataEvent: 'fujihotel_allvideos',
               platform: 'video',

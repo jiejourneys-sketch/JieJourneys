@@ -34,7 +34,7 @@ export default function TokyoHotelPage() {
           ]}
 
           ctaLinks={[
-            { label: '東京短影片攻略', href: 'https://www.jiejourneys.com/tokyo/video', dataEvent: 'tokyohotel_allvideos', platform: 'video' },
+            { label: '東京旅遊攻略合輯', href: 'https://www.jiejourneys.com/tokyo/video', dataEvent: 'tokyohotel_allvideos', platform: 'video' },
             { label: '東京票券總整理', href: 'https://www.jiejourneys.com/tokyo/ticket', dataEvent: 'tokyohotel_alltickets', platform: 'ticket' },
             { label: '通訊&交通攻略', href: 'https://www.jiejourneys.com/tokyo/transport', dataEvent: 'tokyohotel_alltransport', platform: 'transport' },
           ]}

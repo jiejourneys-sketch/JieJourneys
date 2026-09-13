@@ -27,7 +27,7 @@ export default async function NorthVietnamTicketPage({ searchParams }: NorthViet
           eventPrefix="northvietnamticket"
           showVisual={false}
           ctaLinks={[
-            { label: '北越短影片攻略', href: 'https://www.jiejourneys.com/northvietnam/video', dataEvent: 'northvietnamticket_allvideos', platform: 'video' },
+            { label: '北越旅遊攻略合輯', href: 'https://www.jiejourneys.com/northvietnam/video', dataEvent: 'northvietnamticket_allvideos', platform: 'video' },
             { label: '北越住宿推薦', href: 'https://www.jiejourneys.com/northvietnam/hotel', dataEvent: 'northvietnamticket_allhotels', platform: 'hotel' },
             { label: '通訊與交通攻略', href: 'https://www.jiejourneys.com/northvietnam/transport', dataEvent: 'northvietnamticket_alltransport', platform: 'transport' },
           ]}

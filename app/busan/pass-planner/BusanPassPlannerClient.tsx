@@ -8005,6 +8005,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [clearFocusScrollTimers, scrollFocusTargetToCenter],
   )
 
+  const scheduleSettledMobilePanelFocus = useCallback(
+    (target: PlannerFocusTarget) => {
+      clearFocusScrollTimers()
+      // The sheet takes 180ms to shrink from full height to half height.  A
+      // first scroll during that transition uses the old viewport height and
+      // leaves the selected card too high once the sheet finishes moving.
+      focusScrollTimerRef.current = window.setTimeout(() => {
+        focusScrollTimerRef.current = null
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => scrollFocusTargetToCenter(target, 'auto'))
+        })
+      }, 220)
+    },
+    [clearFocusScrollTimers, scrollFocusTargetToCenter],
+  )
+
   const syncExpandedPlanItemSelection = useCallback((nextItem: PlannerItem | null) => {
     if (!nextItem) {
       setSelectedPlanItem(null)
@@ -8031,6 +8047,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         pendingHalfPanelFocusRef.current = null
         const pendingExpandItem = pendingHalfPanelExpandItemRef.current
         pendingHalfPanelExpandItemRef.current = null
+        if (isMobilePlannerViewport() && mobilePanelStateRef.current === 'half') {
+          scheduleSettledMobilePanelFocus(pendingFocus)
+        }
         if (pendingExpandItem) {
           syncExpandedPlanItemSelection(pendingExpandItem)
           setExpandedPlanItem(pendingExpandItem)
@@ -8052,7 +8071,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         flushPendingHalfPanelFocus(behavior)
       }, 80)
     },
-    [clearFocusScrollTimers, scrollFocusTargetToCenter, syncExpandedPlanItemSelection],
+    [
+      clearFocusScrollTimers,
+      scheduleSettledMobilePanelFocus,
+      scrollFocusTargetToCenter,
+      syncExpandedPlanItemSelection,
+    ],
   )
 
   useEffect(() => {
@@ -9341,9 +9365,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       currentMode === 'order'
         ? { mode: 'order', placeId: place.id, itemId: planItem }
         : { mode: 'add', placeId: place.id }
-    const shouldScrollAfterPanelShrink =
-      mobilePanelStateRef.current === 'full' && isMobilePlannerViewport() && (source === 'list' || source === 'marker')
-    if (shouldScrollAfterPanelShrink) {
+    const shouldScrollAfterPanelResize =
+      mobilePanelStateRef.current !== 'half' && isMobilePlannerViewport() && (source === 'list' || source === 'marker')
+    if (shouldScrollAfterPanelResize) {
       pendingHalfPanelFocusRef.current = focusTarget
       pendingHalfPanelExpandItemRef.current = focusTarget.mode === 'order' && focusTarget.itemId ? focusTarget.itemId : null
       pendingHalfPanelFocusRetryRef.current = 0
@@ -9359,7 +9383,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       focusMapOnPlace(map, place)
     }
 
-    if (!shouldScrollAfterPanelShrink) {
+    if (!shouldScrollAfterPanelResize) {
       scheduleFocusTargetCenter(focusTarget)
     }
   }, [exitLocationFollowMode, scheduleFocusTargetCenter])

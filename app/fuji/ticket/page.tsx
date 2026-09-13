@@ -511,7 +511,7 @@ export default async function FujiTicketPage({ searchParams }: FujiTicketPagePro
           showVisual={false}
           ctaLinks={[
             {
-              label: '富士河口湖短影片攻略',
+              label: '富士河口湖旅遊攻略合輯',
               href: 'https://www.jiejourneys.com/fuji/video',
               dataEvent: 'fujiticket_allvideos',
               platform: 'video',

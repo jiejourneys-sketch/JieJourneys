@@ -38,7 +38,7 @@ export default function BusanHotelPage() {
           showVisual={false}
           ctaLinks={[
             {
-              label: '釜山短影片攻略',
+              label: '釜山旅遊攻略合輯',
               href: 'https://www.jiejourneys.com/busan/video',
               dataEvent: 'busanhotel_allvideos',
               platform: 'video',

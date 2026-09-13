@@ -247,8 +247,23 @@ export default function OsakaHotelPage() {
           badge="大阪自由行攻略"
           h1="大阪住宿推薦｜道頓堀、梅田、心齋橋區域完整分析"
           intro="大阪住宿選區影響你整趟旅程的體驗。這頁整理各大住宿區域的特色與適合對象，幫你快速鎖定最值得住的地點。"
+          videoTitle="30 秒看懂大阪住宿"
           eventPrefix="osakahotel"
           showVisual={false}
+          videoLinks={[
+            {
+              label: 'IG Reels',
+              href: 'https://www.instagram.com/reel/DaFxlxQBagx/',
+              dataEvent: 'osakahotel_IGvideo',
+              platform: 'IG',
+            },
+            {
+              label: 'YouTube',
+              href: 'https://www.youtube.com/shorts/HFe3OPfmTGw',
+              dataEvent: 'osakahotel_YTvideo',
+              platform: 'YouTube',
+            },
+          ]}
           ctaLinks={[
             {
               label: '大阪票券總整理',
@@ -257,7 +272,7 @@ export default function OsakaHotelPage() {
               platform: 'ticket',
             },
             {
-              label: '大阪短影片攻略',
+              label: '大阪旅遊攻略合輯',
               href: 'https://www.jiejourneys.com/osaka/video',
               dataEvent: 'osakahotel_allvideos',
               platform: 'video',

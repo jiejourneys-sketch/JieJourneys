@@ -51,7 +51,7 @@ export default function NorthVietnamTransportPage() {
           eventPrefix="northvietnamtransport"
           showVisual={false}
           ctaLinks={[
-            { label: '北越短影片攻略', href: 'https://www.jiejourneys.com/northvietnam/video', dataEvent: 'northvietnamtransport_allvideos', platform: 'video' },
+            { label: '北越旅遊攻略合輯', href: 'https://www.jiejourneys.com/northvietnam/video', dataEvent: 'northvietnamtransport_allvideos', platform: 'video' },
             { label: '北越住宿推薦', href: 'https://www.jiejourneys.com/northvietnam/hotel', dataEvent: 'northvietnamtransport_allhotels', platform: 'hotel' },
             { label: '北越票券總整理', href: 'https://www.jiejourneys.com/northvietnam/ticket', dataEvent: 'northvietnamtransport_alltickets', platform: 'ticket' },
           ]}
