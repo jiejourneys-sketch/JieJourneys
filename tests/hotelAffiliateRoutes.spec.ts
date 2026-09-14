@@ -103,7 +103,7 @@ test('a matched hotel link uses the narrow planner merge RPC and rejects other d
   }
 })
 
-test('Agoda stays local while Trip uses its catalogue identity in Google Hotels', async () => {
+test('manually verified Agoda and Trip identities bypass all paid searches', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
@@ -147,9 +147,7 @@ test('Agoda stays local while Trip uses its catalogue identity in Google Hotels'
     const agoda = await agodaResponse.json()
     const trip = await tripResponse.json()
 
-    expect(requestedQueries).toEqual([
-      'Centurion Hotel & Spa Ueno Station -Artificial Radium Hot Spring Tokyo',
-    ])
+    expect(requestedQueries).toEqual([])
     expect(agodaResponse.status).toBe(200)
     expect(agoda.matchStatus).toBe('matched')
     expect(agoda.confidence).toBe('verified')
@@ -158,7 +156,9 @@ test('Agoda stays local while Trip uses its catalogue identity in Google Hotels'
 
     expect(tripResponse.status).toBe(200)
     expect(trip.matchStatus).toBe('matched')
-    expect(trip.confidence).toBe('high')
+    expect(trip.confidence).toBe('verified')
+    expect(trip.discoveryMethod).toBe('verified')
+    expect(trip.providerRequestCount).toBe(0)
     expect(trip.bestMatch?.hotelId).toBe('10748373')
     expect(trip.bestMatch?.bookingUrl).toContain('hotelId=10748373')
   } finally {

@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getTripAffiliatePublicConfig, searchTripAffiliateHotels } from '@/lib/tripAffiliate'
+import {
+  buildTripAffiliateUrlForHotelId,
+  getTripAffiliatePublicConfig,
+  searchTripAffiliateHotels,
+} from '@/lib/tripAffiliate'
 import { searchTripAffiliateHotelsWithGoogleHotels } from '@/lib/tripGoogleHotels'
 import { findAgodaHotelIndexIdentity } from '@/lib/agodaAffiliate'
 import {
   buildHotelAffiliateSearchNames,
   buildPlannerHotelAffiliateSearchNames,
+  getApplicableVerifiedHotelAffiliateIdentity,
 } from '@/lib/hotelAffiliateIdentity'
 import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
@@ -67,8 +72,61 @@ export async function POST(req: NextRequest) {
     checkInDate: cleanDate(input.checkInDate),
     checkOutDate: cleanDate(input.checkOutDate),
   }
-  const googleHotelsResult = await searchTripAffiliateHotelsWithGoogleHotels(searchInput)
-  let result = googleHotelsResult ?? await searchTripAffiliateHotels(searchInput)
+  const tripConfig = getTripAffiliatePublicConfig()
+  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(googlePlaceId, {
+    latitude,
+    longitude,
+    countryCode,
+  })
+  const verifiedTrip = verifiedIdentity?.trip
+  const verifiedBookingUrl = verifiedTrip
+    ? buildTripAffiliateUrlForHotelId(verifiedTrip.hotelId, {
+        allianceId: tripConfig.allianceId,
+        sid: tripConfig.sid,
+        tripSub1: searchInput.tripSub1 ?? tripConfig.sub1,
+        tripSub3: searchInput.tripSub3 ?? tripConfig.sub3,
+      })
+    : ''
+  const verifiedResult = verifiedTrip && verifiedBookingUrl
+    ? {
+        configured: true,
+        allianceId: tripConfig.allianceId,
+        sid: tripConfig.sid,
+        sub3: tripConfig.sub3,
+        searchProvider: tripConfig.searchProvider,
+        query: {
+          hotelName,
+          alternateHotelNames,
+          ...(googlePlaceId ? { googlePlaceId } : {}),
+          ...(city ? { city } : {}),
+          ...(countryCode ? { countryCode } : {}),
+          ...(latitude != null ? { latitude } : {}),
+          ...(longitude != null ? { longitude } : {}),
+          maxResult: searchInput.maxResult ?? 5,
+        },
+        matchStatus: 'matched' as const,
+        confidence: 'verified' as const,
+        bestMatch: {
+          hotelId: verifiedTrip.hotelId,
+          hotelName: verifiedTrip.hotelName,
+          score: 1,
+          bookingUrl: verifiedBookingUrl,
+          source: 'verified' as const,
+          originalUrl: verifiedTrip.sourceUrl ?? verifiedBookingUrl,
+          latitude: verifiedIdentity.latitude,
+          longitude: verifiedIdentity.longitude,
+          distanceKm: 0,
+        },
+        candidates: [],
+        rawCount: 1,
+        discoveryMethod: 'verified' as const,
+        providerRequestCount: 0,
+      }
+    : null
+  const googleHotelsResult = verifiedResult
+    ? null
+    : await searchTripAffiliateHotelsWithGoogleHotels(searchInput)
+  let result = verifiedResult ?? googleHotelsResult ?? await searchTripAffiliateHotels(searchInput)
 
   // A normal Google Hotels miss can still happen when Trip has no price for
   // the sampled dates. Spend at most one final organic-search request using

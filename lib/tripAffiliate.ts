@@ -67,7 +67,7 @@ export type TripAffiliateHotelCandidate = {
   hotelName: string
   score: number
   bookingUrl: string
-  source: 'serpapi' | 'google_cse'
+  source: 'verified' | 'serpapi' | 'google_cse'
   originalUrl: string
   title?: string
   snippet?: string
@@ -114,7 +114,7 @@ export type TripAffiliateSearchResponse = {
   rawCount?: number
   error?: string
   searchUrl?: string
-  discoveryMethod?: 'google_hotels' | 'web_search'
+  discoveryMethod?: 'verified' | 'google_hotels' | 'web_search'
   providerRequestCount?: number
 }
 
@@ -1082,8 +1082,9 @@ const COMMON_TRIP_IDENTITY_STOPWORDS = new Set([
 ])
 
 const TRIP_CANDIDATE_SOURCE_PRIORITY: Record<TripAffiliateHotelCandidate['source'], number> = {
-  serpapi: 0,
-  google_cse: 1,
+  verified: 0,
+  serpapi: 1,
+  google_cse: 2,
 }
 
 function normalizeTripText(value: string) {

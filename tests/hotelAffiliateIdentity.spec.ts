@@ -69,6 +69,8 @@ test('returns only manually verified provider identities by Google Place ID', ()
 
   expect(identity?.agoda?.hotelId).toBe('2232362')
   expect(identity?.trip?.hotelId).toBe('10748373')
+  expect(getVerifiedHotelAffiliateIdentity('ChIJmRrGXnVZSjER_vjDMPLm1lI')?.agoda?.hotelId).toBe('78250696')
+  expect(getVerifiedHotelAffiliateIdentity('ChIJ_wZajIRaGGAR87A3xmKJcQc')?.trip?.hotelId).toBe('6236690')
   expect(getVerifiedHotelAffiliateIdentity('unknown-place-id')).toBeUndefined()
 })
 

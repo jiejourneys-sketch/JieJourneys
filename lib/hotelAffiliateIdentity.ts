@@ -33,6 +33,96 @@ export type PlannerHotelAffiliateSearchNamesInput = Pick<
 const MAX_HOTEL_NAME_LENGTH = 160
 
 const VERIFIED_HOTEL_AFFILIATE_IDENTITIES: Readonly<Record<string, VerifiedHotelAffiliateIdentity>> = Object.freeze({
+  ChIJg5skS97mAGARUiYvgZ977MI: Object.freeze({
+    googlePlaceId: 'ChIJg5skS97mAGARUiYvgZ977MI',
+    canonicalNames: Object.freeze([
+      'Dormy Inn Premium Osaka Kitahama',
+      'Dormy Inn Premium Osaka Kitahama Hot Springs',
+    ]),
+    latitude: 34.689312,
+    longitude: 135.5079474,
+    countryCode: 'JP',
+    agoda: Object.freeze({
+      hotelId: '5573319',
+      hotelName: 'Dormy Inn Premium Osaka Kitahama Hot Springs',
+    }),
+    trip: Object.freeze({
+      hotelId: '21916108',
+      hotelName: 'Dormy Inn Premium Osaka Kitahama Hot Spring',
+      sourceUrl: 'https://tw.trip.com/hotels/detail/?hotelId=21916108',
+    }),
+    verifiedAt: '2026-09-14',
+  }),
+  ChIJmRrGXnVZSjER_vjDMPLm1lI: Object.freeze({
+    googlePlaceId: 'ChIJmRrGXnVZSjER_vjDMPLm1lI',
+    canonicalNames: Object.freeze([
+      'S Villa Ha Long',
+      'Ha Long 3BRS Villa – 5 Mins to Beach | Pool, Sauna, BBQ',
+    ]),
+    latitude: 20.9456184,
+    longitude: 107.0289451,
+    countryCode: 'VN',
+    agoda: Object.freeze({
+      hotelId: '78250696',
+      hotelName: 'Ha Long 3BRS Villa – 5 Mins to Beach | Pool, Sauna, BBQ',
+    }),
+    verifiedAt: '2026-09-14',
+  }),
+  'ChIJ-3iVexDnAGARVmXjT3rV6KU': Object.freeze({
+    googlePlaceId: 'ChIJ-3iVexDnAGARVmXjT3rV6KU',
+    canonicalNames: Object.freeze([
+      'VIA INN Shinsaibashi',
+      'VIA INN SHINSAIBASHI - JR WEST GROUP',
+    ]),
+    latitude: 34.6736546,
+    longitude: 135.4986665,
+    countryCode: 'JP',
+    agoda: Object.freeze({
+      hotelId: '4594727',
+      hotelName: 'VIA INN SHINSAIBASHI - JR WEST GROUP',
+    }),
+    verifiedAt: '2026-09-14',
+  }),
+  ChIJjxycF3eNGGARrMuI4k69Fh8: Object.freeze({
+    googlePlaceId: 'ChIJjxycF3eNGGARrMuI4k69Fh8',
+    canonicalNames: Object.freeze([
+      'Super Hotel Tokyo Otsuka',
+      'Super Hotel 大塚',
+    ]),
+    latitude: 35.7334552,
+    longitude: 139.7282505,
+    countryCode: 'JP',
+    agoda: Object.freeze({
+      hotelId: '665695',
+      hotelName: 'Super Hotel Tokyo Otsuka',
+    }),
+    trip: Object.freeze({
+      hotelId: '2562030',
+      hotelName: 'Super Hotel Tokyo Otsuka',
+      sourceUrl: 'https://tw.trip.com/hotels/detail/?hotelId=2562030',
+    }),
+    verifiedAt: '2026-09-14',
+  }),
+  ChIJ_wZajIRaGGAR87A3xmKJcQc: Object.freeze({
+    googlePlaceId: 'ChIJ_wZajIRaGGAR87A3xmKJcQc',
+    canonicalNames: Object.freeze([
+      'Super Hotel Totsuka Station East Exit',
+      'Super Hotel Totsukaeki Higashiguchi',
+    ]),
+    latitude: 35.4017402,
+    longitude: 139.5342374,
+    countryCode: 'JP',
+    agoda: Object.freeze({
+      hotelId: '1618140',
+      hotelName: 'Super Hotel Totsukaeki Higashiguchi',
+    }),
+    trip: Object.freeze({
+      hotelId: '6236690',
+      hotelName: 'Super Hotel Totsuka Station East Exit',
+      sourceUrl: 'https://tw.trip.com/hotels/detail/?hotelId=6236690',
+    }),
+    verifiedAt: '2026-09-14',
+  }),
   ChIJzfgJWQCPGGAR2_B6cNH4KIw: Object.freeze({
     googlePlaceId: 'ChIJzfgJWQCPGGAR2_B6cNH4KIw',
     canonicalNames: Object.freeze([
