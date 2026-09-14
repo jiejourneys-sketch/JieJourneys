@@ -1518,8 +1518,16 @@ function googleMapsPlaceIdFromUrl(value: string | undefined) {
 function googleMapsDataIdFromUrl(value: string | undefined) {
   const raw = value?.trim() ?? ''
   if (!raw) return ''
-  const match = raw.match(/!1s(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
-  return match?.[1]?.toLowerCase() ?? ''
+  try {
+    const dataId = new URL(raw).searchParams.get('ftid')?.trim().toLowerCase()
+    if (dataId && /^0x[0-9a-f]{6,}:0x[0-9a-f]{6,}$/i.test(dataId)) return dataId
+  } catch {
+    // Fall through to raw URL matching.
+  }
+  const parameterMatch = raw.match(/[?&]ftid=(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
+  if (parameterMatch?.[1]) return parameterMatch[1].toLowerCase()
+  const dataMatch = raw.match(/!1s(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
+  return dataMatch?.[1]?.toLowerCase() ?? ''
 }
 
 function trustedProviderPlaceId(
@@ -10879,15 +10887,50 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     return identity
   }, [])
 
-  // A Maps feature ID (`0x...` or `g/...`) is not a reusable Place ID. Resolve
-  // from the title and coordinates in the browser without spending SerpAPI;
-  // the provider-specific Trip lookup remains the only SerpAPI consumer.
+  // A Maps feature ID (`0x...`) identifies one concrete Google Maps feature,
+  // even when the custom pin is not exactly on the building.  Resolve it before
+  // falling back to the strictly coordinate-bounded browser text search.
   const findGooglePlaceIdentityFromQuery = useCallback(async (
     query: string,
     referenceCoordinates: { lat: number; lng: number },
-    _googleMapsDataId = '',
+    googleMapsDataId = '',
   ): Promise<GooglePlaceIdentityData | null> => {
     const cleanQuery = query.trim()
+    const cleanDataId = googleMapsDataId.trim().toLowerCase()
+    const hasExactDataId = /^0x[0-9a-f]{6,}:0x[0-9a-f]{6,}$/i.test(cleanDataId)
+    if (hasExactDataId) {
+      const response = await fetch('/api/pass-planner/google-maps-identity', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          dataId: cleanDataId,
+          ...(cleanQuery ? { query: cleanQuery.slice(0, 180) } : {}),
+          lat: referenceCoordinates.lat,
+          lng: referenceCoordinates.lng,
+        }),
+      }).catch(() => null)
+      const data = response?.ok ? await response.json().catch(() => null) : null
+      const identity = data && typeof data === 'object' && !Array.isArray(data)
+        ? (data as { identity?: unknown }).identity
+        : null
+      if (identity && typeof identity === 'object' && !Array.isArray(identity)) {
+        const source = identity as { placeId?: unknown; name?: unknown; lat?: unknown; lng?: unknown; types?: unknown }
+        const googlePlaceId = typeof source.placeId === 'string' ? source.placeId.trim() : ''
+        const lat = typeof source.lat === 'number' && Number.isFinite(source.lat) ? source.lat : null
+        const lng = typeof source.lng === 'number' && Number.isFinite(source.lng) ? source.lng : null
+        if (/^ChI[A-Za-z0-9_-]{12,}$/.test(googlePlaceId) && lat != null && lng != null) {
+          return {
+            googlePlaceId,
+            ...(typeof source.name === 'string' && source.name.trim() ? { name: source.name.trim().slice(0, 160) } : {}),
+            lat,
+            lng,
+            types: cleanGooglePlaceTypes(source.types),
+            exactMapsDataId: true,
+          }
+        }
+      }
+    }
     if (!cleanQuery) return null
     return findGooglePlaceIdentityInBrowser(cleanQuery, referenceCoordinates)
   }, [findGooglePlaceIdentityInBrowser])
