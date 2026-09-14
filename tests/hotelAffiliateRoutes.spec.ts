@@ -103,7 +103,7 @@ test('a matched hotel link uses the narrow planner merge RPC and rejects other d
   }
 })
 
-test('Agoda stays local while Trip falls back from the verified catalogue identity to the Maps English name', async () => {
+test('Agoda stays local while Trip uses its catalogue identity in Google Hotels', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
@@ -116,14 +116,15 @@ test('Agoda stays local while Trip falls back from the verified catalogue identi
     const url = new URL(String(input))
     const searchQuery = url.searchParams.get('q') ?? ''
     requestedQueries.push(searchQuery)
-    if (searchQuery.startsWith('site:trip.com/hotels')) {
+    if (url.searchParams.get('engine') === 'google_hotels') {
       return new Response(JSON.stringify({
         search_metadata: { status: 'Success' },
-        organic_results: [{
-          position: 1,
-          title: 'Centurion Hotel & Spa Ueno Station - Trip.com',
-          link: 'https://www.trip.com/hotels/tokyo-hotel-detail-10748373/centurion-hotelandspa-ueno-station/',
-          snippet: 'Centurion Hotel & Spa Ueno Station, Tokyo',
+        name: 'Centurion Hotel & Spa Ueno Station',
+        property_token: 'centurion-google-hotels-token',
+        gps_coordinates: { latitude: 35.7098512, longitude: 139.7756721 },
+        prices: [{
+          source: 'Trip.com',
+          link: 'https://www.trip.com/hotels/redirect?hotelid=10748373',
         }],
       }), { status: 200, headers: { 'content-type': 'application/json' } })
     }
@@ -147,8 +148,7 @@ test('Agoda stays local while Trip falls back from the verified catalogue identi
     const trip = await tripResponse.json()
 
     expect(requestedQueries).toEqual([
-      'site:trip.com/hotels Centurion Hotel & Spa Ueno Station -Artificial Radium Hot Spring Trip.com',
-      'site:trip.com/hotels Centurion Hotel & Spa Ueno Station Trip.com',
+      'Centurion Hotel & Spa Ueno Station -Artificial Radium Hot Spring Tokyo',
     ])
     expect(agodaResponse.status).toBe(200)
     expect(agoda.matchStatus).toBe('matched')
@@ -172,7 +172,7 @@ test('Agoda stays local while Trip falls back from the verified catalogue identi
   }
 })
 
-test('Agoda makes no web searches while Trip keeps localized names separate and ordered', async () => {
+test('Agoda makes no web searches while Google Hotels keeps localized names separate and ordered', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
@@ -187,25 +187,23 @@ test('Agoda makes no web searches while Trip keeps localized names separate and 
   process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
   globalThis.fetch = (async (input) => {
     const query = new URL(String(input)).searchParams.get('q') ?? ''
-    const isTrip = query.startsWith('site:trip.com/hotels')
+    const isTrip = new URL(String(input)).searchParams.get('engine') === 'google_hotels'
     if (isTrip) tripQueries.push(query)
     else agodaQueries.push(query)
-    const candidateName =
-      query.includes(mapsEnglishName)
-        ? mapsTraditionalChineseName
-        : query.includes(mapsTraditionalChineseName)
-          ? userName
-          : userName
+    const candidateName = query.includes(userName) ? userName : ''
     return new Response(JSON.stringify({
       search_metadata: { status: 'Success' },
-      organic_results: [{
-        position: 1,
-        title: `${candidateName} - ${isTrip ? 'Trip.com' : 'Agoda.com'}`,
-        link: isTrip
-          ? 'https://www.trip.com/hotels/naha-hotel-detail-703607/planner-harbor-view-hotel/'
-          : 'https://www.agoda.com/planner-harbor-view-hotel/hotel/okinawa-main-island-jp.html',
-        snippet: candidateName,
-      }],
+      properties: candidateName
+        ? [{
+            name: candidateName,
+            property_token: 'localized-google-hotels-token',
+            gps_coordinates: { latitude: 26.2132974, longitude: 127.6766983 },
+            prices: [{
+              source: 'Trip.com',
+              link: 'https://www.trip.com/hotels/redirect?hotelid=703607',
+            }],
+          }]
+        : [],
     }), { status: 200, headers: { 'content-type': 'application/json' } })
   }) as typeof fetch
 
@@ -239,9 +237,9 @@ test('Agoda makes no web searches while Trip keeps localized names separate and 
 
     expect(agodaQueries).toEqual([])
     expect(tripQueries).toEqual([
-      `site:trip.com/hotels ${mapsEnglishName} Trip.com`,
-      `site:trip.com/hotels ${mapsTraditionalChineseName} Trip.com`,
-      `site:trip.com/hotels ${userName} Trip.com`,
+      `${mapsEnglishName} Naha`,
+      `${mapsTraditionalChineseName} Naha`,
+      `${userName} Naha`,
     ])
     expect([...agodaQueries, ...tripQueries].join(' ')).not.toContain('This name must never be searched')
     expect(agodaResponse.status).toBe(200)
@@ -266,16 +264,17 @@ test('Trip searches the Agoda catalogue identity before a translated user name',
   const queries: string[] = []
   process.env.SERPAPI_API_KEY = 'trip-agoda-identity-regression'
   process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
-  globalThis.fetch = (async (input) => {
+    globalThis.fetch = (async (input) => {
     const query = new URL(String(input)).searchParams.get('q') ?? ''
     queries.push(query)
     return new Response(JSON.stringify({
       search_metadata: { status: 'Success' },
-      organic_results: [{
-        position: 1,
-        title: 'ART HOTEL Nippori Lungwood - Trip.com',
-        link: 'https://www.trip.com/hotels/tokyo-hotel-detail-1234567/art-hotel-nippori-lungwood/',
-        snippet: 'ART HOTEL Nippori Lungwood, Tokyo',
+      name: 'ART HOTEL Nippori Lungwood',
+      property_token: 'art-hotel-google-hotels-token',
+      gps_coordinates: { latitude: 35.7281102, longitude: 139.7729396 },
+      prices: [{
+        source: 'Trip.com',
+        link: 'https://www.trip.com/hotels/redirect?hotelid=1234567',
       }],
     }), { status: 200, headers: { 'content-type': 'application/json' } })
   }) as typeof fetch
@@ -300,7 +299,7 @@ test('Trip searches the Agoda catalogue identity before a translated user name',
     ))
     const result = await response.json()
 
-    expect(queries[0]).toBe('site:trip.com/hotels ART HOTEL Nippori Lungwood Trip.com')
+    expect(queries[0]).toBe('ART HOTEL Nippori Lungwood')
     expect(result.matchStatus).toBe('matched')
     expect(result.bestMatch?.hotelId).toBe('1234567')
   } finally {

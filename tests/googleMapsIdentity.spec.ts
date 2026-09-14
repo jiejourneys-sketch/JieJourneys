@@ -47,9 +47,8 @@ test('uses a Maps data ID for an exact English identity instead of a name guess'
     expect(url.searchParams.get('type')).toBe('place')
     expect(url.searchParams.get('hl')).toBe('en')
     expect(url.searchParams.get('q')).toBeNull()
-    expect(url.searchParams.get('data')).toBe(
-      '!4m5!3m4!1s0x60188e7f7e6987df:0xf6037235b21f34d8!8m2!3d35.7281102!4d139.7729396',
-    )
+    expect(url.searchParams.get('data_cid')).toBe('17727138133207626968')
+    expect(url.searchParams.get('data')).toBeNull()
     expect(payload).toEqual({
       configured: true,
       identity: {

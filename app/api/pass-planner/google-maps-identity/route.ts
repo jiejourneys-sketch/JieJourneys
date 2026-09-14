@@ -106,11 +106,11 @@ async function searchSerpApiMaps(
   // separately by the client as the localized (usually zh-TW) second query.
   url.searchParams.set('hl', 'en')
   if ('dataId' in input) {
-    // A Maps URL's `0x...:0x...` data ID identifies one concrete feature.
-    // SerpAPI documents this `type=place` form as the precise alternative to
-    // a keyword search, eliminating same-name hotel ambiguity.
+    // The second hexadecimal half of a Maps feature ID is Google's stable
+    // decimal CID. SerpAPI deprecated its old `data` parameter in favour of
+    // this exact `data_cid` lookup.
     url.searchParams.set('type', 'place')
-    url.searchParams.set('data', `!4m5!3m4!1s${input.dataId}!8m2!3d${input.lat}!4d${input.lng}`)
+    url.searchParams.set('data_cid', googleMapsCidFromDataId(input.dataId))
   } else {
     url.searchParams.set('type', 'search')
     url.searchParams.set('q', input.query)
@@ -232,6 +232,11 @@ function cleanGoogleMapsDataId(value: unknown) {
   if (typeof value !== 'string') return ''
   const clean = value.trim().toLowerCase()
   return /^0x[0-9a-f]{6,}:0x[0-9a-f]{6,}$/.test(clean) ? clean : ''
+}
+
+function googleMapsCidFromDataId(dataId: string) {
+  const hexadecimalCid = dataId.split(':')[1]
+  return BigInt(hexadecimalCid).toString(10)
 }
 
 function readCoordinate(value: unknown, min: number, max: number) {

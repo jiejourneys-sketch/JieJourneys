@@ -6,7 +6,10 @@ import { createInterface } from 'node:readline'
 const DEFAULT_SOURCE = path.join('data', 'agoda', 'hotels-index.jsonl')
 const DEFAULT_BASE = path.join('data', 'agoda-planner-hotels-index.jsonl')
 const DEFAULT_OUTPUT = path.join('data', 'agoda-planner-hotels-index.jsonl')
-const DEFAULT_REPLACE_COUNTRIES = ['JP']
+// Keep every country used by the planner in sync with the same Agoda export.
+// Replacing Japan alone left Korea, Taiwan, and Vietnam on older partial data
+// even though the downloaded feed already contained those properties.
+const DEFAULT_REPLACE_COUNTRIES = ['JP', 'KR', 'TW', 'VN']
 
 const options = parseArgs(process.argv.slice(2))
 const sourcePath = options.source || DEFAULT_SOURCE

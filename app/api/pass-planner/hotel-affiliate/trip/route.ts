@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTripAffiliatePublicConfig, searchTripAffiliateHotels } from '@/lib/tripAffiliate'
+import { searchTripAffiliateHotelsWithGoogleHotels } from '@/lib/tripGoogleHotels'
 import { findAgodaHotelIndexIdentity } from '@/lib/agodaAffiliate'
 import {
   buildHotelAffiliateSearchNames,
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   const hotelName = hotelNames[0] ?? providedHotelName
   const alternateHotelNames = hotelNames.slice(1)
 
-  const result = await searchTripAffiliateHotels({
+  const searchInput = {
     hotelName,
     alternateHotelNames,
     googlePlaceId,
@@ -63,7 +64,36 @@ export async function POST(req: NextRequest) {
     maxResult: cleanInteger(input.maxResult, 1, 10),
     tripSub1: cleanString(input.tripSub1, 120),
     tripSub3: cleanString(input.tripSub3, 80),
-  })
+    checkInDate: cleanDate(input.checkInDate),
+    checkOutDate: cleanDate(input.checkOutDate),
+  }
+  const googleHotelsResult = await searchTripAffiliateHotelsWithGoogleHotels(searchInput)
+  let result = googleHotelsResult ?? await searchTripAffiliateHotels(searchInput)
+
+  // A normal Google Hotels miss can still happen when Trip has no price for
+  // the sampled dates. Spend at most one final organic-search request using
+  // the strongest (Agoda-first) name; do not restart the old three-name loop.
+  if (
+    googleHotelsResult &&
+    (googleHotelsResult.matchStatus === 'no_match' || googleHotelsResult.matchStatus === 'search_error')
+  ) {
+    const fallbackResult = await searchTripAffiliateHotels({
+      ...searchInput,
+      alternateHotelNames: [],
+    })
+    if (fallbackResult.matchStatus === 'matched' || fallbackResult.matchStatus === 'needs_review') {
+      result = {
+        ...fallbackResult,
+        discoveryMethod: 'web_search',
+        providerRequestCount: (googleHotelsResult.providerRequestCount ?? 0) + 1,
+      }
+    } else if (googleHotelsResult.matchStatus === 'no_match') {
+      result = {
+        ...googleHotelsResult,
+        providerRequestCount: (googleHotelsResult.providerRequestCount ?? 0) + 1,
+      }
+    }
+  }
 
   const status =
     result.matchStatus === 'not_configured'
@@ -94,4 +124,10 @@ function cleanBoolean(value: unknown) {
   if (value === true) return true
   if (typeof value === 'string') return value.trim().toLowerCase() === 'true'
   return false
+}
+
+function cleanDate(value: unknown) {
+  if (typeof value !== 'string') return undefined
+  const date = value.trim()
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined
 }

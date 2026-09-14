@@ -31,6 +31,8 @@ export type TripAffiliateSearchInput = {
   maxResult?: number
   tripSub1?: string
   tripSub3?: string
+  checkInDate?: string
+  checkOutDate?: string
 }
 
 export type TripAffiliateCandidateMatchEvaluationInput = {
@@ -89,7 +91,7 @@ type TripAffiliateConfig = {
   configured: boolean
 }
 
-type TripAffiliateSearchResponse = {
+export type TripAffiliateSearchResponse = {
   configured: boolean
   allianceId: string
   sid: string
@@ -112,6 +114,8 @@ type TripAffiliateSearchResponse = {
   rawCount?: number
   error?: string
   searchUrl?: string
+  discoveryMethod?: 'google_hotels' | 'web_search'
+  providerRequestCount?: number
 }
 
 type SearchResult = {
@@ -130,6 +134,7 @@ export function getTripAffiliatePublicConfig() {
     configured: config.configured,
     allianceId: config.allianceId,
     sid: config.sid,
+    sub1: config.sub1,
     sub3: config.sub3,
     searchProvider: config.searchProvider,
   }
@@ -151,13 +156,34 @@ export function buildTripAffiliateUrl(
   // Trip city slugs, locale hosts, and review/photo paths change frequently.
   // The numeric hotel ID is the stable property identity and avoids retaining
   // another publisher's tracking parameters from a search result.
-  const affiliateUrl =
-    hotelId && isTripHotelDetailUrl(parsed)
-      ? new URL(`https://tw.trip.com/hotels/detail/?hotelId=${encodeURIComponent(hotelId)}`)
-      : parsed
+  if (hotelId && isTripHotelDetailUrl(parsed)) {
+    return buildTripAffiliateUrlForHotelId(hotelId, options)
+  }
+
+  const affiliateUrl = parsed
 
   affiliateUrl.hostname = 'tw.trip.com'
   affiliateUrl.protocol = 'https:'
+  affiliateUrl.searchParams.set('Allianceid', cleanParam(options.allianceId, DEFAULT_TRIP_ALLIANCE_ID, 32))
+  affiliateUrl.searchParams.set('SID', cleanParam(options.sid, DEFAULT_TRIP_SID, 32))
+  affiliateUrl.searchParams.set('trip_sub1', cleanParam(options.tripSub1, '', 120))
+  affiliateUrl.searchParams.set('trip_sub3', cleanParam(options.tripSub3, DEFAULT_TRIP_SUB3, 80))
+  return affiliateUrl.toString()
+}
+
+export function buildTripAffiliateUrlForHotelId(
+  hotelId: string | number,
+  options: {
+    allianceId?: string
+    sid?: string
+    tripSub1?: string
+    tripSub3?: string
+  } = {},
+) {
+  const cleanHotelId = String(hotelId).trim()
+  if (!/^\d{3,}$/.test(cleanHotelId)) return ''
+
+  const affiliateUrl = new URL(`https://tw.trip.com/hotels/detail/?hotelId=${encodeURIComponent(cleanHotelId)}`)
   affiliateUrl.searchParams.set('Allianceid', cleanParam(options.allianceId, DEFAULT_TRIP_ALLIANCE_ID, 32))
   affiliateUrl.searchParams.set('SID', cleanParam(options.sid, DEFAULT_TRIP_SID, 32))
   affiliateUrl.searchParams.set('trip_sub1', cleanParam(options.tripSub1, '', 120))
@@ -190,6 +216,7 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
     sub3: config.sub3,
     searchProvider: config.searchProvider,
     query,
+    discoveryMethod: 'web_search' as const,
   })
 
   if (!config.configured) {
@@ -280,6 +307,7 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
       candidates: outcome.candidates,
       rawCount: searchRawCount,
       searchUrl: buildTripSearchUrl(query.hotelName),
+      providerRequestCount: attemptedSearchCount,
     }
   } catch (error) {
     return {
@@ -290,6 +318,7 @@ export async function searchTripAffiliateHotels(input: TripAffiliateSearchInput)
       rawCount: 0,
       error: error instanceof Error ? error.message.slice(0, 120) : 'trip_search_failed',
       searchUrl: buildTripSearchUrl(query.hotelName),
+      providerRequestCount: 0,
     }
   }
 }
