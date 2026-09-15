@@ -26,16 +26,12 @@ let accountRequest: { apiKey: string; promise: Promise<AccountSnapshot> } | null
 let localRequestReservations: number[] = []
 
 /**
- * Paid planner discovery is disabled in local development by default, even if
- * a developer's .env.local still contains the production key. Production keeps
- * the legacy TRIP_SEARCH_PROVIDER=serpapi behaviour, while the dedicated flag
- * can explicitly enable or emergency-disable it in any environment.
+ * Paid planner discovery is disabled unless the dedicated switch is explicitly
+ * enabled. Merely having a key or TRIP_SEARCH_PROVIDER=serpapi must never spend
+ * quota after a deploy, a copied .env file, or an accidental local run.
  */
 export function plannerSerpApiIsEnabled() {
-  const explicit = readBoolean(process.env.SERPAPI_PLANNER_ENABLED)
-  if (explicit != null) return explicit
-  if (process.env.NODE_ENV !== 'production') return false
-  return process.env.TRIP_SEARCH_PROVIDER?.trim().toLowerCase() === 'serpapi'
+  return readBoolean(process.env.SERPAPI_PLANNER_ENABLED) === true
 }
 
 /**

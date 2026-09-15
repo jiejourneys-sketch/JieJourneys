@@ -5,6 +5,7 @@ import { POST as resolveGoogleMapsIdentity } from '../app/api/pass-planner/googl
 const originalFetch = globalThis.fetch
 const originalPlannerEnabled = process.env.SERPAPI_PLANNER_ENABLED
 const originalAccountGuardEnabled = process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+const originalTripSearchProvider = process.env.TRIP_SEARCH_PROVIDER
 
 function identityRequest(body: Record<string, unknown>) {
   return new NextRequest('http://localhost/api/pass-planner/google-maps-identity', {
@@ -20,6 +21,8 @@ test.afterEach(() => {
   else delete process.env.SERPAPI_PLANNER_ENABLED
   if (typeof originalAccountGuardEnabled === 'string') process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = originalAccountGuardEnabled
   else delete process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+  if (typeof originalTripSearchProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = originalTripSearchProvider
+  else delete process.env.TRIP_SEARCH_PROVIDER
 })
 
 test.beforeEach(() => {
@@ -257,6 +260,32 @@ test('keeps SerpAPI disabled when the emergency kill switch is off', async () =>
   } finally {
     if (typeof previousEnabled === 'string') process.env.SERPAPI_PLANNER_ENABLED = previousEnabled
     else delete process.env.SERPAPI_PLANNER_ENABLED
+    if (typeof previousKey === 'string') process.env.SERPAPI_API_KEY = previousKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})
+
+test('does not enable SerpAPI merely because the legacy provider is configured', async () => {
+  const previousKey = process.env.SERPAPI_API_KEY
+  delete process.env.SERPAPI_PLANNER_ENABLED
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'legacy-provider-must-not-search'
+  let fetchCount = 0
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    throw new Error('unexpected external request')
+  }) as typeof fetch
+
+  try {
+    const response = await resolveGoogleMapsIdentity(identityRequest({
+      query: 'Legacy Provider Hotel',
+      lat: 35.7,
+      lng: 139.7,
+    }))
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({ error: 'serpapi_disabled' })
+    expect(fetchCount).toBe(0)
+  } finally {
     if (typeof previousKey === 'string') process.env.SERPAPI_API_KEY = previousKey
     else delete process.env.SERPAPI_API_KEY
   }

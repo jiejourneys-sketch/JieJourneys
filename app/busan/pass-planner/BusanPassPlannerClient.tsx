@@ -858,6 +858,11 @@ function shouldResolveCustomPlaceGoogleIdentityForAffiliate(
   links: CustomPlannerLink[] | undefined,
 ) {
   if (hasEveryHotelAffiliateProviderLink(links)) return false
+  const userMarkedHotel = cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual === true
+  // A Maps URL by itself is not permission to spend hotel-discovery quota.
+  // Attractions, restaurants, transport and other custom pins stay entirely
+  // on the normal Google Maps resolution path.
+  if (!userMarkedHotel && hotelAffiliateNameSignal(place) !== 'lodging') return false
   const url = place.googleUrl?.trim() ?? ''
   if (!url || url.includes('PASTE_YOUR_MAPS_LINK') || !shouldResolveGoogleMapsUrl(url)) return false
 
@@ -11647,10 +11652,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   )
 
   useEffect(() => {
-    // Resolve the Maps identity first; the provider effect below starts each
-    // lookup exactly once after the required name and coordinate data is ready.
+    // Never enrich every stored place merely because a planner was opened.
+    // A production deploy can be followed by many browsers restoring large
+    // plans at once, which previously fanned out into one paid Maps identity
+    // request per unresolved place. Only a lodging the user just saved/edited,
+    // or explicitly retried, is allowed to enter the paid affiliate flow.
     if (!storageReady || readOnlyPlan) return
     Object.values(customPlaces).forEach((place) => {
+      const lookupWasRequested =
+        hotelAffiliateAutoResolvePlaceIdsRef.current.has(place.id) ||
+        hotelAffiliateForceRefreshRef.current.has(place.id)
+      if (!lookupWasRequested) return
+
       const links = [...(place.links ?? []), ...(placeUserLinks[place.id] ?? [])]
       if (shouldResolveCustomPlaceGoogleIdentityForAffiliate(place, links)) {
         resolveCustomPlaceGoogleIdentityForAffiliate(place, links)
@@ -11980,6 +11993,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     const referenceCoordinates = options.referenceCoordinates
     if (!referenceCoordinates) {
+      geocodeFallback()
+      return true
+    }
+
+    const userMarkedHotel = cleanCustomPlaceCategory(customDraft.category) === 'hotel'
+    const draftLooksLikeHotel = hotelAffiliateNameSignal({
+      name: resolvedName || customDraft.name,
+      googlePlaceName: customDraft.googlePlaceName,
+    }) === 'lodging'
+    if (!userMarkedHotel && !draftLooksLikeHotel) {
       geocodeFallback()
       return true
     }
