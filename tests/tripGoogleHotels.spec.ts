@@ -2,9 +2,20 @@ import { expect, test } from '@playwright/test'
 import { searchTripAffiliateHotelsWithGoogleHotels } from '../lib/tripGoogleHotels'
 
 const originalFetch = globalThis.fetch
+const originalPlannerEnabled = process.env.SERPAPI_PLANNER_ENABLED
+const originalAccountGuardEnabled = process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+
+test.beforeEach(() => {
+  process.env.SERPAPI_PLANNER_ENABLED = 'true'
+  process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = 'false'
+})
 
 test.afterEach(() => {
   globalThis.fetch = originalFetch
+  if (typeof originalPlannerEnabled === 'string') process.env.SERPAPI_PLANNER_ENABLED = originalPlannerEnabled
+  else delete process.env.SERPAPI_PLANNER_ENABLED
+  if (typeof originalAccountGuardEnabled === 'string') process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = originalAccountGuardEnabled
+  else delete process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
 })
 function withSerpApi() {
   const previousProvider = process.env.TRIP_SEARCH_PROVIDER
@@ -67,7 +78,7 @@ test('gets a Trip hotel ID from an exact Google Hotels booking source in one req
   }
 })
 
-test('reuses the exact property token and changes dates when Trip is initially unavailable', async () => {
+test('uses at most one exact property-detail request when Trip is initially unavailable', async () => {
   const restoreEnvironment = withSerpApi()
   const requestedUrls: URL[] = []
   globalThis.fetch = (async (input) => {
@@ -106,21 +117,18 @@ test('reuses the exact property token and changes dates when Trip is initially u
       forceRefresh: true,
     })
 
-    expect(result?.matchStatus).toBe('matched')
-    expect(result?.bestMatch?.hotelId).toBe('2562030')
-    expect(result?.providerRequestCount).toBe(3)
+    expect(result?.matchStatus).toBe('no_match')
+    expect(result?.bestMatch).toBeUndefined()
+    expect(result?.providerRequestCount).toBe(2)
     expect(requestedUrls[0].searchParams.get('property_token')).toBeNull()
     expect(requestedUrls[1].searchParams.get('property_token')).toBe('otsuka-property-token')
-    expect(requestedUrls[2].searchParams.get('property_token')).toBe('otsuka-property-token')
-    expect(requestedUrls[1].searchParams.get('check_in_date')).not.toBe(
-      requestedUrls[2].searchParams.get('check_in_date'),
-    )
+    expect(requestedUrls).toHaveLength(2)
   } finally {
     restoreEnvironment()
   }
 })
 
-test('stops Google Hotels after four requests when no Trip booking source appears', async () => {
+test('stops Google Hotels after two requests when no Trip booking source appears', async () => {
   const restoreEnvironment = withSerpApi()
   let fetchCount = 0
   globalThis.fetch = (async () => {
@@ -143,8 +151,8 @@ test('stops Google Hotels after four requests when no Trip booking source appear
       forceRefresh: true,
     })
     expect(result?.matchStatus).toBe('no_match')
-    expect(result?.providerRequestCount).toBe(4)
-    expect(fetchCount).toBe(4)
+    expect(result?.providerRequestCount).toBe(2)
+    expect(fetchCount).toBe(2)
   } finally {
     restoreEnvironment()
   }

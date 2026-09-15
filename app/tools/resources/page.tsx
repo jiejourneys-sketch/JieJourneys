@@ -57,8 +57,9 @@ const travelResources: Resource[] = [
   {
     title: 'GetYourGuide',
     tags: 'GetYourGuide 歐洲旅遊 景點 體驗 行程',
-    href: 'https://www.getyourguide.com/zh-tw/?partner_id=HDXRJVZ',
+    href: 'https://gyg.me/jiejourneys-app',
     event: 'promo_getyourguide',
+    promoCode: 'JIEJOURNEYS5',
   },
   {
     title: 'TOCOO 租車',

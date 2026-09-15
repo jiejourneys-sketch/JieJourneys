@@ -2,6 +2,7 @@ import {
   buildHotelAffiliateSearchNames,
   isUsableHotelAffiliateName,
 } from '@/lib/hotelAffiliateIdentity'
+import { fetchPlannerSerpApi, plannerSerpApiIsEnabled } from '@/lib/serpApiGuard'
 
 const DEFAULT_TRIP_ALLIANCE_ID = '6833709'
 const DEFAULT_TRIP_SID = '242535686'
@@ -127,6 +128,7 @@ type SearchResult = {
 }
 
 const searchCache = new Map<string, { expiresAt: number; results: SearchResult[] }>()
+const searchRequests = new Map<string, Promise<SearchResult[]>>()
 
 export function getTripAffiliatePublicConfig() {
   const config = readTripAffiliateConfig()
@@ -335,9 +337,12 @@ function readTripAffiliateConfig(): TripAffiliateConfig {
     process.env.GOOGLE_SEARCH_CX ??
     ''
   ).trim()
-  const searchProvider =
+  const requestedProvider =
     (process.env.TRIP_SEARCH_PROVIDER?.trim().toLowerCase() as TripAffiliateConfig['searchProvider']) ||
     (serpApiKey ? 'serpapi' : googleSearchApiKey && googleSearchCx ? 'google_cse' : '')
+  const searchProvider = requestedProvider === 'serpapi' && !plannerSerpApiIsEnabled()
+    ? ''
+    : requestedProvider
 
   return {
     allianceId: cleanParam(
@@ -383,24 +388,36 @@ async function searchTripResults(
     googleSearchCountryCode(query.countryCode),
     normalizeTripText(query.hotelName),
   ].join('|')
-  if (!forceRefresh) {
+  // A manual UI retry may bypass the browser cooldown, but it must never bypass
+  // a paid SerpAPI result already held by the server.
+  if (!forceRefresh || config.searchProvider === 'serpapi') {
     const cached = readTripSearchCache(cacheKey)
     if (cached) return cached
   }
 
-  const searchText = buildTripSearchQuery(query.hotelName)
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const activeRequest = searchRequests.get(cacheKey)
+  if (activeRequest) return activeRequest
 
+  const request = (async () => {
+    const searchText = buildTripSearchQuery(query.hotelName)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+    try {
+      const results =
+        config.searchProvider === 'serpapi'
+          ? await searchWithSerpApi(config, searchText, controller.signal, query.countryCode)
+          : await searchWithGoogleCse(config, searchText, controller.signal)
+      writeTripSearchCache(cacheKey, results)
+      return results
+    } finally {
+      clearTimeout(timeout)
+    }
+  })()
+  searchRequests.set(cacheKey, request)
   try {
-    const results =
-      config.searchProvider === 'serpapi'
-        ? await searchWithSerpApi(config, searchText, controller.signal, query.countryCode)
-        : await searchWithGoogleCse(config, searchText, controller.signal)
-    writeTripSearchCache(cacheKey, results)
-    return results
+    return await request
   } finally {
-    clearTimeout(timeout)
+    if (searchRequests.get(cacheKey) === request) searchRequests.delete(cacheKey)
   }
 }
 
@@ -450,7 +467,7 @@ async function searchWithSerpApi(
   url.searchParams.set('num', '10')
   url.searchParams.set('api_key', config.serpApiKey)
 
-  const res = await fetch(url, { cache: 'no-store', signal })
+  const res = await fetchPlannerSerpApi(url, { cache: 'no-store', signal })
   if (!res.ok) throw new Error(`serpapi_${res.status}`)
   const payload = await res.json() as {
     error?: unknown

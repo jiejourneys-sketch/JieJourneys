@@ -4,6 +4,21 @@ import { POST as postAffiliateLink } from '../app/api/pass-planner/book/affiliat
 import { POST as postAgodaAffiliate } from '../app/api/pass-planner/hotel-affiliate/agoda/route'
 import { POST as postTripAffiliate } from '../app/api/pass-planner/hotel-affiliate/trip/route'
 
+const originalPlannerEnabled = process.env.SERPAPI_PLANNER_ENABLED
+const originalAccountGuardEnabled = process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+
+test.beforeEach(() => {
+  process.env.SERPAPI_PLANNER_ENABLED = 'true'
+  process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = 'false'
+})
+
+test.afterEach(() => {
+  if (typeof originalPlannerEnabled === 'string') process.env.SERPAPI_PLANNER_ENABLED = originalPlannerEnabled
+  else delete process.env.SERPAPI_PLANNER_ENABLED
+  if (typeof originalAccountGuardEnabled === 'string') process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = originalAccountGuardEnabled
+  else delete process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+})
+
 const centurionRequest = {
   hotelName: '日本〒110-',
   googlePlaceName: 'Centurion Hotel & Spa Ueno Station',
@@ -172,7 +187,7 @@ test('manually verified Agoda and Trip identities bypass all paid searches', asy
   }
 })
 
-test('Agoda makes no web searches while Google Hotels keeps localized names separate and ordered', async () => {
+test('Agoda stays local while bounded Google Hotels uses one organic Trip fallback', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousAgodaSearchProvider = process.env.AGODA_SEARCH_PROVIDER
@@ -180,16 +195,17 @@ test('Agoda makes no web searches while Google Hotels keeps localized names sepa
   const mapsEnglishName = 'Planner Harbor View Hotel'
   const mapsTraditionalChineseName = '地圖繁中港景飯店'
   const userName = '使用者輸入海灣飯店'
-  const agodaQueries: string[] = []
+  const organicTripQueries: string[] = []
   const tripQueries: string[] = []
   process.env.SERPAPI_API_KEY = 'route-three-name-regression'
   process.env.AGODA_SEARCH_PROVIDER = 'serpapi'
   process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
   globalThis.fetch = (async (input) => {
     const query = new URL(String(input)).searchParams.get('q') ?? ''
-    const isTrip = new URL(String(input)).searchParams.get('engine') === 'google_hotels'
+    const engine = new URL(String(input)).searchParams.get('engine')
+    const isTrip = engine === 'google_hotels'
     if (isTrip) tripQueries.push(query)
-    else agodaQueries.push(query)
+    else if (engine === 'google') organicTripQueries.push(query)
     const candidateName = query.includes(userName) ? userName : ''
     return new Response(JSON.stringify({
       search_metadata: { status: 'Success' },
@@ -202,6 +218,14 @@ test('Agoda makes no web searches while Google Hotels keeps localized names sepa
               source: 'Trip.com',
               link: 'https://www.trip.com/hotels/redirect?hotelid=703607',
             }],
+          }]
+        : [],
+      organic_results: engine === 'google'
+        ? [{
+            position: 1,
+            title: `${mapsEnglishName} - Trip.com`,
+            link: 'https://www.trip.com/hotels/naha-hotel-detail-703607/planner-harbor-view-hotel/',
+            snippet: mapsEnglishName,
           }]
         : [],
     }), { status: 200, headers: { 'content-type': 'application/json' } })
@@ -235,13 +259,14 @@ test('Agoda makes no web searches while Google Hotels keeps localized names sepa
     ])
     const [agoda, trip] = await Promise.all([agodaResponse.json(), tripResponse.json()])
 
-    expect(agodaQueries).toEqual([])
     expect(tripQueries).toEqual([
       `${mapsEnglishName} Naha`,
       `${mapsTraditionalChineseName} Naha`,
-      `${userName} Naha`,
     ])
-    expect([...agodaQueries, ...tripQueries].join(' ')).not.toContain('This name must never be searched')
+    expect(organicTripQueries).toEqual([
+      `site:trip.com/hotels ${mapsEnglishName} Trip.com`,
+    ])
+    expect([...organicTripQueries, ...tripQueries].join(' ')).not.toContain('This name must never be searched')
     expect(agodaResponse.status).toBe(200)
     expect(agoda.matchStatus).toBe('needs_review')
     expect(tripResponse.status).toBe(200)

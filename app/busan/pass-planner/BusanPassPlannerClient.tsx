@@ -3258,6 +3258,12 @@ function sharedPlannerCopyStorageKey(storageKey: string, readToken: string) {
   return `${storageKey}:shared-copy:v1:${readToken}`
 }
 
+function defaultSharedCopyPlanName(value: string) {
+  const suffix = ' 副本'
+  const source = value.trim() || '我的行程'
+  return `${source.slice(0, 32 - suffix.length)}${suffix}`
+}
+
 function cleanSharedPlannerEditTarget(value: unknown): SharedPlannerEditTarget | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const { id, editToken, kind } = value as Record<string, unknown>
@@ -3304,6 +3310,7 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
     id?: unknown
     read_token?: unknown
     edit_token?: unknown
+    city?: unknown
     readonly?: unknown
     link_version?: unknown
     region_key?: unknown
@@ -3348,6 +3355,7 @@ async function fetchPlannerBook(search: string, placeById: Map<string, MapPlace>
         id: bookId,
         readToken: typeof data.read_token === 'string' ? data.read_token : null,
         editToken: isPlannerBookEditToken(data.edit_token) ? data.edit_token : null,
+        city: typeof data.city === 'string' ? data.city.trim().slice(0, 32) : '',
         linkVersion: data.link_version === 2 ? 2 as const : 1 as const,
         regionKey: typeof data.region_key === 'string' ? data.region_key.trim() : '',
         source: data.planner_source === 'pass' ? 'pass' as const : 'map' as const,
@@ -7324,6 +7332,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [googlePlaceDetailsRevision, setGooglePlaceDetailsRevision] = useState(0)
   const [nearbyKnownPlaces, setNearbyKnownPlaces] = useState<MapPlace[]>([])
   const [nearbyKnownPlacesPrompt, setNearbyKnownPlacesPrompt] = useState<NearbyKnownPlacesSuggestion | null>(null)
+  const [nearbyKnownPlacesDismissedKey, setNearbyKnownPlacesDismissedKey] = useState<string | null>(null)
   const [customDraft, setCustomDraft] = useState<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const [agodaAffiliateStatus, setAgodaAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
   const [tripAffiliateStatus, setTripAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
@@ -7349,6 +7358,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
   const [plannerNotice, setPlannerNotice] = useState<'save-before-photo' | 'copy-complete' | 'copy-failed' | null>(null)
   const [sharedCopyPrompt, setSharedCopyPrompt] = useState<{ existingTarget: SharedPlannerEditTarget | null } | null>(null)
+  const [sharedCopyNamePromptOpen, setSharedCopyNamePromptOpen] = useState(false)
+  const [sharedCopyNameDraft, setSharedCopyNameDraft] = useState('')
+  const [sharedCopyNameError, setSharedCopyNameError] = useState('')
   const [pendingAddPlace, setPendingAddPlace] = useState<MapPlace | null>(null)
   const [pendingAddPlaceNote, setPendingAddPlaceNote] = useState('')
   const [pendingDelete, setPendingDelete] = useState<
@@ -7362,6 +7374,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [plannerBookId, setPlannerBookId] = useState<string | null>(null)
   const [plannerBookReadToken, setPlannerBookReadToken] = useState<string | null>(null)
   const [plannerBookEditToken, setPlannerBookEditToken] = useState<string | null>(null)
+  const [plannerBookName, setPlannerBookName] = useState(
+    () => config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+  )
   const [plannerBookLinkVersion, setPlannerBookLinkVersion] = useState<1 | 2>(1)
   const [plannerBookUpdatedAt, setPlannerBookUpdatedAt] = useState<string | null>(null)
   const [plannerCloudSaveStatus, setPlannerCloudSaveStatus] = useState<PlannerCloudSaveStatus>('local')
@@ -8231,7 +8246,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setNearbyKnownPlacesPrompt(null)
       return
     }
-    if (stored === `dismissed:${suggestion.key}`) return
+    if (stored === `dismissed:${suggestion.key}`) {
+      setNearbyKnownPlacesDismissedKey(suggestion.key)
+      setNearbyKnownPlacesPrompt(null)
+      return
+    }
+    setNearbyKnownPlacesDismissedKey(null)
     setNearbyKnownPlacesPrompt(suggestion)
   }, [
     nearbyKnownPlacesSuggestionForDraft,
@@ -8767,6 +8787,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             setPlannerLinkUnavailable(false)
             setPlannerBookId(plannerBook.id)
             setPlannerBookReadToken(plannerBook.readToken)
+            setPlannerBookName(plannerBook.city || (config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle))
             setPlannerBookLinkVersion(plannerBook.linkVersion)
             setPlannerBookUpdatedAt(plannerBook.updatedAt)
             setReadOnlyPlan(plannerBook.readonly || inspectionMode)
@@ -8918,8 +8939,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     return () => window.clearTimeout(id)
   }, [
     config.initialSearchParams,
+    config.plannerBookCityName,
     config.plannerBookRegionKey,
     config.plannerBookSource,
+    config.recentCountryName,
+    config.shareTitle,
     config.storageKey,
     lookupPlaces,
     placeById,
@@ -9163,7 +9187,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       plannerCloudSaveTimerRef.current = null
       setPlannerCloudSaveStatus('saving')
       void savePlannerBook(
-        config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+        plannerBookName,
         config.plannerBookRegionKey ?? 'custom',
         config.plannerBookSource ?? config.recentSource ?? 'map',
         plannerBookId,
@@ -9198,10 +9222,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
     }
   }, [
-    config.plannerBookCityName,
     config.plannerBookRegionKey,
     config.plannerBookSource,
-    config.recentCountryName,
     config.recentSource,
     config.shareTitle,
     customPlaces,
@@ -9209,6 +9231,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     placeUserLinks,
     plannerBookEditToken,
     plannerBookId,
+    plannerBookName,
     plannerBookUpdatedAt,
     plannerCloudNotes,
     plannerCloudSaveSignature,
@@ -12713,7 +12736,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note),
         )
         const book = await savePlannerBook(
-          config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+          plannerBookName,
           config.plannerBookRegionKey ?? 'custom',
           config.plannerBookSource ?? config.recentSource ?? 'map',
           currentPlannerBookId,
@@ -12776,7 +12799,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 access: 'edit',
                 regionKey: config.recentRegionKey,
                 source: config.recentSource ?? 'map',
-                countryName: config.recentCountryName ?? config.shareTitle,
+                countryName: plannerBookName,
                 updatedAt,
               },
               ...existingItems.filter((item) => item.id !== book.id),
@@ -12862,11 +12885,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     config.shareText,
     config.shareTitle,
     config.shareSearchParams,
-    config.recentCountryName,
     config.recentListKey,
     config.recentRegionKey,
     config.recentSource,
-    config.plannerBookCityName,
     config.plannerBookRegionKey,
     config.plannerBookSource,
     config.storageKey,
@@ -12879,6 +12900,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     plannerBookEditToken,
     plannerBookId,
     plannerBookLinkVersion,
+    plannerBookName,
     plannerBookReadToken,
     plannerCloudSaveSignature,
     preDepartureChecklist,
@@ -12888,8 +12910,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     validPlanItems,
   ])
 
-  const forkSharedPlan = useCallback(() => {
-    if (!readOnlyPlan || shareSaving || !hasSavablePlannerContent) return
+  const forkSharedPlan = useCallback((name: string) => {
+    const copiedPlanName = name.trim().slice(0, 32)
+    if (!readOnlyPlan || shareSaving || !hasSavablePlannerContent || !copiedPlanName) return
     void (async () => {
       setShareSaving(true)
       try {
@@ -12897,7 +12920,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           validPlanIds.map((id) => [id, placeNotes[id]?.trim() ?? '']).filter(([, note]) => note),
         )
         const book = await savePlannerBook(
-          config.plannerBookCityName ?? config.recentCountryName ?? config.shareTitle,
+          copiedPlanName,
           config.plannerBookRegionKey ?? 'custom',
           config.plannerBookSource ?? config.recentSource ?? 'map',
           null,
@@ -12929,6 +12952,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setPlannerBookId(book.id)
         setPlannerBookReadToken(readToken)
         setPlannerBookEditToken(editorToken)
+        setPlannerBookName(copiedPlanName)
         setPlannerBookLinkVersion(2)
         setPlannerBookUpdatedAt(updatedAt)
         plannerCloudLastSaveRef.current = {
@@ -12980,7 +13004,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 access: 'edit',
                 regionKey: config.recentRegionKey,
                 source: config.recentSource ?? 'map',
-                countryName: config.recentCountryName ?? config.shareTitle,
+                countryName: copiedPlanName,
                 updatedAt,
               },
               ...existingItems.filter((item) => item.id !== book.id),
@@ -12998,14 +13022,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
     })()
   }, [
-    config.plannerBookCityName,
     config.plannerBookRegionKey,
     config.plannerBookSource,
-    config.recentCountryName,
     config.recentListKey,
     config.recentRegionKey,
     config.recentSource,
-    config.shareTitle,
     config.storageKey,
     customPlaces,
     hasSavablePlannerContent,
@@ -13048,6 +13069,33 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     setSharedCopyPrompt({ existingTarget })
   }, [config.storageKey, hasSavablePlannerContent, plannerBookReadToken, readOnlyPlan, shareSaving])
+
+  const requestSharedCopyName = useCallback(() => {
+    if (!readOnlyPlan || shareSaving || !hasSavablePlannerContent) return
+    setSharedCopyPrompt(null)
+    setSharedCopyNameDraft(defaultSharedCopyPlanName(plannerBookName))
+    setSharedCopyNameError('')
+    setSharedCopyNamePromptOpen(true)
+  }, [hasSavablePlannerContent, plannerBookName, readOnlyPlan, shareSaving])
+
+  const closeSharedCopyNamePrompt = useCallback(() => {
+    if (shareSaving) return
+    setSharedCopyNamePromptOpen(false)
+    setSharedCopyNameDraft('')
+    setSharedCopyNameError('')
+  }, [shareSaving])
+
+  const confirmSharedCopyName = useCallback(() => {
+    const copiedPlanName = sharedCopyNameDraft.trim().slice(0, 32)
+    if (!copiedPlanName) {
+      setSharedCopyNameError('請先輸入新行程名稱。')
+      return
+    }
+    setSharedCopyNamePromptOpen(false)
+    setSharedCopyNameDraft('')
+    setSharedCopyNameError('')
+    forkSharedPlan(copiedPlanName)
+  }, [forkSharedPlan, sharedCopyNameDraft])
 
   const openSharedEditTarget = useCallback(() => {
     const existingTarget = sharedCopyPrompt?.existingTarget
@@ -13104,12 +13152,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     storageReady &&
     !nearbyKnownPlacesPrompt &&
     nearbyKnownPlaces.length === 0 &&
+    nearbyKnownPlacesDismissedKey !== nearbyKnownPlacesSuggestionForDraft?.key &&
     Boolean(nearbyKnownPlacesSuggestionForDraft)
 
   const dismissNearbyKnownPlaces = useCallback(() => {
     const suggestion = nearbyKnownPlacesPrompt
     setNearbyKnownPlacesPrompt(null)
     if (!suggestion) return
+    setNearbyKnownPlacesDismissedKey(suggestion.key)
     try {
       window.localStorage.setItem(nearbyKnownPlacesStorageKey, `dismissed:${suggestion.key}`)
     } catch {
@@ -13431,6 +13481,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const handlePanelControlTouchStart = useCallback((e: ReactTouchEvent<HTMLElement>) => {
     if (e.touches.length !== 1 || !isMobilePlannerViewport()) return
     const target = e.target as HTMLElement
+    if (target.closest(`.${styles.dayMenuList}`)) {
+      panelControlTouchStartRef.current = null
+      return
+    }
     if (!target.closest(`.${styles.panelChrome}, .${styles.panelTabs}, .${styles.filters}, .${styles.orderControlBar}`)) {
       panelControlTouchStartRef.current = null
       return
@@ -13442,6 +13496,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const handlePanelControlTouchMove = useCallback((e: ReactTouchEvent<HTMLElement>) => {
     const start = panelControlTouchStartRef.current
     if (!start || start.collapsed || e.touches.length !== 1) return
+    const target = e.target as HTMLElement
+    if (target.closest(`.${styles.dayMenuList}`)) {
+      panelControlTouchStartRef.current = null
+      return
+    }
 
     const touch = e.touches[0]
     const deltaX = touch.clientX - start.x
@@ -14102,7 +14161,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   </div>
                 ) : (
                   <>
-                    <div className={`${styles.orderControlBar} ${batchSelectionActive ? styles.orderControlBarBatchSelecting : ''}`}>
+                    <div className={`${styles.orderControlBar} ${batchSelectionActive ? styles.orderControlBarBatchSelecting : ''} ${openPlannerMenu === 'day' ? styles.orderControlBarDayMenuOpen : ''}`}>
                       {!batchSelectionActive ? (
                       <div className={styles.dayViewControl} aria-label="行程查看範圍">
                         {hasDayDividers ? (
@@ -14817,8 +14876,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       type="button"
                       className={styles.confirmSecondary}
                       onClick={() => {
-                        setSharedCopyPrompt(null)
-                        forkSharedPlan()
+                        requestSharedCopyName()
                       }}
                       disabled={shareSaving}
                     >
@@ -14841,8 +14899,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       type="button"
                       className={styles.confirmSecondary}
                       onClick={() => {
-                        setSharedCopyPrompt(null)
-                        forkSharedPlan()
+                        requestSharedCopyName()
                       }}
                       disabled={shareSaving}
                     >
@@ -14865,8 +14922,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       type="button"
                       className={styles.confirmPrimary}
                       onClick={() => {
-                        setSharedCopyPrompt(null)
-                        forkSharedPlan()
+                        requestSharedCopyName()
                       }}
                       disabled={shareSaving}
                     >
@@ -14876,6 +14932,50 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 </>
               )}
             </section>
+          </div>
+        ) : null}
+
+        {sharedCopyNamePromptOpen ? (
+          <div className={styles.confirmBackdrop} role="presentation" onClick={closeSharedCopyNamePrompt}>
+            <form
+              className={styles.confirmDialog}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="shared-copy-name-title"
+              onClick={(event) => event.stopPropagation()}
+              onSubmit={(event) => {
+                event.preventDefault()
+                confirmSharedCopyName()
+              }}
+            >
+              <h2 id="shared-copy-name-title">替新行程命名</h2>
+              <p>這會建立一份獨立副本，不會影響原行程。建立後會直接開啟，可再自行修改。</p>
+              <label className={styles.copyPlanNameField} htmlFor="shared-copy-name-input">
+                新行程名稱
+                <input
+                  id="shared-copy-name-input"
+                  type="text"
+                  value={sharedCopyNameDraft}
+                  onChange={(event) => {
+                    setSharedCopyNameDraft(event.target.value)
+                    if (sharedCopyNameError) setSharedCopyNameError('')
+                  }}
+                  maxLength={32}
+                  autoFocus
+                  aria-invalid={Boolean(sharedCopyNameError)}
+                  aria-describedby={sharedCopyNameError ? 'shared-copy-name-error' : undefined}
+                />
+              </label>
+              {sharedCopyNameError ? <p className={styles.copyPlanNameError} id="shared-copy-name-error">{sharedCopyNameError}</p> : null}
+              <div className={styles.confirmActions}>
+                <button type="button" className={styles.confirmSecondary} onClick={closeSharedCopyNamePrompt}>
+                  取消
+                </button>
+                <button type="submit" className={styles.confirmPrimary}>
+                  建立並開啟行程
+                </button>
+              </div>
+            </form>
           </div>
         ) : null}
 

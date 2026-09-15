@@ -19,9 +19,8 @@ const countries: Country[] = [
     event: 'home_destination_japan_toggle',
     destinations: [
       { label: '東京', href: '/tokyo', event: 'home_destination_japan_tokyo' },
-      { label: '大阪', href: '/osaka', event: 'home_destination_japan_osaka' },
+      { label: '大阪・京都・奈良', href: '/osaka', event: 'home_destination_japan_osaka_kyoto_nara' },
       { label: '富士河口湖', href: '/fuji', event: 'home_destination_japan_fuji' },
-      { label: '京都', comingSoon: true },
     ],
   },
   {

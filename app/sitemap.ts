@@ -96,6 +96,10 @@ const lastModifiedByPath: Record<string, string> = {
   '/fuji/video': '2026-05-17',
   '/fuji/map': '2026-06-18',
   '/fuji/pass-map': '2026-06-17',
+  '/kyoto-nara/video': '2026-09-14',
+  '/kyoto-nara/hotel': '2026-09-14',
+  '/kyoto-nara/ticket': '2026-09-14',
+  '/kyoto-nara/transport': '2026-09-14',
 }
 
 const sitemapRoutes: SitemapRoute[] = [
@@ -189,6 +193,11 @@ const sitemapRoutes: SitemapRoute[] = [
   { path: '/fuji/video', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/fuji/map', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/fuji-map-search.png'] },
   { path: '/fuji/pass-map', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/fuji-passmap-search.png'] },
+
+  { path: '/kyoto-nara/video', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/kyoto-nara/hotel', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/kyoto-nara/ticket', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/kyoto-nara/transport', changeFrequency: 'monthly', priority: 0.7 },
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {

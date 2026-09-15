@@ -7,6 +7,21 @@ import {
   TRIP_SEARCH_CACHE_MAX_ENTRIES,
 } from '../lib/tripAffiliate'
 
+const originalPlannerEnabled = process.env.SERPAPI_PLANNER_ENABLED
+const originalAccountGuardEnabled = process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+
+test.beforeEach(() => {
+  process.env.SERPAPI_PLANNER_ENABLED = 'true'
+  process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = 'false'
+})
+
+test.afterEach(() => {
+  if (typeof originalPlannerEnabled === 'string') process.env.SERPAPI_PLANNER_ENABLED = originalPlannerEnabled
+  else delete process.env.SERPAPI_PLANNER_ENABLED
+  if (typeof originalAccountGuardEnabled === 'string') process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = originalAccountGuardEnabled
+  else delete process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+})
+
 const correctHotelName =
   'Centurion Hotel & Spa Ueno Station -Artificial Radium Hot Spring'
 
@@ -602,7 +617,7 @@ test('bounds the external Trip search cache', async () => {
   }
 })
 
-test('lets a manual Trip retry bypass an empty server search cache', async () => {
+test('does not let a manual Trip retry bypass the paid server cache', async () => {
   const previousProvider = process.env.TRIP_SEARCH_PROVIDER
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousFetch = globalThis.fetch
@@ -625,7 +640,7 @@ test('lets a manual Trip retry bypass an empty server search cache', async () =>
     const query = { hotelName: 'Manual Refresh Cache Probe Lodge' }
     await searchTripAffiliateHotels(query)
     await searchTripAffiliateHotels({ ...query, forceRefresh: true })
-    expect(fetchCount).toBe(2)
+    expect(fetchCount).toBe(1)
   } finally {
     globalThis.fetch = previousFetch
     if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider

@@ -7,6 +7,7 @@ import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
+import { kyotoNaraOneDayTagSet } from '@/data/kyoto-nara/tickets'
 import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
 
 const tabs = [
@@ -626,6 +627,19 @@ const cards: CityCard[] = addTicketActionEvents(addOneDayTags([
   },
 ]))
 
+const isKyotoNaraOneDayTicket = (card: CityCard) =>
+  card.area === '一日遊' &&
+  card.title !== customOneDayTitle &&
+  (card.tags ?? []).some((tag) => kyotoNaraOneDayTagSet.has(tag))
+
+const osakaTicketCards: CityCard[] = cards
+  .filter((card) => !isKyotoNaraOneDayTicket(card))
+  .map((card) =>
+    card.title === customOneDayTitle
+      ? { ...card, tags: (card.tags ?? []).filter((tag) => !kyotoNaraOneDayTagSet.has(tag)) }
+      : card,
+  )
+
 type OsakaTicketPageProps = {
   searchParams?: PageSearchParams
 }
@@ -671,7 +685,7 @@ export default async function OsakaTicketPage({ searchParams }: OsakaTicketPageP
         </h2>
         <CityTabbedList
           tabs={tabs}
-          cards={cards}
+          cards={osakaTicketCards}
           tabEvent="osaka_ticket_tab"
           tagFilterArea="一日遊"
           tagOrder={osakaOneDayTagOrder}
@@ -679,6 +693,7 @@ export default async function OsakaTicketPage({ searchParams }: OsakaTicketPageP
 
         <SeoCtaSection text="" href="/osaka/map" linkText="大阪熱門景點地圖" newTab dataEvent="osakaticket_SEO_spotmap" />
         <SeoCtaSection text="" href="/osaka/pass-map" linkText="大阪周遊券地圖" newTab dataEvent="osakaticket_SEO_passmap" />
+        <SeoCtaSection text="京都、奈良與天橋立等行程已集中整理於另一頁。" href="/kyoto-nara/ticket" linkText="京都・奈良一日遊票券" newTab dataEvent="osakaticket_SEO_kyotonara_tickets" />
 
         <SeoContentSection title="大阪票券快速理解">
           <h3 className="seo-h3">👉 先決定這趟要不要買大阪周遊券</h3>
@@ -709,11 +724,11 @@ export default async function OsakaTicketPage({ searchParams }: OsakaTicketPageP
             如果要去<strong>琵琶湖谷纜車</strong>、<strong>二次元之森</strong>、<strong>勝尾寺</strong>、<strong>關西機場附近溫泉</strong>等大阪市區外景點，記得一起看交通時間。票券便宜不代表整天一定順，移動成本也要算進去。
           </p>
 
-          <h3 className="seo-h3">👉 大阪出發一日遊：用景點 tag 先縮小範圍</h3>
+          <h3 className="seo-h3">👉 大阪近郊一日遊：用景點 tag 先縮小範圍</h3>
           <p>
-            大阪出發一日遊選擇很多，上方可以直接用景點 tag 篩選。想看海景和京都北部，可以從<strong>天橋立</strong>、<strong>伊根舟屋</strong>、<strong>美山合掌村</strong>開始看；想跑經典京都，可以看<strong>嵐山竹林</strong>、<strong>金閣寺</strong>、<strong>清水寺</strong>、<strong>伏見稻荷大社</strong>；想一次安排京都加奈良，就用<strong>奈良公園</strong>、<strong>東大寺</strong>篩選。
+            大阪近郊一日遊選擇很多，上方可以直接用景點 tag 篩選。神戶方向可以看<strong>有馬溫泉</strong>和<strong>六甲山</strong>，和歌山方向可以看<strong>和歌山城</strong>，滋賀方向則可以看<strong>MIHO 美術館</strong>。如果同行人數多、想保留彈性停留時間，最後也可以比較<strong>客制化行程｜包車</strong>。
             <br />
-            神戶方向可以看<strong>有馬溫泉</strong>和<strong>六甲山</strong>，和歌山方向可以看<strong>和歌山城</strong>，滋賀方向則可以看<strong>MIHO 美術館</strong>。如果同行人數多、想要彈性停留時間，最後也可以比較<strong>客制化行程｜包車</strong>。
+            要安排<strong>京都、奈良、天橋立、伊根舟屋</strong>或<strong>美山合掌村</strong>，請改到<a href="/kyoto-nara/ticket">京都・奈良一日遊票券</a>；同一套景點 tag 會直接帶出對應路線。
           </p>
         </SeoContentSection>
 
@@ -722,7 +737,7 @@ export default async function OsakaTicketPage({ searchParams }: OsakaTicketPageP
           items={[
             { q: '大阪周遊券到底要不要買？', a: '不要先問票券划不划算，先看你那天會不會密集跑周遊券涵蓋景點。如果一天只逛商店街、吃飯、拍照，通常不用硬買；如果會連跑展望台、摩天輪、大阪城周邊設施，再來算周遊券會比較準。' },
             { q: '周遊券涵蓋景點和優惠景點差在哪？', a: '涵蓋景點通常是可以用周遊券入場；優惠景點比較像折扣或特典，不等於免費。規劃時可以先看「涵蓋」決定要不要買周遊券，再看「優惠」有沒有剛好排進行程。' },
-            { q: '大阪一日遊要怎麼從這一頁挑？', a: '先點你最想去的景點 tag，不要一開始就比較所有路線。想看海景就看天橋立、伊根舟屋；想跑京都經典就看嵐山竹林、清水寺、伏見稻荷大社；想少煩惱交通就看有馬溫泉、六甲山、和歌山城或客制化包車。' },
+            { q: '大阪近郊一日遊要怎麼從這一頁挑？', a: '先點你最想去的景點 tag，不要一開始就比較所有路線。想少煩惱交通就看有馬溫泉、六甲山、和歌山城、MIHO 美術館或客制化包車；京都、奈良、天橋立與伊根舟屋則集中在京都・奈良票券頁。' },
           ]}
         />
       </main>

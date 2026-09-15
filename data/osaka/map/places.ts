@@ -5,6 +5,7 @@ import {
 } from '@/data/osaka/hotel'
 import { osakaShopMapPlaces } from '@/data/osaka/shop'
 import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
+import { kyotoNaraHotelMapPlaces, kyotoNaraMapPlaces } from '@/data/kyoto-nara'
 import type { MapPlace } from '@/lib/mapPlace'
 
 export const OSAKA_MAP_CENTER = { lat: 34.735, lng: 135.555 }
@@ -44,8 +45,32 @@ function googleMapsSearchUrl(query: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
 }
 
+function tripTicketUrl(path: string) {
+  return `https://tw.trip.com${path}?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=`
+}
+
+const kyotoNaraTicketTags = new Set([
+  '天橋立View Land',
+  '天橋立傘松公園',
+  '伊根舟屋',
+  '美山合掌村',
+  '嵐山竹林',
+  '嵐山小火車',
+  '金閣寺',
+  '清水寺',
+  '二條城',
+  '伏見稻荷大社',
+  '奈良公園',
+  '東大寺',
+  '友禪光林',
+  '宇治',
+  '平等院',
+  '三千院',
+])
+
 function osakaRelatedTicketHref(tag: string, placeId: string): string {
-  return `/osaka/ticket?tag=${encodeURIComponent(tag)}&from=map&place=${encodeURIComponent(placeId)}#ticketListTitle`
+  const ticketPath = kyotoNaraTicketTags.has(tag) ? '/kyoto-nara/ticket' : '/osaka/ticket'
+  return `${ticketPath}?tag=${encodeURIComponent(tag)}&from=map&place=${encodeURIComponent(placeId)}#ticketListTitle`
 }
 
 function osakaPassMapHref(placeId: string): string {
@@ -335,6 +360,140 @@ const osakaTicketPlaces: TicketPlaceInput[] = [
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/284299?cid=22312', event: 'osakamap_ticket_keisei_rose_kkday' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/116025-keisei-rose-garden/?aid=93798', event: 'osakamap_ticket_keisei_rose_klook' },
+    ],
+  },
+]
+
+// Kyoto single-attraction tickets use the same map-card pattern as Osaka:
+// one pin, vendor buttons, and a Google Maps route. They intentionally stay
+// separate from one-day-tour stops, which already have their own map records.
+const kyotoNaraTicketPlaces: TicketPlaceInput[] = [
+  {
+    id: 'kyoto-teamlab-biovortex',
+    name: 'teamLab Biovortex 京都',
+    description: '京都車站八條東口步行約 7 分鐘的沉浸式數位藝術館，適合雨天、傍晚或親子行程。',
+    lat: 34.9837159,
+    lng: 135.7649368,
+    mapUrl: 'https://maps.app.goo.gl/hEWHLAsr8yGXnvr89',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/533773?cid=22312', event: 'osakamap_ticket_kyoto_teamlab_biovortex_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/167098-teamlab-kyoto/?aid=93798', event: 'osakamap_ticket_kyoto_teamlab_biovortex_klook' },
+      { label: 'Trip', href: tripTicketUrl('/travel-guide/attraction/kyoto/teamlab-biovortex-kyoto-152859295/'), event: 'osakamap_ticket_kyoto_teamlab_biovortex_trip' },
+    ],
+  },
+  {
+    id: 'kyoto-railway-museum',
+    name: '京都鐵道博物館',
+    description: '梅小路公園旁的鐵道博物館，適合親子、鐵道迷或京都車站周邊半日行程。',
+    lat: 34.9870986,
+    lng: 135.7422732,
+    mapUrl: 'https://maps.app.goo.gl/s59vxoBnQQaogZ8HA',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/123551-kyoto-railway-museum-tickets-japan?cid=22312', event: 'osakamap_ticket_kyoto_railway_museum_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/27246-kyoto-railway-museum-ticket/?aid=93798', event: 'osakamap_ticket_kyoto_railway_museum_klook' },
+      { label: 'Trip', href: tripTicketUrl('/travel-guide/attraction/kyoto/kyoto-railway-museum-39226405/'), event: 'osakamap_ticket_kyoto_railway_museum_trip' },
+    ],
+  },
+  {
+    id: 'kyoto-aquarium',
+    name: '京都水族館',
+    description: '梅小路公園內的室內景點，可和鐵道博物館擇一或排成親子半日。',
+    lat: 34.987516,
+    lng: 135.7472123,
+    mapUrl: 'https://maps.app.goo.gl/zw91Nm1HgPwGpMzx6',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/149556-kyoto-aquarium-admission-ticket-japan?cid=22312', event: 'osakamap_ticket_kyoto_aquarium_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/15334-aquarium-admission-ticket-kyoto/?aid=93798', event: 'osakamap_ticket_kyoto_aquarium_klook' },
+    ],
+  },
+  {
+    id: 'kyoto-tower',
+    name: 'Nidec 京都塔展望台',
+    description: '京都車站正北側的市景展望台，最適合抵達日、離開日或日落前後安排。',
+    lat: 34.9875205,
+    lng: 135.7592518,
+    mapUrl: 'https://maps.app.goo.gl/qc2U2vwbJVBqopm29',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/21147-kyoto-tower-observation-deck-ticket-japan?cid=22312', event: 'osakamap_ticket_kyoto_tower_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/1464-kyoto-tower-admission-ticket-kyoto/?aid=93798', event: 'osakamap_ticket_kyoto_tower_klook' },
+      { label: 'Trip', href: tripTicketUrl('/travel-guide/attraction/kyoto/kyoto-tower-10558700/'), event: 'osakamap_ticket_kyoto_tower_trip' },
+    ],
+  },
+  {
+    id: 'kyoto-ookini-kimono-kiyomizu',
+    name: '京都和服租借｜Ookini 清水寺店',
+    description: '對應 Ookini 清水寺店，位在五條坂站旁，適合接清水寺、二年坂、三年坂與祇園散步。',
+    lat: 34.9946909,
+    lng: 135.7764401,
+    mapUrl: 'https://maps.app.goo.gl/rKD5qZZh8DBRvyew8',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/574785?cid=22312', event: 'osakamap_ticket_kyoto_ookini_kimono_kiyomizu_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/114571-kimono-rental-japanese-makeup-photoshoot-by-ookini-kiyomizudera/?aid=93798', event: 'osakamap_ticket_kyoto_ookini_kimono_kiyomizu_klook' },
+      { label: 'Trip', href: tripTicketUrl('/things-to-do/detail/105134050/'), event: 'osakamap_ticket_kyoto_ookini_kimono_kiyomizu_trip' },
+    ],
+  },
+  {
+    id: 'kyoto-okimonoya-kimono-kiyomizu',
+    name: '京都和服租借｜Okimono屋 清水寺店',
+    description: '清水寺腳下的和服租借店，適合接清水寺、二年坂、三年坂與東山外拍。',
+    lat: 34.9947123,
+    lng: 135.7774817,
+    mapUrl: 'https://maps.app.goo.gl/4hGXV7VGqHhhQTUP6',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/114983-kyoto-kimono-rental-at-okimonoya-japan?cid=22312', event: 'osakamap_ticket_kyoto_okimonoya_kimono_kiyomizu_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/2826-kimono-ok-kimono-rental-kyoto/?aid=93798', event: 'osakamap_ticket_kyoto_okimonoya_kimono_kiyomizu_klook' },
+      { label: 'Trip', href: tripTicketUrl('/things-to-do/detail/11462608/'), event: 'osakamap_ticket_kyoto_okimonoya_kimono_kiyomizu_trip' },
+    ],
+  },
+  {
+    id: 'kyoto-mocomoco-kimono-kiyomizu',
+    name: '京都和服租借｜MOCOMOCO 清水寺店',
+    description: '五條坂站步行約 1 分鐘的平地店，可寄放行李後由下往上安排清水寺散步。',
+    lat: 34.9954951,
+    lng: 135.7763166,
+    mapUrl: 'https://maps.app.goo.gl/rrUAvWjoeVz9VwAr7',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/554216?cid=22312', event: 'osakamap_ticket_kyoto_mocomoco_kimono_kiyomizu_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/141642-kyoto-kiyomizudera-kimono-yukata-makeup-outdoor-photography-mocomoco/?aid=93798', event: 'osakamap_ticket_kyoto_mocomoco_kimono_kiyomizu_klook' },
+    ],
+  },
+  {
+    id: 'kyoto-hozugawa-river-boat-ride',
+    name: '保津川遊船｜龜岡→嵐山',
+    description: '龜岡出發、沿保津川順流至嵐山的遊船體驗，適合和嵐山小火車排成同一個半日。',
+    lat: 35.017202,
+    lng: 135.5868593,
+    mapUrl: 'https://maps.app.goo.gl/ykDzgjXogiNXgm2R7',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/39329-hozu-river-boat-ride-from-kameoka-to-arashiyama-kyoto?cid=22312', event: 'osakamap_ticket_kyoto_hozugawa_river_boat_ride_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/74947-kyoto-arashiyama-hozugawa-river-boat-ride/?aid=93798', event: 'osakamap_ticket_kyoto_hozugawa_river_boat_ride_klook' },
+      { label: 'Trip', href: tripTicketUrl('/travel-guide/attraction/kameoka/hozugawa-river-boat-ride-13493017'), event: 'osakamap_ticket_kyoto_hozugawa_river_boat_ride_trip' },
+    ],
+  },
+  {
+    id: 'kyoto-toei-uzumasa-eigamura',
+    name: '太秦映畫村',
+    description: '京都西部的江戶街景與影視主題園區，適合親子、動漫迷或主題行程。',
+    lat: 35.0164521,
+    lng: 135.7080227,
+    mapUrl: 'https://maps.app.goo.gl/KmiekBbdPV9NcbTA7',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/24831?cid=22312', event: 'osakamap_ticket_kyoto_toei_uzumasa_eigamura_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/48327-toei-kyoto-studio-park/?aid=93798', event: 'osakamap_ticket_kyoto_toei_uzumasa_eigamura_klook' },
+      { label: 'Trip', href: tripTicketUrl('/travel-guide/attraction/kyoto/uzumasa-kyoto-village-10758530/'), event: 'osakamap_ticket_kyoto_toei_uzumasa_eigamura_trip' },
+    ],
+  },
+  {
+    id: 'kyoto-gear-theater',
+    name: 'GEAR 無語言劇場',
+    description: '三條商店街附近的晚間表演，融合默劇、舞蹈、魔術與雜耍，沒有語言門檻。',
+    lat: 35.0085243,
+    lng: 135.7665341,
+    mapUrl: 'https://maps.app.goo.gl/8idiKeLJxuMnSqbG7',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/140658?cid=22312', event: 'osakamap_ticket_kyoto_gear_theater_kkday' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109328-non-verbal-theatre-gear-show-admission-kyoto/?aid=93798', event: 'osakamap_ticket_kyoto_gear_theater_klook' },
+      { label: 'Trip', href: tripTicketUrl('/travel-guide/attraction/kyoto/gear-non-verbal-theatre-58286149'), event: 'osakamap_ticket_kyoto_gear_theater_trip' },
     ],
   },
 ]
@@ -949,11 +1108,42 @@ const osakaAirportPlaces: MapPlace[] = [
   },
 ]
 
+// These points already exist in the Osaka map as one-day-trip entries. Keep the
+// richer Osaka records (including their ticket links) and add every other
+// Kyoto/Nara point once, so the combined map never shows the same place twice.
+const kyotoNaraPlaceIdsAlreadyInOsaka = new Set([
+  'kiyomizu-dera',
+  'nijo-castle',
+  'kinkaku-ji',
+  'arashiyama-bamboo-grove',
+  'fushimi-inari-taisha',
+  'byodo-in',
+  'nara-park',
+  'todai-ji',
+  'kyoto-railway-museum',
+  'toei-uzumasa-eigamura',
+])
+
+const addedKyotoNaraPlaces: MapPlace[] = kyotoNaraMapPlaces
+  .filter((place) => !kyotoNaraPlaceIdsAlreadyInOsaka.has(place.id))
+  .map((place) => ({
+    ...place,
+    id: `osaka-kyoto-nara-${place.id}`,
+    category: 'free',
+    plannerCategory: undefined,
+    // Use the same blue teardrop marker as Osaka's existing free attractions.
+    markerColor: undefined,
+    mapButtonMapEvent: `osakamap_kyoto_nara_${place.id.replace(/-/g, '_')}_map`,
+  }))
+
 export const osakaMapPlaces: MapPlace[] = [
   ...osakaTicketPlaces.map(ticketPlaceToMapPlace),
+  ...kyotoNaraTicketPlaces.map(ticketPlaceToMapPlace),
   ...osakaPassTicketPlaces,
   ...osakaSpotPlaces.map(spotPlaceToMapPlace),
+  ...addedKyotoNaraPlaces,
   ...osakaAirportPlaces,
   ...osakaShopMapPlaces,
   ...osakaOrderedHotelPlaces,
+  ...kyotoNaraHotelMapPlaces,
 ]

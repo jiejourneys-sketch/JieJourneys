@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { fetchPlannerSerpApi, plannerSerpApiIsEnabled } from '@/lib/serpApiGuard'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,12 @@ type CachedMapsIdentity = {
   identitySource?: 'data_id' | 'text'
 }
 
+type MapsIdentityResolution = {
+  identity: MapsIdentity | null
+  identitySource?: 'data_id' | 'text'
+  requestFailed?: boolean
+}
+
 type SerpApiMapsPayload = {
   error?: unknown
   place_results?: unknown
@@ -41,9 +48,10 @@ type SerpApiMapsResult = {
 }
 
 const identityCache = new Map<string, CachedMapsIdentity>()
+const identityRequests = new Map<string, Promise<MapsIdentityResolution>>()
 
-export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
+export async function POST(incomingRequest: NextRequest) {
+  const body = (await incomingRequest.json().catch(() => null)) as Record<string, unknown> | null
   const query = cleanQuery(body?.query)
   const lat = readCoordinate(body?.lat, -90, 90)
   const lng = readCoordinate(body?.lng, -180, 180)
@@ -52,6 +60,10 @@ export async function POST(request: NextRequest) {
   // visible label cannot be extracted. That ID alone is sufficient for the
   // precise lookup; text is only required for the coordinate-checked fallback.
   if ((!query && !dataId) || lat == null || lng == null) return NextResponse.json({ error: 'invalid_request' }, { status: 400 })
+
+  if (!plannerSerpApiIsEnabled()) {
+    return NextResponse.json({ configured: false, error: 'serpapi_disabled' }, { status: 503 })
+  }
 
   const apiKey = process.env.SERPAPI_API_KEY?.trim() ?? ''
   if (!apiKey) return NextResponse.json({ configured: false, error: 'serpapi_key_missing' }, { status: 503 })
@@ -65,31 +77,53 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  const activeRequest = identityRequests.get(cacheKey)
+  const lookupRequest = activeRequest ?? resolveMapsIdentity(apiKey, { query, dataId, lat, lng })
+  if (!activeRequest) identityRequests.set(cacheKey, lookupRequest)
+  try {
+    const resolved = await lookupRequest
+    if (resolved.requestFailed) {
+      return NextResponse.json({ configured: true, error: 'maps_identity_request_failed' }, { status: 502 })
+    }
+    rememberIdentity(cacheKey, resolved.identity, resolved.identitySource)
+    return NextResponse.json({
+      configured: true,
+      ...(resolved.identity
+        ? { identity: resolved.identity, ...(resolved.identitySource ? { identitySource: resolved.identitySource } : {}) }
+        : {}),
+    })
+  } finally {
+    if (!activeRequest && identityRequests.get(cacheKey) === lookupRequest) identityRequests.delete(cacheKey)
+  }
+}
+
+async function resolveMapsIdentity(
+  apiKey: string,
+  input: { query: string; dataId: string; lat: number; lng: number },
+): Promise<MapsIdentityResolution> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   try {
-    const exactPayload = dataId
-      ? await searchSerpApiMaps(apiKey, { dataId, lat, lng }, controller.signal)
-      : null
-    if (dataId && !exactPayload) return NextResponse.json({ configured: true, error: 'maps_identity_request_failed' }, { status: 502 })
-
-    let identity = exactPayload
-      ? findNearestIdentity([exactPayload.place_results, exactPayload.local_results], { lat, lng }, { exactDataId: true })
-      : null
-    let identitySource: 'data_id' | 'text' | undefined = identity ? 'data_id' : undefined
-
-    // Data IDs are normally exact. If Google has retired one, use the Maps
-    // label only as a second, coordinate-bounded search rather than falling
-    // back to the browser API (which is not enabled for the public key).
-    if (!identity && query) {
-      const searchPayload = await searchSerpApiMaps(apiKey, { query, lat, lng }, controller.signal)
-      if (!searchPayload) return NextResponse.json({ configured: true, error: 'maps_identity_request_failed' }, { status: 502 })
-      identity = findNearestIdentity([searchPayload.place_results, searchPayload.local_results], { lat, lng })
-      if (identity) identitySource = 'text'
+    // One identity operation is allowed one metered request. If an exact data
+    // ID is stale, the browser-side Places/Geocoder fallback handles the label
+    // instead of silently spending a second SerpAPI credit.
+    const payload = await searchSerpApiMaps(
+      apiKey,
+      input.dataId
+        ? { dataId: input.dataId, lat: input.lat, lng: input.lng }
+        : { query: input.query, lat: input.lat, lng: input.lng },
+      controller.signal,
+    )
+    if (!payload) return { identity: null, requestFailed: true }
+    const identity = findNearestIdentity(
+      [payload.place_results, payload.local_results],
+      { lat: input.lat, lng: input.lng },
+      { exactDataId: Boolean(input.dataId) },
+    )
+    return {
+      identity,
+      ...(identity ? { identitySource: input.dataId ? 'data_id' as const : 'text' as const } : {}),
     }
-
-    rememberIdentity(cacheKey, identity, identitySource)
-    return NextResponse.json({ configured: true, ...(identity ? { identity, identitySource } : {}) })
   } finally {
     clearTimeout(timeout)
   }
@@ -118,7 +152,7 @@ async function searchSerpApiMaps(
   }
   url.searchParams.set('api_key', apiKey)
 
-  const response = await fetch(url, {
+  const response = await fetchPlannerSerpApi(url, {
     cache: 'no-store',
     headers: { accept: 'application/json' },
     signal,

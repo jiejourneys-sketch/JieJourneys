@@ -3,6 +3,8 @@ import { NextRequest } from 'next/server'
 import { POST as resolveGoogleMapsIdentity } from '../app/api/pass-planner/google-maps-identity/route'
 
 const originalFetch = globalThis.fetch
+const originalPlannerEnabled = process.env.SERPAPI_PLANNER_ENABLED
+const originalAccountGuardEnabled = process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
 
 function identityRequest(body: Record<string, unknown>) {
   return new NextRequest('http://localhost/api/pass-planner/google-maps-identity', {
@@ -14,6 +16,15 @@ function identityRequest(body: Record<string, unknown>) {
 
 test.afterEach(() => {
   globalThis.fetch = originalFetch
+  if (typeof originalPlannerEnabled === 'string') process.env.SERPAPI_PLANNER_ENABLED = originalPlannerEnabled
+  else delete process.env.SERPAPI_PLANNER_ENABLED
+  if (typeof originalAccountGuardEnabled === 'string') process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = originalAccountGuardEnabled
+  else delete process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+})
+
+test.beforeEach(() => {
+  process.env.SERPAPI_PLANNER_ENABLED = 'true'
+  process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = 'false'
 })
 
 test('uses a Maps data ID for an exact English identity instead of a name guess', async () => {
@@ -137,7 +148,7 @@ test('does not reject an exact Maps data ID when a shared URL carries an old vie
   }
 })
 
-test('falls back from a retired Maps data ID to a coordinate-checked text search', async () => {
+test('does not spend a second Maps request when an exact data ID is retired', async () => {
   const previousKey = process.env.SERPAPI_API_KEY
   process.env.SERPAPI_API_KEY = 'maps-data-id-fallback-test-key'
   const requestedUrls: URL[] = []
@@ -167,13 +178,8 @@ test('falls back from a retired Maps data ID to a coordinate-checked text search
     const payload = await response.json()
 
     expect(response.status).toBe(200)
-    expect(requestedUrls.map((url) => url.searchParams.get('type'))).toEqual(['place', 'search'])
-    expect(requestedUrls[1]?.searchParams.get('q')).toBe('Fallback Identity Hotel')
-    expect(payload.identity).toMatchObject({
-      placeId: 'ChIJfallbackidentity123456',
-      name: 'Fallback Identity Hotel',
-      types: ['lodging'],
-    })
+    expect(requestedUrls.map((url) => url.searchParams.get('type'))).toEqual(['place'])
+    expect(payload.identity).toBeUndefined()
   } finally {
     if (typeof previousKey === 'string') process.env.SERPAPI_API_KEY = previousKey
     else delete process.env.SERPAPI_API_KEY
@@ -223,6 +229,73 @@ test('uses a coordinate-verified Maps text search only when a data ID is unavail
       types: ['lodging'],
     })
   } finally {
+    if (typeof previousKey === 'string') process.env.SERPAPI_API_KEY = previousKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})
+
+test('keeps SerpAPI disabled when the emergency kill switch is off', async () => {
+  const previousEnabled = process.env.SERPAPI_PLANNER_ENABLED
+  const previousKey = process.env.SERPAPI_API_KEY
+  let fetchCount = 0
+  process.env.SERPAPI_PLANNER_ENABLED = 'false'
+  process.env.SERPAPI_API_KEY = 'local-development-must-not-search'
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    throw new Error('unexpected external request')
+  }) as typeof fetch
+
+  try {
+    const response = await resolveGoogleMapsIdentity(identityRequest({
+      query: 'Local Development Hotel',
+      lat: 35.7,
+      lng: 139.7,
+    }))
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({ error: 'serpapi_disabled' })
+    expect(fetchCount).toBe(0)
+  } finally {
+    if (typeof previousEnabled === 'string') process.env.SERPAPI_PLANNER_ENABLED = previousEnabled
+    else delete process.env.SERPAPI_PLANNER_ENABLED
+    if (typeof previousKey === 'string') process.env.SERPAPI_API_KEY = previousKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})
+
+test('stops before a metered search when the account hourly ceiling is reached', async () => {
+  const previousAccountGuard = process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+  const previousHourlyLimit = process.env.SERPAPI_PLANNER_MAX_REQUESTS_PER_HOUR
+  const previousKey = process.env.SERPAPI_API_KEY
+  const requestedPaths: string[] = []
+  process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = 'true'
+  process.env.SERPAPI_PLANNER_MAX_REQUESTS_PER_HOUR = '20'
+  process.env.SERPAPI_API_KEY = 'hourly-guard-mocked-key'
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    requestedPaths.push(url.pathname)
+    if (url.pathname === '/account.json') {
+      return new Response(JSON.stringify({
+        total_searches_left: 500,
+        this_hour_searches: 20,
+        account_rate_limit_per_hour: 100,
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
+    throw new Error('metered search must remain blocked')
+  }) as typeof fetch
+
+  try {
+    const response = await resolveGoogleMapsIdentity(identityRequest({
+      query: 'Hourly Guard Hotel',
+      lat: 35.71,
+      lng: 139.71,
+    }))
+    expect(response.status).toBe(502)
+    expect(requestedPaths).toEqual(['/account.json'])
+  } finally {
+    if (typeof previousAccountGuard === 'string') process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED = previousAccountGuard
+    else delete process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
+    if (typeof previousHourlyLimit === 'string') process.env.SERPAPI_PLANNER_MAX_REQUESTS_PER_HOUR = previousHourlyLimit
+    else delete process.env.SERPAPI_PLANNER_MAX_REQUESTS_PER_HOUR
     if (typeof previousKey === 'string') process.env.SERPAPI_API_KEY = previousKey
     else delete process.env.SERPAPI_API_KEY
   }

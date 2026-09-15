@@ -106,6 +106,14 @@ const cards: CityCard[] = [
     ],
   },
   {
+    title: '關西機場 ⇄ 大阪飯店｜當日行李配送',
+    meta: '關西機場交通', area: '關西機場交通', datasetKey: 'title', datasetValue: '關西機場 ⇄ 大阪飯店｜當日行李配送',
+    actions: [
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/145963-same-day-luggage-delivery-service-hotels-osaka-kansai-international-airport?cid=22312', className: 'btn primary', event: 'osakatransport_luggage_delivery_kkday', platform: 'KKDAY', section: 'transport_card' },
+      { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/27878-luggage-delivery-services-osaka-hotels-kansai-airport/?aid=93798', className: 'btn', event: 'osakatransport_luggage_delivery_klook', platform: 'KLOOK', section: 'transport_card' },
+    ],
+  },
+  {
     title: '關西機場 ⇄ 大阪市區/京都/奈良/神戶｜包車',
     meta: '關西機場交通', area: '關西機場交通', datasetKey: 'title', datasetValue: '關西機場 ⇄ 大阪市區/京都/奈良/神戶｜包車',
     actions: [
@@ -210,6 +218,9 @@ export default function OsakaTransportPage() {
             如果是親子、長輩同行，或第一天、最後一天行李很多，<strong>關西機場包車</strong>會比鐵路轉乘舒服很多。包車的優點是直達飯店，不用研究月台、電梯和換線，缺點是價格通常比大眾交通高。
             <br />
             <strong>自駕租車</strong>比較適合大阪市區以外的行程，例如想往京都郊區、奈良、神戶、和歌山或多點移動。單純在大阪市區玩不太建議自駕，停車費高、道路複雜，地鐵通常更省事。
+          </p>
+          <p>
+            若不急著入住、又想一落地就開始跑行程，可比較<strong>關西機場到大阪飯店的當日行李配送</strong>。它的重點不是取代機場交通，而是把拖行李這件事交出去；預訂前請確認飯店是否在服務範圍、收件截止時間、件數／尺寸限制與送達時間。
           </p>
 
           <h3 className="seo-h3">👉 大阪市區交通：地鐵券適合密集跑點的一天</h3>

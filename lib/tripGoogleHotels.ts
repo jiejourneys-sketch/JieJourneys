@@ -7,9 +7,10 @@ import {
   type TripAffiliateSearchInput,
   type TripAffiliateSearchResponse,
 } from '@/lib/tripAffiliate'
+import { fetchPlannerSerpApi, plannerSerpApiIsEnabled } from '@/lib/serpApiGuard'
 
 const REQUEST_TIMEOUT_MS = 12_000
-const MAX_GOOGLE_HOTELS_REQUESTS = 4
+const MAX_GOOGLE_HOTELS_REQUESTS = 2
 const HIT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const MISS_CACHE_TTL_MS = 60 * 60 * 1000
 const REVIEW_CACHE_TTL_MS = 6 * 60 * 60 * 1000
@@ -58,19 +59,20 @@ type DiscoveryOutcome = {
 }
 
 const resultCache = new Map<string, { expiresAt: number; response: TripAffiliateSearchResponse }>()
+const resultRequests = new Map<string, Promise<TripAffiliateSearchResponse>>()
 
 /**
  * Finds Trip's own hotel ID from the booking sources attached to an exact
  * Google Hotels property.  The general web search remains available as a
  * separate outage fallback, but it is deliberately not mixed into a normal
- * no-match: Google Hotels is both more precise and bounded to four requests.
+ * no-match: Google Hotels is both more precise and bounded to two requests.
  */
 export async function searchTripAffiliateHotelsWithGoogleHotels(
   input: TripAffiliateSearchInput,
 ): Promise<TripAffiliateSearchResponse | null> {
   const publicConfig = getTripAffiliatePublicConfig()
   const apiKey = process.env.SERPAPI_API_KEY?.trim() ?? ''
-  if (publicConfig.searchProvider !== 'serpapi' || !apiKey) return null
+  if (publicConfig.searchProvider !== 'serpapi' || !apiKey || !plannerSerpApiIsEnabled()) return null
 
   const hotelNames = buildHotelAffiliateSearchNames({
     googlePlaceName: input.hotelName,
@@ -106,45 +108,55 @@ export async function searchTripAffiliateHotelsWithGoogleHotels(
   })
   const dateRanges = buildDateRanges(input.checkInDate, input.checkOutDate)
   const cacheKey = googleHotelsCacheKey(query, dateRanges[0])
-  if (!input.forceRefresh) {
-    const cached = readCachedResult(cacheKey)
-    if (cached) return { ...cached, providerRequestCount: 0 }
-  }
+  // Force refresh only bypasses the browser cooldown. Reusing the server result
+  // is mandatory for a metered provider.
+  const cached = readCachedResult(cacheKey)
+  if (cached) return { ...cached, providerRequestCount: 0 }
+  const activeRequest = resultRequests.get(cacheKey)
+  if (activeRequest) return activeRequest
 
+  const request = (async (): Promise<TripAffiliateSearchResponse> => {
+    try {
+      const outcome = await discoverTripHotelFromGoogleHotels({
+        apiKey,
+        input,
+        query,
+        dateRanges,
+        allianceId: publicConfig.allianceId,
+        sid: publicConfig.sid,
+        sub1: publicConfig.sub1,
+        sub3: publicConfig.sub3,
+      })
+      const response: TripAffiliateSearchResponse = {
+        ...configuredResponse(),
+        matchStatus: outcome.matchStatus,
+        confidence: outcome.matchStatus === 'matched' ? 'high' : outcome.matchStatus === 'needs_review' ? 'review' : 'none',
+        ...(outcome.bestMatch ? { bestMatch: outcome.bestMatch } : {}),
+        candidates: outcome.candidates.slice(0, maxResult),
+        rawCount: outcome.candidates.length,
+        searchUrl: outcome.searchUrl,
+        providerRequestCount: outcome.requestCount,
+      }
+      writeCachedResult(cacheKey, response)
+      return response
+    } catch (error) {
+      return {
+        ...configuredResponse(),
+        matchStatus: 'search_error',
+        confidence: 'none',
+        candidates: [],
+        rawCount: 0,
+        error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_search_failed',
+        searchUrl: buildGoogleHotelsBrowserUrl(hotelName, city),
+        providerRequestCount: 0,
+      }
+    }
+  })()
+  resultRequests.set(cacheKey, request)
   try {
-    const outcome = await discoverTripHotelFromGoogleHotels({
-      apiKey,
-      input,
-      query,
-      dateRanges,
-      allianceId: publicConfig.allianceId,
-      sid: publicConfig.sid,
-      sub1: publicConfig.sub1,
-      sub3: publicConfig.sub3,
-    })
-    const response: TripAffiliateSearchResponse = {
-      ...configuredResponse(),
-      matchStatus: outcome.matchStatus,
-      confidence: outcome.matchStatus === 'matched' ? 'high' : outcome.matchStatus === 'needs_review' ? 'review' : 'none',
-      ...(outcome.bestMatch ? { bestMatch: outcome.bestMatch } : {}),
-      candidates: outcome.candidates.slice(0, maxResult),
-      rawCount: outcome.candidates.length,
-      searchUrl: outcome.searchUrl,
-      providerRequestCount: outcome.requestCount,
-    }
-    writeCachedResult(cacheKey, response)
-    return response
-  } catch (error) {
-    return {
-      ...configuredResponse(),
-      matchStatus: 'search_error',
-      confidence: 'none',
-      candidates: [],
-      rawCount: 0,
-      error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_search_failed',
-      searchUrl: buildGoogleHotelsBrowserUrl(hotelName, city),
-      providerRequestCount: 0,
-    }
+    return await request
+  } finally {
+    if (resultRequests.get(cacheKey) === request) resultRequests.delete(cacheKey)
   }
 }
 
@@ -258,7 +270,7 @@ async function fetchGoogleHotels(
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   try {
-    const response = await fetch(url, { cache: 'no-store', signal: controller.signal })
+    const response = await fetchPlannerSerpApi(url, { cache: 'no-store', signal: controller.signal })
     if (!response.ok) throw new Error(`serpapi_google_hotels_${response.status}`)
     const payload = (await response.json()) as GoogleHotelsPayload
     if (typeof payload.error === 'string' && payload.error.trim()) {

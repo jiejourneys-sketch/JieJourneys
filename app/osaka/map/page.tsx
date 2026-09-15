@@ -1,16 +1,16 @@
 'use client'
 
 import MapClient from '@/components/map/MapClient'
-import { OSAKA_MAP_CENTER, osakaMapPlaces } from '@/data/osaka/map/places'
+import { osakaMapPlaces } from '@/data/osaka/map/places'
 
 export default function OsakaMapPage() {
   return (
     <MapClient
       places={osakaMapPlaces}
-      mapCenter={OSAKA_MAP_CENTER}
-      mapZoom={10}
+      mapCenter={{ lat: 35.05, lng: 135.58 }}
+      mapZoom={7}
       gtagPrefix="osakamap"
-      title="大阪景點地圖"
+      title="大阪・京都・奈良旅杰地圖"
       backHref="/osaka"
       defaultCategories={{ spot: true, free: true, shop: true, food: false, hotel: true }}
       categoryItems={[
@@ -67,15 +67,27 @@ export default function OsakaMapPage() {
         },
       ]}
       belowContent={
-        <article className="seo-page" aria-label="大阪景點地圖攻略">
-          <section className="seo-content" aria-label="大阪地圖說明">
-            <h2 className="seo-h2">大阪地圖怎麼用？</h2>
+        <article className="seo-page" aria-label="大阪京都奈良旅杰地圖攻略">
+          <section className="seo-content" aria-label="大阪京都奈良地圖說明">
+            <h2 className="seo-h2">大阪・京都・奈良地圖怎麼用？</h2>
             <div className="seo-prose">
               <p>
-                這張大阪景點地圖把票券景點、免費景點和住宿放在同一張互動地圖上。第一次去大阪時，可以先開「票券」「景點」「住宿」，看難波、心齋橋、梅田、天王寺、環球影城和大阪城的位置，再決定每天住哪裡、怎麼排路線。
+                這張大阪・京都・奈良旅杰地圖，把大阪市區、京都、奈良與京都近郊的一日遊景點放在同一張互動地圖上。先開「票券」「景點」「住宿」，確認每天是在大阪市區、京都、奈良還是近郊移動，再決定住宿與路線。
               </p>
               <p>
-                每張卡片會盡量附上購票連結與 Google Map 導航。大阪很多人會搭配京都、奈良、神戶或和歌山一日遊，建議先用地圖確認距離，避免同一天排太多跨區景點。
+                每張卡片會盡量附上購票連結與 Google Map 導航。京都・奈良清單中原本未收錄在大阪地圖的景點也已加入；既有的一日遊景點則保留原本的票券連結，不會重複顯示。
+              </p>
+              <p>
+                京都的單點熱門票券也已依照大阪票券圖釘的方式放在「票券」分類：teamLab Biovortex、京都鐵道博物館、京都水族館、Nidec 京都塔、清水寺周邊的 Ookini／Okimono屋／MOCOMOCO 和服租借、太秦映畫村與 GEAR 無語言劇場。每個圖釘都附上對應的 KKDAY／KLOOK 購買按鈕與導航；鐵道博物館、太秦映畫村不再同時以一般景點重複顯示。
+              </p>
+
+              <h3 className="seo-h3">京都住宿圖釘｜與京都住宿頁同步</h3>
+              <p>
+                開啟「住宿」即可看到與
+                <a href="/kyoto-nara/hotel" data-event="osakamap_internal_kyoto_hotel" data-section="seo_content">
+                  京都住宿推薦
+                </a>
+                相同的 13 間飯店：京都車站 6 間、河原町・祇園 3 間、烏丸・市中心 4 間。圖釘名稱、區域描述、Trip、Agoda 與 Google 地圖連結皆與住宿頁同步；若地圖範圍停在大阪，請縮放或拖到京都後查看。
               </p>
               <p>
                 如果你還在比較票券、住宿或交通，可以先看
@@ -93,13 +105,14 @@ export default function OsakaMapPage() {
                 ，再回來對照地圖會更好排。
               </p>
 
-              <h3 className="seo-h3">第一次去大阪先看哪些區域？</h3>
+              <h3 className="seo-h3">先依城市與區域安排</h3>
               <ul>
                 <li>難波 / 心齋橋：逛街、美食、道頓堀最方便，適合第一次自由行。</li>
                 <li>梅田 / 大阪站：交通線多，適合安排京都、神戶、奈良一日遊。</li>
                 <li>天王寺 / 新世界：適合通天閣、阿倍野展望台、動物園前一帶。</li>
                 <li>環球影城 / 海遊館：適合親子、主題樂園和大阪港路線。</li>
-                <li>京都 / 奈良 / 神戶：可從大阪出發一日遊，但不要和市區景點塞同一天太滿。</li>
+                <li>京都 / 奈良：清水寺、嵐山、伏見稻荷、宇治與奈良公園等景點，適合獨立排一整天。</li>
+                <li>天橋立 / 伊根 / 美山：距離更遠，建議直接安排一日遊或自駕／包車行程。</li>
               </ul>
 
               <h3 className="seo-h3">搭配地圖規劃的小技巧</h3>
@@ -144,7 +157,7 @@ export default function OsakaMapPage() {
                   <span>第一次去大阪住哪裡比較方便？</span>
                 </h3>
                 <p className="seo-faq-a">
-                  想逛街和吃美食選難波、心齋橋；想跑京都、神戶、奈良一日遊選梅田、大阪站；想去環球影城可以住大阪市區再搭電車前往。
+                  想逛街和吃美食選難波、心齋橋；想跑京都、奈良一日遊選梅田、大阪站；想去環球影城可以住大阪市區再搭電車前往。
                 </p>
               </li>
               <li className="seo-faq-item">
@@ -152,10 +165,10 @@ export default function OsakaMapPage() {
                   <span className="seo-faq-qicon" aria-hidden="true">
                     Q
                   </span>
-                  <span>大阪景點會不會很分散？</span>
+                  <span>大阪、京都、奈良景點會不會很分散？</span>
                 </h3>
                 <p className="seo-faq-a">
-                  大阪市區景點相對集中，但京都、奈良、神戶、和歌山、天橋立等一日遊距離較遠，建議用地圖先看方向，把同一區或同一條交通線排在同一天。
+                  大阪市區景點相對集中，但京都、奈良與天橋立等一日遊距離較遠，建議用地圖先看方向，把同一區或同一條交通線排在同一天。
                 </p>
               </li>
               <li className="seo-faq-item">

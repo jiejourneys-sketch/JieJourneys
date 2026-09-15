@@ -10,29 +10,49 @@ export default function OsakaPage() {
     <>
       <CitySubpageHeader backHref="/" eventPrefix="osaka" />
       <main className="busan-main">
-        <h1>日本｜大阪</h1>
+        <h1>日本｜大阪・京都・奈良</h1>
         <p className="sub">完整連結快速選單</p>
         <div className="link-list">
           <Link className="link-item" href="/osaka/map" data-event="osaka_map" data-item="map" data-section="quick">
             <Image className="link-icon" src="/assets/ditu.png" alt="地圖" width={48} height={48} />
-            <div className="link-text">旅杰大阪地圖</div>
+            <div className="link-text">旅杰大阪・京都・奈良地圖</div>
           </Link>
-          <Link className="link-item" href="/osaka/hotel" data-event="osaka_hotel" data-item="hotel" data-section="quick">
-            <Image className="link-icon" src="/assets/hotel.png" alt="住宿" width={48} height={48} />
-            <div className="link-text">住宿</div>
-          </Link>
-          <Link className="link-item" href="/osaka/video" data-event="osaka_video" data-item="video" data-section="quick">
-            <Image className="link-icon" src="/assets/video.png" alt="影片" width={48} height={48} />
-            <div className="link-text">旅遊攻略合輯</div>
-          </Link>
-          <Link className="link-item" href="/osaka/ticket" data-event="osaka_ticket" data-item="ticket" data-section="quick">
-            <Image className="link-icon" src="/assets/piao.png" alt="票券" width={48} height={48} />
-            <div className="link-text">票券</div>
-          </Link>
-          <Link className="link-item" href="/osaka/transport" data-event="osaka_transport" data-item="transport" data-section="quick">
-            <Image className="link-icon" src="/assets/jiaotong.png" alt="交通" width={48} height={48} />
-            <div className="link-text">通訊 / 交通</div>
-          </Link>
+          <div className="link-pair" aria-label="住宿">
+            <Link className="link-item link-pair-item" href="/osaka/hotel" data-event="osaka_hotel" data-item="osaka-hotel" data-section="quick">
+              <Image className="link-icon" src="/assets/hotel.png" alt="大阪住宿" width={48} height={48} />
+              <div className="link-text">大阪住宿</div>
+            </Link>
+            <Link className="link-item link-pair-item link-pair-item-no-icon" href="/kyoto-nara/hotel" data-event="osaka_kyotonara_hotel" data-item="kyoto-nara-hotel" data-section="quick">
+              <div className="link-text">京都住宿</div>
+            </Link>
+          </div>
+          <div className="link-pair" aria-label="旅遊攻略合輯">
+            <Link className="link-item link-pair-item" href="/osaka/video" data-event="osaka_video" data-item="osaka-video" data-section="quick">
+              <Image className="link-icon" src="/assets/video.png" alt="大阪旅遊攻略合輯" width={48} height={48} />
+              <div className="link-text">大阪攻略</div>
+            </Link>
+            <Link className="link-item link-pair-item link-pair-item-no-icon" href="/kyoto-nara/video" data-event="osaka_kyotonara_video" data-item="kyoto-nara-video" data-section="quick">
+              <div className="link-text">京都攻略</div>
+            </Link>
+          </div>
+          <div className="link-pair" aria-label="票券">
+            <Link className="link-item link-pair-item" href="/osaka/ticket" data-event="osaka_ticket" data-item="osaka-ticket" data-section="quick">
+              <Image className="link-icon" src="/assets/piao.png" alt="大阪票券" width={48} height={48} />
+              <div className="link-text">大阪票券</div>
+            </Link>
+            <Link className="link-item link-pair-item link-pair-item-no-icon" href="/kyoto-nara/ticket" data-event="osaka_kyotonara_ticket" data-item="kyoto-nara-ticket" data-section="quick">
+              <div className="link-text">京都奈良票券</div>
+            </Link>
+          </div>
+          <div className="link-pair" aria-label="通訊與交通">
+            <Link className="link-item link-pair-item" href="/osaka/transport" data-event="osaka_transport" data-item="osaka-transport" data-section="quick">
+              <Image className="link-icon" src="/assets/jiaotong.png" alt="大阪通訊與交通" width={48} height={48} />
+              <div className="link-text">大阪通訊 / 交通</div>
+            </Link>
+            <Link className="link-item link-pair-item link-pair-item-no-icon" href="/kyoto-nara/transport" data-event="osaka_kyotonara_transport" data-item="kyoto-nara-transport" data-section="quick">
+              <div className="link-text">京都奈良通訊 / 交通</div>
+            </Link>
+          </div>
           <div className="link-item pass-card" data-section="quick">
             <Image className="link-icon" src="/assets/ditu.png" alt="大阪周遊券" width={48} height={48} />
             <div className="pass-row">

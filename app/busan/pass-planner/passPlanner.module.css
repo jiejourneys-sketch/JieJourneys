@@ -4273,6 +4273,37 @@
   line-height: 1.55;
 }
 
+.copyPlanNameField {
+  display: grid;
+  gap: 7px;
+  margin-top: 16px;
+  color: var(--cta);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.copyPlanNameField input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(31, 122, 140, 0.28);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.copyPlanNameField input:focus {
+  outline: 3px solid rgba(31, 122, 140, 0.16);
+  border-color: var(--cta);
+}
+
+.copyPlanNameError {
+  margin-top: 8px !important;
+  color: #b42318 !important;
+  font-weight: 800;
+}
+
 .confirmNotice {
   margin-top: 10px !important;
   border: 1px solid rgba(31, 122, 140, 0.18);
@@ -5326,6 +5357,15 @@
   .orderControlBar {
     gap: 7px;
     touch-action: pan-x;
+    overscroll-behavior: contain;
+  }
+
+  .orderControlBarDayMenuOpen,
+  .orderControlBarDayMenuOpen .dayMenuList {
+    touch-action: pan-y;
+  }
+
+  .orderControlBarDayMenuOpen .dayMenuList {
     overscroll-behavior: contain;
   }
 
