@@ -41,15 +41,16 @@ export default function TopBanner() {
             </PromoLink>
           </div>
           <div>
-            <strong>eSIM 優惠碼：</strong>
-            <PromoLink
-              href="https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys"
-              promoCode="jiejourneys"
-              data-event="promo_esimconnect"
+            <strong>KarDear 上網卡：</strong>
+            <a
+              href="https://kardear.com/?ref=390"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-event="promo_kardear"
               className="code-link"
             >
-              <span className="code">JieJourneys ↗</span>
-            </PromoLink>
+              <span className="code">eSIM／SIM 卡 ↗</span>
+            </a>
           </div>
           <div>
             <strong>訂房：</strong>

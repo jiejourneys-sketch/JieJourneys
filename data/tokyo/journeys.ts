@@ -780,7 +780,8 @@ const tokyoJourneyCustomPlacesRaw = {
     'https://maps.app.goo.gl/737FbabVtfnJ8J7V6',
     '事先準備 eSIM／SIM／WiFi 分享器與 Suica。',
     [
-      link('eSIM', 'https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys'),
+      link('KarDear eSIM', 'https://kardear.com/product-category/kardear/network/esim/japan/?ref=390'),
+      link('KarDear SIM 卡', 'https://kardear.com/product/sim-japan/?ref=390'),
       link('SIM 卡', 'https://www.kkday.com/zh-tw/product/126982?cid=22312'),
       link('WiFi 分享器', 'https://www.klook.com/zh-TW/activity/16399-unlimited-4g-lte-wifi-japan-airport-pickup-ninja-wifi/?aid=93798'),
       link('Suica', 'https://www.klook.com/zh-TW/activity/16917-suica-ic-card-tokyo/?aid=93798'),

@@ -48,11 +48,10 @@ const travelResources: Resource[] = [
     promoCode: 'GGGT6XAA',
   },
   {
-    title: 'eSIM Connect',
-    tags: 'eSIM 優惠 旅遊上網 esimconnect',
-    href: 'https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys',
-    event: 'promo_esimconnect',
-    promoCode: 'jiejourneys',
+    title: 'KarDear 上網卡',
+    tags: 'eSIM SIM 卡 實體卡 旅遊上網 KarDear',
+    href: 'https://kardear.com/?ref=390',
+    event: 'promo_kardear',
   },
   {
     title: 'GetYourGuide',

@@ -360,7 +360,8 @@ export const busanJourneyCustomPlaces = {
   'custom:busan-connectivity': {
     name: '行前｜網路、WOWPASS 與 T-money', category: 'spot', lat: 35.1796, lng: 128.9382,
     links: [
-      { label: 'eSIM（JieJourneys 折扣）', href: 'https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys' },
+      { label: 'KarDear eSIM', href: 'https://kardear.com/product-category/kardear/network/esim/korea/?ref=390' },
+      { label: 'KarDear SIM 卡', href: 'https://kardear.com/product/sim-korea/?ref=390' },
       { label: 'SIM 卡（含 T-money）', href: 'https://www.kkday.com/zh-tw/product/20721-4g-lte-sim-card-with-t-money-card-calls-pick-up-south-korea-airports-south-korea?cid=22312' },
       { label: 'Wifi 分享器', href: 'https://www.kkday.com/zh-tw/product/7452-unlimited-4g-pocket-wi-fi-rental-with-airports-and-seoul-pick-up-south-korea?cid=22312' },
       { label: 'WOWPASS', href: 'https://www.kkday.com/zh-tw/product/149562?cid=22312' },

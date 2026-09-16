@@ -70,7 +70,16 @@ type PlannerFocusTarget =
   | { mode: 'order'; placeId: string; itemId: PlannerItem | null }
   | { mode: 'transport'; itemId: PlannerItem }
 type TransportMode = 'walk' | 'subway' | 'bus' | 'train' | 'taxi' | 'car' | 'custom'
-type TransportInfo = { id: string; mode: TransportMode; customLabel: string; duration: string; note: string; href: string }
+type TransportInfo = {
+  id: string
+  mode: TransportMode
+  customLabel: string
+  duration: string
+  note: string
+  href: string
+  fromItem?: PlannerItem
+  toItem?: PlannerItem
+}
 type PlannerListDisplayItem =
   | { type: 'item'; item: PlannerItem }
   | { type: 'transport-group'; key: string; items: PlannerItem[] }
@@ -2897,6 +2906,19 @@ function plannerDayEndInsertIndex(items: PlannerItem[], dayDivider: PlannerItem 
   return nextDayDividerIndex >= 0 ? nextDayDividerIndex : items.length
 }
 
+function plannerDayStartInsertIndex(items: PlannerItem[], dayDivider: PlannerItem | null) {
+  if (!dayDivider) return 0
+  const dayDividerIndex = items.indexOf(dayDivider)
+  return dayDividerIndex >= 0 ? dayDividerIndex + 1 : 0
+}
+
+function clampInsertIndexToDay(items: PlannerItem[], insertIndex: number, dayDivider: PlannerItem | null) {
+  return Math.max(
+    plannerDayStartInsertIndex(items, dayDivider),
+    Math.min(insertIndex, plannerDayEndInsertIndex(items, dayDivider)),
+  )
+}
+
 function movePlanDayGroups(items: PlannerItem[], fromDayIndex: number, toDayIndex: number) {
   if (fromDayIndex === toDayIndex || fromDayIndex < 0 || toDayIndex < 0) return items
 
@@ -2939,7 +2961,7 @@ function decodeTransportPart(value: string | undefined) {
 }
 
 function serializeTransportItem(info: TransportInfo) {
-  return `${TRANSPORT_ITEM_PREFIX}${info.id}|${info.mode}|${encodeTransportPart(info.duration)}|${encodeTransportPart(info.note)}|${encodeTransportPart(info.href)}|${encodeTransportPart(info.customLabel)}`
+  return `${TRANSPORT_ITEM_PREFIX}${info.id}|${info.mode}|${encodeTransportPart(info.duration)}|${encodeTransportPart(info.note)}|${encodeTransportPart(info.href)}|${encodeTransportPart(info.customLabel)}|${encodeTransportPart(info.fromItem ?? '')}|${encodeTransportPart(info.toItem ?? '')}`
 }
 
 function createTransportItem(info: Partial<Omit<TransportInfo, 'id'>> = {}) {
@@ -2951,13 +2973,16 @@ function createTransportItem(info: Partial<Omit<TransportInfo, 'id'>> = {}) {
     duration: info.duration ?? '',
     note: info.note ?? '',
     href: info.href ?? '',
+    ...(info.fromItem && info.toItem ? { fromItem: info.fromItem, toItem: info.toItem } : {}),
   })
 }
 
 function parseTransportItem(item: PlannerItem): TransportInfo | null {
   if (!isTransportItem(item)) return null
-  const [rawId = '', rawMode = '', rawDuration = '', rawNote = '', rawHref = '', rawCustomLabel = ''] = item.slice(TRANSPORT_ITEM_PREFIX.length).split('|')
+  const [rawId = '', rawMode = '', rawDuration = '', rawNote = '', rawHref = '', rawCustomLabel = '', rawFromItem = '', rawToItem = ''] = item.slice(TRANSPORT_ITEM_PREFIX.length).split('|')
   const mode = TRANSPORT_MODE_OPTIONS.some((option) => option.key === rawMode) ? (rawMode as TransportMode) : 'custom'
+  const fromItem = decodeTransportPart(rawFromItem).slice(0, 500)
+  const toItem = decodeTransportPart(rawToItem).slice(0, 500)
   return {
     id: rawId || 'transport',
     mode,
@@ -2965,6 +2990,7 @@ function parseTransportItem(item: PlannerItem): TransportInfo | null {
     duration: decodeTransportPart(rawDuration).slice(0, 40),
     note: decodeTransportPart(rawNote).slice(0, 300),
     href: decodeTransportPart(rawHref).slice(0, 500),
+    ...(fromItem && toItem ? { fromItem, toItem } : {}),
   }
 }
 
@@ -3046,59 +3072,148 @@ function planItemPlace(item: PlannerItem, placeById: Map<string, MapPlace>) {
   return placeId ? placeById.get(placeId) ?? null : null
 }
 
-function transportNavigationPlaces(items: PlannerItem[], itemId: PlannerItem, placeById: Map<string, MapPlace>): TransportNavigationPlaces | null {
+function transportAdjacentPlaceItems(items: PlannerItem[], itemId: PlannerItem, placeById: Map<string, MapPlace>) {
   const index = items.indexOf(itemId)
   if (index < 0) return null
 
-  let from: MapPlace | null = null
+  let fromItem: PlannerItem | null = null
   for (let i = index - 1; i >= 0; i -= 1) {
     if (isDayItem(items[i])) break
-    const place = planItemPlace(items[i], placeById)
-    if (place) {
-      from = place
+    if (planItemPlace(items[i], placeById)) {
+      fromItem = items[i]
       break
     }
   }
 
-  let to: MapPlace | null = null
+  let toItem: PlannerItem | null = null
   for (let i = index + 1; i < items.length; i += 1) {
     if (isDayItem(items[i])) break
-    const place = planItemPlace(items[i], placeById)
-    if (place) {
-      to = place
+    if (planItemPlace(items[i], placeById)) {
+      toItem = items[i]
       break
     }
   }
 
+  return fromItem && toItem ? { fromItem, toItem } : null
+}
+
+function transportNavigationPlaces(items: PlannerItem[], itemId: PlannerItem, placeById: Map<string, MapPlace>): TransportNavigationPlaces | null {
+  const adjacentItems = transportAdjacentPlaceItems(items, itemId, placeById)
+  if (!adjacentItems) return null
+  const from = planItemPlace(adjacentItems.fromItem, placeById)
+  const to = planItemPlace(adjacentItems.toItem, placeById)
   return from && to ? { from, to } : null
+}
+
+function transportRouteNeedsReview(items: PlannerItem[], itemId: PlannerItem, placeById: Map<string, MapPlace>) {
+  const transport = parseTransportItem(itemId)
+  if (!transport?.fromItem || !transport.toItem) return false
+  const adjacentItems = transportAdjacentPlaceItems(items, itemId, placeById)
+  return !adjacentItems || adjacentItems.fromItem !== transport.fromItem || adjacentItems.toItem !== transport.toItem
+}
+
+type TransportInsertionTarget = {
+  fromItem: PlannerItem
+  toItem: PlannerItem
+}
+
+function transportInsertionTargets(items: PlannerItem[], placeById: Map<string, MapPlace>) {
+  const targets: TransportInsertionTarget[] = []
+  let previousPlaceItem: PlannerItem | null = null
+
+  items.forEach((item) => {
+    if (isDayItem(item)) {
+      previousPlaceItem = null
+      return
+    }
+    if (!planItemPlace(item, placeById)) return
+    if (previousPlaceItem) targets.push({ fromItem: previousPlaceItem, toItem: item })
+    previousPlaceItem = item
+  })
+
+  return targets
+}
+
+function transportInsertionTarget(
+  items: PlannerItem[],
+  preferredItem: PlannerItem | null,
+  placeById: Map<string, MapPlace>,
+) {
+  const targets = transportInsertionTargets(items, placeById)
+  if (preferredItem) {
+    const afterPreferred = targets.find((target) => target.fromItem === preferredItem)
+    if (afterPreferred) return afterPreferred
+    const beforePreferred = targets.find((target) => target.toItem === preferredItem)
+    if (beforePreferred) return beforePreferred
+    return null
+  }
+  return targets[targets.length - 1] ?? null
 }
 
 function batchMoveItemSet(items: PlannerItem[], selectedItems: Set<PlannerItem>, placeById: Map<string, MapPlace>) {
   const movingItems = new Set(
     items.filter((item) => selectedItems.has(item) && Boolean(planItemPlace(item, placeById))),
   )
-  let incomingTransportItems: PlannerItem[] = []
 
+  // Transport belongs to the pair of stops it sits between.  It moves only
+  // when both of those stops move together; moving one stop on its own leaves
+  // the transport in place instead of silently attaching it to that one card.
+  let previousPlaceItem: PlannerItem | null = null
+  let pendingTransportItems: PlannerItem[] = []
   items.forEach((item) => {
     if (isDayItem(item)) {
-      incomingTransportItems = []
+      previousPlaceItem = null
+      pendingTransportItems = []
       return
     }
     if (isTransportItem(item)) {
-      incomingTransportItems.push(item)
+      if (previousPlaceItem) pendingTransportItems.push(item)
       return
     }
-    if (!planItemPlace(item, placeById)) return
 
-    // A transport segment describes arriving at the following stop. Keeping it
-    // with that destination prevents it from being left behind as a stale edge.
-    if (movingItems.has(item)) {
-      incomingTransportItems.forEach((transportItem) => movingItems.add(transportItem))
+    if (!planItemPlace(item, placeById)) return
+    if (previousPlaceItem && pendingTransportItems.length > 0 && movingItems.has(previousPlaceItem) && movingItems.has(item)) {
+      pendingTransportItems.forEach((transportItem) => movingItems.add(transportItem))
     }
-    incomingTransportItems = []
+    previousPlaceItem = item
+    pendingTransportItems = []
   })
 
   return movingItems
+}
+
+function removeChangedTransportRoutes(
+  beforeItems: PlannerItem[],
+  afterItems: PlannerItem[],
+  placeById: Map<string, MapPlace>,
+) {
+  const previousRoutes = new Map<string, { fromItem: PlannerItem; toItem: PlannerItem }>()
+  beforeItems.forEach((item) => {
+    const transport = parseTransportItem(item)
+    if (!transport) return
+    const adjacentItems = transportAdjacentPlaceItems(beforeItems, item, placeById)
+    if (adjacentItems) previousRoutes.set(transport.id, adjacentItems)
+  })
+
+  let removedCount = 0
+  const nextItems = afterItems.filter((item) => {
+    const transport = parseTransportItem(item)
+    if (!transport) return true
+    const previousRoute = previousRoutes.get(transport.id)
+    if (!previousRoute) return true
+    const nextRoute = transportAdjacentPlaceItems(afterItems, item, placeById)
+    if (
+      nextRoute &&
+      nextRoute.fromItem === previousRoute.fromItem &&
+      nextRoute.toItem === previousRoute.toItem
+    ) {
+      return true
+    }
+    removedCount += 1
+    return false
+  })
+
+  return { items: removedCount > 0 ? nextItems : afterItems, removedCount }
 }
 
 function normalizePlanItems(items: PlannerItem[], placeById: Map<string, MapPlace>) {
@@ -3960,7 +4075,7 @@ const PRE_DEPARTURE_CATEGORIES: PreDepartureChecklistCategory[] = [
     label: '數位與上網',
     items: [
       { id: 'phone', label: '手機' },
-      { id: 'esim', label: 'eSIM', resourceId: 'esim' },
+      { id: 'esim', label: 'eSIM／SIM 卡', resourceId: 'esim' },
       { id: 'charger', label: '充電器' },
       { id: 'cable', label: '充電線' },
       { id: 'power-bank', label: '行動電源' },
@@ -4002,7 +4117,6 @@ const PRE_DEPARTURE_CATEGORIES: PreDepartureChecklistCategory[] = [
     ],
   },
 ]
-const ESIM_COUPON_CODE = 'JieJourneys'
 const PRE_DEPARTURE_RESOURCES: Record<PreDepartureResourceId, PreDepartureResource> = {
   hotel: {
     toggleLabel: '訂房',
@@ -4047,14 +4161,19 @@ const PRE_DEPARTURE_RESOURCES: Record<PreDepartureResourceId, PreDepartureResour
     ],
   },
   esim: {
-    toggleLabel: '優惠',
+    toggleLabel: '選購',
     links: [
       {
-        label: '查看 eSIM 方案',
-        href: 'https://esimconnect.com.tw/#/access/esimbuy?referencecode=jiejourneys',
-        event: 'planner_esimconnect',
-        platform: 'eSIM',
-        promoCode: ESIM_COUPON_CODE,
+        label: '查看 KarDear eSIM',
+        href: 'https://kardear.com/product-category/kardear/network/esim/?ref=390',
+        event: 'planner_kardear_esim',
+        platform: 'KarDear',
+      },
+      {
+        label: '查看 KarDear SIM 卡',
+        href: 'https://kardear.com/product-category/kardear/network/simcard/?ref=390',
+        event: 'planner_kardear_sim',
+        platform: 'KarDear',
       },
     ],
   },
@@ -5467,7 +5586,9 @@ function SortablePlanItem({
   const displayName = plannerPlaceName(place)
   const batchSiblingDragging = Boolean(batchDragDelta && batchSelected)
   const dragSourceDragging = Boolean(dragOverlayActive && isDragging)
-  const batchDropTarget = Boolean(batchDropPosition && !isDragging && !batchSelected)
+  // A remembered drop position must never keep a visual gap after the drag ends.
+  // Tie the placeholder to the live drag session as well as the target itself.
+  const batchDropTarget = Boolean(dragOverlayActive && batchDropPosition && !isDragging && !batchSelected)
   const style = {
     transform: dragOverlayActive ? undefined : CSS.Transform.toString(transform),
     transition: dragOverlayActive ? undefined : transition,
@@ -6673,6 +6794,8 @@ function SortableTransportItem({
   info,
   expanded,
   navigationPlaces,
+  routeItems,
+  routeNeedsReview,
   onToggleExpanded,
   onChange,
   onRemove,
@@ -6683,7 +6806,6 @@ function SortableTransportItem({
   onRemoveImage,
   cardRef,
   readOnly,
-  dragDisabled = false,
   batchDragDelta = null,
   batchDragActive = false,
 }: {
@@ -6691,6 +6813,8 @@ function SortableTransportItem({
   info: TransportInfo
   expanded: boolean
   navigationPlaces?: TransportNavigationPlaces | null
+  routeItems?: { fromItem: PlannerItem; toItem: PlannerItem } | null
+  routeNeedsReview?: boolean
   onToggleExpanded: () => void
   onChange: (info: TransportInfo) => void
   onRemove: () => void
@@ -6701,13 +6825,14 @@ function SortableTransportItem({
   onRemoveImage: (imageId: string) => Promise<void>
   cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
-  dragDisabled?: boolean
   batchDragDelta?: { x: number; y: number } | null
   batchDragActive?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemId,
-    disabled: readOnly,
+    // A transport row is a connection, not a standalone stop. It is moved as
+    // part of the two stops it connects, so it cannot be dragged by itself.
+    disabled: true,
   })
   const batchTransportDragging = Boolean(batchDragDelta && !isDragging)
   const style = {
@@ -6724,9 +6849,9 @@ function SortableTransportItem({
     draft.customLabel !== info.customLabel ||
     draft.duration !== info.duration ||
     draft.note !== info.note
-  const canSave = editing && !readOnly
-  const summaryParts = [transportLabel(info), info.duration.trim(), info.note.trim()].filter(Boolean)
-  const photoPanelTitle = summaryParts.join('｜') || '交通資訊'
+  const routeMissing = !routeItems
+  const routeInvalid = routeMissing || Boolean(routeNeedsReview)
+  const canSave = editing && !readOnly && !routeInvalid
   const photoButton = (showWhenEmpty: boolean) => {
     if (images.length === 0 && (!imageUploadEnabled || !showWhenEmpty)) return null
     return (
@@ -6743,6 +6868,14 @@ function SortableTransportItem({
   const activeNavigationMode = editing ? draft.mode : info.mode
   const navigationFrom = navigationPlaces?.from ?? null
   const navigationTo = navigationPlaces?.to ?? null
+  const routeStatus = routeInvalid ? '⚠ 這段交通已失效' : ''
+  const summaryParts = [
+    routeStatus,
+    transportLabel(info),
+    info.duration.trim(),
+    info.note.trim(),
+  ].filter(Boolean)
+  const photoPanelTitle = summaryParts.join('｜') || '交通資訊'
   const navigationResolveKey =
     navigationFrom && navigationTo
       ? [
@@ -6809,6 +6942,7 @@ function SortableTransportItem({
       duration: draft.duration.slice(0, 40),
       note: draft.note.slice(0, 300),
       href: '',
+      ...(routeItems ?? {}),
     }
     onChange(nextInfo)
   }
@@ -6916,7 +7050,15 @@ function SortableTransportItem({
           onToggleExpanded()
         }}
       >
-        <button className={styles.transportDragHandle} type="button" aria-label="拖曳交通" disabled={readOnly || dragDisabled} {...attributes} {...listeners}>
+        <button
+          className={styles.transportDragHandle}
+          type="button"
+          aria-label="交通會跟著前後兩個景點一起移動"
+          title="交通會跟著前後兩個景點一起移動"
+          disabled
+          {...attributes}
+          {...listeners}
+        >
           <span aria-hidden>☰</span>
         </button>
         <div className={styles.transportMain}>
@@ -6965,7 +7107,15 @@ function SortableTransportItem({
               </div>
               {!readOnly ? (
                 <div className={styles.transportActions} data-transport-edit-block="true">
-                  <span>{dirty ? '尚未儲存' : hasDetails ? '已儲存' : '可直接儲存'}</span>
+                  <span>
+                    {routeInvalid
+                      ? '前後景點已改變，請移除或復原'
+                      : dirty
+                        ? '尚未儲存'
+                        : hasDetails
+                          ? '已儲存'
+                          : '可直接儲存'}
+                  </span>
                   <button type="button" onClick={commitDraft} disabled={!canSave}>
                     儲存交通
                   </button>
@@ -7006,6 +7156,7 @@ function TransportItemGroup({
   expanded,
   onExpand,
   groupRef,
+  routeAlert = '',
   batchDragDelta = null,
   children,
 }: {
@@ -7013,10 +7164,11 @@ function TransportItemGroup({
   expanded: boolean
   onExpand: () => void
   groupRef?: (el: HTMLElement | null) => void
+  routeAlert?: string
   batchDragDelta?: { x: number; y: number } | null
   children: ReactNode
 }) {
-  const preview = transportGroupPreview(items)
+  const preview = [routeAlert, transportGroupPreview(items)].filter(Boolean).join(' · ')
   const batchTransportGroupDragging = Boolean(batchDragDelta && !expanded)
   const summary = (
     <>
@@ -7050,6 +7202,7 @@ function SortableDayDivider({
   onRemove,
   readOnly,
   dragDisabled = false,
+  dragDisabledReason,
   batchDragActive = false,
   batchDropPosition = null,
   dividerRef,
@@ -7062,6 +7215,7 @@ function SortableDayDivider({
   cardRef?: (el: HTMLElement | null) => void
   readOnly: boolean
   dragDisabled?: boolean
+  dragDisabledReason?: string
   batchDragActive?: boolean
   batchDropPosition?: 'before' | 'after' | null
   dividerRef?: (el: HTMLDivElement | null) => void
@@ -7079,6 +7233,7 @@ function SortableDayDivider({
   }
   const fallbackTitle = dayTitle(dayNumber)
   const displayTitle = title.trim() || fallbackTitle
+  const showBatchDropTarget = Boolean(batchDragActive && batchDropPosition && !isDragging)
   const saveTitle = () => {
     onTitleChange(draftTitle.trim())
     setEditingTitle(false)
@@ -7092,14 +7247,14 @@ function SortableDayDivider({
     <div
       ref={setRefs}
       style={style}
-      className={`${styles.dayDivider} ${isDragging ? styles.dayDividerDragging : ''} ${batchDropPosition && !isDragging ? styles.dayDividerBatchDropTarget : ''} ${batchDropPosition === 'after' ? styles.dayDividerBatchDropTargetAfter : batchDropPosition === 'before' ? styles.dayDividerBatchDropTargetBefore : ''}`}
+      className={`${styles.dayDivider} ${isDragging ? styles.dayDividerDragging : ''} ${showBatchDropTarget ? styles.dayDividerBatchDropTarget : ''} ${showBatchDropTarget ? (batchDropPosition === 'after' ? styles.dayDividerBatchDropTargetAfter : styles.dayDividerBatchDropTargetBefore) : ''}`}
       data-plan-item-card={id}
     >
       <button
         className={styles.dayDragHandle}
         type="button"
-        aria-label={`拖曳第 ${dayNumber} 天分隔線`}
-        title="拖曳調整這個天數分隔線的位置"
+        aria-label={`拖曳調整第 ${dayNumber} 天`}
+        title={dragDisabledReason ?? '拖曳天數分界調整位置'}
         disabled={readOnly || dragDisabled}
         {...attributes}
         {...listeners}
@@ -7314,6 +7469,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   // them tied to an explicit lodging edit instead of merely opening a plan.
   const hotelAffiliateAutoResolvePlaceIdsRef = useRef<Set<string>>(new Set())
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
+  const planItemsRef = useRef<PlannerItem[]>([])
+  const planUndoStackRef = useRef<PlannerItem[][]>([])
+  const invalidTransportCleanupKeyRef = useRef('')
   const googlePlaceTypeResolveRef = useRef<Set<string>>(new Set())
   const customPlaceGoogleIdentityResolveRef = useRef<Set<string>>(new Set())
 
@@ -7329,6 +7487,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [customCategoryFilter, setCustomCategoryFilter] = useState<CityMapPlaceCategory | null>(null)
   const [tier, setTier] = useState<TierFilter>('all')
   const [planItems, setPlanItems] = useState<PlannerItem[]>([])
+  const [planUndoCount, setPlanUndoCount] = useState(0)
   const [placeNotes, setPlaceNotes] = useState<Record<string, string>>({})
   const [placeUserLinks, setPlaceUserLinks] = useState<Record<string, PlannerUserLink[]>>({})
   const [plannerImages, setPlannerImages] = useState<PlannerCardImage[]>([])
@@ -7372,6 +7531,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     { type: 'plan' | 'custom'; placeId: string } | { type: 'day' | 'transport'; itemId: string } | null
   >(null)
   const [recentlyAddedPlaceId, setRecentlyAddedPlaceId] = useState<string | null>(null)
+  const [transportRemovalNotice, setTransportRemovalNotice] = useState<number | null>(null)
   const [expandedPlanItem, setExpandedPlanItem] = useState<PlannerItem | null>(null)
   const [expandedTransportGroups, setExpandedTransportGroups] = useState<Record<string, true>>({})
   const [pdfDownloadStatus, setPdfDownloadStatus] = useState<PdfDownloadStatus>('idle')
@@ -7439,9 +7599,68 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const markPlannerCloudUserEdit = useCallback(() => {
     plannerCloudUserEditedRef.current = true
   }, [])
+  const updatePlanItemsWithUndo = useCallback((update: (items: PlannerItem[]) => PlannerItem[]) => {
+    setTransportRemovalNotice(null)
+    const currentItems = planItemsRef.current
+    const nextItems = update(currentItems)
+    if (
+      nextItems === currentItems ||
+      (nextItems.length === currentItems.length && nextItems.every((item, index) => item === currentItems[index]))
+    ) {
+      return false
+    }
+
+    planUndoStackRef.current = [...planUndoStackRef.current.slice(-19), [...currentItems]]
+    setPlanUndoCount(planUndoStackRef.current.length)
+    planItemsRef.current = nextItems
+    setPlanItems(nextItems)
+    return true
+  }, [])
+  const undoLastPlanChange = useCallback(() => {
+    const previousItems = planUndoStackRef.current.pop()
+    if (!previousItems) return
+    markPlannerCloudUserEdit()
+    planItemsRef.current = previousItems
+    setPlanItems(previousItems)
+    setPlanUndoCount(planUndoStackRef.current.length)
+    setBatchSelectedPlanItems([])
+    setActivePlanDragItem(null)
+    setSelectedPlanItem(null)
+    setExpandedPlanItem(null)
+    setOpenPlannerMenu(null)
+    setTransportRemovalNotice(null)
+  }, [markPlannerCloudUserEdit])
   useLayoutEffect(() => {
     customPlacesRef.current = customPlaces
   }, [customPlaces])
+  useLayoutEffect(() => {
+    planItemsRef.current = planItems
+  }, [planItems])
+
+  useEffect(() => {
+    planUndoStackRef.current = []
+    setPlanUndoCount(0)
+  }, [plannerBookId, plannerBookReadToken, readOnlyPlan])
+
+  useEffect(() => {
+    if (transportRemovalNotice == null) return
+    const timeout = window.setTimeout(() => setTransportRemovalNotice(null), 4500)
+    return () => window.clearTimeout(timeout)
+  }, [transportRemovalNotice])
+
+  useEffect(() => {
+    if (readOnlyPlan) return
+    const handleUndoKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.key.toLowerCase() !== 'z') return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (planUndoStackRef.current.length === 0) return
+      event.preventDefault()
+      undoLastPlanChange()
+    }
+    window.addEventListener('keydown', handleUndoKeyDown)
+    return () => window.removeEventListener('keydown', handleUndoKeyDown)
+  }, [readOnlyPlan, undoLastPlanChange])
 
   const cancelHotelAffiliateLookupForCustomPlace = useCallback(
     (placeId: string, provider?: HotelAffiliateProvider) => {
@@ -8147,6 +8366,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }, [allPlaces, config.matchPlaces])
   const placeById = useMemo(() => new Map(lookupPlaces.map((place) => [place.id, place])), [lookupPlaces])
+  const reconcileChangedTransportRoutes = (beforeItems: PlannerItem[], afterItems: PlannerItem[]) => {
+    const result = removeChangedTransportRoutes(beforeItems, afterItems, placeById)
+    if (result.removedCount > 0) setTransportRemovalNotice(result.removedCount)
+    return result.items
+  }
   const allCategoryOn = useMemo(() => plannerCategoriesOn(plannerCategoryItems), [plannerCategoryItems])
   const validPlanItems = useMemo(
     () => {
@@ -8266,6 +8490,19 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const plannedDays = useMemo(
     () => splitPlanItemsByDay(validPlanItems, placeById),
     [placeById, validPlanItems],
+  )
+  const transportScopeItems = useMemo(
+    () => (dayView === 'all' ? validPlanItems : (plannedDays[dayView - 1]?.items ?? [])),
+    [dayView, plannedDays, validPlanItems],
+  )
+  const selectedTransportScopeItem =
+    selectedPlanItem && transportScopeItems.includes(selectedPlanItem) && planItemPlace(selectedPlanItem, placeById)
+      ? selectedPlanItem
+      : selectedId
+        ? transportScopeItems.find((item) => planItemPlaceId(item) === selectedId) ?? null
+        : null
+  const canAddTransport = Boolean(
+    transportInsertionTarget(transportScopeItems, selectedTransportScopeItem, placeById),
   )
   const planDayCount = useMemo(
     () => validPlanItems.filter(isDayItem).length + (isDayItem(validPlanItems[0] ?? '') ? 0 : 1),
@@ -8547,6 +8784,37 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     setPlanItems(validPlanItems)
   }, [planItems, validPlanItems])
+
+  useEffect(() => {
+    if (!storageReady || readOnlyPlan) return
+    const cleanupKey = `${config.storageKey}:${plannerBookId ?? 'draft'}:${plannerBookReadToken ?? ''}`
+    if (invalidTransportCleanupKeyRef.current === cleanupKey) return
+    invalidTransportCleanupKeyRef.current = cleanupKey
+
+    let removedCount = 0
+    const changed = updatePlanItemsWithUndo((items) => {
+      const nextItems = items.filter((item) => {
+        if (!isTransportItem(item)) return true
+        const invalid =
+          !transportAdjacentPlaceItems(items, item, placeById) ||
+          transportRouteNeedsReview(items, item, placeById)
+        if (invalid) removedCount += 1
+        return !invalid
+      })
+      if (removedCount > 0) setTransportRemovalNotice(removedCount)
+      return nextItems
+    })
+    if (changed) markPlannerCloudUserEdit()
+  }, [
+    config.storageKey,
+    markPlannerCloudUserEdit,
+    placeById,
+    plannerBookId,
+    plannerBookReadToken,
+    readOnlyPlan,
+    storageReady,
+    updatePlanItemsWithUndo,
+  ])
 
   useEffect(() => {
     setBatchSelectedPlanItems((items) => {
@@ -10180,7 +10448,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
     const itemId = canRepeatPlanPlace(place) ? createVisitItem(place.id) : place.id
-    setPlanItems((ids) => {
+    updatePlanItemsWithUndo((ids) => {
       if (!canRepeatPlanPlace(place) && ids.some((item) => planItemPlaceId(item) === place.id)) return ids
       const nextIds = insertPlaceIntoDay(ids, place, dayNumber, itemId)
       trackPlannerEvent('add_place', {
@@ -10225,10 +10493,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const removePlace = (itemId: string) => {
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
-    setPlanItems((ids) => {
+    updatePlanItemsWithUndo((ids) => {
       const placeId = planItemPlaceId(itemId) ?? itemId
       const place = placeById.get(placeId)
-      const nextIds = ids.filter((id) => id !== itemId)
+      const nextIds = reconcileChangedTransportRoutes(ids, ids.filter((id) => id !== itemId))
       trackPlannerEvent('remove_place', {
         place_id: placeId,
         place_name: place ? shortName(place.name) : '',
@@ -10246,9 +10514,20 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const deleteCustomPlace = (placeId: string) => {
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
+    planUndoStackRef.current = []
+    setPlanUndoCount(0)
     hotelAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
     cancelHotelAffiliateLookupForCustomPlace(placeId)
-    setPlanItems((ids) => ids.filter((item) => planItemPlaceId(item) !== placeId))
+    setTransportRemovalNotice(null)
+    setPlanItems((ids) => {
+      const nextItems = removeChangedTransportRoutes(
+        ids,
+        ids.filter((item) => planItemPlaceId(item) !== placeId),
+        placeById,
+      ).items
+      planItemsRef.current = nextItems
+      return nextItems
+    })
     if (isCustomPlaceId(placeId)) {
       setCustomPlaces((places) => {
         const nextPlaces = { ...places }
@@ -10293,51 +10572,47 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addTransportAfter = (itemId: PlannerItem | null) => {
     if (readOnlyPlan) return
-    markPlannerCloudUserEdit()
-    const transportItem = createTransportItem()
-    setMode('order')
-    setMobilePanelState(isMobilePlannerViewport() ? 'full' : 'half')
-    setOpenPlannerMenu(null)
-    setPlanItems((items) => {
-      const fallbackIndex = (() => {
-        for (let index = items.length - 1; index >= 0; index -= 1) {
-          if (planItemPlace(items[index], placeById)) return index
-        }
-        return -1
-      })()
-      const baseIndex = itemId ? items.indexOf(itemId) : -1
-      if (baseIndex < 0 && fallbackIndex < 0) return items
-      let insertIndex = (baseIndex >= 0 ? baseIndex : fallbackIndex) + 1
-      while (insertIndex < items.length && isTransportItem(items[insertIndex])) {
-        insertIndex += 1
-      }
-      const nextItems = [...items.slice(0, insertIndex), transportItem, ...items.slice(insertIndex)]
+    let transportItem: PlannerItem | null = null
+    const added = updatePlanItemsWithUndo((items) => {
+      const scopedItems = dayView === 'all'
+        ? items
+        : (plannedDays[dayView - 1]?.items ?? []).filter((item) => items.includes(item))
+      const preferredItem = itemId && scopedItems.includes(itemId) ? itemId : null
+      const target = transportInsertionTarget(scopedItems, preferredItem, placeById)
+      if (!target) return items
+      const insertIndex = items.indexOf(target.toItem)
+      if (insertIndex < 0) return items
+      transportItem = createTransportItem({ fromItem: target.fromItem, toItem: target.toItem })
+      const nextItems = [
+        ...items.slice(0, insertIndex),
+        transportItem,
+        ...items.slice(insertIndex),
+      ]
       trackPlannerEvent('add_transport', {
         plan_count: nextItems.length,
         plan_code: encodeSharedPlan(nextItems, lookupPlaces),
       })
       return nextItems
     })
+    if (!added || !transportItem) return
+    markPlannerCloudUserEdit()
+    setMode('order')
+    setMobilePanelState(isMobilePlannerViewport() ? 'full' : 'half')
+    setOpenPlannerMenu(null)
     setExpandedPlanItemWithScrollCompensation(transportItem)
     scrollToTransportCard(transportItem)
   }
 
   const addTransportFromMenu = () => {
     if (readOnlyPlan) return
-    const selectedItem =
-      selectedPlanItem && validPlanItems.includes(selectedPlanItem) && planItemPlace(selectedPlanItem, placeById)
-        ? selectedPlanItem
-        : selectedId
-          ? validPlanItems.find((item) => planItemPlaceId(item) === selectedId) ?? null
-          : null
-    addTransportAfter(selectedItem ?? null)
+    addTransportAfter(selectedTransportScopeItem)
   }
 
   const updateTransportItem = (itemId: PlannerItem, info: TransportInfo) => {
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
     const nextItem = serializeTransportItem(info)
-    setPlanItems((items) => items.map((item) => (item === itemId ? nextItem : item)))
+    updatePlanItemsWithUndo((items) => items.map((item) => (item === itemId ? nextItem : item)))
     setExpandedPlanItem(null)
     scheduleFocusTargetCenter({ mode: 'transport', itemId: nextItem }, 'smooth', 90)
   }
@@ -10355,7 +10630,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const removeTransport = (itemId: string) => {
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
-    setPlanItems((items) => items.filter((item) => item !== itemId))
+    updatePlanItemsWithUndo((items) => items.filter((item) => item !== itemId))
   }
 
   const toggleBatchPlanItem = (itemId: PlannerItem) => {
@@ -10377,7 +10652,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (readOnlyPlan || batchSelectedPlanItems.length === 0) return
     const selectedItems = new Set(batchSelectedPlanItems)
     markPlannerCloudUserEdit()
-    setPlanItems((items) => {
+    updatePlanItemsWithUndo((items) => {
       const movedItemSet = batchMoveItemSet(items, selectedItems, placeById)
       const movedItems = items.filter((item) => movedItemSet.has(item))
       if (movedItems.length === 0) return items
@@ -10389,11 +10664,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       const targetStartIndex = targetDividerIndex >= 0 ? targetDividerIndex + 1 : 0
       const nextDividerOffset = remainingItems.slice(targetStartIndex).findIndex(isDayItem)
       const insertIndex = nextDividerOffset < 0 ? remainingItems.length : targetStartIndex + nextDividerOffset
-      const nextItems = [
-        ...remainingItems.slice(0, insertIndex),
-        ...movedItems,
-        ...remainingItems.slice(insertIndex),
-      ]
+      const nextItems = reconcileChangedTransportRoutes(
+        items,
+        [
+          ...remainingItems.slice(0, insertIndex),
+          ...movedItems,
+          ...remainingItems.slice(insertIndex),
+        ],
+      )
       if (nextItems.every((item, index) => item === items[index])) return items
 
       trackPlannerEvent('move_selected_to_day', {
@@ -10431,7 +10709,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setDayView('all')
     setOpenPlannerMenu(null)
     setMobilePanelOpen(false)
-    setPlanItems((items) => {
+    updatePlanItemsWithUndo((items) => {
       const selectedItem =
         selectedPlanItem && items.includes(selectedPlanItem) && planItemPlace(selectedPlanItem, placeById)
           ? selectedPlanItem
@@ -10448,7 +10726,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         insertIndex += 1
       }
       const dayCount = workingItems.filter(isDayItem).length + (hasFirstDayDivider || firstDayDivider ? 1 : 2)
-      const nextItems = [...workingItems.slice(0, insertIndex), dividerId, ...workingItems.slice(insertIndex)]
+      const nextItems = reconcileChangedTransportRoutes(
+        items,
+        [...workingItems.slice(0, insertIndex), dividerId, ...workingItems.slice(insertIndex)],
+      )
       trackPlannerEvent('add_day_divider', {
         day_count: dayCount,
         plan_count: validPlanIds.length,
@@ -10461,14 +10742,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const removeDayDivider = (itemId: string) => {
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
-    setPlanItems((items) => items.filter((item) => item !== itemId))
+    updatePlanItemsWithUndo((items) =>
+      reconcileChangedTransportRoutes(items, items.filter((item) => item !== itemId)),
+    )
   }
 
   const updateDayDividerTitle = (itemId: string, title: string) => {
     if (readOnlyPlan) return
     markPlannerCloudUserEdit()
     const nextItem = updateDayItemTitle(itemId, title)
-    setPlanItems((items) => items.map((item) => (item === itemId ? nextItem : item)))
+    updatePlanItemsWithUndo((items) => items.map((item) => (item === itemId ? nextItem : item)))
     setSelectedPlanItem((item) => (item === itemId ? nextItem : item))
   }
 
@@ -12486,12 +12769,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const activeItem = String(active.id)
     const selectedDay = dayView === 'all' ? null : plannedDays[dayView - 1] ?? null
 
-    // In the main list, a day divider behaves like a card: moving it changes
-    // the day boundary at that exact point.  The day-menu drag remains the
-    // separate control for moving a whole day together with its contents.
+    // A day divider behaves exactly like a card. Moving it changes only the
+    // boundary; the place cards stay where the user put them.
     if (isDayItem(activeItem)) {
       markPlannerCloudUserEdit()
-      setPlanItems((items) => {
+      updatePlanItemsWithUndo((items) => {
         const oldIndex = items.indexOf(activeItem)
         const newIndex = droppingAtListEnd ? items.length : items.indexOf(overItem ?? '')
         if (oldIndex < 0 || (!droppingAtListEnd && newIndex < 0)) return items
@@ -12508,11 +12790,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                 ? targetRemainingIndex + (dropPosition === 'after' ? 1 : 0)
                 : targetRemainingIndex + (fallbackInsertAfterTarget ? 1 : 0)
         const targetIndex = Math.max(0, Math.min(insertIndex, remainingItems.length))
-        const nextItems = [
-          ...remainingItems.slice(0, targetIndex),
-          activeItem,
-          ...remainingItems.slice(targetIndex),
-        ]
+        const nextItems = reconcileChangedTransportRoutes(
+          items,
+          [
+            ...remainingItems.slice(0, targetIndex),
+            activeItem,
+            ...remainingItems.slice(targetIndex),
+          ],
+        )
         if (nextItems.every((item, index) => item === items[index])) return items
 
         trackPlannerEvent('drag_sort_day_divider', {
@@ -12531,7 +12816,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (batchSelectionActive && selectedItems.has(activeItem)) {
       if (!droppingAtListEnd && selectedItems.has(overItem ?? '')) return
       markPlannerCloudUserEdit()
-      setPlanItems((items) => {
+      updatePlanItemsWithUndo((items) => {
         const activeIndex = items.indexOf(activeItem)
         const overIndex = droppingAtListEnd ? items.length : items.indexOf(overItem ?? '')
         if (activeIndex < 0 || (!droppingAtListEnd && overIndex < 0)) return items
@@ -12556,7 +12841,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           anchorIndex >= 0 && anchorIndex < items.length ? remainingItems.indexOf(items[anchorIndex]) : -1
         const visualDropPosition = dropTarget === overItem ? dropPosition : null
         const insertAfterAnchor = visualDropPosition ? visualDropPosition === 'after' : movingDown
-        const insertIndex = droppingAtListEnd
+        const proposedInsertIndex = droppingAtListEnd
           ? selectedDay
             ? plannerDayEndInsertIndex(remainingItems, selectedDay.divider)
             : remainingItems.length
@@ -12567,11 +12852,17 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               : isDayItem(items[anchorIndex])
                 ? Math.max(0, anchorRemainingIndex + (visualDropPosition === 'before' ? 0 : 1))
                 : Math.max(0, anchorRemainingIndex + (insertAfterAnchor ? 1 : 0))
-        const nextItems = [
-          ...remainingItems.slice(0, insertIndex),
-          ...movedItems,
-          ...remainingItems.slice(insertIndex),
-        ]
+        const insertIndex = selectedDay
+          ? clampInsertIndexToDay(remainingItems, proposedInsertIndex, selectedDay.divider)
+          : proposedInsertIndex
+        const nextItems = reconcileChangedTransportRoutes(
+          items,
+          [
+            ...remainingItems.slice(0, insertIndex),
+            ...movedItems,
+            ...remainingItems.slice(insertIndex),
+          ],
+        )
         if (nextItems.every((item, index) => item === items[index])) return items
 
         trackPlannerEvent('drag_sort_multi', {
@@ -12588,7 +12879,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     markPlannerCloudUserEdit()
-    setPlanItems((items) => {
+    updatePlanItemsWithUndo((items) => {
       const oldIndex = items.indexOf(String(active.id))
       const newIndex = droppingAtListEnd ? items.length : items.indexOf(overItem ?? '')
       if (oldIndex < 0 || (!droppingAtListEnd && newIndex < 0)) return items
@@ -12605,7 +12896,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           : remainingItems.length
         : remainingItems.indexOf(targetItem ?? '')
       const fallbackInsertAfterTarget = newIndex > oldIndex
-      const insertIndex =
+      const proposedInsertIndex =
         droppingAtListEnd
           ? targetRemainingIndex
           : targetRemainingIndex < 0
@@ -12615,12 +12906,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             : isDayItem(targetItem ?? '')
               ? targetRemainingIndex + 1
               : targetRemainingIndex + (fallbackInsertAfterTarget ? 1 : 0)
-      const targetIndex = Math.max(0, Math.min(insertIndex, remainingItems.length))
-      const nextIds = [
-        ...remainingItems.slice(0, targetIndex),
-        ...movedItems,
-        ...remainingItems.slice(targetIndex),
-      ]
+      const boundedInsertIndex = selectedDay
+        ? clampInsertIndexToDay(remainingItems, proposedInsertIndex, selectedDay.divider)
+        : proposedInsertIndex
+      const targetIndex = Math.max(0, Math.min(boundedInsertIndex, remainingItems.length))
+      const nextIds = reconcileChangedTransportRoutes(
+        items,
+        [
+          ...remainingItems.slice(0, targetIndex),
+          ...movedItems,
+          ...remainingItems.slice(targetIndex),
+        ],
+      )
       const placeId = planItemPlaceId(String(active.id)) ?? String(active.id)
       const place = placeById.get(placeId)
       trackPlannerEvent('drag_sort', {
@@ -12647,9 +12944,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     const selectedDayDivider = dayView === 'all' ? null : (plannedDays[dayView - 1]?.divider ?? null)
     markPlannerCloudUserEdit()
-    setPlanItems((items) => {
-      const nextItems = movePlanDayGroups(items, fromDayIndex, toDayIndex)
-      if (nextItems === items) return items
+    updatePlanItemsWithUndo((items) => {
+      const movedItems = movePlanDayGroups(items, fromDayIndex, toDayIndex)
+      if (movedItems === items) return items
+      const nextItems = reconcileChangedTransportRoutes(items, movedItems)
 
       trackPlannerEvent('drag_sort_day', {
         from_day: fromDayIndex + 1,
@@ -14184,7 +14482,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   </div>
                 ) : (
                   <>
-                    <div className={`${styles.orderControlBar} ${batchSelectionActive ? styles.orderControlBarBatchSelecting : ''} ${openPlannerMenu === 'day' ? styles.orderControlBarDayMenuOpen : ''}`}>
+                    <div className={`${styles.orderControlBar} ${!readOnlyPlan && !batchSelectionActive ? styles.orderControlBarWithUndo : ''} ${batchSelectionActive ? styles.orderControlBarBatchSelecting : ''} ${openPlannerMenu === 'day' ? styles.orderControlBarDayMenuOpen : ''}`}>
                       {!batchSelectionActive ? (
                       <div className={styles.dayViewControl} aria-label="行程查看範圍">
                         {hasDayDividers ? (
@@ -14256,7 +14554,12 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                               <button type="button" onClick={addDayDivider} disabled={plannedPlaces.length === 0}>
                                 + 天數
                               </button>
-                              <button type="button" onClick={addTransportFromMenu} disabled={plannedPlaces.length === 0}>
+                              <button
+                                type="button"
+                                onClick={addTransportFromMenu}
+                                disabled={!canAddTransport}
+                                title={canAddTransport ? undefined : '同一天至少要有兩個景點才能加入交通'}
+                              >
                                 + 交通
                               </button>
                             </>
@@ -14285,6 +14588,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                         </div>
                         ) : null}
                       </div>
+                      ) : null}
+                      {!batchSelectionActive && !readOnlyPlan ? (
+                        <button
+                          type="button"
+                          className={styles.planUndoButton}
+                          onClick={undoLastPlanChange}
+                          disabled={planUndoCount === 0}
+                          aria-label="復原上一步行程變更"
+                          title={planUndoCount > 0 ? '復原上一步（Ctrl/⌘ + Z）' : '目前沒有可復原的變更'}
+                        >
+                          <span aria-hidden>↶</span>
+                        </button>
                       ) : null}
                       {batchSelectionActive ? (
                         <>
@@ -14358,7 +14673,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   onTitleChange={(title) => updateDayDividerTitle(item, title)}
                                   onRemove={() => requestRemoveDayDivider(item)}
                                   readOnly={readOnlyPlan}
-                                  dragDisabled={batchSelectionActive}
+                                  dragDisabled={batchSelectionActive || dayView !== 'all'}
+                                  dragDisabledReason={dayView !== 'all' ? '切換到全行程後可移動天數分界' : undefined}
                                   batchDragActive={Boolean(activePlanDragItem)}
                                   batchDropPosition={activeBatchDropTarget === item ? activeBatchDropPosition : null}
                                   dividerRef={(el) => {
@@ -14370,7 +14686,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
                             const transport = parseTransportItem(item)
                             if (transport) {
+                              const routeItems = transportAdjacentPlaceItems(validPlanItems, item, placeById)
                               const navigationPlaces = transportNavigationPlaces(validPlanItems, item, placeById)
+                              const routeNeedsReview = transportRouteNeedsReview(validPlanItems, item, placeById)
                               return (
                                 <SortableTransportItem
                                   key={item}
@@ -14378,6 +14696,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   info={transport}
                                   expanded={expandedPlanItem === item}
                                   navigationPlaces={navigationPlaces}
+                                  routeItems={routeItems}
+                                  routeNeedsReview={routeNeedsReview}
                                   onToggleExpanded={() => {
                                     setExpandedPlanItemWithScrollCompensation(expandedPlanItem === item ? null : item)
                                   }}
@@ -14388,12 +14708,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                   imageBusy={plannerImageBusy}
                                   onAddImage={(file) => addPlannerImage(transportImagePlaceId(item), file)}
                                   onRemoveImage={removePlannerImage}
-                                  cardRef={(el) => {
-                                    transportCardRefs.current[item] = el
-                                  }}
-                                  readOnly={readOnlyPlan}
-                                  dragDisabled={batchSelectionActive}
-                                  batchDragDelta={batchDragItemSet.has(item) ? activeBatchDragDelta : null}
+                                   cardRef={(el) => {
+                                     transportCardRefs.current[item] = el
+                                   }}
+                                   readOnly={readOnlyPlan}
+                                   batchDragDelta={batchDragItemSet.has(item) ? activeBatchDragDelta : null}
                                   batchDragActive={Boolean(activePlanDragItem)}
                                 />
                               )
@@ -14453,11 +14772,23 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                             const expanded =
                               expandedTransportGroups[displayItem.key] === true ||
                               (expandedPlanItem !== null && displayItem.items.includes(expandedPlanItem))
+                            const groupRouteMissing = displayItem.items.some(
+                              (item) => !transportAdjacentPlaceItems(validPlanItems, item, placeById),
+                            )
+                            const groupRouteNeedsReview = displayItem.items.some((item) =>
+                              transportRouteNeedsReview(validPlanItems, item, placeById),
+                            )
+                            const routeAlert = groupRouteMissing
+                              ? '⚠ 含失效交通'
+                              : groupRouteNeedsReview
+                                ? '⚠ 含失效交通'
+                                : ''
                             return (
                               <TransportItemGroup
                                 key={displayItem.key}
                                 items={displayItem.items}
                                 expanded={expanded}
+                                routeAlert={routeAlert}
                                 batchDragDelta={
                                   displayItem.items.every((item) => batchDragItemSet.has(item)) ? activeBatchDragDelta : null
                                 }
@@ -14475,7 +14806,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           })}
                           <div
                             className={
-                              activeBatchDropTarget === PLAN_LIST_END_DROP_TARGET
+                              activePlanDragItem && activeBatchDropTarget === PLAN_LIST_END_DROP_TARGET
                                 ? `${styles.planListEndDropTarget} ${styles.planListEndDropTargetActive}`
                                 : styles.planListEndDropTarget
                             }
@@ -14822,6 +15153,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             }}
             onClose={() => setPreDepartureOpen(false)}
           />
+        ) : null}
+
+        {transportRemovalNotice != null ? (
+          <div className={styles.transportRemovalNotice} role="status" aria-live="polite">
+            <span>前後景點改變，已移除 {transportRemovalNotice} 段交通</span>
+            <button type="button" onClick={undoLastPlanChange}>
+              復原
+            </button>
+          </div>
         ) : null}
 
         {plannerNotice ? (

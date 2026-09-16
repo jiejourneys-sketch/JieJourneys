@@ -15,7 +15,7 @@ const cards: CityCard[] = [
     details: ['不用換實體卡，通常可在抵達日本後依商品規則啟用。', '出發前先下載離線地圖、住宿與交通 App，抵達後再確認網路可用。', '流量、熱點分享、有效天數與啟用時間依商品不同，請在付款前逐項確認。'],
     area: '通訊',
     actions: [
-      { label: '合作eSIM', href: 'https://esimconnect.com.tw/#/access/esimbuy?region=%E6%97%A5%E6%9C%AC&referencecode=jiejourneys', className: 'btn primary recommend', event: 'kyotonaratransport_esim_connect', platform: 'connect', section: 'comm_card', promoCode: 'jiejourneys' },
+      { label: 'KarDear eSIM', href: 'https://kardear.com/product-category/kardear/network/esim/japan/?ref=390', className: 'btn primary recommend', event: 'kyotonaratransport_esim_kardear', platform: 'KarDear', section: 'comm_card' },
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131111-japan-4g-unlimited-data-500mb-1gb-esim?cid=22312', className: 'btn', event: 'kyotonaratransport_esim_kkday', platform: 'KKDAY', section: 'comm_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109393-japan-esim-high-speed-internet-qr-code-voucher/?aid=93798', className: 'btn', event: 'kyotonaratransport_esim_klook', platform: 'KLOOK', section: 'comm_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/37658069?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D11674280', className: 'btn', event: 'kyotonaratransport_esim_trip', platform: 'Trip', section: 'comm_card' },
@@ -28,7 +28,8 @@ const cards: CityCard[] = [
     details: ['適合不支援 eSIM 或偏好實體卡的人。', '出發前先確認拆卡針與 SIM 卡槽能正常使用。', '原本 SIM 卡請放進固定小袋，避免回台時找不到。'],
     area: '通訊',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/126982?cid=22312', className: 'btn primary', event: 'kyotonaratransport_simhome_kkday', platform: 'KKDAY', section: 'comm_card' },
+      { label: 'KarDear SIM', href: 'https://kardear.com/product/sim-japan/?ref=390', className: 'btn primary recommend', event: 'kyotonaratransport_simhome_kardear', platform: 'KarDear', section: 'comm_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/126982?cid=22312', className: 'btn', event: 'kyotonaratransport_simhome_kkday', platform: 'KKDAY', section: 'comm_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/17147-softbank-4g-sim-japan/?aid=93798', className: 'btn', event: 'kyotonaratransport_simhome_klook', platform: 'KLOOK', section: 'comm_card' },
     ],
   },

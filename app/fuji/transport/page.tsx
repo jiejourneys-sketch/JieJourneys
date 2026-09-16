@@ -28,7 +28,7 @@ const cards: CityCard[] = [
     title: 'eSIM卡',
     meta: '通訊', area: '通訊', datasetKey: 'title', datasetValue: 'eSIM卡',
     actions: [
-      { label: '合作eSIM', href: 'https://esimconnect.com.tw/#/access/esimbuy?region=%E6%97%A5%E6%9C%AC&referencecode=jiejourneys', className: 'btn primary recommend', event: 'fujitransport_esim_connect', platform: 'connect', section: 'comm_card', promoCode: 'jiejourneys' },
+      { label: 'KarDear eSIM', href: 'https://kardear.com/product-category/kardear/network/esim/japan/?ref=390', className: 'btn primary recommend', event: 'fujitransport_esim_kardear', platform: 'KarDear', section: 'comm_card' },
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131111-japan-4g-unlimited-data-500mb-1gb-esim?cid=22312', className: 'btn', event: 'fujitransport_esim_kkday', platform: 'KKDAY', section: 'comm_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109393-japan-esim-high-speed-internet-qr-code-voucher/?aid=93798', className: 'btn', event: 'fujitransport_esim_klook', platform: 'KLOOK', section: 'comm_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/37658069?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D11674280', className: 'btn', event: 'fujitransport_esim_trip', platform: 'Trip', section: 'comm_card' },
@@ -38,7 +38,8 @@ const cards: CityCard[] = [
     title: 'SIM卡｜郵寄到府',
     meta: '通訊', area: '通訊', datasetKey: 'title', datasetValue: 'SIM卡｜郵寄到府',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/126982?cid=22312', className: 'btn primary', event: 'fujitransport_simhome_kkday', platform: 'KKDAY', section: 'comm_card' },
+      { label: 'KarDear SIM', href: 'https://kardear.com/product/sim-japan/?ref=390', className: 'btn primary recommend', event: 'fujitransport_simhome_kardear', platform: 'KarDear', section: 'comm_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/126982?cid=22312', className: 'btn', event: 'fujitransport_simhome_kkday', platform: 'KKDAY', section: 'comm_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/17147-softbank-4g-sim-japan/?aid=93798', className: 'btn', event: 'fujitransport_simhome_klook', platform: 'KLOOK', section: 'comm_card' },
     ],
   },

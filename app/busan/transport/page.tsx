@@ -20,7 +20,7 @@ const cards = [
     datasetKey: 'title' as const,
     datasetValue: 'eSIM卡',
     actions: [
-      { label: '合作eSIM', href: 'https://esimconnect.com.tw/#/access/esimbuy?region=%E9%9F%93%E5%9C%8B&referencecode=jiejourneys', className: 'btn primary recommend', event: 'busantransport_esim_connect', platform: 'connect', section: 'comm_card', promoCode: 'jiejourneys' },
+      { label: 'KarDear eSIM', href: 'https://kardear.com/product-category/kardear/network/esim/korea/?ref=390', className: 'btn primary recommend', event: 'busantransport_esim_kardear', platform: 'KarDear', section: 'comm_card' },
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/268527?cid=22312', className: 'btn', event: 'busantransport_esim_kkday', platform: 'KKDAY', section: 'comm_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/109354-south-korea-esim-high-speed-internet-qr-code-voucher/?aid=93798', className: 'btn', event: 'busantransport_esim_klook', platform: 'KLOOK', section: 'comm_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/37694225/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5754051', className: 'btn', event: 'busantransport_esim_trip', platform: 'Trip', section: 'comm_card' },
@@ -33,7 +33,8 @@ const cards = [
     datasetKey: 'title' as const,
     datasetValue: 'SIM卡',
     actions: [
-      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20721-4g-lte-sim-card-with-t-money-card-calls-pick-up-south-korea-airports-south-korea?cid=22312', className: 'btn primary', event: 'busantransport_sim_kkday', platform: 'KKDAY', section: 'comm_card' },
+      { label: 'KarDear SIM', href: 'https://kardear.com/product/sim-korea/?ref=390', className: 'btn primary recommend', event: 'busantransport_sim_kardear', platform: 'KarDear', section: 'comm_card' },
+      { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/20721-4g-lte-sim-card-with-t-money-card-calls-pick-up-south-korea-airports-south-korea?cid=22312', className: 'btn', event: 'busantransport_sim_kkday', platform: 'KKDAY', section: 'comm_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/16469-kt-olleh-4g-sim-south-korea/?aid=93798', className: 'btn', event: 'busantransport_sim_klook', platform: 'KLOOK', section: 'comm_card' },
       { label: 'Trip', href: 'https://tw.trip.com/things-to-do/detail/53602741/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D5754051', className: 'btn', event: 'busantransport_sim_trip', platform: 'Trip', section: 'comm_card' },
     ],

@@ -1356,6 +1356,10 @@
   border-radius: 16px;
 }
 
+.orderControlBarWithUndo {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
 .orderControlBarBatchSelecting {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1551,6 +1555,67 @@
   border-color: var(--cta);
   background: #eaf7f9;
   color: var(--brand);
+}
+
+.planUndoButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid rgba(31, 122, 140, 0.24);
+  border-radius: 12px;
+  padding: 0;
+  background: #ffffff;
+  color: var(--cta);
+  font-family: inherit;
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.planUndoButton:disabled {
+  border-color: rgba(100, 116, 139, 0.16);
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: default;
+}
+
+.transportRemovalNotice {
+  position: fixed;
+  z-index: 85;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(420px, calc(100vw - 32px));
+  min-height: 46px;
+  gap: 12px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 13px;
+  padding: 9px 10px 9px 14px;
+  background: rgba(30, 41, 59, 0.96);
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.24);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.transportRemovalNotice button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 9px;
+  padding: 5px 10px;
+  background: #ffffff;
+  color: #1f7a8c;
+  font: inherit;
+  cursor: pointer;
 }
 
 .dayMenuList {
@@ -5397,6 +5462,14 @@
     min-height: 36px;
     padding: 7px 9px;
     font-size: 13px;
+  }
+
+  .planUndoButton {
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
+    font-size: 19px;
   }
 
   .dayMenuList {
