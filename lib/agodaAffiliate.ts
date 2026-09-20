@@ -70,7 +70,7 @@ export type AgodaAffiliateHotelCandidate = {
   hotelName: string
   score: number
   bookingUrl: string
-  source?: 'verified' | 'index' | 'api'
+  source?: 'verified' | 'index' | 'api' | 'serpapi'
   city?: string
   countryCode?: string
   cityId?: number
@@ -90,7 +90,7 @@ type AgodaAffiliateConfig = {
   cid: string
   endpoint: string
   configured: boolean
-  searchProvider: 'index'
+  searchProvider: 'index' | 'serpapi'
 }
 
 type AgodaDateRange = {
@@ -134,6 +134,9 @@ export type AgodaAffiliateSearchResponse = {
   rawCount?: number
   apiStatus?: number
   error?: string
+  searchUrl?: string
+  discoveryMethod?: 'verified' | 'index' | 'google_hotels'
+  providerRequestCount?: number
 }
 
 type AgodaHotelIndexRecord = {

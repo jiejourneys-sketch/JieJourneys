@@ -54,6 +54,14 @@ type PlannerBookPayload = {
   custom_places?: Record<string, unknown>
   user_links?: Record<string, unknown>
   pre_departure?: Record<string, unknown>
+  removed_affiliate_links?: RemovedAffiliateLink[]
+}
+
+type AffiliateProvider = 'Agoda' | 'Trip'
+
+type RemovedAffiliateLink = {
+  placeId: string
+  provider: AffiliateProvider
 }
 
 type StoredPlannerBook = {
@@ -354,6 +362,21 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
       if (links.length > 0) userLinks[cleanPlaceId] = links
     })
 
+  const removedAffiliateLinks: RemovedAffiliateLink[] = []
+  const removedAffiliateLinkKeys = new Set<string>()
+  if (Array.isArray(input.removed_affiliate_links)) {
+    input.removed_affiliate_links.slice(0, MAX_CUSTOM_PLACES * 2).forEach((rawRemoval) => {
+      if (!rawRemoval || typeof rawRemoval !== 'object' || Array.isArray(rawRemoval)) return
+      const removal = rawRemoval as Record<string, unknown>
+      const placeId = typeof removal.place_id === 'string' ? removal.place_id.trim().slice(0, 80) : ''
+      const provider = removal.provider === 'Agoda' || removal.provider === 'Trip' ? removal.provider : null
+      const removalKey = provider ? `${placeId}|${provider}` : ''
+      if (!/^custom:[A-Za-z0-9_-]{1,80}$/.test(placeId) || !provider || removedAffiliateLinkKeys.has(removalKey)) return
+      removedAffiliateLinkKeys.add(removalKey)
+      removedAffiliateLinks.push({ placeId, provider })
+    })
+  }
+
   return {
     id,
     ...(editorToken ? { edit_token: editorToken } : {}),
@@ -365,7 +388,59 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
     custom_places: Object.keys(customPlaces).length > 0 ? customPlaces : undefined,
     user_links: Object.keys(userLinks).length > 0 ? userLinks : undefined,
     pre_departure: cleanPreDeparture(input.pre_departure),
+    removed_affiliate_links: removedAffiliateLinks.length > 0 ? removedAffiliateLinks : undefined,
   }
+}
+
+function affiliateProviderFromLink(value: unknown): AffiliateProvider | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const link = value as Record<string, unknown>
+  const href = typeof link.href === 'string' ? link.href.trim() : ''
+  if (!href) return null
+  try {
+    const url = new URL(href)
+    if (url.protocol !== 'https:' || url.port) return null
+    const hostname = url.hostname.toLowerCase().replace(/\.$/, '')
+    if (hostname === 'agoda.com' || hostname.endsWith('.agoda.com')) return 'Agoda'
+    if (hostname === 'trip.com' || hostname.endsWith('.trip.com')) return 'Trip'
+  } catch {
+    return null
+  }
+  return null
+}
+
+function preserveStoredAffiliateLinks(
+  storedValue: unknown,
+  submittedValue: Record<string, unknown>,
+  removedLinks: RemovedAffiliateLink[] = [],
+) {
+  if (!storedValue || typeof storedValue !== 'object' || Array.isArray(storedValue)) return submittedValue
+  const storedPlaces = storedValue as Record<string, unknown>
+  const removedKeys = new Set(removedLinks.map(({ placeId, provider }) => `${placeId}|${provider}`))
+  let mergedPlaces = submittedValue
+
+  Object.entries(submittedValue).forEach(([placeId, rawSubmittedPlace]) => {
+    if (!rawSubmittedPlace || typeof rawSubmittedPlace !== 'object' || Array.isArray(rawSubmittedPlace)) return
+    const rawStoredPlace = storedPlaces[placeId]
+    if (!rawStoredPlace || typeof rawStoredPlace !== 'object' || Array.isArray(rawStoredPlace)) return
+    const submittedPlace = rawSubmittedPlace as Record<string, unknown>
+    const storedPlace = rawStoredPlace as Record<string, unknown>
+    const submittedLinks = Array.isArray(submittedPlace.links) ? submittedPlace.links : []
+    const storedLinks = Array.isArray(storedPlace.links) ? storedPlace.links : []
+    const submittedProviders = new Set(
+      submittedLinks.map(affiliateProviderFromLink).filter((provider): provider is AffiliateProvider => Boolean(provider)),
+    )
+    const linksToPreserve = storedLinks.filter((link) => {
+      const provider = affiliateProviderFromLink(link)
+      return Boolean(provider) && !submittedProviders.has(provider as AffiliateProvider) && !removedKeys.has(`${placeId}|${provider}`)
+    })
+    if (linksToPreserve.length === 0 || submittedLinks.length >= MAX_LINKS_PER_CUSTOM_PLACE) return
+    const nextLinks = [...submittedLinks, ...linksToPreserve.slice(0, MAX_LINKS_PER_CUSTOM_PLACE - submittedLinks.length)]
+    if (mergedPlaces === submittedValue) mergedPlaces = { ...submittedValue }
+    mergedPlaces[placeId] = { ...submittedPlace, links: nextLinks }
+  })
+
+  return mergedPlaces
 }
 
 export async function POST(req: NextRequest) {
@@ -414,6 +489,12 @@ export async function POST(req: NextRequest) {
       ...(payload.notes ?? {}),
       ...(nextPreDeparture ? { [PRE_DEPARTURE_NOTE_KEY]: nextPreDeparture } : {}),
     }
+    const submittedCustomPlaces = payload.custom_places ?? {}
+    const nextCustomPlaces = preserveStoredAffiliateLinks(
+      existing.custom_places,
+      submittedCustomPlaces,
+      payload.removed_affiliate_links,
+    )
     const { data, error } = await supabase
       .rpc('planner_book_update', {
         p_id: payload.id,
@@ -421,7 +502,7 @@ export async function POST(req: NextRequest) {
         p_city: payload.city,
         p_items: payload.items,
         p_notes: nextNotes,
-        p_custom_places: payload.custom_places ?? {},
+        p_custom_places: nextCustomPlaces,
         p_user_links: payload.user_links ?? {},
       })
       .maybeSingle()

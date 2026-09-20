@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { searchTripAffiliateHotelsWithGoogleHotels } from '../lib/tripGoogleHotels'
+import {
+  searchAgodaAffiliateHotelsWithGoogleHotels,
+  searchTripAffiliateHotelsWithGoogleHotels,
+} from '../lib/tripGoogleHotels'
 
 const originalFetch = globalThis.fetch
 const originalPlannerEnabled = process.env.SERPAPI_PLANNER_ENABLED
@@ -73,6 +76,61 @@ test('gets a Trip hotel ID from an exact Google Hotels booking source in one req
     expect(affiliateUrl.searchParams.get('Allianceid')).toBe('6833709')
     expect(affiliateUrl.searchParams.get('SID')).toBe('242535686')
     expect(affiliateUrl.searchParams.get('Allianceid')).not.toBe('someone-else')
+  } finally {
+    restoreEnvironment()
+  }
+})
+
+test('one exact Google Hotels lookup resolves both Agoda and Trip for an unseen property', async () => {
+  const restoreEnvironment = withSerpApi()
+  let fetchCount = 0
+  const tripDestination = 'https://tw.trip.com/hotels/osaka-hotel-detail-987654321/future-hotel/'
+  const agodaDestination = 'https://www.agoda.com/partners/partnersearch.aspx?hid=123456789'
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      name: 'Future Hotel Osaka Annex',
+      property_token: 'future-hotel-osaka-annex-token',
+      gps_coordinates: { latitude: 34.678901, longitude: 135.501234 },
+      prices: [
+        {
+          source: 'Trip.com',
+          link: `https://www.google.com/travel/click?pcurl=${encodeURIComponent(tripDestination)}`,
+        },
+        {
+          source: 'Agoda',
+          link: `https://www.google.com/travel/click?pcurl=${encodeURIComponent(agodaDestination)}`,
+        },
+      ],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const input = {
+      hotelName: 'Future Hotel Osaka Annex',
+      googlePlaceId: 'ChIJ-future-unseen-hotel',
+      city: 'Osaka',
+      countryCode: 'JP',
+      latitude: 34.678901,
+      longitude: 135.501234,
+      lodgingHint: true,
+      forceRefresh: true,
+    }
+    const [agoda, trip] = await Promise.all([
+      searchAgodaAffiliateHotelsWithGoogleHotels(input),
+      searchTripAffiliateHotelsWithGoogleHotels(input),
+    ])
+
+    expect(fetchCount).toBe(1)
+    expect(agoda?.matchStatus).toBe('matched')
+    expect(agoda?.bestMatch?.hotelId).toBe('123456789')
+    const agodaUrl = new URL(agoda?.bestMatch?.bookingUrl ?? '')
+    expect(agodaUrl.hostname).toBe('www.agoda.com')
+    expect(agodaUrl.searchParams.get('hid')).toBe('123456789')
+    expect(agodaUrl.searchParams.get('cid')).toBe('1945734')
+    expect(trip?.matchStatus).toBe('matched')
+    expect(trip?.bestMatch?.hotelId).toBe('987654321')
   } finally {
     restoreEnvironment()
   }

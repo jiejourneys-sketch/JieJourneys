@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { NextRequest } from 'next/server'
+import { POST as postPlannerBook } from '../app/api/pass-planner/book/route'
 import { POST as postAffiliateLink } from '../app/api/pass-planner/book/affiliate-link/route'
 import { POST as postAgodaAffiliate } from '../app/api/pass-planner/hotel-affiliate/agoda/route'
+import { POST as postHotelAffiliateResolution } from '../app/api/pass-planner/hotel-affiliate/resolve/route'
 import { POST as postTripAffiliate } from '../app/api/pass-planner/hotel-affiliate/trip/route'
 
 const originalPlannerEnabled = process.env.SERPAPI_PLANNER_ENABLED
@@ -118,6 +120,97 @@ test('a matched hotel link uses the narrow planner merge RPC and rejects other d
   }
 })
 
+test('a full planner save preserves newer affiliate links unless the owner explicitly removes one', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSupabaseUrl = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
+  const previousSupabaseKey = process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY
+  const updateBodies: Record<string, unknown>[] = []
+  process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL = 'https://planner-affiliate-test.supabase.co'
+  process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY = 'planner-affiliate-test-key'
+  const storedBook = {
+    id: 'bookId12',
+    read_token: 'abcdefghijklmnopqrstuv',
+    edit_token: 'abcdefghijklmnopqrstuv',
+    city: 'Busan',
+    items: [],
+    notes: {},
+    custom_places: {
+      'custom:hotel-1': {
+        name: 'Planner Test Hotel',
+        category: 'hotel',
+        lat: 35.16,
+        lng: 129.06,
+        links: [
+          { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' },
+          { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?hotelId=456' },
+        ],
+      },
+    },
+    user_links: {},
+  }
+  globalThis.fetch = (async (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init)
+    if (request.url.endsWith('/rpc/planner_book_read_edit')) {
+      return new Response(JSON.stringify(storedBook), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
+    if (request.url.endsWith('/rpc/planner_book_update')) {
+      updateBodies.push(await request.json() as Record<string, unknown>)
+      return new Response(JSON.stringify({
+        id: storedBook.id,
+        read_token: storedBook.read_token,
+        updated_at: '2026-09-20T12:00:00.000Z',
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
+    throw new Error(`unexpected request: ${request.url}`)
+  }) as typeof fetch
+
+  const submittedPlace = {
+    name: 'Planner Test Hotel',
+    category: 'hotel',
+    lat: 35.16,
+    lng: 129.06,
+    links: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' }],
+  }
+  const save = async (removed = false) => postPlannerBook(new NextRequest(
+    'http://localhost/api/pass-planner/book',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        id: storedBook.id,
+        edit_token: storedBook.edit_token,
+        city: storedBook.city,
+        items: [],
+        notes: {},
+        custom_places: { 'custom:hotel-1': submittedPlace },
+        user_links: {},
+        ...(removed
+          ? { removed_affiliate_links: [{ place_id: 'custom:hotel-1', provider: 'Trip' }] }
+          : {}),
+      }),
+    },
+  ))
+
+  try {
+    expect((await save()).status).toBe(200)
+    expect((updateBodies[0].p_custom_places as typeof storedBook.custom_places)['custom:hotel-1'].links).toEqual([
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' },
+      { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?hotelId=456' },
+    ])
+
+    expect((await save(true)).status).toBe(200)
+    expect((updateBodies[1].p_custom_places as typeof storedBook.custom_places)['custom:hotel-1'].links).toEqual([
+      { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' },
+    ])
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSupabaseUrl === 'string') process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL = previousSupabaseUrl
+    else delete process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
+    if (typeof previousSupabaseKey === 'string') process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY = previousSupabaseKey
+    else delete process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY
+  }
+})
+
 test('manually verified Agoda and Trip identities bypass all paid searches', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
@@ -182,6 +275,70 @@ test('manually verified Agoda and Trip identities bypass all paid searches', asy
     else delete process.env.SERPAPI_API_KEY
     if (typeof previousAgodaSearchProvider === 'string') process.env.AGODA_SEARCH_PROVIDER = previousAgodaSearchProvider
     else delete process.env.AGODA_SEARCH_PROVIDER
+    if (typeof previousTripSearchProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousTripSearchProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+  }
+})
+
+test('the combined route resolves both providers for a previously unseen hotel with one metered lookup', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousTripSearchProvider = process.env.TRIP_SEARCH_PROVIDER
+  let fetchCount = 0
+  process.env.SERPAPI_API_KEY = 'combined-route-unseen-hotel'
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      name: 'Unseen Riverside Hotel Kyoto',
+      property_token: 'unseen-riverside-hotel-kyoto-token',
+      gps_coordinates: { latitude: 35.012345, longitude: 135.765432 },
+      prices: [
+        {
+          source: 'Agoda',
+          link: 'https://www.agoda.com/partners/partnersearch.aspx?hid=76543210',
+        },
+        {
+          source: 'Trip.com',
+          link: 'https://tw.trip.com/hotels/kyoto-hotel-detail-87654321/unseen-riverside-hotel-kyoto/',
+        },
+      ],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const response = await postHotelAffiliateResolution(new NextRequest(
+      'http://localhost/api/pass-planner/hotel-affiliate/resolve',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          hotelName: 'Unseen Riverside Hotel Kyoto',
+          googlePlaceName: 'Unseen Riverside Hotel Kyoto',
+          googlePlaceId: 'ChIJ-unseen-riverside-hotel-kyoto',
+          city: 'Kyoto',
+          countryCode: 'JP',
+          lat: 35.012345,
+          lng: 135.765432,
+          lodgingHint: true,
+          googlePlaceTypes: ['lodging'],
+          providers: ['Agoda', 'Trip'],
+        }),
+      },
+    ))
+    const result = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(fetchCount).toBe(1)
+    expect(result.agoda.matchStatus).toBe('matched')
+    expect(result.agoda.bestMatch.hotelId).toBe('76543210')
+    expect(result.trip.matchStatus).toBe('matched')
+    expect(result.trip.bestMatch.hotelId).toBe('87654321')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
     if (typeof previousTripSearchProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousTripSearchProvider
     else delete process.env.TRIP_SEARCH_PROVIDER
   }
