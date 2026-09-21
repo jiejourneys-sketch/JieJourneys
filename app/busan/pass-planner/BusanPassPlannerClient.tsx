@@ -54,6 +54,7 @@ import {
   getApplicableVerifiedHotelAffiliateIdentity,
 } from '@/lib/hotelAffiliateIdentity'
 import { hotelAffiliateGooglePlaceTypeSignal, hotelAffiliatePlaceNameSignal } from '@/lib/hotelAffiliatePlaceSignals'
+import { normalizePlannerAffiliateUrl } from '@/lib/plannerAffiliate'
 import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import type { MapPlace } from '@/lib/mapPlace'
 import { isPlannerInspectionMode, PLANNER_INSPECTION_PARAM } from '@/lib/plannerInspection'
@@ -1980,14 +1981,6 @@ function googleMapsInputNotice(value: string) {
     : '請貼上 Google Maps 連結來定位景點。'
 }
 
-function setAffiliateParam(url: URL, key: string, value: string) {
-  const lowerKey = key.toLowerCase()
-  Array.from(url.searchParams.keys()).forEach((paramKey) => {
-    if (paramKey.toLowerCase() === lowerKey) url.searchParams.delete(paramKey)
-  })
-  url.searchParams.set(key, value)
-}
-
 function parsePlannerLinkUrl(value: string) {
   const trimmed = value.trim()
   if (!trimmed) return null
@@ -2025,46 +2018,7 @@ function normalizePlannerAffiliateHref(value: string) {
   const input = normalizePlannerLinkInput(value)
   const url = parsePlannerLinkUrl(input)
   if (!url) return input
-  const hostname = url.hostname.toLowerCase()
-
-  if (hostname === 'klook.com' || hostname.endsWith('.klook.com')) {
-    url.protocol = 'https:'
-    setAffiliateParam(url, 'aid', '93798')
-    return url.toString()
-  }
-
-  if (hostname === 'kkday.com' || hostname.endsWith('.kkday.com')) {
-    url.protocol = 'https:'
-    setAffiliateParam(url, 'cid', '22312')
-    return url.toString()
-  }
-
-  if (hostname === 'agoda.com' || hostname.endsWith('.agoda.com')) {
-    const hotelId = url.searchParams.get('hid')?.trim()
-    if (hotelId) {
-      const partnerUrl = new URL('https://www.agoda.com/partners/partnersearch.aspx')
-      partnerUrl.searchParams.set('pcs', '1')
-      partnerUrl.searchParams.set('cid', '1945734')
-      partnerUrl.searchParams.set('hid', hotelId)
-      return partnerUrl.toString()
-    }
-    url.protocol = 'https:'
-    setAffiliateParam(url, 'pcs', '1')
-    setAffiliateParam(url, 'cid', '1945734')
-    return url.toString()
-  }
-
-  if (hostname === 'trip.com' || hostname.endsWith('.trip.com')) {
-    url.protocol = 'https:'
-    url.hostname = 'tw.trip.com'
-    setAffiliateParam(url, 'Allianceid', '6833709')
-    setAffiliateParam(url, 'SID', '242535686')
-    setAffiliateParam(url, 'trip_sub1', '')
-    setAffiliateParam(url, 'trip_sub3', 'D16730765')
-    return url.toString()
-  }
-
-  return input
+  return normalizePlannerAffiliateUrl(url) ?? input
 }
 
 function cleanGoogleMapsPlaceName(name: string) {
