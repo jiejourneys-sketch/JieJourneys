@@ -1889,7 +1889,7 @@ function cleanCustomPlaces(value: unknown): Record<string, CustomPlannerPlace> {
           .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
           .map((link) => ({
             label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
-            href: normalizeLegacyPlannerLink(typeof link.href === 'string' ? link.href.trim() : ''),
+            href: normalizePlannerAffiliateHref(normalizeLegacyPlannerLink(typeof link.href === 'string' ? link.href.trim() : '')),
           }))
           .filter((link) => link.label && link.href)
       : []
@@ -1925,7 +1925,9 @@ function cleanUserLinks(value: unknown): Record<string, PlannerUserLink[]> {
       .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
       .map((link) => ({
         label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
-        href: normalizeLegacyPlannerLink(typeof link.href === 'string' ? link.href.trim().slice(0, 500) : ''),
+        href: normalizePlannerAffiliateHref(
+          normalizeLegacyPlannerLink(typeof link.href === 'string' ? link.href.trim().slice(0, 500) : ''),
+        ),
         ...(link.isPrimaryGoogleMap === true ? { isPrimaryGoogleMap: true } : {}),
       }))
       .filter((link) => link.label && link.href)
@@ -2001,9 +2003,28 @@ function parsePlannerLinkUrl(value: string) {
   }
 }
 
+function normalizePlannerLinkInput(value: string) {
+  // Links copied out of chat apps and some web pages can contain HTML-escaped
+  // query separators. React assigns `href` as a DOM property, so leaving
+  // `&amp;` in the stored value makes Google Maps receive `amp;query` instead
+  // of `query` and reject an otherwise valid Maps URL.
+  const decoded = value.trim().replace(/&amp;/gi, '&')
+  const extractedGoogleUrl = extractGoogleMapsUrlFromText(decoded).trim()
+  const candidate = shouldResolveGoogleMapsUrl(extractedGoogleUrl) ? extractedGoogleUrl : decoded
+  const url = parsePlannerLinkUrl(candidate)
+  if (!url) return candidate
+
+  // `new URL` also supplies https for a pasted `maps.app.goo.gl/...` or
+  // `www.google.com/maps/...` link. Without it, the browser treats the URL as
+  // a relative Planner route, which is the source of the unsupported-map page.
+  if (shouldResolveGoogleMapsUrl(url.toString())) return url.toString()
+  return candidate
+}
+
 function normalizePlannerAffiliateHref(value: string) {
-  const url = parsePlannerLinkUrl(value)
-  if (!url) return value.trim()
+  const input = normalizePlannerLinkInput(value)
+  const url = parsePlannerLinkUrl(input)
+  if (!url) return input
   const hostname = url.hostname.toLowerCase()
 
   if (hostname === 'klook.com' || hostname.endsWith('.klook.com')) {
@@ -2043,7 +2064,7 @@ function normalizePlannerAffiliateHref(value: string) {
     return url.toString()
   }
 
-  return value.trim()
+  return input
 }
 
 function cleanGoogleMapsPlaceName(name: string) {
