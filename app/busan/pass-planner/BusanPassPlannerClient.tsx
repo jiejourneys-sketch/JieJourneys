@@ -54,7 +54,7 @@ import {
   getApplicableVerifiedHotelAffiliateIdentity,
 } from '@/lib/hotelAffiliateIdentity'
 import { hotelAffiliateGooglePlaceTypeSignal, hotelAffiliatePlaceNameSignal } from '@/lib/hotelAffiliatePlaceSignals'
-import { normalizePlannerAffiliateUrl } from '@/lib/plannerAffiliate'
+import { BOOKING_AFFILIATE_HOME_URL, normalizePlannerAffiliateUrl } from '@/lib/plannerAffiliate'
 import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import type { MapPlace } from '@/lib/mapPlace'
 import { isPlannerInspectionMode, PLANNER_INSPECTION_PARAM } from '@/lib/plannerInspection'
@@ -154,6 +154,7 @@ type SharedPlannerEditTarget = {
 }
 const PRE_DEPARTURE_OWNER: PreDepartureTraveler = { id: 'traveler-owner', name: '我' }
 const MAX_PRE_DEPARTURE_GENERAL_LINKS = 20
+const MAX_PLANNER_USER_LINK_LENGTH = 4_000
 type HotelAffiliateProvider = 'Agoda' | 'Trip'
 type RemovedHotelAffiliateLink = { place_id: string; provider: HotelAffiliateProvider }
 type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id' | 'skipped'
@@ -711,7 +712,7 @@ function mergeCustomPlannerLinks(
 ) {
   const cleanLink = {
     label: link.label.trim().slice(0, 40),
-    href: link.href.trim().slice(0, 500),
+    href: link.href.trim().slice(0, MAX_PLANNER_USER_LINK_LENGTH),
   }
   if (!cleanLink.label || !cleanLink.href) return links ?? []
   const providerKey = cleanLink.label.toLowerCase()
@@ -727,7 +728,7 @@ function mergeCustomPlannerLinks(
 
   const seen = new Set<string>()
   const merged = [...(options.replaceProvider ? (links ?? []).filter((item) => !providerLinks.includes(item)) : (links ?? [])), cleanLink]
-    .map((item) => ({ label: item.label.trim().slice(0, 40), href: item.href.trim().slice(0, 500) }))
+    .map((item) => ({ label: item.label.trim().slice(0, 40), href: item.href.trim().slice(0, MAX_PLANNER_USER_LINK_LENGTH) }))
     .filter((item) => {
       if (!item.label || !item.href) return false
       const urlKey = item.href.toLowerCase()
@@ -1927,7 +1928,7 @@ function cleanUserLinks(value: unknown): Record<string, PlannerUserLink[]> {
       .map((link) => ({
         label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
         href: normalizePlannerAffiliateHref(
-          normalizeLegacyPlannerLink(typeof link.href === 'string' ? link.href.trim().slice(0, 500) : ''),
+          normalizeLegacyPlannerLink(typeof link.href === 'string' ? link.href.trim().slice(0, MAX_PLANNER_USER_LINK_LENGTH) : ''),
         ),
         ...(link.isPrimaryGoogleMap === true ? { isPrimaryGoogleMap: true } : {}),
       }))
@@ -4167,6 +4168,12 @@ const PRE_DEPARTURE_RESOURCES: Record<PreDepartureResourceId, PreDepartureResour
         href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hl=zh-tw',
         event: 'planner_pre_departure_hotel_agoda',
         platform: 'Agoda',
+      },
+      {
+        label: 'Booking.com',
+        href: BOOKING_AFFILIATE_HOME_URL,
+        event: 'planner_pre_departure_hotel_booking',
+        platform: 'Booking.com',
       },
     ],
   },
@@ -10892,7 +10899,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const addPlaceUserLink = (placeId: string, link: PlannerUserLink) => {
     if (readOnlyPlan) return
     const label = link.label.trim().slice(0, 40)
-    const href = normalizePlannerAffiliateHref(link.href).slice(0, 500)
+    const href = normalizePlannerAffiliateHref(link.href).slice(0, MAX_PLANNER_USER_LINK_LENGTH)
     if (!label || !href) return
     markPlannerCloudUserEdit()
     const isPrimaryGoogleMap = link.isPrimaryGoogleMap === true && isGoogleMapHref(href)
@@ -10960,7 +10967,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const setCustomPlacePrimaryUserLink = (placeId: string, labelValue: string, hrefValue: string) => {
     if (readOnlyPlan) return
     const label = labelValue.trim().slice(0, 40)
-    const href = normalizePlannerAffiliateHref(hrefValue).slice(0, 500)
+    const href = normalizePlannerAffiliateHref(hrefValue).slice(0, MAX_PLANNER_USER_LINK_LENGTH)
     if (!label || !href) return
     markPlannerCloudUserEdit()
     const previousProvider = hotelAffiliateProviderForLink(
@@ -12577,7 +12584,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const pendingLinks = linkLabel && linkUrl ? [{ label: linkLabel, href: linkUrl }] : []
     const seenCustomLinks = new Set<string>()
     const nextLinks = [...baseLinks, ...pendingLinks]
-      .map((link) => ({ label: link.label.trim().slice(0, 40), href: normalizePlannerAffiliateHref(link.href).slice(0, 500) }))
+      .map((link) => ({ label: link.label.trim().slice(0, 40), href: normalizePlannerAffiliateHref(link.href).slice(0, MAX_PLANNER_USER_LINK_LENGTH) }))
       .filter((link) => {
         if (!link.label || !link.href) return false
         const key = link.label + '::' + link.href

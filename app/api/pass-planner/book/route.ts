@@ -12,6 +12,7 @@ const MAX_CUSTOM_PLACES = 200
 const MAX_LINKS_PER_CUSTOM_PLACE = 8
 const MAX_USER_LINK_PLACES = 120
 const MAX_USER_LINKS_PER_PLACE = 8
+const MAX_USER_LINK_LENGTH = 4_000
 const MAX_PRE_DEPARTURE_TRAVELERS = 12
 const MAX_PRE_DEPARTURE_CUSTOM_ITEMS = 80
 const MAX_PRE_DEPARTURE_CHECKED_ITEMS = 300
@@ -313,7 +314,7 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
             .slice(0, MAX_LINKS_PER_CUSTOM_PLACE)
             .map((link) => ({
               label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
-              href: typeof link.href === 'string' ? link.href.trim().slice(0, 500) : '',
+              href: typeof link.href === 'string' ? link.href.trim().slice(0, MAX_USER_LINK_LENGTH) : '',
             }))
             .filter((link) => link.label && link.href)
         : []
@@ -355,7 +356,7 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
         .slice(0, MAX_USER_LINKS_PER_PLACE)
         .map((link) => ({
           label: typeof link.label === 'string' ? link.label.trim().slice(0, 40) : '',
-          href: typeof link.href === 'string' ? link.href.trim().slice(0, 500) : '',
+          href: typeof link.href === 'string' ? link.href.trim().slice(0, MAX_USER_LINK_LENGTH) : '',
           ...(link.isPrimaryGoogleMap === true ? { isPrimaryGoogleMap: true } : {}),
         }))
         .filter((link) => link.label && link.href)

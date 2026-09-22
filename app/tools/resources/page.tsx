@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import PromoResourceCard from '@/components/PromoResourceCard'
+import { BOOKING_AFFILIATE_HOME_URL } from '@/lib/plannerAffiliate'
 
 type Resource = {
   title: string
@@ -39,6 +40,12 @@ const travelResources: Resource[] = [
     tags: 'Agoda 訂房 飯店 住宿',
     href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hl=zh-tw',
     event: 'promo_Agoda',
+  },
+  {
+    title: 'Booking.com',
+    tags: 'Booking.com 訂房 飯店 民宿',
+    href: BOOKING_AFFILIATE_HOME_URL,
+    event: 'promo_Booking',
   },
   {
     title: '日本完美行購物',
