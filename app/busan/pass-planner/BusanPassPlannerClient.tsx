@@ -10756,20 +10756,22 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setMobilePanelOpen(false)
     updatePlanItemsWithUndo((items) => {
       const selectedItem =
-        selectedPlanItem && items.includes(selectedPlanItem) && planItemPlace(selectedPlanItem, placeById)
+        selectedPlanItem &&
+        visiblePlanItems.includes(selectedPlanItem) &&
+        items.includes(selectedPlanItem) &&
+        planItemPlace(selectedPlanItem, placeById)
           ? selectedPlanItem
-          : selectedId
-            ? items.find((item) => planItemPlaceId(item) === selectedId) ?? null
-            : null
+          : null
       const hasFirstDayDivider = isDayItem(items[0] ?? '')
       const firstDayDivider = hasFirstDayDivider ? null : createDayItem()
       const workingItems = firstDayDivider ? [firstDayDivider, ...items] : items
-      const fallbackIndex = workingItems.length
       const baseIndex = selectedItem ? items.indexOf(selectedItem) : -1
-      let insertIndex = baseIndex >= 0 ? baseIndex + 1 + (firstDayDivider ? 1 : 0) : fallbackIndex
+      let insertIndex = baseIndex >= 0 ? baseIndex + 1 + (firstDayDivider ? 1 : 0) : workingItems.length
       while (insertIndex < workingItems.length && isTransportItem(workingItems[insertIndex])) {
         insertIndex += 1
       }
+      // Only an explicitly selected, currently visible plan card is an anchor.
+      // A stale map/list place selection must fall back to the end of the plan.
       const dayCount = workingItems.filter(isDayItem).length + (hasFirstDayDivider || firstDayDivider ? 1 : 2)
       const nextItems = reconcileChangedTransportRoutes(
         items,
@@ -14797,7 +14799,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                     if (mobilePanelStateRef.current === 'full' && isMobilePlannerViewport()) {
                                       return
                                     }
-                                    setExpandedPlanItemWithScrollCompensation(expandedPlanItem === item ? null : item)
+                                    const collapsingSelectedCard = expandedPlanItem === item
+                                    setExpandedPlanItemWithScrollCompensation(collapsingSelectedCard ? null : item)
+                                    if (collapsingSelectedCard) {
+                                      // Collapsing changes only the card details; keep the exact
+                                      // visit selected so repeated places cannot resolve to an
+                                      // earlier day's card when inserting a day divider.
+                                      setSelectedPlanItem(item)
+                                      setSelectedId(place.id)
+                                    }
                                   }}
                                   onRemove={() => requestRemovePlace(item)}
                                   onEditCustom={isCustomPlaceId(place.id) ? () => editCustomPlace(place.id, 'order', item) : undefined}
