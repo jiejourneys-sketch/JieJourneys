@@ -11,6 +11,7 @@ import {
   buildPlannerHotelAffiliateSearchNames,
   getApplicableVerifiedHotelAffiliateIdentity,
 } from '@/lib/hotelAffiliateIdentity'
+import { getStoredVerifiedHotelAffiliateIdentity } from '@/lib/hotelAffiliateIdentityStore'
 import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
@@ -39,14 +40,26 @@ export async function POST(req: NextRequest) {
   const placeTypeSignal = hotelAffiliateGooglePlaceTypeSignal(googlePlaceTypes)
   const explicitLodgingHint = cleanBoolean(input.lodgingHint ?? input.isLodging ?? input.hotelAffiliateEligible)
   const lodgingHint = placeTypeSignal === 'lodging' || (explicitLodgingHint && placeTypeSignal !== 'non_lodging')
-  const agodaIdentity = await findAgodaHotelIndexIdentity({
-    hotelName: providedHotelName,
-    alternateHotelNames: providedHotelNames.slice(1),
-    countryCode,
+  const builtInIdentity = getApplicableVerifiedHotelAffiliateIdentity(googlePlaceId, {
     latitude,
     longitude,
-    lodgingHint,
+    countryCode,
   })
+  const verifiedIdentity = builtInIdentity ?? await getStoredVerifiedHotelAffiliateIdentity(googlePlaceId, {
+    latitude,
+    longitude,
+    countryCode,
+  })
+  const agodaIdentity = verifiedIdentity
+    ? { canonicalNames: verifiedIdentity.canonicalNames }
+    : await findAgodaHotelIndexIdentity({
+        hotelName: providedHotelName,
+        alternateHotelNames: providedHotelNames.slice(1),
+        countryCode,
+        latitude,
+        longitude,
+        lodgingHint,
+      })
   const hotelNames = buildHotelAffiliateSearchNames({
     verifiedNames: agodaIdentity?.canonicalNames,
     googlePlaceName: providedHotelName,
@@ -73,11 +86,6 @@ export async function POST(req: NextRequest) {
     checkOutDate: cleanDate(input.checkOutDate),
   }
   const tripConfig = getTripAffiliatePublicConfig()
-  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(googlePlaceId, {
-    latitude,
-    longitude,
-    countryCode,
-  })
   const verifiedTrip = verifiedIdentity?.trip
   const verifiedBookingUrl = verifiedTrip
     ? buildTripAffiliateUrlForHotelId(verifiedTrip.hotelId, {

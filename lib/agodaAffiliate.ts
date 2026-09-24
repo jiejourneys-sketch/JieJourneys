@@ -3,6 +3,7 @@ import path from 'node:path'
 import {
   getApplicableVerifiedHotelAffiliateIdentity,
   isUsableHotelAffiliateName,
+  type VerifiedHotelAffiliateIdentity,
 } from '@/lib/hotelAffiliateIdentity'
 
 const DEFAULT_AGODA_SITE_ID = '1945734'
@@ -48,6 +49,8 @@ export type AgodaAffiliateSearchInput = {
   maxResult?: number
   /** Kept for API compatibility; the local catalogue has no remote cache to bypass. */
   forceRefresh?: boolean
+  /** A server-validated identity loaded from the durable planner store. */
+  verifiedIdentity?: VerifiedHotelAffiliateIdentity
 }
 
 export type AgodaHotelIndexIdentityInput = Pick<
@@ -286,7 +289,7 @@ export async function searchAgodaAffiliateHotels(input: AgodaAffiliateSearchInpu
     maxResult: clampInteger(input.maxResult, DEFAULT_MAX_RESULT, 1, 50),
   }
 
-  const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(query.googlePlaceId, {
+  const verifiedIdentity = input.verifiedIdentity ?? getApplicableVerifiedHotelAffiliateIdentity(query.googlePlaceId, {
     latitude: query.latitude,
     longitude: query.longitude,
     countryCode: query.countryCode,

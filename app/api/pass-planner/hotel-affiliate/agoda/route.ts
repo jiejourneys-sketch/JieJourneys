@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAgodaAffiliatePublicConfig, searchAgodaAffiliateHotels } from '@/lib/agodaAffiliate'
 import { searchAgodaAffiliateHotelsWithGoogleHotels } from '@/lib/tripGoogleHotels'
-import { buildPlannerHotelAffiliateSearchNames } from '@/lib/hotelAffiliateIdentity'
+import {
+  buildPlannerHotelAffiliateSearchNames,
+  getApplicableVerifiedHotelAffiliateIdentity,
+} from '@/lib/hotelAffiliateIdentity'
+import { getStoredVerifiedHotelAffiliateIdentity } from '@/lib/hotelAffiliateIdentityStore'
 import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +33,16 @@ export async function POST(req: NextRequest) {
   const placeTypeSignal = hotelAffiliateGooglePlaceTypeSignal(googlePlaceTypes)
   const explicitLodgingHint = cleanBoolean(input.lodgingHint ?? input.isLodging ?? input.hotelAffiliateEligible)
   const lodgingHint = placeTypeSignal === 'lodging' || (explicitLodgingHint && placeTypeSignal !== 'non_lodging')
+  const builtInIdentity = getApplicableVerifiedHotelAffiliateIdentity(googlePlaceId, {
+    latitude,
+    longitude,
+    countryCode,
+  })
+  const verifiedIdentity = builtInIdentity ?? await getStoredVerifiedHotelAffiliateIdentity(googlePlaceId, {
+    latitude,
+    longitude,
+    countryCode,
+  })
 
   const searchInput = {
     hotelName,
@@ -49,6 +63,7 @@ export async function POST(req: NextRequest) {
     language: cleanString(input.language, 12),
     maxResult: cleanInteger(input.maxResult, 1, 50),
     forceRefresh: cleanBoolean(input.forceRefresh ?? input.refresh),
+    verifiedIdentity,
   }
   let result = await searchAgodaAffiliateHotels(searchInput)
 

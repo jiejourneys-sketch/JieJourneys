@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const URL_TOKEN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -214,6 +214,12 @@ function randomToken(length: number, alphabet = ID_ALPHABET) {
   const values = new Uint8Array(length)
   crypto.getRandomValues(values)
   return Array.from(values, (value) => alphabet[value % alphabet.length]).join('')
+}
+
+type AffiliateLinkObservation = {
+  placeId: string
+  provider: AffiliateProvider
+  href: string
 }
 
 // This is an opaque record identifier, not an access credential.  Keeping it
@@ -444,6 +450,66 @@ function preserveStoredAffiliateLinks(
   return mergedPlaces
 }
 
+function collectNewAffiliateLinkObservations(
+  storedValue: unknown,
+  nextValue: Record<string, unknown>,
+) {
+  const storedPlaces = storedValue && typeof storedValue === 'object' && !Array.isArray(storedValue)
+    ? storedValue as Record<string, unknown>
+    : {}
+  const observations: AffiliateLinkObservation[] = []
+
+  Object.entries(nextValue).slice(0, MAX_CUSTOM_PLACES).forEach(([placeId, rawNextPlace]) => {
+    if (!/^custom:[A-Za-z0-9_-]{1,80}$/.test(placeId)) return
+    if (!rawNextPlace || typeof rawNextPlace !== 'object' || Array.isArray(rawNextPlace)) return
+    const nextLinks = Array.isArray((rawNextPlace as Record<string, unknown>).links)
+      ? (rawNextPlace as Record<string, unknown>).links as unknown[]
+      : []
+    const rawStoredPlace = storedPlaces[placeId]
+    const storedLinks = rawStoredPlace && typeof rawStoredPlace === 'object' && !Array.isArray(rawStoredPlace)
+      && Array.isArray((rawStoredPlace as Record<string, unknown>).links)
+      ? (rawStoredPlace as Record<string, unknown>).links as unknown[]
+      : []
+    const storedKeys = new Set(storedLinks.flatMap((link) => {
+      const provider = affiliateProviderFromLink(link)
+      const href = link && typeof link === 'object' && !Array.isArray(link) && typeof (link as Record<string, unknown>).href === 'string'
+        ? (link as Record<string, unknown>).href as string
+        : ''
+      return provider && href ? [`${provider}|${href.trim()}`] : []
+    }))
+
+    const seenProviders = new Set<AffiliateProvider>()
+    nextLinks.forEach((link) => {
+      const provider = affiliateProviderFromLink(link)
+      const rawHref = link && typeof link === 'object' && !Array.isArray(link)
+        ? (link as Record<string, unknown>).href
+        : ''
+      const href = typeof rawHref === 'string' ? rawHref.trim().slice(0, 500) : ''
+      if (!provider || !href || seenProviders.has(provider) || storedKeys.has(`${provider}|${href}`)) return
+      seenProviders.add(provider)
+      observations.push({ placeId, provider, href })
+    })
+  })
+
+  return observations.slice(0, MAX_CUSTOM_PLACES * 2)
+}
+
+async function recordHotelAffiliateObservations(
+  supabase: SupabaseClient,
+  id: string,
+  editToken: string,
+  observations: AffiliateLinkObservation[],
+) {
+  if (observations.length === 0) return
+  await Promise.allSettled(observations.map((observation) => supabase.rpc('planner_book_add_affiliate_link', {
+    p_id: id,
+    p_edit_token: editToken,
+    p_place_id: observation.placeId,
+    p_provider: observation.provider,
+    p_href: observation.href,
+  })))
+}
+
 export async function POST(req: NextRequest) {
   const supabase = getTripSupabase()
   if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
@@ -509,7 +575,15 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     const saved = data as PlannerBookMutation | null
-    if (!error && saved?.id) return NextResponse.json({ id: saved.id, read_token: saved.read_token, updated: true })
+    if (!error && saved?.id) {
+      await recordHotelAffiliateObservations(
+        supabase,
+        payload.id,
+        payload.edit_token,
+        collectNewAffiliateLinkObservations(existing.custom_places, nextCustomPlaces),
+      )
+      return NextResponse.json({ id: saved.id, read_token: saved.read_token, updated: true })
+    }
     if (error) return NextResponse.json({ error: 'store_failed', code: error.code }, { status: 503 })
     return NextResponse.json({ error: 'edit_forbidden' }, { status: 403 })
   }
@@ -537,6 +611,12 @@ export async function POST(req: NextRequest) {
 
     const created = data as PlannerBookMutation[] | null
     if (!error && created?.[0]?.id) {
+      await recordHotelAffiliateObservations(
+        supabase,
+        id,
+        editorToken,
+        collectNewAffiliateLinkObservations(undefined, payload.custom_places ?? {}),
+      )
       return NextResponse.json({ id, read_token: token, edit_token: editorToken, created: true })
     }
     if (error?.code === '23505') continue
