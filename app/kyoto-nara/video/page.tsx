@@ -1,6 +1,44 @@
 import KyotoNaraGuidePage from '@/components/KyotoNaraGuidePage'
+import type { CityCard } from '@/components/CityTabbedList'
 
 const tabs = [{ value: 'all', label: '全部', dataArea: 'all' }]
+
+const cards: CityCard[] = [
+  {
+    title: '京都 5 個必去景點｜攻略',
+    meta: '京都攻略',
+    area: 'all',
+    datasetKey: 'video',
+    datasetValue: 'kyoto-5-must-visit-spots-guide',
+    actions: [
+      {
+        label: '文章',
+        href: '/kyoto-nara/kyoto-5-must-visit-spots-guide?from=kyoto-video',
+        className: 'btn',
+        event: 'kyotonaravideo_5spots_article',
+        platform: 'article',
+        section: 'video',
+      },
+    ],
+  },
+  {
+    title: '京都 6 大區域｜攻略',
+    meta: '京都攻略',
+    area: 'all',
+    datasetKey: 'video',
+    datasetValue: 'kyoto-6-areas-guide',
+    actions: [
+      {
+        label: '文章',
+        href: '/kyoto-nara/kyoto-6-areas-guide?from=kyoto-video',
+        className: 'btn',
+        event: 'kyotonaravideo_6areas_article',
+        platform: 'article',
+        section: 'video',
+      },
+    ],
+  },
+]
 
 export default function KyotoNaraVideoPage() {
   return (
@@ -11,8 +49,7 @@ export default function KyotoNaraVideoPage() {
       intro="京都不適合把熱門景點一路硬串。先分區、再安排早晚與交通，才能把清水寺、伏見稻荷、嵐山與市中心玩得順又不累。"
       listTitle="京都攻略"
       tabs={tabs}
-      cards={[]}
-      showGuideList={false}
+      cards={cards}
       contentTitle="京都自由行怎麼排？先分區，再決定天數"
       faqTitle="京都自由行常見問題"
       faqs={[
