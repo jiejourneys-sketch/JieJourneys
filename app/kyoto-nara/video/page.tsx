@@ -12,6 +12,22 @@ const cards: CityCard[] = [
     datasetValue: 'kyoto-5-must-visit-spots-guide',
     actions: [
       {
+        label: 'IG Reels',
+        href: 'https://www.instagram.com/reel/DdwF6stBInS/',
+        className: 'btn primary',
+        event: 'kyotonaravideo_5spots_ig',
+        platform: 'IG',
+        section: 'video',
+      },
+      {
+        label: 'YouTube',
+        href: 'https://youtube.com/shorts/CY4ta6htt2c',
+        className: 'btn',
+        event: 'kyotonaravideo_5spots_youtube',
+        platform: 'YouTube',
+        section: 'video',
+      },
+      {
         label: '文章',
         href: '/kyoto-nara/kyoto-5-must-visit-spots-guide?from=kyoto-video',
         className: 'btn',
