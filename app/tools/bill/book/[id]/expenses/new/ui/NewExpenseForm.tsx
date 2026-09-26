@@ -276,7 +276,7 @@ export default function NewExpenseForm({
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input
             className="field"
-            inputMode="numeric"
+            inputMode="decimal"
             value={amount}
             onChange={(e) => {
               setAmount(e.target.value)
@@ -364,7 +364,7 @@ export default function NewExpenseForm({
                           <input
                             className="field"
                             style={{ height: 40, marginBottom: 0 }}
-                            inputMode="numeric"
+                            inputMode="decimal"
                             value={
                               payerAmounts[m.id] ??
                               (checked ? formatCents(computedPayerAmounts[m.id] ?? 0) : '')
@@ -459,7 +459,7 @@ export default function NewExpenseForm({
                             <input
                               className="field"
                               style={{ height: 38, marginBottom: 0, width: '24%', maxWidth: '30%', padding: '0 10px' }}
-                              inputMode="numeric"
+                              inputMode="decimal"
                               placeholder="平均"
                               value={
                                 sharedLocked ? (sharedOverrides[m.id] ?? '') : formatCents(computedSplit.shared[m.id] ?? 0)
@@ -494,7 +494,7 @@ export default function NewExpenseForm({
                             <input
                               className="field"
                               style={{ height: 38, marginBottom: 0, width: '24%', maxWidth: '30%', padding: '0 10px' }}
-                              inputMode="numeric"
+                              inputMode="decimal"
                               placeholder="額外"
                               value={exclusiveAmounts[m.id] ?? ''}
                               onChange={(e) => {
