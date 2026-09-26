@@ -66,6 +66,7 @@ export default function KyotoNaraVideoPage() {
       listTitle="京都攻略"
       tabs={tabs}
       cards={cards}
+      collapseVideoActions
       contentTitle="京都自由行怎麼排？先分區，再決定天數"
       faqTitle="京都自由行常見問題"
       faqs={[

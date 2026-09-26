@@ -19,6 +19,7 @@ type Props = {
   tagFilterArea?: string
   tagOrder?: string[]
   tagHideOnAll?: boolean
+  collapseVideoActions?: boolean
   showGuideList?: boolean
   contentTitle: string
   children: ReactNode
@@ -37,6 +38,7 @@ export default function KyotoNaraGuidePage({
   tagFilterArea,
   tagOrder,
   tagHideOnAll,
+  collapseVideoActions = false,
   showGuideList = true,
   contentTitle,
   children,
@@ -71,6 +73,7 @@ export default function KyotoNaraGuidePage({
               tabs={tabs}
               cards={cards}
               tabEvent={`${eventPrefix}_tab`}
+              collapseVideoActions={collapseVideoActions}
               tagFilterArea={tagFilterArea}
               tagOrder={tagOrder}
               tagHideOnAll={tagHideOnAll}
