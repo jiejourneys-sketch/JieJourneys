@@ -1,7 +1,7 @@
 const GETYOURGUIDE_PARTNER_ID = 'HDXRJVZ'
 const BOOKING_CJ_CLICK_URL = 'https://www.jdoqocy.com/click-101881539-17293139'
 const BOOKING_CJ_HOME_CLICK_URL = 'https://www.anrdoezrs.net/click-101881539-17293139'
-const BOOKING_CJ_TRACKING_DOMAINS = new Set(['anrdoezrs.net', 'dpbolvw.net', 'jdoqocy.com', 'kqzyfj.com', 'tkqlhce.com'])
+export const BOOKING_CJ_TRACKING_DOMAINS = new Set(['anrdoezrs.net', 'dpbolvw.net', 'jdoqocy.com', 'kqzyfj.com', 'tkqlhce.com'])
 const BOOKING_STAY_QUERY_PARAMS = new Set([
   'checkin',
   'checkout',
@@ -48,7 +48,7 @@ function cleanBookingDestination(destination: URL) {
   return cleanUrl
 }
 
-function getBookingDestination(url: URL, hostname: string) {
+export function getBookingDestination(url: URL, hostname = url.hostname.toLowerCase().replace(/\.$/, '')) {
   if (isAffiliateHost(hostname, 'booking.com')) return url
   if (![...BOOKING_CJ_TRACKING_DOMAINS].some((domain) => isAffiliateHost(hostname, domain))) return null
 
@@ -57,6 +57,33 @@ function getBookingDestination(url: URL, hostname: string) {
     return isAffiliateHost(destination.hostname.toLowerCase().replace(/\.$/, ''), 'booking.com') ? destination : null
   } catch {
     return null
+  }
+}
+
+export function bookingPropertyIdFromUrl(value: string | URL) {
+  try {
+    const url = typeof value === 'string' ? new URL(value) : value
+    const destination = getBookingDestination(url)
+    if (!destination) return ''
+    const match = destination.pathname.match(
+      /^\/hotel\/([a-z]{2})\/([a-z0-9_-]+)(?:\.[a-z]{2}(?:-[a-z]{2})?)?(?:\.html)?\/?$/i,
+    )
+    if (!match) return ''
+    const countryCode = match[1].toLowerCase()
+    const slug = match[2].trim().toLowerCase()
+    return slug ? `${countryCode}/${slug}`.slice(0, 180) : ''
+  } catch {
+    return ''
+  }
+}
+
+export function isBookingAffiliateUrl(value: unknown) {
+  if (typeof value !== 'string' || !value.trim()) return false
+  try {
+    const url = new URL(value.trim())
+    return url.protocol === 'https:' && !url.port && Boolean(getBookingDestination(url))
+  } catch {
+    return false
   }
 }
 

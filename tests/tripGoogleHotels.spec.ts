@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   searchAgodaAffiliateHotelsWithGoogleHotels,
+  searchBookingAffiliateHotelsWithGoogleHotels,
   searchTripAffiliateHotelsWithGoogleHotels,
 } from '../lib/tripGoogleHotels'
 
@@ -81,11 +82,12 @@ test('gets a Trip hotel ID from an exact Google Hotels booking source in one req
   }
 })
 
-test('one exact Google Hotels lookup resolves both Agoda and Trip for an unseen property', async () => {
+test('one exact Google Hotels lookup resolves Trip, Agoda and Booking for an unseen property', async () => {
   const restoreEnvironment = withSerpApi()
   let fetchCount = 0
   const tripDestination = 'https://tw.trip.com/hotels/osaka-hotel-detail-987654321/future-hotel/'
   const agodaDestination = 'https://www.agoda.com/partners/partnersearch.aspx?hid=123456789'
+  const bookingDestination = 'https://www.booking.com/hotel/jp/future-hotel-osaka-annex.html'
   globalThis.fetch = (async () => {
     fetchCount += 1
     return new Response(JSON.stringify({
@@ -102,6 +104,10 @@ test('one exact Google Hotels lookup resolves both Agoda and Trip for an unseen 
           source: 'Agoda',
           link: `https://www.google.com/travel/click?pcurl=${encodeURIComponent(agodaDestination)}`,
         },
+        {
+          source: 'Booking.com',
+          link: `https://www.google.com/travel/click?pcurl=${encodeURIComponent(bookingDestination)}`,
+        },
       ],
     }), { status: 200, headers: { 'content-type': 'application/json' } })
   }) as typeof fetch
@@ -117,9 +123,10 @@ test('one exact Google Hotels lookup resolves both Agoda and Trip for an unseen 
       lodgingHint: true,
       forceRefresh: true,
     }
-    const [agoda, trip] = await Promise.all([
-      searchAgodaAffiliateHotelsWithGoogleHotels(input),
+    const [trip, agoda, booking] = await Promise.all([
       searchTripAffiliateHotelsWithGoogleHotels(input),
+      searchAgodaAffiliateHotelsWithGoogleHotels(input),
+      searchBookingAffiliateHotelsWithGoogleHotels(input),
     ])
 
     expect(fetchCount).toBe(1)
@@ -131,6 +138,11 @@ test('one exact Google Hotels lookup resolves both Agoda and Trip for an unseen 
     expect(agodaUrl.searchParams.get('cid')).toBe('1945734')
     expect(trip?.matchStatus).toBe('matched')
     expect(trip?.bestMatch?.hotelId).toBe('987654321')
+    expect(booking?.matchStatus).toBe('matched')
+    expect(booking?.bestMatch?.hotelId).toBe('jp/future-hotel-osaka-annex')
+    const bookingUrl = new URL(booking?.bestMatch?.bookingUrl ?? '')
+    expect(bookingUrl.hostname).toBe('www.jdoqocy.com')
+    expect(new URL(bookingUrl.searchParams.get('url') ?? '').hostname).toBe('www.booking.com')
   } finally {
     restoreEnvironment()
   }

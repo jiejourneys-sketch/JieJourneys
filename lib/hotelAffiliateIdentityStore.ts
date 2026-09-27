@@ -4,6 +4,7 @@ import {
   type VerifiedHotelAffiliateIdentity,
   type VerifiedHotelAffiliateProvider,
 } from '@/lib/hotelAffiliateIdentity'
+import { getBookingDestination } from '@/lib/plannerAffiliate'
 
 type VerifiedHotelAffiliateIdentityContext = {
   latitude?: unknown
@@ -24,6 +25,9 @@ type StoredHotelAffiliateIdentity = {
   trip_hotel_id?: unknown
   trip_hotel_name?: unknown
   trip_source_url?: unknown
+  booking_property_id?: unknown
+  booking_hotel_name?: unknown
+  booking_source_url?: unknown
   verified_at?: unknown
 }
 
@@ -32,6 +36,7 @@ const MISS_CACHE_TTL_MS = 15 * 1000
 const MAX_IDENTITY_CACHE_ENTRIES = 1_000
 const GOOGLE_PLACE_ID_PATTERN = /^[A-Za-z0-9_-]{8,180}$/
 const HOTEL_ID_PATTERN = /^\d{3,}$/
+const BOOKING_PROPERTY_ID_PATTERN = /^[a-z]{2}\/[a-z0-9][a-z0-9._-]{1,176}$/i
 
 const identityCache = new Map<string, { expiresAt: number; identity?: VerifiedHotelAffiliateIdentity }>()
 const identityRequests = new Map<string, Promise<VerifiedHotelAffiliateIdentity | undefined>>()
@@ -179,9 +184,15 @@ function parseStoredIdentity(
     row.trip_source_url,
     'trip.com',
   )
-  if (!agoda && !trip) return undefined
+  const booking = cleanProvider(
+    row.booking_property_id,
+    row.booking_hotel_name,
+    row.booking_source_url,
+    'booking.com',
+  )
+  if (!agoda && !trip && !booking) return undefined
 
-  const providerNames = [agoda?.hotelName, trip?.hotelName]
+  const providerNames = [agoda?.hotelName, trip?.hotelName, booking?.hotelName]
   const canonicalNames = cleanCanonicalNames(row.canonical_names, providerNames)
   if (canonicalNames.length === 0) return undefined
 
@@ -193,6 +204,7 @@ function parseStoredIdentity(
     countryCode: storedCountryCode || context.countryCode,
     ...(agoda ? { agoda } : {}),
     ...(trip ? { trip } : {}),
+    ...(booking ? { booking } : {}),
     verifiedAt: cleanVerifiedAt(row.verified_at),
   }
 }
@@ -216,11 +228,12 @@ function cleanProvider(
   hotelIdValue: unknown,
   hotelNameValue: unknown,
   sourceUrlValue: unknown,
-  expectedDomain: 'agoda.com' | 'trip.com',
+  expectedDomain: 'agoda.com' | 'trip.com' | 'booking.com',
 ): VerifiedHotelAffiliateProvider | undefined {
   const hotelId = typeof hotelIdValue === 'string' ? hotelIdValue.trim() : ''
   const hotelName = typeof hotelNameValue === 'string' ? hotelNameValue.trim().slice(0, 160) : ''
-  if (!HOTEL_ID_PATTERN.test(hotelId) || !hotelName || !isUsableHotelAffiliateName(hotelName)) return undefined
+  const hotelIdPattern = expectedDomain === 'booking.com' ? BOOKING_PROPERTY_ID_PATTERN : HOTEL_ID_PATTERN
+  if (!hotelIdPattern.test(hotelId) || !hotelName || !isUsableHotelAffiliateName(hotelName)) return undefined
 
   const sourceUrl = cleanProviderUrl(sourceUrlValue, expectedDomain)
   return {
@@ -230,10 +243,14 @@ function cleanProvider(
   }
 }
 
-function cleanProviderUrl(value: unknown, expectedDomain: 'agoda.com' | 'trip.com') {
+function cleanProviderUrl(value: unknown, expectedDomain: 'agoda.com' | 'trip.com' | 'booking.com') {
   if (typeof value !== 'string' || !value.trim()) return ''
   try {
     const url = new URL(value.trim())
+    if (expectedDomain === 'booking.com') {
+      const destination = getBookingDestination(url)
+      return destination?.toString() ?? ''
+    }
     const hostname = url.hostname.toLowerCase().replace(/\.$/, '')
     if (
       url.protocol !== 'https:' ||

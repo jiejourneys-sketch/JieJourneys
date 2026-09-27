@@ -125,6 +125,57 @@ test('a matched hotel link uses the narrow planner merge RPC and rejects other d
   }
 })
 
+test('a Booking CJ deep link is accepted only when its destination is Booking.com', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSupabaseUrl = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
+  const previousSupabaseKey = process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY
+  const bodies: Record<string, unknown>[] = []
+  process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL = 'https://planner-affiliate-test.supabase.co'
+  process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY = 'planner-affiliate-test-key'
+  globalThis.fetch = (async (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init)
+    bodies.push(await request.json() as Record<string, unknown>)
+    return new Response(JSON.stringify({
+      id: 'bookId12',
+      read_token: 'abcdefghijklmnopqrstuv',
+      changed: true,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  const call = (href: string) => postAffiliateLink(new NextRequest(
+    'http://localhost/api/pass-planner/book/affiliate-link',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        id: 'bookId12',
+        edit_token: 'abcdefghijklmnopqrstuv',
+        place_id: 'custom:hotel-1',
+        provider: 'Booking',
+        href,
+      }),
+    },
+  ))
+
+  try {
+    const bookingDestination = 'https://www.booking.com/hotel/jp/safe-hotel.html'
+    const validUrl = `https://www.jdoqocy.com/click-101881539-17293139?url=${encodeURIComponent(bookingDestination)}`
+    expect((await call(validUrl)).status).toBe(200)
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0]).toMatchObject({ p_provider: 'Booking', p_href: validUrl })
+
+    const maliciousUrl = `https://www.jdoqocy.com/click-101881539-17293139?url=${encodeURIComponent('https://example.com/phishing')}`
+    expect((await call(maliciousUrl)).status).toBe(400)
+    expect(bodies).toHaveLength(1)
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSupabaseUrl === 'string') process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL = previousSupabaseUrl
+    else delete process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
+    if (typeof previousSupabaseKey === 'string') process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY = previousSupabaseKey
+    else delete process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY
+  }
+})
+
 test('a full planner save preserves newer affiliate links unless the owner explicitly removes one', async () => {
   const previousFetch = globalThis.fetch
   const previousSupabaseUrl = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
@@ -148,6 +199,10 @@ test('a full planner save preserves newer affiliate links unless the owner expli
         links: [
           { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' },
           { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?hotelId=456' },
+          {
+            label: 'Booking',
+            href: `https://www.jdoqocy.com/click-101881539-17293139?url=${encodeURIComponent('https://www.booking.com/hotel/kr/planner-test-hotel.html')}`,
+          },
         ],
       },
     },
@@ -201,11 +256,13 @@ test('a full planner save preserves newer affiliate links unless the owner expli
     expect((updateBodies[0].p_custom_places as typeof storedBook.custom_places)['custom:hotel-1'].links).toEqual([
       { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' },
       { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?hotelId=456' },
+      storedBook.custom_places['custom:hotel-1'].links[2],
     ])
 
     expect((await save(true)).status).toBe(200)
     expect((updateBodies[1].p_custom_places as typeof storedBook.custom_places)['custom:hotel-1'].links).toEqual([
       { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' },
+      storedBook.custom_places['custom:hotel-1'].links[2],
     ])
   } finally {
     globalThis.fetch = previousFetch
@@ -268,6 +325,8 @@ test('a full planner save records a newly added manual provider link through the
 
   try {
     const agodaUrl = 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=76543210'
+    const bookingDestination = 'https://www.booking.com/hotel/jp/planner-manual-hotel.html'
+    const bookingUrl = `https://www.jdoqocy.com/click-101881539-17293139?url=${encodeURIComponent(bookingDestination)}`
     const response = await postPlannerBook(new NextRequest(
       'http://localhost/api/pass-planner/book',
       {
@@ -282,7 +341,10 @@ test('a full planner save records a newly added manual provider link through the
           custom_places: {
             'custom:hotel-1': {
               ...storedBook.custom_places['custom:hotel-1'],
-              links: [{ label: 'Agoda', href: agodaUrl }],
+              links: [
+                { label: 'Agoda', href: agodaUrl },
+                { label: 'Booking', href: bookingUrl },
+              ],
             },
           },
           user_links: {},
@@ -291,13 +353,23 @@ test('a full planner save records a newly added manual provider link through the
     ))
 
     expect(response.status).toBe(200)
-    expect(observedBodies).toEqual([{
-      p_id: storedBook.id,
-      p_edit_token: storedBook.edit_token,
-      p_place_id: 'custom:hotel-1',
-      p_provider: 'Agoda',
-      p_href: agodaUrl,
-    }])
+    expect(observedBodies).toHaveLength(2)
+    expect(observedBodies).toEqual(expect.arrayContaining([
+      {
+        p_id: storedBook.id,
+        p_edit_token: storedBook.edit_token,
+        p_place_id: 'custom:hotel-1',
+        p_provider: 'Agoda',
+        p_href: agodaUrl,
+      },
+      {
+        p_id: storedBook.id,
+        p_edit_token: storedBook.edit_token,
+        p_place_id: 'custom:hotel-1',
+        p_provider: 'Booking',
+        p_href: bookingUrl,
+      },
+    ]))
   } finally {
     globalThis.fetch = previousFetch
     if (typeof previousSupabaseUrl === 'string') process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL = previousSupabaseUrl
@@ -376,7 +448,7 @@ test('manually verified Agoda and Trip identities bypass all paid searches', asy
   }
 })
 
-test('a durable verified identity bypasses provider searches for both routes', async () => {
+test('a durable verified identity bypasses provider searches for all routes', async () => {
   const previousFetch = globalThis.fetch
   const previousSupabaseUrl = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
   const previousSupabaseKey = process.env.NEXT_PUBLIC_TRIP_SUPABASE_ANON_KEY
@@ -402,6 +474,9 @@ test('a durable verified identity bypasses provider searches for both routes', a
       trip_hotel_id: '87654321',
       trip_hotel_name: 'Durable Verified Hotel Tokyo',
       trip_source_url: 'https://tw.trip.com/hotels/tokyo-hotel-detail-87654321/durable-verified-hotel-tokyo/',
+      booking_property_id: 'jp/durable-verified-hotel-tokyo',
+      booking_hotel_name: 'Durable Verified Hotel Tokyo',
+      booking_source_url: 'https://www.booking.com/hotel/jp/durable-verified-hotel-tokyo.html',
       verified_at: '2026-09-24T00:00:00.000Z',
     }), { status: 200, headers: { 'content-type': 'application/json' } })
   }) as typeof fetch
@@ -422,7 +497,7 @@ test('a durable verified identity bypasses provider searches for both routes', a
           lng: 139.712345,
           lodgingHint: true,
           googlePlaceTypes: ['lodging'],
-          providers: ['Agoda', 'Trip'],
+          providers: ['Trip', 'Agoda', 'Booking'],
         }),
       },
     ))
@@ -447,6 +522,11 @@ test('a durable verified identity bypasses provider searches for both routes', a
     expect(result.trip.discoveryMethod).toBe('verified')
     expect(result.trip.providerRequestCount).toBe(0)
     expect(result.trip.bestMatch.hotelId).toBe('87654321')
+    expect(result.booking.matchStatus).toBe('matched')
+    expect(result.booking.confidence).toBe('verified')
+    expect(result.booking.providerRequestCount).toBe(0)
+    expect(result.booking.bestMatch.hotelId).toBe('jp/durable-verified-hotel-tokyo')
+    expect(new URL(result.booking.bestMatch.bookingUrl).hostname).toBe('www.jdoqocy.com')
   } finally {
     globalThis.fetch = previousFetch
     process.env.PLANNER_HOTEL_IDENTITY_LOOKUP_ENABLED = 'false'
@@ -457,7 +537,7 @@ test('a durable verified identity bypasses provider searches for both routes', a
   }
 })
 
-test('the combined route resolves both providers for a previously unseen hotel with one metered lookup', async () => {
+test('the combined route resolves all providers for a previously unseen hotel with one metered lookup', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousTripSearchProvider = process.env.TRIP_SEARCH_PROVIDER
@@ -480,6 +560,10 @@ test('the combined route resolves both providers for a previously unseen hotel w
           source: 'Trip.com',
           link: 'https://tw.trip.com/hotels/kyoto-hotel-detail-87654321/unseen-riverside-hotel-kyoto/',
         },
+        {
+          source: 'Booking.com',
+          link: 'https://www.booking.com/hotel/jp/unseen-riverside-hotel-kyoto.html',
+        },
       ],
     }), { status: 200, headers: { 'content-type': 'application/json' } })
   }) as typeof fetch
@@ -500,7 +584,7 @@ test('the combined route resolves both providers for a previously unseen hotel w
           lng: 135.765432,
           lodgingHint: true,
           googlePlaceTypes: ['lodging'],
-          providers: ['Agoda', 'Trip'],
+          providers: ['Trip', 'Agoda', 'Booking'],
         }),
       },
     ))
@@ -512,6 +596,10 @@ test('the combined route resolves both providers for a previously unseen hotel w
     expect(result.agoda.bestMatch.hotelId).toBe('76543210')
     expect(result.trip.matchStatus).toBe('matched')
     expect(result.trip.bestMatch.hotelId).toBe('87654321')
+    expect(result.booking.matchStatus).toBe('matched')
+    expect(result.booking.bestMatch.hotelId).toBe('jp/unseen-riverside-hotel-kyoto')
+    const bookingUrl = new URL(result.booking.bestMatch.bookingUrl)
+    expect(bookingUrl.hostname).toBe('www.jdoqocy.com')
   } finally {
     globalThis.fetch = previousFetch
     if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey

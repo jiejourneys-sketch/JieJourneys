@@ -12,6 +12,7 @@ export type VerifiedHotelAffiliateIdentity = {
   countryCode: string
   agoda?: VerifiedHotelAffiliateProvider
   trip?: VerifiedHotelAffiliateProvider
+  booking?: VerifiedHotelAffiliateProvider
   verifiedAt: string
 }
 
@@ -164,11 +165,11 @@ const LEADING_COUNTRY_PATTERN =
 const LEADING_LOCATION_LIST_PATTERN =
   /^(?:日本|japan|대한민국|south\s*korea|korea|台灣|台湾|taiwan|vi(?:ệ|e)t\s*nam|vietnam|中國|中国|china|tokyo|osaka|busan|seoul|taipei|hanoi|sapa|beijing|shanghai|東京|东京|大阪|釜山|首爾|首尔|台北|河內|河内|沙壩|沙坝|北京|上海)\s*[,，]\s*.+/i
 const ADDRESS_WORD_PATTERN =
-  /\b(?:street|st|road|rd|avenue|ave|boulevard|blvd|lane|ln|drive|dr|highway|hwy|chome|district)\b|丁目|番地|番|号|號|区|區|市|県|縣|都|府|道|특별시|광역시|시|군|구|읍|면|동|로|길/i
+  /\b(?:street|st|road|rd|avenue|ave|boulevard|blvd|lane|ln|drive|dr|highway|hwy|ch[oō]me|district)\b|丁目|番地|番|号|號|区|區|市|県|縣|都|府|道|특별시|광역시|시|군|구|읍|면|동|로|길/i
 const LODGING_WORD_PATTERN =
-  /\b(?:hotel|hotels|hostel|motel|inn|resort|ryokan|guest\s*house|guesthouse|pension|b&b|bnb|aparthotel|villa|stay|lodge)\b|大?飯店|大?饭店|酒店|旅館|旅馆|旅店|旅舍|民宿|住宿|ホテル|旅籠|リゾート|ステイ|ゲストハウス|ペンション|호텔|모텔|리조트/i
+  /\b(?:hotel|hotels|hostel|motel|inn|resort|ryokan|guest\s*house|guesthouse|pension|b&b|bnb|aparthotel|villa|stay|lodge)\b|公寓(?:式(?:酒店|飯店|饭店)?)?|大?飯店|大?饭店|酒店|旅館|旅馆|旅店|旅舍|民宿|住宿|ホテル|旅籠|リゾート|ステイ|ゲストハウス|ペンション|호텔|모텔|리조트/i
 const IDENTITY_STOP_WORD_PATTERN =
-  /\b(?:hotel|hotels|hostel|motel|inn|resort|ryokan|guest|house|guesthouse|pension|bnb|aparthotel|villa|stay|lodge|japan|korea|taiwan)\b|日本|대한민국|한국|台灣|台湾|飯店|饭店|酒店|旅館|旅馆|旅店|旅舍|民宿|住宿|ホテル|旅籠|リゾート|ステイ|ゲストハウス|ペンション|호텔|모텔|리조트/gi
+  /\b(?:hotel|hotels|hostel|motel|inn|resort|ryokan|guest|house|guesthouse|pension|bnb|aparthotel|villa|stay|lodge|japan|korea|taiwan)\b|日本|대한민국|한국|台灣|台湾|公寓(?:式(?:酒店|飯店|饭店)?)?|飯店|饭店|酒店|旅館|旅馆|旅店|旅舍|民宿|住宿|ホテル|旅籠|リゾート|ステイ|ゲストハウス|ペンション|호텔|모텔|리조트/gi
 
 export function normalizeHotelAffiliateIdentityName(value: unknown) {
   if (typeof value !== 'string') return ''

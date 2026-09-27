@@ -6,6 +6,7 @@ import {
   getVerifiedHotelAffiliateIdentity,
   isUsableHotelAffiliateName,
 } from '../lib/hotelAffiliateIdentity'
+import { hotelAffiliateLodgingHint } from '../lib/hotelAffiliatePlaceSignals'
 
 test('rejects postal and address fragments as hotel identity names', () => {
   expect(isUsableHotelAffiliateName('日本〒110-')).toBe(false)
@@ -30,6 +31,40 @@ test('falls back to the user name when the Google-derived name is unusable', () 
     googlePlaceName: '日本〒110-',
     userName: '上野世紀SPA酒店-鐳溫泉',
   })).toEqual(['上野世紀SPA酒店-鐳溫泉'])
+})
+
+test('uses a marked apartment name when Google resolves only a Japanese street address', () => {
+  expect(isUsableHotelAffiliateName('1-chōme-6-17 Ebisuhonmachi')).toBe(false)
+  expect(isUsableHotelAffiliateName('公寓')).toBe(false)
+  expect(isUsableHotelAffiliateName('住一11號公寓')).toBe(true)
+  expect(buildPlannerHotelAffiliateSearchNames({
+    googlePlaceName: '1-chōme-6-17 Ebisuhonmachi',
+    googlePlaceNameZhTw: '1-chōme-6-17 Ebisuhonmachi',
+    userName: '住一11號公寓',
+  })).toEqual(['住一11號公寓'])
+})
+
+test('uses an explicit hotel category only when Google and the name are not non-lodging', () => {
+  expect(hotelAffiliateLodgingHint({
+    googlePlaceTypes: ['premise', 'street_address'],
+    placeNameSignal: 'unknown',
+    userMarkedHotel: true,
+  })).toBe(true)
+  expect(hotelAffiliateLodgingHint({
+    googlePlaceTypes: ['restaurant'],
+    placeNameSignal: 'unknown',
+    userMarkedHotel: true,
+  })).toBe(false)
+  expect(hotelAffiliateLodgingHint({
+    googlePlaceTypes: ['premise'],
+    placeNameSignal: 'non_lodging',
+    userMarkedHotel: true,
+  })).toBe(false)
+  expect(hotelAffiliateLodgingHint({
+    googlePlaceTypes: ['premise'],
+    placeNameSignal: 'unknown',
+    userMarkedHotel: false,
+  })).toBe(false)
 })
 
 test('keeps valid Google and user aliases without duplicates', () => {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { isBookingAffiliateUrl } from '@/lib/plannerAffiliate'
 
 const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const URL_TOKEN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -58,7 +59,7 @@ type PlannerBookPayload = {
   removed_affiliate_links?: RemovedAffiliateLink[]
 }
 
-type AffiliateProvider = 'Agoda' | 'Trip'
+type AffiliateProvider = 'Agoda' | 'Trip' | 'Booking'
 
 type RemovedAffiliateLink = {
   placeId: string
@@ -372,11 +373,13 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
   const removedAffiliateLinks: RemovedAffiliateLink[] = []
   const removedAffiliateLinkKeys = new Set<string>()
   if (Array.isArray(input.removed_affiliate_links)) {
-    input.removed_affiliate_links.slice(0, MAX_CUSTOM_PLACES * 2).forEach((rawRemoval) => {
+    input.removed_affiliate_links.slice(0, MAX_CUSTOM_PLACES * 3).forEach((rawRemoval) => {
       if (!rawRemoval || typeof rawRemoval !== 'object' || Array.isArray(rawRemoval)) return
       const removal = rawRemoval as Record<string, unknown>
       const placeId = typeof removal.place_id === 'string' ? removal.place_id.trim().slice(0, 80) : ''
-      const provider = removal.provider === 'Agoda' || removal.provider === 'Trip' ? removal.provider : null
+      const provider = removal.provider === 'Agoda' || removal.provider === 'Trip' || removal.provider === 'Booking'
+        ? removal.provider
+        : null
       const removalKey = provider ? `${placeId}|${provider}` : ''
       if (!/^custom:[A-Za-z0-9_-]{1,80}$/.test(placeId) || !provider || removedAffiliateLinkKeys.has(removalKey)) return
       removedAffiliateLinkKeys.add(removalKey)
@@ -410,6 +413,7 @@ function affiliateProviderFromLink(value: unknown): AffiliateProvider | null {
     const hostname = url.hostname.toLowerCase().replace(/\.$/, '')
     if (hostname === 'agoda.com' || hostname.endsWith('.agoda.com')) return 'Agoda'
     if (hostname === 'trip.com' || hostname.endsWith('.trip.com')) return 'Trip'
+    if (isBookingAffiliateUrl(url.toString())) return 'Booking'
   } catch {
     return null
   }
@@ -491,7 +495,7 @@ function collectNewAffiliateLinkObservations(
     })
   })
 
-  return observations.slice(0, MAX_CUSTOM_PLACES * 2)
+  return observations.slice(0, MAX_CUSTOM_PLACES * 3)
 }
 
 async function recordHotelAffiliateObservations(

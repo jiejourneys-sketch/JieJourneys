@@ -53,8 +53,16 @@ import {
   buildPlannerHotelAffiliateSearchNames,
   getApplicableVerifiedHotelAffiliateIdentity,
 } from '@/lib/hotelAffiliateIdentity'
-import { hotelAffiliateGooglePlaceTypeSignal, hotelAffiliatePlaceNameSignal } from '@/lib/hotelAffiliatePlaceSignals'
-import { BOOKING_AFFILIATE_HOME_URL, normalizePlannerAffiliateUrl } from '@/lib/plannerAffiliate'
+import {
+  hotelAffiliateGooglePlaceTypeSignal,
+  hotelAffiliateLodgingHint,
+  hotelAffiliatePlaceNameSignal,
+} from '@/lib/hotelAffiliatePlaceSignals'
+import {
+  BOOKING_AFFILIATE_HOME_URL,
+  isBookingAffiliateUrl,
+  normalizePlannerAffiliateUrl,
+} from '@/lib/plannerAffiliate'
 import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import type { MapPlace } from '@/lib/mapPlace'
 import { isPlannerInspectionMode, PLANNER_INSPECTION_PARAM } from '@/lib/plannerInspection'
@@ -155,7 +163,7 @@ type SharedPlannerEditTarget = {
 const PRE_DEPARTURE_OWNER: PreDepartureTraveler = { id: 'traveler-owner', name: '我' }
 const MAX_PRE_DEPARTURE_GENERAL_LINKS = 20
 const MAX_PLANNER_USER_LINK_LENGTH = 4_000
-type HotelAffiliateProvider = 'Agoda' | 'Trip'
+type HotelAffiliateProvider = 'Agoda' | 'Trip' | 'Booking'
 type RemovedHotelAffiliateLink = { place_id: string; provider: HotelAffiliateProvider }
 type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id' | 'skipped'
 type HotelAffiliateCooldownStatus = Extract<
@@ -195,6 +203,7 @@ type HotelAffiliatePlannerResponse = {
 type HotelAffiliateCombinedPlannerResponse = {
   agoda?: HotelAffiliatePlannerResponse
   trip?: HotelAffiliatePlannerResponse
+  booking?: HotelAffiliatePlannerResponse
 }
 type ActiveHotelAffiliateLookup = {
   cacheKey: string
@@ -414,6 +423,8 @@ const AGODA_AFFILIATE_NO_MATCH_COOLDOWN_MS = 24 * 60 * 60 * 1000
 const AGODA_AFFILIATE_REVIEW_COOLDOWN_MS = 60 * 60 * 1000
 const TRIP_AFFILIATE_NO_MATCH_COOLDOWN_MS = 30 * 60 * 1000
 const TRIP_AFFILIATE_REVIEW_COOLDOWN_MS = 15 * 60 * 1000
+const BOOKING_AFFILIATE_NO_MATCH_COOLDOWN_MS = 30 * 60 * 1000
+const BOOKING_AFFILIATE_REVIEW_COOLDOWN_MS = 15 * 60 * 1000
 const HOTEL_AFFILIATE_TRANSIENT_ERROR_COOLDOWN_MS = 5 * 60 * 1000
 const HOTEL_AFFILIATE_NOT_CONFIGURED_COOLDOWN_MS = 6 * 60 * 60 * 1000
 const NEARBY_KNOWN_PLACE_RADIUS_METERS = 25_000
@@ -673,6 +684,7 @@ function plannerAgodaCityId(config: PlannerConfig, latitude?: number, longitude?
 
 function isHotelAffiliateProviderUrl(value: unknown, provider: HotelAffiliateProvider) {
   if (typeof value !== 'string') return false
+  if (provider === 'Booking') return isBookingAffiliateUrl(value)
   try {
     const parsed = new URL(value.trim())
     if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
@@ -702,6 +714,7 @@ function hotelAffiliateProviderForLink(link: CustomPlannerLink) {
   const label = link.label.trim().toLowerCase()
   if (label === 'agoda' || isHotelAffiliateProviderUrl(link.href, 'Agoda')) return 'Agoda'
   if (label === 'trip' || isHotelAffiliateProviderUrl(link.href, 'Trip')) return 'Trip'
+  if (label === 'booking' || isHotelAffiliateProviderUrl(link.href, 'Booking')) return 'Booking'
   return null
 }
 
@@ -716,7 +729,13 @@ function mergeCustomPlannerLinks(
   }
   if (!cleanLink.label || !cleanLink.href) return links ?? []
   const providerKey = cleanLink.label.toLowerCase()
-  const provider = providerKey === 'agoda' ? 'Agoda' : providerKey === 'trip' ? 'Trip' : null
+  const provider = providerKey === 'agoda'
+    ? 'Agoda'
+    : providerKey === 'trip'
+      ? 'Trip'
+      : providerKey === 'booking'
+        ? 'Booking'
+        : null
   const providerLinks = (links ?? []).filter((item) => {
     if (!provider) return false
     const itemLabel = item.label.trim().toLowerCase()
@@ -848,10 +867,11 @@ function customPlaceHotelAffiliateEligibility(place: CustomPlannerPlace): HotelA
 }
 
 function customPlaceHotelAffiliateLodgingHint(place: CustomPlannerPlace) {
-  const typeSignal = googlePlaceTypeSignal(cleanGooglePlaceTypes(place.googlePlaceTypes))
-  if (typeSignal === 'lodging') return true
-  if (typeSignal === 'non_lodging') return false
-  return hotelAffiliateNameSignal(place) === 'lodging'
+  return hotelAffiliateLodgingHint({
+    googlePlaceTypes: cleanGooglePlaceTypes(place.googlePlaceTypes),
+    placeNameSignal: hotelAffiliateNameSignal(place),
+    userMarkedHotel: cleanCustomPlaceCategory(place.category) === 'hotel' || place.hotelAffiliateManual === true,
+  })
 }
 
 function customPlaceHotelAffiliateManualLookupAllowed(place: CustomPlannerPlace) {
@@ -1086,7 +1106,11 @@ function hotelAffiliateLookupCacheKey(
     longitude,
     countryCode: context.countryCode,
   })
-  const verifiedProvider = provider === 'Agoda' ? verifiedIdentity?.agoda : verifiedIdentity?.trip
+  const verifiedProvider = provider === 'Agoda'
+    ? verifiedIdentity?.agoda
+    : provider === 'Trip'
+      ? verifiedIdentity?.trip
+      : verifiedIdentity?.booking
   const key = [
     HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION,
     provider,
@@ -1257,7 +1281,7 @@ function nearbyKnownPlacesSuggestion(anchorPlaces: MapPlace[], candidatePlaces: 
   return places.length > 0 ? { key: best.key, label: best.label, places } : null
 }
 
-function hotelAffiliateStatusText(provider: 'Agoda' | 'Trip', status: HotelAffiliateStatus | undefined) {
+function hotelAffiliateStatusText(provider: HotelAffiliateProvider, status: HotelAffiliateStatus | undefined) {
   if (status === 'searching') return `正在找 ${provider}`
   if (status === 'matched') return `已加入 ${provider}`
   if (status === 'none') return `${provider} 未命中`
@@ -2392,15 +2416,37 @@ function plannerUserLinksForPlace(
 ): PlannerUserLink[] {
   const savedLinks = userLinks[placeId] ?? []
   const legacyCustomLinks = isCustomPlaceId(placeId) ? customPlaces[placeId]?.links ?? [] : []
-  if (legacyCustomLinks.length === 0) return savedLinks
+  if (legacyCustomLinks.length === 0) return orderHotelAffiliateLinks(savedLinks)
 
   const seen = new Set<string>()
-  return [...savedLinks, ...legacyCustomLinks].filter((link) => {
+  return orderHotelAffiliateLinks([...savedLinks, ...legacyCustomLinks].filter((link) => {
     const key = plannerLinkKey(link)
     if (seen.has(key)) return false
     seen.add(key)
     return true
+  }))
+}
+
+function orderHotelAffiliateLinks<T extends CustomPlannerLink>(links: T[]) {
+  const order: Record<HotelAffiliateProvider, number> = { Trip: 0, Agoda: 1, Booking: 2 }
+  const affiliateIndexes: number[] = []
+  const affiliateLinks: T[] = []
+  links.forEach((link, index) => {
+    if (!hotelAffiliateProviderForLink(link)) return
+    affiliateIndexes.push(index)
+    affiliateLinks.push(link)
   })
+  if (affiliateLinks.length < 2) return links
+  affiliateLinks.sort((left, right) => {
+    const leftProvider = hotelAffiliateProviderForLink(left)
+    const rightProvider = hotelAffiliateProviderForLink(right)
+    return (leftProvider ? order[leftProvider] : 99) - (rightProvider ? order[rightProvider] : 99)
+  })
+  const ordered = [...links]
+  affiliateIndexes.forEach((index, affiliateIndex) => {
+    ordered[index] = affiliateLinks[affiliateIndex]
+  })
+  return ordered
 }
 
 function shortName(name: string) {
@@ -7510,6 +7556,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   // Affiliate lookups may write a matched link back to the shared plan.  Keep
   // them tied to an explicit lodging edit instead of merely opening a plan.
   const hotelAffiliateAutoResolvePlaceIdsRef = useRef<Set<string>>(new Set())
+  // Booking starts with newly created lodgings only. Existing plans can opt in
+  // with the manual retry button, avoiding a deployment-wide search backfill.
+  const bookingAffiliateAutoResolvePlaceIdsRef = useRef<Set<string>>(new Set())
   const removedHotelAffiliateLinksRef = useRef<Map<string, RemovedHotelAffiliateLink>>(new Map())
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
   const planItemsRef = useRef<PlannerItem[]>([])
@@ -7543,6 +7592,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [customDraft, setCustomDraft] = useState<CustomPlaceDraft>(emptyCustomPlaceDraft)
   const [agodaAffiliateStatus, setAgodaAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
   const [tripAffiliateStatus, setTripAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
+  const [bookingAffiliateStatus, setBookingAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
   const [customDraftReturnMode, setCustomDraftReturnMode] = useState<'add' | 'order'>('add')
   const [customDraftReturnItem, setCustomDraftReturnItem] = useState<PlannerItem | null>(null)
   const [customPlaceSaveError, setCustomPlaceSaveError] = useState<'googleUrl' | 'name' | 'location' | null>(null)
@@ -7707,7 +7757,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const cancelHotelAffiliateLookupForCustomPlace = useCallback(
     (placeId: string, provider?: HotelAffiliateProvider) => {
-      const providers: HotelAffiliateProvider[] = provider ? [provider] : ['Agoda', 'Trip']
+      const providers: HotelAffiliateProvider[] = provider ? [provider] : ['Trip', 'Agoda', 'Booking']
       providers.forEach((item) => {
         const requestKey = `${item}:${placeId}`
         const activeRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
@@ -7716,7 +7766,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           hotelAffiliateLookupRequestRef.current.delete(requestKey)
         }
 
-        const setProviderStatus = item === 'Agoda' ? setAgodaAffiliateStatus : setTripAffiliateStatus
+        const setProviderStatus = item === 'Agoda'
+          ? setAgodaAffiliateStatus
+          : item === 'Trip'
+            ? setTripAffiliateStatus
+            : setBookingAffiliateStatus
         setProviderStatus((status) => {
           if (status[placeId] !== 'searching') return status
           const nextStatus = { ...status }
@@ -8798,16 +8852,18 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const customDraftSavedPlace = customDraft.id ? customPlaces[customDraft.id] : undefined
   const customDraftHasAgodaLink = hasHotelAffiliateProviderLink(customDraftLinks, 'Agoda')
   const customDraftHasTripLink = hasHotelAffiliateProviderLink(customDraftLinks, 'Trip')
+  const customDraftHasBookingLink = hasHotelAffiliateProviderLink(customDraftLinks, 'Booking')
   const customDraftAffiliateLookupPending =
     customDraftSavedPlace != null &&
-    (agodaAffiliateStatus[customDraftSavedPlace.id] === 'searching' || tripAffiliateStatus[customDraftSavedPlace.id] === 'searching')
+    (agodaAffiliateStatus[customDraftSavedPlace.id] === 'searching' ||
+      tripAffiliateStatus[customDraftSavedPlace.id] === 'searching' ||
+      bookingAffiliateStatus[customDraftSavedPlace.id] === 'searching')
   const showCustomDraftHotelAffiliateRecheck =
     customDraftSavedPlace != null &&
     cleanCustomPlaceCategory(customDraftSavedPlace.category) === 'hotel' &&
     customPlaceHotelAffiliateManualLookupAllowed(customDraftSavedPlace) &&
     customPlaceHotelAffiliateEligibility(customDraftSavedPlace) !== 'pending_place_type' &&
-    customDraftHasAgodaLink &&
-    customDraftHasTripLink
+    (customDraftHasTripLink || customDraftHasAgodaLink || customDraftHasBookingLink)
   const customGoogleUrlNotice =
     customDraft.googleUrl.trim() && !googleMapsUrlFromInput(customDraft.googleUrl)
       ? googleMapsInputNotice(customDraft.googleUrl)
@@ -9100,6 +9156,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
             const hasCustomPlaces = Boolean(plannerBook.customPlaces && Object.keys(plannerBook.customPlaces).length > 0)
             plannerCloudUserEditedRef.current = false
             hotelAffiliateAutoResolvePlaceIdsRef.current.clear()
+            bookingAffiliateAutoResolvePlaceIdsRef.current.clear()
             setPlannerLinkUnavailable(false)
             setPlannerBookId(plannerBook.id)
             setPlannerBookReadToken(plannerBook.readToken)
@@ -9177,6 +9234,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           }
           if (hasPlannerBookLink) {
             hotelAffiliateAutoResolvePlaceIdsRef.current.clear()
+            bookingAffiliateAutoResolvePlaceIdsRef.current.clear()
             setPlannerLinkUnavailable(true)
             setPlanItems([])
             setPlaceNotes({})
@@ -10562,6 +10620,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     planUndoStackRef.current = []
     setPlanUndoCount(0)
     hotelAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
+    bookingAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
     cancelHotelAffiliateLookupForCustomPlace(placeId)
     setTransportRemovalNotice(null)
     setPlanItems((ids) => {
@@ -10595,6 +10654,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         return nextStatus
       })
       setTripAffiliateStatus((status) => {
+        const nextStatus = { ...status }
+        delete nextStatus[placeId]
+        return nextStatus
+      })
+      setBookingAffiliateStatus((status) => {
         const nextStatus = { ...status }
         delete nextStatus[placeId]
         return nextStatus
@@ -11967,6 +12031,140 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       })
   }, [appendHotelAffiliateLink, config, persistMatchedHotelAffiliateLink, readOnlyPlan])
 
+  const resolveBookingAffiliateLinkForCustomPlace = useCallback((
+    place: CustomPlannerPlace,
+    options: { forceRefresh?: boolean; replaceExisting?: boolean; providers?: HotelAffiliateProvider[] } = {},
+  ) => {
+    const provider = 'Booking' as const
+    const requestKey = `${provider}:${place.id}`
+    const eligibility = customPlaceHotelAffiliateEligibility(place)
+    const lookupInput = eligibility === 'eligible'
+      ? customPlaceHotelAffiliateLookupInput(provider, place, config)
+      : null
+    const activeRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
+
+    if (!lookupInput) {
+      if (activeRequest) {
+        activeRequest.controller.abort()
+        hotelAffiliateLookupRequestRef.current.delete(requestKey)
+      }
+      if (!readOnlyPlan && eligibility === 'skipped') {
+        setBookingAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
+      } else if (eligibility === 'eligible') {
+        setBookingAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
+      }
+      return
+    }
+
+    const {
+      cacheKey,
+      hotelName,
+      googlePlaceName,
+      googlePlaceNameZhTw,
+      userName,
+      latitude,
+      longitude,
+      googlePlaceTypes,
+      lodgingHint,
+      city,
+      cityId,
+      countryCode,
+    } = lookupInput
+    if (activeRequest?.cacheKey === cacheKey) return
+    if (activeRequest) activeRequest.controller.abort()
+    hotelAffiliateLookupRequestRef.current.delete(requestKey)
+
+    const cachedBookingUrl = options.forceRefresh ? null : readHotelAffiliateLookupHit(cacheKey, provider)
+    if (cachedBookingUrl) {
+      appendHotelAffiliateLink(place.id, provider, cachedBookingUrl, {
+        persist: !readOnlyPlan,
+        replaceProvider: options.replaceExisting === true,
+      })
+      persistMatchedHotelAffiliateLink(place.id, provider, cachedBookingUrl)
+      setBookingAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
+      return
+    }
+    const cooldownStatus = options.forceRefresh ? null : hotelAffiliateLookupCoolingDown(cacheKey)
+    if (cooldownStatus) {
+      setBookingAffiliateStatus((status) => ({ ...status, [place.id]: cooldownStatus }))
+      return
+    }
+
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 30000)
+    hotelAffiliateLookupRequestRef.current.set(requestKey, { cacheKey, controller })
+    const isCurrentRequest = () => {
+      const currentRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
+      if (currentRequest?.controller !== controller || currentRequest.cacheKey !== cacheKey) return false
+      const currentPlace = customPlacesRef.current[place.id]
+      if (!currentPlace || customPlaceHotelAffiliateEligibility(currentPlace) !== 'eligible') return false
+      return customPlaceHotelAffiliateLookupInput(provider, currentPlace, config)?.cacheKey === cacheKey
+    }
+
+    setBookingAffiliateStatus((status) => ({ ...status, [place.id]: 'searching' }))
+    fetchCombinedHotelAffiliateResolution({
+        hotelName,
+        googlePlaceName,
+        googlePlaceNameZhTw,
+        name: userName,
+        googlePlaceId: place.googlePlaceId,
+        city,
+        cityId,
+        countryCode,
+        lat: latitude,
+        lng: longitude,
+        lodgingHint,
+        googlePlaceTypes,
+        providers: options.providers ?? [provider],
+        forceRefresh: options.forceRefresh === true,
+      }, controller.signal)
+      .then((combined) => {
+        const data = combined.booking ?? null
+        if (!data) throw new Error('booking_affiliate_invalid_response')
+        if (data.matchStatus === 'search_error') throw new Error('booking_affiliate_search_error')
+        return data
+      })
+      .then((data) => {
+        if (!isCurrentRequest()) return
+        if (data.matchStatus === 'not_configured') {
+          rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_NOT_CONFIGURED_COOLDOWN_MS, 'not_configured')
+          setBookingAffiliateStatus((status) => ({ ...status, [place.id]: 'not_configured' }))
+          return
+        }
+        if (data.matchStatus === 'needs_review' || data.matchStatus === 'no_match') {
+          rememberHotelAffiliateLookupMiss(
+            cacheKey,
+            data.matchStatus === 'needs_review'
+              ? BOOKING_AFFILIATE_REVIEW_COOLDOWN_MS
+              : BOOKING_AFFILIATE_NO_MATCH_COOLDOWN_MS,
+          )
+          setBookingAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
+          return
+        }
+        if (data.matchStatus !== 'matched') throw new Error('booking_affiliate_unknown_status')
+
+        const bookingUrl = cleanHotelAffiliateBookingUrl(data.bestMatch?.bookingUrl, provider)
+        if (!bookingUrl) throw new Error('booking_affiliate_invalid_booking_url')
+        rememberHotelAffiliateLookupHit(cacheKey, bookingUrl, HOTEL_AFFILIATE_HIT_CACHE_TTL_MS)
+        appendHotelAffiliateLink(place.id, provider, bookingUrl, {
+          persist: !readOnlyPlan,
+          replaceProvider: options.replaceExisting === true,
+        })
+        persistMatchedHotelAffiliateLink(place.id, provider, bookingUrl)
+        setBookingAffiliateStatus((status) => ({ ...status, [place.id]: 'matched' }))
+      })
+      .catch(() => {
+        if (!isCurrentRequest()) return
+        rememberHotelAffiliateLookupMiss(cacheKey, HOTEL_AFFILIATE_TRANSIENT_ERROR_COOLDOWN_MS, 'error')
+        setBookingAffiliateStatus((status) => ({ ...status, [place.id]: 'error' }))
+      })
+      .finally(() => {
+        window.clearTimeout(timeout)
+        const currentRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
+        if (currentRequest?.controller === controller) hotelAffiliateLookupRequestRef.current.delete(requestKey)
+      })
+  }, [appendHotelAffiliateLink, config, persistMatchedHotelAffiliateLink, readOnlyPlan])
+
   const forceHotelAffiliateLookupForCustomPlace = useCallback(
     (placeId: string) => {
       const place = customPlaces[placeId]
@@ -11977,6 +12175,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setCustomPlaces((current) => ({ ...current, [placeId]: manualPlace }))
       cancelHotelAffiliateLookupForCustomPlace(placeId, 'Agoda')
       cancelHotelAffiliateLookupForCustomPlace(placeId, 'Trip')
+      cancelHotelAffiliateLookupForCustomPlace(placeId, 'Booking')
       if (shouldResolveCustomPlaceGoogleDetails(manualPlace)) {
         resolveGooglePlaceDetailsForCustomPlace(manualPlace)
       }
@@ -12000,6 +12199,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     Object.values(customPlaces).forEach((place) => {
       const lookupWasRequested =
         hotelAffiliateAutoResolvePlaceIdsRef.current.has(place.id) ||
+        bookingAffiliateAutoResolvePlaceIdsRef.current.has(place.id) ||
         hotelAffiliateForceRefreshRef.current.has(place.id)
       if (!lookupWasRequested) return
 
@@ -12037,6 +12237,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     hotelAffiliateAutoResolvePlaceIdsRef.current.forEach((placeId) => {
       if (!currentPlaceIds.has(placeId)) hotelAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
     })
+    bookingAffiliateAutoResolvePlaceIdsRef.current.forEach((placeId) => {
+      if (!currentPlaceIds.has(placeId)) bookingAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
+    })
     hotelAffiliateLookupRequestRef.current.forEach((request, requestKey) => {
       const placeId = requestKey.slice(requestKey.indexOf(':') + 1)
       if (currentPlaceIds.has(placeId)) return
@@ -12049,11 +12252,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (eligibility !== 'eligible') {
         // Keep an explicit edit pending while Google is still determining the
         // place type.  It may become an eligible lodging on the next pass.
-        if (eligibility === 'skipped') hotelAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
+        if (eligibility === 'skipped') {
+          hotelAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
+          bookingAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
+        }
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         if (eligibility === 'skipped') {
           setAgodaAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
           setTripAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
+          setBookingAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
         }
         return
       }
@@ -12078,19 +12285,30 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
       const forceRefresh = hotelAffiliateForceRefreshRef.current.delete(place.id)
       const editedLodging = hotelAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
+      const newlyCreatedLodging = bookingAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
       // Opening a shared collaborative plan is a read-only action from the
       // data perspective.  Provider lookups (and their narrow link write)
       // start only after the visitor saves a lodging or explicitly retries it.
-      if (!forceRefresh && !editedLodging) {
+      if (!forceRefresh && !editedLodging && !newlyCreatedLodging) {
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         return
       }
       const resolveAgoda = forceRefresh || !hasHotelAffiliateProviderLink(links, 'Agoda')
       const resolveTrip = forceRefresh || !hasHotelAffiliateProviderLink(links, 'Trip')
+      const resolveBooking = forceRefresh || (newlyCreatedLodging && !hasHotelAffiliateProviderLink(links, 'Booking'))
       const providers: HotelAffiliateProvider[] = [
-        ...(resolveAgoda ? ['Agoda' as const] : []),
         ...(resolveTrip ? ['Trip' as const] : []),
+        ...(resolveAgoda ? ['Agoda' as const] : []),
+        ...(resolveBooking ? ['Booking' as const] : []),
       ]
+      if (resolveTrip) {
+        resolveTripAffiliateLinkForCustomPlace(place, {
+          forceRefresh,
+          replaceExisting: forceRefresh,
+          providers,
+        })
+      } else cancelHotelAffiliateLookupForCustomPlace(place.id, 'Trip')
+
       if (resolveAgoda) {
         resolveAgodaAffiliateLinkForCustomPlace(place, {
           forceRefresh,
@@ -12099,13 +12317,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         })
       } else cancelHotelAffiliateLookupForCustomPlace(place.id, 'Agoda')
 
-      if (resolveTrip) {
-        resolveTripAffiliateLinkForCustomPlace(place, {
+      if (resolveBooking) {
+        resolveBookingAffiliateLinkForCustomPlace(place, {
           forceRefresh,
           replaceExisting: forceRefresh,
           providers,
         })
-      } else cancelHotelAffiliateLookupForCustomPlace(place.id, 'Trip')
+      } else cancelHotelAffiliateLookupForCustomPlace(place.id, 'Booking')
     })
   }, [
     cancelHotelAffiliateLookupForCustomPlace,
@@ -12114,6 +12332,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     placeUserLinks,
     readOnlyPlan,
     resolveAgodaAffiliateLinkForCustomPlace,
+    resolveBookingAffiliateLinkForCustomPlace,
     resolveTripAffiliateLinkForCustomPlace,
     storageReady,
   ])
@@ -12617,6 +12836,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     hotelAffiliateAutoResolvePlaceIdsRef.current.add(id)
+    if (!existingPlace) bookingAffiliateAutoResolvePlaceIdsRef.current.add(id)
     setCustomPlaces((current) => ({ ...current, [id]: customPlace }))
     setPlaceUserLinks((links) => {
       if (nextLinks.length === 0) {
@@ -14405,7 +14625,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           disabled={customDraftAffiliateLookupPending}
                           title="會以目前已儲存的住宿資料重新查詢；若剛修改名稱或 Google Maps 連結，請先儲存後再按。"
                         >
-                          {customDraftAffiliateLookupPending ? '正在重新驗證 Agoda／Trip…' : '重新驗證 Agoda／Trip'}
+                          {customDraftAffiliateLookupPending ? '正在重新驗證 Trip／Agoda／Booking…' : '重新驗證 Trip／Agoda／Booking'}
                         </button>
                       ) : null}
                     </div>
@@ -14428,26 +14648,29 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                     const customHotelLinks = customPlace ? [...(customPlace.links ?? []), ...(placeUserLinks[place.id] ?? [])] : []
                     const customHotelHasAgodaLink = hasHotelAffiliateProviderLink(customHotelLinks, 'Agoda')
                     const customHotelHasTripLink = hasHotelAffiliateProviderLink(customHotelLinks, 'Trip')
-                    const customHotelHasAffiliateLink = customHotelHasAgodaLink || customHotelHasTripLink
+                    const customHotelHasBookingLink = hasHotelAffiliateProviderLink(customHotelLinks, 'Booking')
+                    const customHotelHasAffiliateLink = customHotelHasAgodaLink || customHotelHasTripLink || customHotelHasBookingLink
                     const customHotelEligibility = customPlace ? customPlaceHotelAffiliateEligibility(customPlace) : 'skipped'
                     const customHotelAffiliateLookupPending =
                       customHotelEligibility === 'pending_place_type' ||
                       (!customHotelHasAgodaLink && agodaAffiliateStatus[place.id] === 'searching') ||
-                      (!customHotelHasTripLink && tripAffiliateStatus[place.id] === 'searching')
+                      (!customHotelHasTripLink && tripAffiliateStatus[place.id] === 'searching') ||
+                      (!customHotelHasBookingLink && bookingAffiliateStatus[place.id] === 'searching')
                     const showManualHotelAffiliateLookup =
                       customPlace
                         ? !readOnlyPlan &&
                           plannerPlaceCategory(place, customCategoryItems) === 'hotel' &&
                           customPlaceHotelAffiliateManualLookupAllowed(customPlace) &&
                           customHotelEligibility !== 'pending_place_type' &&
-                          (!customHotelHasAgodaLink || !customHotelHasTripLink) &&
+                          (!customHotelHasAgodaLink || !customHotelHasTripLink || !customHotelHasBookingLink) &&
                           !customHotelAffiliateLookupPending
                         : false
                     const hotelAffiliateStatuses =
                       isCustomPlace && plannerPlaceCategory(place, customCategoryItems) === 'hotel'
                         ? [
-                            customHotelHasAgodaLink ? '' : hotelAffiliateStatusText('Agoda', agodaAffiliateStatus[place.id]),
                             customHotelHasTripLink ? '' : hotelAffiliateStatusText('Trip', tripAffiliateStatus[place.id]),
+                            customHotelHasAgodaLink ? '' : hotelAffiliateStatusText('Agoda', agodaAffiliateStatus[place.id]),
+                            customHotelHasBookingLink ? '' : hotelAffiliateStatusText('Booking', bookingAffiliateStatus[place.id]),
                           ].filter(Boolean)
                         : []
                     return (

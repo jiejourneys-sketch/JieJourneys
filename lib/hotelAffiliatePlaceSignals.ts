@@ -73,6 +73,19 @@ export function hotelAffiliateGooglePlaceTypeSignal(value: unknown): HotelAffili
   return 'unknown'
 }
 
+export function hotelAffiliateLodgingHint(input: {
+  googlePlaceTypes: unknown
+  placeNameSignal: HotelAffiliatePlaceSignal
+  userMarkedHotel: boolean
+}) {
+  const typeSignal = hotelAffiliateGooglePlaceTypeSignal(input.googlePlaceTypes)
+  if (typeSignal === 'lodging') return true
+  if (typeSignal === 'non_lodging') return false
+  if (input.placeNameSignal === 'lodging') return true
+  if (input.placeNameSignal === 'non_lodging') return false
+  return input.userMarkedHotel
+}
+
 const LODGING_NAME_PATTERN =
   /\b(?:hotel|hotels|hostel|motel|inn|resort|ryokan|guest\s*house|guesthouse|pension|b&b|bnb|aparthotel|villa|stay|lodge)\b|\u5927?\u98ef\u5e97|\u5927?\u996d\u5e97|\u9152\u5e97|\u65c5\u9928|\u65c5\u9986|\u65c5\u5e97|\u65c5\u820d|\u65c5\u793e|\u6c11\u5bbf|\u4f4f\u5bbf|\u30db\u30c6\u30eb|\u65c5\u9928|\u65c5\u7c60|\u30ea\u30be\u30fc\u30c8|\u30b9\u30c6\u30a4|\u30b2\u30b9\u30c8\u30cf\u30a6\u30b9|\u30da\u30f3\u30b7\u30e7\u30f3|\ud638\ud154|\ubaa8\ud154|\ub9ac\uc870\ud2b8/i
 

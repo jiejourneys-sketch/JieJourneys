@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { bookingPropertyIdFromUrl, isBookingAffiliateUrl } from '@/lib/plannerAffiliate'
 
 const LEGACY_EDIT_TOKEN_PATTERN = /^[a-f0-9]{64}$/
 const V2_URL_TOKEN_PATTERN = /^[A-Za-z0-9_-]{22}$/
 const BOOK_ID_PATTERN = /^[A-Za-z0-9_-]{7,32}$/
 const CUSTOM_PLACE_ID_PATTERN = /^custom:[A-Za-z0-9_-]{1,80}$/
 
-type AffiliateProvider = 'Agoda' | 'Trip'
+type AffiliateProvider = 'Agoda' | 'Trip' | 'Booking'
 
 type AffiliateLinkMutation = {
   id?: string
@@ -34,7 +35,7 @@ function cleanEditToken(value: unknown) {
 }
 
 function cleanProvider(value: unknown): AffiliateProvider | null {
-  return value === 'Agoda' || value === 'Trip' ? value : null
+  return value === 'Agoda' || value === 'Trip' || value === 'Booking' ? value : null
 }
 
 function cleanAffiliateUrl(value: unknown, provider: AffiliateProvider | null) {
@@ -43,6 +44,9 @@ function cleanAffiliateUrl(value: unknown, provider: AffiliateProvider | null) {
   if (!href || href.length > 500) return ''
 
   try {
+    if (provider === 'Booking') {
+      return isBookingAffiliateUrl(href) && bookingPropertyIdFromUrl(href) ? new URL(href).toString() : ''
+    }
     const url = new URL(href)
     if (url.protocol !== 'https:' || url.port) return ''
     const hostname = url.hostname.toLowerCase().replace(/\.$/, '')

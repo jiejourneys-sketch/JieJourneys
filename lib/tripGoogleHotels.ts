@@ -13,6 +13,14 @@ import {
   type TripAffiliateSearchInput,
   type TripAffiliateSearchResponse,
 } from '@/lib/tripAffiliate'
+import {
+  buildBookingAffiliateUrl,
+  getBookingAffiliatePublicConfig,
+  type BookingAffiliateHotelCandidate,
+  type BookingAffiliateSearchInput,
+  type BookingAffiliateSearchResponse,
+} from '@/lib/bookingAffiliate'
+import { bookingPropertyIdFromUrl } from '@/lib/plannerAffiliate'
 import { fetchPlannerSerpApi, plannerSerpApiIsEnabled } from '@/lib/serpApiGuard'
 
 const REQUEST_TIMEOUT_MS = 12_000
@@ -68,6 +76,15 @@ export type GoogleHotelsAgodaDiscovery = {
   matchStatus: 'matched' | 'needs_review' | 'no_match' | 'search_error'
   bestMatch?: AgodaAffiliateHotelCandidate
   candidates: AgodaAffiliateHotelCandidate[]
+  requestCount: number
+  searchUrl: string
+  error?: string
+}
+
+export type GoogleHotelsBookingDiscovery = {
+  matchStatus: 'matched' | 'needs_review' | 'no_match' | 'search_error'
+  bestMatch?: BookingAffiliateHotelCandidate
+  candidates: BookingAffiliateHotelCandidate[]
   requestCount: number
   searchUrl: string
   error?: string
@@ -232,6 +249,74 @@ export async function searchAgodaAffiliateHotelsWithGoogleHotels(
   }
 }
 
+/** Resolves Booking.com from the same cached Google Hotels property payload. */
+export async function searchBookingAffiliateHotelsWithGoogleHotels(
+  input: BookingAffiliateSearchInput,
+): Promise<BookingAffiliateSearchResponse | null> {
+  const apiKey = process.env.SERPAPI_API_KEY?.trim() ?? ''
+  const publicConfig = getBookingAffiliatePublicConfig()
+  if (!publicConfig.configured || !apiKey || !plannerSerpApiIsEnabled()) return null
+
+  const hotelNames = buildHotelAffiliateSearchNames({
+    googlePlaceName: input.hotelName,
+    alternateNames: input.alternateHotelNames,
+    maxNames: 3,
+  })
+  const hotelName = hotelNames[0] ?? input.hotelName.trim().slice(0, 160)
+  const alternateHotelNames = hotelNames.slice(1)
+  const latitude = cleanCoordinate(input.latitude, -90, 90)
+  const longitude = cleanCoordinate(input.longitude, -180, 180)
+  const city = cleanText(input.city, 80)
+  const countryCode = cleanText(input.countryCode, 2).toUpperCase()
+  const googlePlaceId = cleanText(input.googlePlaceId, 180)
+  const maxResult = cleanInteger(input.maxResult, 5, 1, 10)
+  const query: BookingAffiliateSearchResponse['query'] = {
+    hotelName,
+    alternateHotelNames,
+    ...(googlePlaceId ? { googlePlaceId } : {}),
+    ...(city ? { city } : {}),
+    ...(countryCode ? { countryCode } : {}),
+    ...(latitude != null ? { latitude } : {}),
+    ...(longitude != null ? { longitude } : {}),
+    maxResult,
+  }
+  const base = {
+    configured: true,
+    searchProvider: 'serpapi' as const,
+    query,
+    discoveryMethod: 'google_hotels' as const,
+  }
+  try {
+    const outcome = await discoverBookingHotelFromGoogleHotels({
+      apiKey,
+      input,
+      query,
+      dateRanges: buildDateRanges(input.checkInDate, input.checkOutDate),
+    })
+    return {
+      ...base,
+      matchStatus: outcome.matchStatus,
+      confidence: outcome.matchStatus === 'matched' ? 'high' : outcome.matchStatus === 'needs_review' ? 'review' : 'none',
+      ...(outcome.bestMatch ? { bestMatch: outcome.bestMatch } : {}),
+      candidates: outcome.candidates.slice(0, maxResult),
+      rawCount: outcome.candidates.length,
+      searchUrl: outcome.searchUrl,
+      providerRequestCount: outcome.requestCount,
+    }
+  } catch (error) {
+    return {
+      ...base,
+      matchStatus: 'search_error',
+      confidence: 'none',
+      candidates: [],
+      rawCount: 0,
+      error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_search_failed',
+      searchUrl: buildGoogleHotelsBrowserUrl(hotelName, city),
+      providerRequestCount: 0,
+    }
+  }
+}
+
 async function discoverAgodaHotelFromGoogleHotels(options: {
   apiKey: string
   input: AgodaAffiliateSearchInput
@@ -303,6 +388,87 @@ async function discoverAgodaHotelFromGoogleHotels(options: {
     const evaluation = evaluateGoogleHotelsProperty(mergedProperty, query)
     if (!isReviewableGoogleHotelsMatch(evaluation, mergedProperty, query)) continue
     const candidate = agodaCandidateFromGoogleHotelsProperty(mergedProperty, evaluation, options, query)
+    if (!candidate) continue
+    return {
+      matchStatus: evaluation.matchStatus === 'matched' ? 'matched' : 'needs_review',
+      bestMatch: candidate,
+      candidates: [candidate],
+      requestCount,
+      searchUrl,
+    }
+  }
+
+  return { matchStatus: 'no_match', candidates: [], requestCount, searchUrl }
+}
+
+async function discoverBookingHotelFromGoogleHotels(options: {
+  apiKey: string
+  input: BookingAffiliateSearchInput
+  query: BookingAffiliateSearchResponse['query']
+  dateRanges: DateRange[]
+}): Promise<GoogleHotelsBookingDiscovery> {
+  const { apiKey, query, dateRanges } = options
+  const searchUrl = buildGoogleHotelsBrowserUrl(query.hotelName, query.city)
+  let requestCount = 0
+  let selectedProperty: CleanGoogleHotelsProperty | null = null
+  let selectedEvaluation: ReturnType<typeof evaluateTripAffiliateCandidateMatch> | null = null
+
+  for (const hotelName of [query.hotelName, ...query.alternateHotelNames]) {
+    if (requestCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
+    const payload = await fetchGoogleHotels(apiKey, {
+      hotelName,
+      city: query.city,
+      countryCode: query.countryCode,
+      dateRange: dateRanges[0],
+    })
+    requestCount += 1
+    const match = selectGoogleHotelsProperty(payload, query)
+    if (!match) continue
+    selectedProperty = match.property
+    selectedEvaluation = match.evaluation
+    break
+  }
+
+  if (!selectedProperty || !selectedEvaluation) {
+    return { matchStatus: 'no_match', candidates: [], requestCount, searchUrl }
+  }
+  const directCandidate = bookingCandidateFromGoogleHotelsProperty(selectedProperty, selectedEvaluation, query)
+  if (directCandidate) {
+    return {
+      matchStatus: selectedEvaluation.matchStatus === 'matched' ? 'matched' : 'needs_review',
+      bestMatch: directCandidate,
+      candidates: [directCandidate],
+      requestCount,
+      searchUrl,
+    }
+  }
+  if (!selectedProperty.propertyToken) {
+    return { matchStatus: 'no_match', candidates: [], requestCount, searchUrl }
+  }
+
+  for (const dateRange of dateRanges) {
+    if (requestCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
+    const payload = await fetchGoogleHotels(apiKey, {
+      hotelName: query.hotelName,
+      city: query.city,
+      countryCode: query.countryCode,
+      dateRange,
+      propertyToken: selectedProperty.propertyToken,
+    })
+    requestCount += 1
+    const detailedProperty = readTopLevelProperty(payload) ?? selectedProperty
+    const mergedProperty: CleanGoogleHotelsProperty = {
+      ...selectedProperty,
+      ...detailedProperty,
+      name: detailedProperty.name || selectedProperty.name,
+      propertyToken: detailedProperty.propertyToken || selectedProperty.propertyToken,
+      latitude: detailedProperty.latitude ?? selectedProperty.latitude,
+      longitude: detailedProperty.longitude ?? selectedProperty.longitude,
+      prices: detailedProperty.prices.length > 0 ? detailedProperty.prices : selectedProperty.prices,
+    }
+    const evaluation = evaluateGoogleHotelsProperty(mergedProperty, query)
+    if (!isReviewableGoogleHotelsMatch(evaluation, mergedProperty, query)) continue
+    const candidate = bookingCandidateFromGoogleHotelsProperty(mergedProperty, evaluation, query)
     if (!candidate) continue
     return {
       matchStatus: evaluation.matchStatus === 'matched' ? 'matched' : 'needs_review',
@@ -592,6 +758,30 @@ function agodaCandidateFromGoogleHotelsProperty(
   }
 }
 
+function bookingCandidateFromGoogleHotelsProperty(
+  property: CleanGoogleHotelsProperty,
+  evaluation: ReturnType<typeof evaluateTripAffiliateCandidateMatch>,
+  query: BookingAffiliateSearchResponse['query'],
+): BookingAffiliateHotelCandidate | null {
+  const destination = findBookingDestination(property.prices)
+  if (!destination) return null
+  const bookingUrl = buildBookingAffiliateUrl(destination.url)
+  if (!bookingUrl) return null
+  const distance = propertyDistanceKm(property, query)
+  return {
+    hotelId: destination.hotelId,
+    hotelName: property.name,
+    score: evaluation.score,
+    bookingUrl,
+    source: 'serpapi',
+    originalUrl: destination.url,
+    title: property.name,
+    ...(property.latitude != null ? { latitude: property.latitude } : {}),
+    ...(property.longitude != null ? { longitude: property.longitude } : {}),
+    ...(Number.isFinite(distance) ? { distanceKm: Number(distance.toFixed(3)) } : {}),
+  }
+}
+
 function findAgodaDestination(prices: unknown[]) {
   const entries = collectPriceEntries(prices)
   for (const entry of entries) {
@@ -666,6 +856,21 @@ function findTripDestination(prices: unknown[]) {
   return null
 }
 
+function findBookingDestination(prices: unknown[]) {
+  const entries = collectPriceEntries(prices)
+  for (const entry of entries) {
+    const source = cleanText(entry.source, 80).toLowerCase()
+    if (source !== 'booking.com' && source !== 'booking') continue
+    for (const rawLink of [entry.link, entry.booking_link, entry.url]) {
+      const url = decodeProviderDestination(rawLink, isBookingHost, (candidate) => Boolean(bookingPropertyIdFromUrl(candidate)))
+      if (!url) continue
+      const hotelId = bookingPropertyIdFromUrl(url)
+      if (hotelId) return { hotelId, url: url.toString() }
+    }
+  }
+  return null
+}
+
 function collectPriceEntries(value: unknown, depth = 0): Record<string, unknown>[] {
   if (depth > 3) return []
   if (Array.isArray(value)) return value.flatMap((entry) => collectPriceEntries(entry, depth + 1))
@@ -733,6 +938,11 @@ function isTripHost(hostname: string) {
 function isAgodaHost(hostname: string) {
   const clean = hostname.toLowerCase().replace(/\.$/, '')
   return clean === 'agoda.com' || clean.endsWith('.agoda.com')
+}
+
+function isBookingHost(hostname: string) {
+  const clean = hostname.toLowerCase().replace(/\.$/, '')
+  return clean === 'booking.com' || clean.endsWith('.booking.com')
 }
 
 function readTopLevelProperty(payload: GoogleHotelsPayload) {
