@@ -1,5 +1,6 @@
 const SERPAPI_HOST = 'serpapi.com'
 const ACCOUNT_CACHE_TTL_MS = 15_000
+const ACCOUNT_REQUEST_TIMEOUT_MS = 5_000
 const DEFAULT_MAX_REQUESTS_PER_HOUR = 20
 const DEFAULT_MIN_CREDITS_RESERVE = 25
 
@@ -21,9 +22,30 @@ type AccountSnapshot = {
   providerHourlyLimit: number | null
 }
 
+export type PlannerSerpApiRequestOutcome = 'blocked' | 'network_error' | 'response'
+export type PlannerSerpApiProviderCacheStatus = 'hit' | 'miss' | 'unknown'
+export type PlannerSerpApiBillingStatus = 'charged' | 'not_charged' | 'unknown'
+
+/**
+ * Privacy-safe facts about one planner search attempt.
+ *
+ * `searchFetchAttempted` means this module invoked `fetch` for SerpAPI's
+ * `/search` endpoint. It intentionally does not mean the request consumed a
+ * credit: SerpAPI may satisfy an outbound request from its own cache without
+ * exposing a trustworthy billing signal in the response.
+ */
+export type PlannerSerpApiRequestMetadata = Readonly<{
+  searchFetchAttempted: boolean
+  outcome: PlannerSerpApiRequestOutcome
+  responseStatus: number | null
+  providerCacheStatus: PlannerSerpApiProviderCacheStatus
+  billingStatus: PlannerSerpApiBillingStatus
+}>
+
 let accountSnapshot: AccountSnapshot | null = null
 let accountRequest: { apiKey: string; promise: Promise<AccountSnapshot> } | null = null
 let localRequestReservations: number[] = []
+const requestMetadata = new WeakMap<object, PlannerSerpApiRequestMetadata>()
 
 /**
  * Paid planner discovery is disabled unless the dedicated switch is explicitly
@@ -35,22 +57,68 @@ export function plannerSerpApiIsEnabled() {
 }
 
 /**
+ * Reads metadata attached by `fetchPlannerSerpApi` to either its returned
+ * Response or a caught Error. The metadata is held in a WeakMap so it cannot
+ * leak query strings, API keys, URLs, or other request data through logs or
+ * serialization.
+ */
+export function getPlannerSerpApiRequestMetadata(
+  resultOrError: unknown,
+): PlannerSerpApiRequestMetadata | null {
+  return isObject(resultOrError) ? requestMetadata.get(resultOrError) ?? null : null
+}
+
+/**
  * The only allowed path for planner code to perform a metered SerpAPI search.
  * It checks the free Account API first, preserves a credit reserve, and applies
  * a conservative account-wide hourly ceiling before sending the search.
  */
 export async function fetchPlannerSerpApi(input: URL, init?: RequestInit) {
-  if (!plannerSerpApiIsEnabled()) throw new Error('serpapi_planner_disabled')
-  if (input.protocol !== 'https:' || input.hostname !== SERPAPI_HOST || !/^\/search(?:\.json)?$/.test(input.pathname)) {
-    throw new Error('serpapi_planner_invalid_endpoint')
-  }
+  let searchFetchAttempted = false
+  try {
+    if (!plannerSerpApiIsEnabled()) throw new Error('serpapi_planner_disabled')
+    if (input.protocol !== 'https:' || input.hostname !== SERPAPI_HOST || !/^\/search(?:\.json)?$/.test(input.pathname)) {
+      throw new Error('serpapi_planner_invalid_endpoint')
+    }
 
-  const apiKey = input.searchParams.get('api_key')?.trim() ?? ''
-  if (!apiKey) throw new Error('serpapi_key_missing')
-  if (readBoolean(process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED) !== false) {
-    await reserveSerpApiRequest(apiKey)
+    const apiKey = input.searchParams.get('api_key')?.trim() ?? ''
+    if (!apiKey) throw new Error('serpapi_key_missing')
+    if (readBoolean(process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED) !== false) {
+      await reserveSerpApiRequest(apiKey)
+    }
+
+    // This is the single point where a potentially metered planner search is
+    // sent. Mark it immediately before invoking fetch so rejected guard checks
+    // and account lookups are never reported as paid-search attempts.
+    searchFetchAttempted = true
+    const response = await fetch(input, init)
+    attachRequestMetadata(response, {
+      searchFetchAttempted: true,
+      outcome: 'response',
+      responseStatus: response.status,
+      providerCacheStatus: 'unknown',
+      billingStatus: 'unknown',
+    })
+    return response
+  } catch (error) {
+    attachRequestMetadata(error, {
+      searchFetchAttempted,
+      outcome: searchFetchAttempted ? 'network_error' : 'blocked',
+      responseStatus: null,
+      providerCacheStatus: 'unknown',
+      billingStatus: 'unknown',
+    })
+    throw error
   }
-  return fetch(input, init)
+}
+
+function attachRequestMetadata(target: unknown, metadata: PlannerSerpApiRequestMetadata) {
+  if (!isObject(target)) return
+  requestMetadata.set(target, Object.freeze(metadata))
+}
+
+function isObject(value: unknown): value is object {
+  return (typeof value === 'object' && value !== null) || typeof value === 'function'
 }
 
 async function reserveSerpApiRequest(apiKey: string) {
@@ -104,10 +172,13 @@ async function readAccountSnapshot(apiKey: string) {
 async function fetchAccountSnapshot(apiKey: string): Promise<AccountSnapshot> {
   const url = new URL('https://serpapi.com/account.json')
   url.searchParams.set('api_key', apiKey)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), ACCOUNT_REQUEST_TIMEOUT_MS)
   const response = await fetch(url, {
     cache: 'no-store',
     headers: { accept: 'application/json' },
-  }).catch(() => null)
+    signal: controller.signal,
+  }).catch(() => null).finally(() => clearTimeout(timeout))
   if (!response?.ok) throw new Error('serpapi_account_guard_unavailable')
 
   const payload = (await response.json().catch(() => null)) as SerpApiAccountPayload | null

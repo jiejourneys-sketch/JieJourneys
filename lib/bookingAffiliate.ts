@@ -4,7 +4,11 @@ import {
   getBookingDestination,
   normalizePlannerAffiliateUrl,
 } from '@/lib/plannerAffiliate'
-import { fetchPlannerSerpApi, plannerSerpApiIsEnabled } from '@/lib/serpApiGuard'
+import {
+  fetchPlannerSerpApi,
+  getPlannerSerpApiRequestMetadata,
+  plannerSerpApiIsEnabled,
+} from '@/lib/serpApiGuard'
 import {
   evaluateTripAffiliateCandidateMatch,
   type TripAffiliateMatchStatus,
@@ -19,6 +23,7 @@ export type BookingAffiliateSearchInput = {
   hotelName: string
   alternateHotelNames?: string[]
   googlePlaceId?: string
+  googleMapsDataId?: string
   city?: string
   countryCode?: string
   latitude?: number
@@ -72,6 +77,21 @@ type BookingSearchResult = {
   title: string
   snippet: string
   position: number
+}
+
+type BookingSearchOutcome = {
+  results: BookingSearchResult[]
+  providerRequestCount: number
+}
+
+class BookingSearchError extends Error {
+  readonly providerRequestCount: number
+
+  constructor(error: unknown, providerRequestCount: number) {
+    super(error instanceof Error ? error.message : 'booking_search_failed')
+    this.name = 'BookingSearchError'
+    this.providerRequestCount = providerRequestCount
+  }
 }
 
 const resultCache = new Map<string, { expiresAt: number; results: BookingSearchResult[] }>()
@@ -133,8 +153,11 @@ export async function searchBookingAffiliateHotels(
     }
   }
 
+  let providerRequestCount = 0
   try {
-    const results = await searchBookingResults(query)
+    const searchOutcome = await searchBookingResults(query)
+    const results = searchOutcome.results
+    providerRequestCount = searchOutcome.providerRequestCount
     const candidates = results.flatMap((result) => {
       const parsed = parseBookingPropertyUrl(result.url)
       if (!parsed) return []
@@ -188,43 +211,68 @@ export async function searchBookingAffiliateHotels(
       ...(cleanCandidates[0] ? { bestMatch: cleanCandidates[0] } : {}),
       candidates: cleanCandidates,
       rawCount: results.length,
-      providerRequestCount: 1,
+      providerRequestCount,
       searchUrl: bookingSearchUrl(hotelName),
     }
   } catch (error) {
+    if (error instanceof BookingSearchError) providerRequestCount = error.providerRequestCount
     return {
       ...base,
       matchStatus: 'search_error',
       confidence: 'none',
       candidates: [],
       rawCount: 0,
-      providerRequestCount: 1,
+      providerRequestCount,
       error: error instanceof Error ? error.message.slice(0, 120) : 'booking_search_failed',
       searchUrl: bookingSearchUrl(hotelName),
     }
   }
 }
 
-async function searchBookingResults(query: BookingAffiliateSearchResponse['query']) {
-  const cacheKey = ['booking-v1', query.countryCode ?? '', normalizeText(query.hotelName)].join('|')
+async function searchBookingResults(
+  query: BookingAffiliateSearchResponse['query'],
+): Promise<BookingSearchOutcome> {
+  const cacheKey = [
+    'booking-v2',
+    query.countryCode ?? '',
+    normalizeText(query.city ?? ''),
+    ...bookingOrganicSearchNames(query).map(normalizeText),
+  ].join('|')
   const cached = resultCache.get(cacheKey)
-  if (cached && cached.expiresAt > Date.now()) return cached.results
+  // A user recheck may bypass the browser cooldown, but it must not turn the
+  // same provider query into another paid request while this server result is
+  // still fresh.
+  if (cached && cached.expiresAt > Date.now()) {
+    return { results: cached.results, providerRequestCount: 0 }
+  }
   if (cached) resultCache.delete(cacheKey)
   const active = activeRequests.get(cacheKey)
-  if (active) return active
+  if (active) {
+    try {
+      return { results: await active, providerRequestCount: 0 }
+    } catch (error) {
+      // This caller shared work started by another request, so the provider
+      // attempt belongs only to the owner even when that shared work fails.
+      throw new BookingSearchError(error, 0)
+    }
+  }
 
+  let providerRequestCount = 0
   const request = (async () => {
     const url = new URL('https://serpapi.com/search.json')
     url.searchParams.set('engine', 'google')
-    url.searchParams.set('q', `site:booking.com/hotel/ ${query.hotelName}${query.city ? ` ${query.city}` : ''}`)
+    url.searchParams.set('q', bookingOrganicSearchQuery(query))
     url.searchParams.set('hl', 'en')
     url.searchParams.set('gl', query.countryCode?.toLowerCase() || 'tw')
-    url.searchParams.set('num', '10')
+    // SerpAPI charges per successful search rather than per returned result.
+    // Inspect a wider first page before spending another search credit.
+    url.searchParams.set('num', '30')
     url.searchParams.set('api_key', process.env.SERPAPI_API_KEY?.trim() ?? '')
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
     try {
       const response = await fetchPlannerSerpApi(url, { cache: 'no-store', signal: controller.signal })
+      providerRequestCount = plannerSerpApiSearchAttemptCount(response)
       if (!response.ok) throw new Error(`serpapi_${response.status}`)
       const payload = await response.json() as {
         error?: unknown
@@ -242,16 +290,52 @@ async function searchBookingResults(query: BookingAffiliateSearchResponse['query
       })).filter((item) => item.url)
       remember(cacheKey, results)
       return results
+    } catch (error) {
+      // Network failures carry the same central metadata on the thrown Error.
+      // Guard rejections before `/search` fetch therefore remain zero.
+      providerRequestCount = Math.max(providerRequestCount, plannerSerpApiSearchAttemptCount(error))
+      throw error
     } finally {
       clearTimeout(timeout)
     }
   })()
   activeRequests.set(cacheKey, request)
   try {
-    return await request
+    return { results: await request, providerRequestCount }
+  } catch (error) {
+    throw new BookingSearchError(error, providerRequestCount)
   } finally {
     if (activeRequests.get(cacheKey) === request) activeRequests.delete(cacheKey)
   }
+}
+
+function plannerSerpApiSearchAttemptCount(resultOrError: unknown) {
+  return getPlannerSerpApiRequestMetadata(resultOrError)?.searchFetchAttempted ? 1 : 0
+}
+
+function bookingOrganicSearchQuery(query: BookingAffiliateSearchResponse['query']) {
+  const countryPath = query.countryCode?.toLowerCase().match(/^[a-z]{2}$/)?.[0]
+  const site = `site:booking.com/hotel/${countryPath ? `${countryPath}/` : ''}`
+  const hotelNames = bookingOrganicSearchNames(query)
+  const exactNames = hotelNames.map((hotelName) => `"${hotelName}"`)
+  const exactNameQuery = exactNames.length > 1 ? `(${exactNames.join(' OR ')})` : exactNames[0]
+  const city = query.city?.replace(/["\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() ?? ''
+  const normalizedCity = normalizeText(city)
+  const includeCity = city && !hotelNames.some((hotelName) => normalizeText(hotelName).includes(normalizedCity))
+  return `${site} ${exactNameQuery}${includeCity ? ` ${city}` : ''}`
+}
+
+function bookingOrganicSearchNames(query: BookingAffiliateSearchResponse['query']) {
+  const seen = new Set<string>()
+  return [query.hotelName, ...query.alternateHotelNames]
+    .map((hotelName) => hotelName.replace(/["\r\n]+/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter((hotelName) => {
+      const key = normalizeText(hotelName)
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 3)
 }
 
 function remember(cacheKey: string, results: BookingSearchResult[]) {

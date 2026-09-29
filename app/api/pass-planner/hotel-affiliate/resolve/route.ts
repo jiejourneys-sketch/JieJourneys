@@ -4,6 +4,7 @@ import { POST as resolveTrip } from '@/app/api/pass-planner/hotel-affiliate/trip
 import { POST as resolveBooking } from '@/app/api/pass-planner/hotel-affiliate/booking/route'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 /**
  * Resolve hotel providers inside one server request. Besides avoiding a

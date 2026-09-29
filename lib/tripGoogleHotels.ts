@@ -21,10 +21,18 @@ import {
   type BookingAffiliateSearchResponse,
 } from '@/lib/bookingAffiliate'
 import { bookingPropertyIdFromUrl } from '@/lib/plannerAffiliate'
-import { fetchPlannerSerpApi, plannerSerpApiIsEnabled } from '@/lib/serpApiGuard'
+import {
+  fetchPlannerSerpApi,
+  getPlannerSerpApiRequestMetadata,
+  plannerSerpApiIsEnabled,
+} from '@/lib/serpApiGuard'
 
 const REQUEST_TIMEOUT_MS = 12_000
 const MAX_GOOGLE_HOTELS_REQUESTS = 2
+// Booking has two additional high-signal fallbacks (organic and exact Maps
+// CID autocomplete). Keep its initial name search to one request so the full
+// adaptive ladder can never exceed four provider searches.
+const MAX_BOOKING_GOOGLE_HOTELS_NAME_REQUESTS = 1
 const HIT_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const MISS_CACHE_TTL_MS = 60 * 60 * 1000
 const REVIEW_CACHE_TTL_MS = 6 * 60 * 60 * 1000
@@ -64,6 +72,21 @@ type DateRange = {
   checkOutDate: string
 }
 
+type GoogleHotelsFetchOutcome = {
+  payload: GoogleHotelsPayload
+  requestCount: number
+}
+
+class GoogleHotelsSearchError extends Error {
+  readonly providerRequestCount: number
+
+  constructor(error: unknown, providerRequestCount: number) {
+    super(error instanceof Error ? error.message : 'google_hotels_search_failed')
+    this.name = 'GoogleHotelsSearchError'
+    this.providerRequestCount = providerRequestCount
+  }
+}
+
 type DiscoveryOutcome = {
   matchStatus: 'matched' | 'needs_review' | 'no_match'
   bestMatch?: TripAffiliateHotelCandidate
@@ -87,7 +110,16 @@ export type GoogleHotelsBookingDiscovery = {
   candidates: BookingAffiliateHotelCandidate[]
   requestCount: number
   searchUrl: string
+  propertyToken?: string
+  propertyName?: string
+  failureReason?: 'property_not_found' | 'property_token_missing' | 'booking_source_missing'
   error?: string
+}
+
+export type BookingGoogleHotelsSearchResponse = BookingAffiliateSearchResponse & {
+  googleHotelsPropertyToken?: string
+  googleHotelsPropertyName?: string
+  googleHotelsFailureReason?: GoogleHotelsBookingDiscovery['failureReason']
 }
 
 const resultCache = new Map<string, { expiresAt: number; response: TripAffiliateSearchResponse }>()
@@ -147,7 +179,7 @@ export async function searchTripAffiliateHotelsWithGoogleHotels(
   const cached = readCachedResult(cacheKey)
   if (cached) return { ...cached, providerRequestCount: 0 }
   const activeRequest = resultRequests.get(cacheKey)
-  if (activeRequest) return activeRequest
+  if (activeRequest) return { ...(await activeRequest), providerRequestCount: 0 }
 
   const request = (async (): Promise<TripAffiliateSearchResponse> => {
     try {
@@ -182,7 +214,7 @@ export async function searchTripAffiliateHotelsWithGoogleHotels(
         rawCount: 0,
         error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_search_failed',
         searchUrl: buildGoogleHotelsBrowserUrl(hotelName, city),
-        providerRequestCount: 0,
+        providerRequestCount: googleHotelsRequestCountFromError(error),
       }
     }
   })()
@@ -242,7 +274,7 @@ export async function searchAgodaAffiliateHotelsWithGoogleHotels(
     return {
       matchStatus: 'search_error',
       candidates: [],
-      requestCount: 0,
+      requestCount: googleHotelsRequestCountFromError(error),
       searchUrl,
       error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_search_failed',
     }
@@ -252,7 +284,7 @@ export async function searchAgodaAffiliateHotelsWithGoogleHotels(
 /** Resolves Booking.com from the same cached Google Hotels property payload. */
 export async function searchBookingAffiliateHotelsWithGoogleHotels(
   input: BookingAffiliateSearchInput,
-): Promise<BookingAffiliateSearchResponse | null> {
+): Promise<BookingGoogleHotelsSearchResponse | null> {
   const apiKey = process.env.SERPAPI_API_KEY?.trim() ?? ''
   const publicConfig = getBookingAffiliatePublicConfig()
   if (!publicConfig.configured || !apiKey || !plannerSerpApiIsEnabled()) return null
@@ -302,6 +334,9 @@ export async function searchBookingAffiliateHotelsWithGoogleHotels(
       rawCount: outcome.candidates.length,
       searchUrl: outcome.searchUrl,
       providerRequestCount: outcome.requestCount,
+      ...(outcome.propertyToken ? { googleHotelsPropertyToken: outcome.propertyToken } : {}),
+      ...(outcome.propertyName ? { googleHotelsPropertyName: outcome.propertyName } : {}),
+      ...(outcome.failureReason ? { googleHotelsFailureReason: outcome.failureReason } : {}),
     }
   } catch (error) {
     return {
@@ -312,7 +347,112 @@ export async function searchBookingAffiliateHotelsWithGoogleHotels(
       rawCount: 0,
       error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_search_failed',
       searchUrl: buildGoogleHotelsBrowserUrl(hotelName, city),
-      providerRequestCount: 0,
+      providerRequestCount: googleHotelsRequestCountFromError(error),
+    }
+  }
+}
+
+/**
+ * Reads one Google Hotels property-details page for a previously verified
+ * property token. `identityVerified` is reserved for tokens obtained by an
+ * exact Google Maps CID match; name matching alone must stay strict.
+ */
+export async function searchBookingAffiliateHotelByGoogleHotelsPropertyToken(
+  input: BookingAffiliateSearchInput,
+  options: {
+    propertyToken: string
+    propertyName?: string
+    dateRangeIndex?: number
+    identityVerified?: boolean
+  },
+): Promise<BookingAffiliateSearchResponse | null> {
+  const apiKey = process.env.SERPAPI_API_KEY?.trim() ?? ''
+  const publicConfig = getBookingAffiliatePublicConfig()
+  if (!publicConfig.configured || !apiKey || !plannerSerpApiIsEnabled()) return null
+
+  const propertyToken = cleanGoogleHotelsPropertyToken(options.propertyToken)
+  if (!propertyToken) return null
+  const hotelNames = buildHotelAffiliateSearchNames({
+    verifiedNames: options.propertyName ? [options.propertyName] : undefined,
+    googlePlaceName: input.hotelName,
+    alternateNames: input.alternateHotelNames,
+    maxNames: 3,
+  })
+  const hotelName = hotelNames[0] ?? input.hotelName.trim().slice(0, 160)
+  const alternateHotelNames = hotelNames.slice(1)
+  const latitude = cleanCoordinate(input.latitude, -90, 90)
+  const longitude = cleanCoordinate(input.longitude, -180, 180)
+  const city = cleanText(input.city, 80)
+  const countryCode = cleanText(input.countryCode, 2).toUpperCase()
+  const googlePlaceId = cleanText(input.googlePlaceId, 180)
+  const maxResult = cleanInteger(input.maxResult, 5, 1, 10)
+  const query: BookingAffiliateSearchResponse['query'] = {
+    hotelName,
+    alternateHotelNames,
+    ...(googlePlaceId ? { googlePlaceId } : {}),
+    ...(city ? { city } : {}),
+    ...(countryCode ? { countryCode } : {}),
+    ...(latitude != null ? { latitude } : {}),
+    ...(longitude != null ? { longitude } : {}),
+    maxResult,
+  }
+  const searchUrl = buildGoogleHotelsBrowserUrl(hotelName, city)
+  const dateRanges = buildDateRanges(input.checkInDate, input.checkOutDate)
+  const dateRangeIndex = cleanInteger(options.dateRangeIndex, 0, 0, dateRanges.length - 1)
+
+  try {
+    const fetchOutcome = await fetchGoogleHotelsAfter(apiKey, {
+      hotelName,
+      city,
+      countryCode,
+      dateRange: dateRanges[dateRangeIndex],
+      propertyToken,
+    }, 0)
+    const { payload } = fetchOutcome
+    const property = readTopLevelProperty(payload)
+    const propertyTokenMatches = !property?.propertyToken || property.propertyToken === propertyToken
+    const mergedProperty = property && propertyTokenMatches
+      ? {
+          ...property,
+          propertyToken: property.propertyToken || propertyToken,
+          name: property.name || cleanText(options.propertyName, 160) || hotelName,
+        }
+      : null
+    const evaluation = mergedProperty ? evaluateGoogleHotelsProperty(mergedProperty, query) : null
+    const identityAccepted = Boolean(
+      mergedProperty && evaluation && (
+        options.identityVerified === true || isReviewableGoogleHotelsMatch(evaluation, mergedProperty, query)
+      ),
+    )
+    const candidate = identityAccepted && mergedProperty && evaluation
+      ? bookingCandidateFromGoogleHotelsProperty(mergedProperty, evaluation, query)
+      : null
+    return {
+      configured: true,
+      searchProvider: 'serpapi',
+      query,
+      matchStatus: candidate ? 'matched' : 'no_match',
+      confidence: candidate ? 'high' : 'none',
+      ...(candidate ? { bestMatch: candidate } : {}),
+      candidates: candidate ? [candidate] : [],
+      rawCount: candidate ? 1 : 0,
+      discoveryMethod: 'google_hotels',
+      searchUrl,
+      providerRequestCount: fetchOutcome.requestCount,
+    }
+  } catch (error) {
+    return {
+      configured: true,
+      searchProvider: 'serpapi',
+      query,
+      matchStatus: 'search_error',
+      confidence: 'none',
+      candidates: [],
+      rawCount: 0,
+      discoveryMethod: 'google_hotels',
+      searchUrl,
+      providerRequestCount: googleHotelsRequestCountFromError(error),
+      error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_property_search_failed',
     }
   }
 }
@@ -327,18 +467,21 @@ async function discoverAgodaHotelFromGoogleHotels(options: {
   const { apiKey, input, query, dateRanges } = options
   const searchUrl = buildGoogleHotelsBrowserUrl(query.hotelName, query.city)
   let requestCount = 0
+  let attemptCount = 0
   let selectedProperty: CleanGoogleHotelsProperty | null = null
   let selectedEvaluation: ReturnType<typeof evaluateTripAffiliateCandidateMatch> | null = null
 
   for (const hotelName of [query.hotelName, ...query.alternateHotelNames]) {
-    if (requestCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
-    const payload = await fetchGoogleHotels(apiKey, {
+    if (attemptCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
+    attemptCount += 1
+    const fetchOutcome = await fetchGoogleHotelsAfter(apiKey, {
       hotelName,
       city: query.city,
       countryCode: query.countryCode,
       dateRange: dateRanges[0],
-    })
-    requestCount += 1
+    }, requestCount)
+    requestCount += fetchOutcome.requestCount
+    const { payload } = fetchOutcome
     const match = selectGoogleHotelsProperty(payload, query)
     if (!match) continue
     selectedProperty = match.property
@@ -366,15 +509,17 @@ async function discoverAgodaHotelFromGoogleHotels(options: {
   }
 
   for (const dateRange of dateRanges) {
-    if (requestCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
-    const payload = await fetchGoogleHotels(apiKey, {
+    if (attemptCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
+    attemptCount += 1
+    const fetchOutcome = await fetchGoogleHotelsAfter(apiKey, {
       hotelName: query.hotelName,
       city: query.city,
       countryCode: query.countryCode,
       dateRange,
       propertyToken: selectedProperty.propertyToken,
-    })
-    requestCount += 1
+    }, requestCount)
+    requestCount += fetchOutcome.requestCount
+    const { payload } = fetchOutcome
     const detailedProperty = readTopLevelProperty(payload) ?? selectedProperty
     const mergedProperty: CleanGoogleHotelsProperty = {
       ...selectedProperty,
@@ -410,18 +555,21 @@ async function discoverBookingHotelFromGoogleHotels(options: {
   const { apiKey, query, dateRanges } = options
   const searchUrl = buildGoogleHotelsBrowserUrl(query.hotelName, query.city)
   let requestCount = 0
+  let attemptCount = 0
   let selectedProperty: CleanGoogleHotelsProperty | null = null
   let selectedEvaluation: ReturnType<typeof evaluateTripAffiliateCandidateMatch> | null = null
 
   for (const hotelName of [query.hotelName, ...query.alternateHotelNames]) {
-    if (requestCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
-    const payload = await fetchGoogleHotels(apiKey, {
+    if (attemptCount >= MAX_BOOKING_GOOGLE_HOTELS_NAME_REQUESTS) break
+    attemptCount += 1
+    const fetchOutcome = await fetchGoogleHotelsAfter(apiKey, {
       hotelName,
       city: query.city,
       countryCode: query.countryCode,
       dateRange: dateRanges[0],
-    })
-    requestCount += 1
+    }, requestCount)
+    requestCount += fetchOutcome.requestCount
+    const { payload } = fetchOutcome
     const match = selectGoogleHotelsProperty(payload, query)
     if (!match) continue
     selectedProperty = match.property
@@ -430,7 +578,13 @@ async function discoverBookingHotelFromGoogleHotels(options: {
   }
 
   if (!selectedProperty || !selectedEvaluation) {
-    return { matchStatus: 'no_match', candidates: [], requestCount, searchUrl }
+    return {
+      matchStatus: 'no_match',
+      candidates: [],
+      requestCount,
+      searchUrl,
+      failureReason: 'property_not_found',
+    }
   }
   const directCandidate = bookingCandidateFromGoogleHotelsProperty(selectedProperty, selectedEvaluation, query)
   if (directCandidate) {
@@ -443,19 +597,28 @@ async function discoverBookingHotelFromGoogleHotels(options: {
     }
   }
   if (!selectedProperty.propertyToken) {
-    return { matchStatus: 'no_match', candidates: [], requestCount, searchUrl }
+    return {
+      matchStatus: 'no_match',
+      candidates: [],
+      requestCount,
+      searchUrl,
+      propertyName: selectedProperty.name,
+      failureReason: 'property_token_missing',
+    }
   }
 
   for (const dateRange of dateRanges) {
-    if (requestCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
-    const payload = await fetchGoogleHotels(apiKey, {
+    if (attemptCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
+    attemptCount += 1
+    const fetchOutcome = await fetchGoogleHotelsAfter(apiKey, {
       hotelName: query.hotelName,
       city: query.city,
       countryCode: query.countryCode,
       dateRange,
       propertyToken: selectedProperty.propertyToken,
-    })
-    requestCount += 1
+    }, requestCount)
+    requestCount += fetchOutcome.requestCount
+    const { payload } = fetchOutcome
     const detailedProperty = readTopLevelProperty(payload) ?? selectedProperty
     const mergedProperty: CleanGoogleHotelsProperty = {
       ...selectedProperty,
@@ -479,7 +642,15 @@ async function discoverBookingHotelFromGoogleHotels(options: {
     }
   }
 
-  return { matchStatus: 'no_match', candidates: [], requestCount, searchUrl }
+  return {
+    matchStatus: 'no_match',
+    candidates: [],
+    requestCount,
+    searchUrl,
+    propertyToken: selectedProperty.propertyToken,
+    propertyName: selectedProperty.name,
+    failureReason: 'booking_source_missing',
+  }
 }
 
 async function discoverTripHotelFromGoogleHotels(options: {
@@ -495,18 +666,21 @@ async function discoverTripHotelFromGoogleHotels(options: {
   const { apiKey, input, query, dateRanges } = options
   const searchUrl = buildGoogleHotelsBrowserUrl(query.hotelName, query.city)
   let requestCount = 0
+  let attemptCount = 0
   let selectedProperty: CleanGoogleHotelsProperty | null = null
   let selectedEvaluation: ReturnType<typeof evaluateTripAffiliateCandidateMatch> | null = null
 
   for (const hotelName of [query.hotelName, ...query.alternateHotelNames]) {
-    if (requestCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
-    const payload = await fetchGoogleHotels(apiKey, {
+    if (attemptCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
+    attemptCount += 1
+    const fetchOutcome = await fetchGoogleHotelsAfter(apiKey, {
       hotelName,
       city: query.city,
       countryCode: query.countryCode,
       dateRange: dateRanges[0],
-    })
-    requestCount += 1
+    }, requestCount)
+    requestCount += fetchOutcome.requestCount
+    const { payload } = fetchOutcome
     const match = selectGoogleHotelsProperty(payload, query)
     if (!match) continue
     selectedProperty = match.property
@@ -528,15 +702,17 @@ async function discoverTripHotelFromGoogleHotels(options: {
   }
 
   for (const dateRange of dateRanges) {
-    if (requestCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
-    const payload = await fetchGoogleHotels(apiKey, {
+    if (attemptCount >= MAX_GOOGLE_HOTELS_REQUESTS) break
+    attemptCount += 1
+    const fetchOutcome = await fetchGoogleHotelsAfter(apiKey, {
       hotelName: query.hotelName,
       city: query.city,
       countryCode: query.countryCode,
       dateRange,
       propertyToken: selectedProperty.propertyToken,
-    })
-    requestCount += 1
+    }, requestCount)
+    requestCount += fetchOutcome.requestCount
+    const { payload } = fetchOutcome
     const detailedProperty = readTopLevelProperty(payload) ?? selectedProperty
     const mergedProperty: CleanGoogleHotelsProperty = {
       ...selectedProperty,
@@ -593,16 +769,29 @@ async function fetchGoogleHotels(
   cacheUrl.searchParams.delete('api_key')
   const cacheKey = cacheUrl.toString()
   const cached = payloadCache.get(cacheKey)
-  if (cached && cached.expiresAt > Date.now()) return cached.payload
+  // A manual planner recheck can bypass browser state, but raw metered
+  // provider payloads remain shared across providers and users in this
+  // process. Only an internal/admin path should ever force a paid refresh.
+  if (cached && cached.expiresAt > Date.now()) {
+    return { payload: cached.payload, requestCount: 0 } satisfies GoogleHotelsFetchOutcome
+  }
   if (cached) payloadCache.delete(cacheKey)
   const activeRequest = payloadRequests.get(cacheKey)
-  if (activeRequest) return activeRequest
+  if (activeRequest) {
+    try {
+      return { payload: await activeRequest, requestCount: 0 } satisfies GoogleHotelsFetchOutcome
+    } catch (error) {
+      throw new GoogleHotelsSearchError(error, 0)
+    }
+  }
 
+  let requestCount = 0
   const request = (async () => {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
     try {
       const response = await fetchPlannerSerpApi(url, { cache: 'no-store', signal: controller.signal })
+      requestCount = plannerSerpApiSearchAttemptCount(response)
       if (!response.ok) throw new Error(`serpapi_google_hotels_${response.status}`)
       const payload = (await response.json()) as GoogleHotelsPayload
       if (typeof payload.error === 'string' && payload.error.trim()) {
@@ -620,16 +809,44 @@ async function fetchGoogleHotels(
         payloadCache.delete(oldest)
       }
       return payload
+    } catch (error) {
+      requestCount = Math.max(requestCount, plannerSerpApiSearchAttemptCount(error))
+      throw error
     } finally {
       clearTimeout(timeout)
     }
   })()
   payloadRequests.set(cacheKey, request)
   try {
-    return await request
+    return { payload: await request, requestCount } satisfies GoogleHotelsFetchOutcome
+  } catch (error) {
+    throw new GoogleHotelsSearchError(error, requestCount)
   } finally {
     if (payloadRequests.get(cacheKey) === request) payloadRequests.delete(cacheKey)
   }
+}
+
+async function fetchGoogleHotelsAfter(
+  apiKey: string,
+  input: Parameters<typeof fetchGoogleHotels>[1],
+  priorRequestCount: number,
+) {
+  try {
+    return await fetchGoogleHotels(apiKey, input)
+  } catch (error) {
+    throw new GoogleHotelsSearchError(
+      error,
+      priorRequestCount + googleHotelsRequestCountFromError(error),
+    )
+  }
+}
+
+function plannerSerpApiSearchAttemptCount(resultOrError: unknown) {
+  return getPlannerSerpApiRequestMetadata(resultOrError)?.searchFetchAttempted ? 1 : 0
+}
+
+function googleHotelsRequestCountFromError(error: unknown) {
+  return error instanceof GoogleHotelsSearchError ? error.providerRequestCount : 0
 }
 
 function selectGoogleHotelsProperty(
@@ -964,7 +1181,7 @@ function readProperty(value: unknown): CleanGoogleHotelsProperty | null {
   const longitude = cleanCoordinate(property.gps_coordinates?.longitude, -180, 180)
   return {
     name,
-    propertyToken: cleanText(property.property_token, 500),
+    propertyToken: cleanGoogleHotelsPropertyToken(property.property_token),
     ...(latitude != null ? { latitude } : {}),
     ...(longitude != null ? { longitude } : {}),
     prices: [property.prices, property.featured_prices].filter((entry) => entry != null),
@@ -1090,6 +1307,11 @@ function cleanInteger(value: unknown, fallback: number, min: number, max: number
 
 function cleanText(value: unknown, maxLength: number) {
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : ''
+}
+
+function cleanGoogleHotelsPropertyToken(value: unknown) {
+  const token = cleanText(value, 512)
+  return /^[A-Za-z0-9_-]{8,512}$/.test(token) ? token : ''
 }
 
 function cleanDate(value: unknown) {

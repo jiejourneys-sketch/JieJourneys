@@ -23,6 +23,14 @@ const BOOKING_STAY_QUERY_PARAMS = new Set([
 
 export const BOOKING_AFFILIATE_HOME_URL = `${BOOKING_CJ_HOME_CLICK_URL}?url=https%3A%2F%2Fwww.booking.com%2Findex.zh-tw.html`
 
+export function shouldResolveBookingAffiliate(options: {
+  forceRefresh: boolean
+  newlyCreatedLodging: boolean
+  hasBookingLink: boolean
+}) {
+  return options.forceRefresh || (options.newlyCreatedLodging && !options.hasBookingLink)
+}
+
 function setAffiliateParam(url: URL, key: string, value: string) {
   const lowerKey = key.toLowerCase()
   Array.from(url.searchParams.keys()).forEach((paramKey) => {

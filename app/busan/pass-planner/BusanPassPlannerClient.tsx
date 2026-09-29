@@ -62,6 +62,7 @@ import {
   BOOKING_AFFILIATE_HOME_URL,
   isBookingAffiliateUrl,
   normalizePlannerAffiliateUrl,
+  shouldResolveBookingAffiliate,
 } from '@/lib/plannerAffiliate'
 import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import type { MapPlace } from '@/lib/mapPlace'
@@ -223,6 +224,7 @@ function hotelAffiliateCombinedRequestKey(input: Record<string, unknown>) {
     : ''
   return [
     input.googlePlaceId,
+    input.googleMapsDataId,
     input.googlePlaceName,
     input.googlePlaceNameZhTw,
     input.hotelName,
@@ -403,13 +405,14 @@ const DIAMOND_BAY_RESERVATION_URL = 'https://diamondbay.co.kr/zh-TW/visit-busan-
 // so an intermittent lookup failure must be retried instead of cached forever.
 const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v4:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
+const HOTEL_AFFILIATE_REQUEST_TIMEOUT_MS = 60_000
 const CUSTOM_MAP_URL_RESOLVE_TIMEOUT_MS = 25_000
 const PLANNER_CLOUD_SAVE_IDLE_MS = 1_500
 const PLANNER_CLOUD_SAVE_MIN_INTERVAL_MS = 3 * 60 * 1_000
 // Agoda now resolves against the local catalogue and browser Places API (New).
-// v19 also retries results made before multilingual aliases and named-match
-// dominance could distinguish hotels sharing one building.
-const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v19'
+// v20 also keys lookups by the exact Maps data ID used by Booking's bounded
+// CID fallback; old cached misses must not hide the new resolver.
+const HOTEL_AFFILIATE_LOOKUP_CACHE_VERSION = 'v20'
 const GOOGLE_PLACE_TYPES_CACHE_PREFIX = 'jiejourneys:planner:google-place-types:'
 // v6 discards place-name entries created before Maps data-ID resolution. Those
 // old values can be incomplete URL labels and must not suppress the canonical
@@ -1099,6 +1102,7 @@ function hotelAffiliateLookupCacheKey(
     lodgingHint: boolean
     googlePlaceTypes: string[]
     googlePlaceTypesResolved: boolean
+    googleMapsDataId: string
   },
 ) {
   const verifiedIdentity = getApplicableVerifiedHotelAffiliateIdentity(googlePlaceId, {
@@ -1124,6 +1128,7 @@ function hotelAffiliateLookupCacheKey(
     context.lodgingHint ? 'lodging' : 'unknown',
     context.googlePlaceTypesResolved ? 'types-resolved' : 'types-pending',
     [...context.googlePlaceTypes].sort().join(','),
+    context.googleMapsDataId,
     verifiedIdentity?.verifiedAt ?? '',
     verifiedProvider?.hotelId ?? '',
   ].join('|')
@@ -1147,6 +1152,13 @@ function customPlaceHotelAffiliateLookupInput(
   const city = plannerAffiliateCityName(config, latitude, longitude)
   const cityId = plannerAgodaCityId(config, latitude, longitude)
   const countryCode = plannerAffiliateCountryCode(config, latitude, longitude)
+  const googleUrl = place.googleUrl?.trim() ?? ''
+  const resolvedGoogleUrl = googleUrl ? getResolvedMapUrlCache(googleUrl) : null
+  const googleMapsDataId = (
+    resolvedGoogleUrl?.googleMapsDataId ||
+    googleMapsDataIdFromUrl(resolvedGoogleUrl?.url) ||
+    googleMapsDataIdFromUrl(googleUrl)
+  ).trim().toLowerCase()
   const cacheKey = hotelAffiliateLookupCacheKey(
     provider,
     place.googlePlaceId,
@@ -1160,6 +1172,7 @@ function customPlaceHotelAffiliateLookupInput(
       lodgingHint,
       googlePlaceTypes,
       googlePlaceTypesResolved: place.googlePlaceTypesResolved === true,
+      googleMapsDataId,
     },
   )
 
@@ -1176,6 +1189,7 @@ function customPlaceHotelAffiliateLookupInput(
     city,
     cityId,
     countryCode,
+    googleMapsDataId,
   }
 }
 
@@ -11794,6 +11808,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       city,
       cityId,
       countryCode,
+      googleMapsDataId,
     } = lookupInput
     if (activeRequest?.cacheKey === cacheKey) return
     if (activeRequest) activeRequest.controller.abort()
@@ -11816,7 +11831,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 30000)
+    const timeout = window.setTimeout(() => controller.abort(), HOTEL_AFFILIATE_REQUEST_TIMEOUT_MS)
     hotelAffiliateLookupRequestRef.current.set(requestKey, { cacheKey, controller })
     const isCurrentRequest = () => {
       const currentRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
@@ -11833,6 +11848,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         googlePlaceNameZhTw,
         name: userName,
         googlePlaceId: place.googlePlaceId,
+        googleMapsDataId,
         city,
         cityId,
         countryCode,
@@ -11935,6 +11951,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       city,
       cityId,
       countryCode,
+      googleMapsDataId,
     } = lookupInput
     if (activeRequest?.cacheKey === cacheKey) return
     if (activeRequest) activeRequest.controller.abort()
@@ -11957,7 +11974,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 30000)
+    const timeout = window.setTimeout(() => controller.abort(), HOTEL_AFFILIATE_REQUEST_TIMEOUT_MS)
     hotelAffiliateLookupRequestRef.current.set(requestKey, { cacheKey, controller })
     const isCurrentRequest = () => {
       const currentRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
@@ -11974,6 +11991,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         googlePlaceNameZhTw,
         name: userName,
         googlePlaceId: place.googlePlaceId,
+        googleMapsDataId,
         city,
         cityId,
         countryCode,
@@ -12069,6 +12087,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       city,
       cityId,
       countryCode,
+      googleMapsDataId,
     } = lookupInput
     if (activeRequest?.cacheKey === cacheKey) return
     if (activeRequest) activeRequest.controller.abort()
@@ -12091,7 +12110,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
 
     const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 30000)
+    const timeout = window.setTimeout(() => controller.abort(), HOTEL_AFFILIATE_REQUEST_TIMEOUT_MS)
     hotelAffiliateLookupRequestRef.current.set(requestKey, { cacheKey, controller })
     const isCurrentRequest = () => {
       const currentRequest = hotelAffiliateLookupRequestRef.current.get(requestKey)
@@ -12108,6 +12127,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         googlePlaceNameZhTw,
         name: userName,
         googlePlaceId: place.googlePlaceId,
+        googleMapsDataId,
         city,
         cityId,
         countryCode,
@@ -12295,7 +12315,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       }
       const resolveAgoda = forceRefresh || !hasHotelAffiliateProviderLink(links, 'Agoda')
       const resolveTrip = forceRefresh || !hasHotelAffiliateProviderLink(links, 'Trip')
-      const resolveBooking = forceRefresh || (newlyCreatedLodging && !hasHotelAffiliateProviderLink(links, 'Booking'))
+      const resolveBooking = shouldResolveBookingAffiliate({
+        forceRefresh,
+        newlyCreatedLodging,
+        hasBookingLink: hasHotelAffiliateProviderLink(links, 'Booking'),
+      })
       const providers: HotelAffiliateProvider[] = [
         ...(resolveTrip ? ['Trip' as const] : []),
         ...(resolveAgoda ? ['Agoda' as const] : []),
@@ -12634,6 +12658,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
     const cachedResolved = getResolvedMapUrlCache(trimmedGoogleUrl)
     if (cachedResolved && !forceResolve) {
+      if (cachedResolved.url !== trimmedGoogleUrl) {
+        setResolvedMapUrlCache(cachedResolved.url, cachedResolved)
+      }
       const resolvedCoordinates =
         typeof cachedResolved.lat === 'number' && typeof cachedResolved.lng === 'number'
           ? { lat: cachedResolved.lat, lng: cachedResolved.lng }
@@ -12695,7 +12722,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       signal: resolveController.signal,
     })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { url?: unknown; title?: unknown; query?: unknown; lat?: unknown; lng?: unknown; googlePlaceId?: unknown } | null) => {
+      .then((data: {
+        url?: unknown
+        title?: unknown
+        query?: unknown
+        lat?: unknown
+        lng?: unknown
+        googlePlaceId?: unknown
+        googleMapsDataId?: unknown
+      } | null) => {
         if (customUrlResolveSeqRef.current !== nextSeq) return
         if (typeof data?.url !== 'string') {
           continueCustomPlaceManually(parsedName)
@@ -12708,20 +12743,27 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         const resolvedLat = typeof data.lat === 'number' && Number.isFinite(data.lat) ? data.lat : null
         const resolvedLng = typeof data.lng === 'number' && Number.isFinite(data.lng) ? data.lng : null
         const resolvedGooglePlaceId = typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim() ? data.googlePlaceId.trim() : ''
+        const resolvedGoogleMapsDataId =
+          typeof data.googleMapsDataId === 'string' && /^0x[0-9a-f]{6,}:0x[0-9a-f]{6,}$/i.test(data.googleMapsDataId.trim())
+            ? data.googleMapsDataId.trim().toLowerCase()
+            : googleMapsDataIdFromUrl(resolvedUrl)
         const resolvedCoordinates =
           resolvedLat != null && resolvedLng != null ? { lat: resolvedLat, lng: resolvedLng } : parseGoogleMapsUrl(resolvedUrl)
         const resolvedName = resolvedTitle || parseGoogleMapsPlaceName(resolvedUrl)
         const resolvedIdentityQuery = resolvedQuery || resolvedName
-        setResolvedMapUrlCache(trimmedGoogleUrl, {
+        const resolvedMapUrlData: ResolvedMapUrlData = {
           url: resolvedUrl,
           ...(resolvedName ? { name: resolvedName } : {}),
           ...(resolvedIdentityQuery ? { query: resolvedIdentityQuery } : {}),
           ...(resolvedLat != null ? { lat: resolvedLat } : {}),
           ...(resolvedLng != null ? { lng: resolvedLng } : {}),
           ...(resolvedGooglePlaceId ? { googlePlaceId: resolvedGooglePlaceId } : {}),
+          ...(resolvedGoogleMapsDataId ? { googleMapsDataId: resolvedGoogleMapsDataId } : {}),
           ...(resolvedGooglePlaceId ? { googlePlaceIdResolved: true } : {}),
           googlePlaceTypesResolved: false,
-        })
+        }
+        setResolvedMapUrlCache(trimmedGoogleUrl, resolvedMapUrlData)
+        if (resolvedUrl !== trimmedGoogleUrl) setResolvedMapUrlCache(resolvedUrl, resolvedMapUrlData)
         if (!resolvedCoordinates && resolvedIdentityQuery) {
           if (geocodeResolvedMapQuery(resolvedIdentityQuery, resolvedUrl, resolvedName, trimmedGoogleUrl, nextSeq)) return
           continueCustomPlaceManually(resolvedName)

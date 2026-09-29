@@ -6,7 +6,12 @@ import {
   type BookingAffiliateSearchInput,
   type BookingAffiliateSearchResponse,
 } from '@/lib/bookingAffiliate'
-import { searchBookingAffiliateHotelsWithGoogleHotels } from '@/lib/tripGoogleHotels'
+import {
+  searchBookingAffiliateHotelByGoogleHotelsPropertyToken,
+  searchBookingAffiliateHotelsWithGoogleHotels,
+  type BookingGoogleHotelsSearchResponse,
+} from '@/lib/tripGoogleHotels'
+import { searchGoogleHotelsAutocompleteProperty } from '@/lib/googleHotelsAutocomplete'
 import { findAgodaHotelIndexIdentity } from '@/lib/agodaAffiliate'
 import {
   buildHotelAffiliateSearchNames,
@@ -17,6 +22,7 @@ import { getStoredVerifiedHotelAffiliateIdentity } from '@/lib/hotelAffiliateIde
 import { cleanHotelAffiliateGooglePlaceTypes, hotelAffiliateGooglePlaceTypeSignal } from '@/lib/hotelAffiliatePlaceSignals'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 export async function GET() {
   return NextResponse.json(getBookingAffiliatePublicConfig())
@@ -27,6 +33,7 @@ export async function POST(req: NextRequest) {
   if (!input) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
   const googlePlaceId = cleanString(input.googlePlaceId ?? input.placeId, 180)
+  const googleMapsDataId = cleanGoogleMapsDataId(input.googleMapsDataId)
   const city = cleanString(input.city, 80)
   const countryCode = cleanString(input.countryCode, 2)
   const latitude = cleanNumber(input.latitude ?? input.lat, -90, 90)
@@ -80,6 +87,7 @@ export async function POST(req: NextRequest) {
     hotelName,
     alternateHotelNames,
     googlePlaceId,
+    googleMapsDataId,
     city,
     countryCode,
     latitude,
@@ -129,28 +137,90 @@ export async function POST(req: NextRequest) {
   const googleHotelsResult = verifiedResult
     ? null
     : await searchBookingAffiliateHotelsWithGoogleHotels(searchInput)
-  let result = verifiedResult ?? googleHotelsResult ?? await searchBookingAffiliateHotels(searchInput)
+  let result: BookingAffiliateSearchResponse | BookingGoogleHotelsSearchResponse
+  let providerRequestCount = googleHotelsResult?.providerRequestCount ?? 0
 
-  if (
-    googleHotelsResult &&
-    (googleHotelsResult.matchStatus === 'no_match' || googleHotelsResult.matchStatus === 'search_error')
-  ) {
-    const fallbackResult = await searchBookingAffiliateHotels({ ...searchInput, alternateHotelNames: [] })
-    if (fallbackResult.matchStatus === 'matched' || fallbackResult.matchStatus === 'needs_review') {
-      result = {
-        ...fallbackResult,
-        providerRequestCount: (googleHotelsResult.providerRequestCount ?? 0) + 1,
+  if (verifiedResult) {
+    result = verifiedResult
+  } else if (!googleHotelsResult) {
+    result = await searchBookingAffiliateHotels(searchInput)
+  } else if (googleHotelsResult.matchStatus === 'matched') {
+    result = googleHotelsResult
+  } else {
+    // All locale aliases share one organic request. A review candidate is not
+    // accepted automatically; it remains available only as the best fallback.
+    const organicResult = await searchBookingAffiliateHotels(searchInput)
+    providerRequestCount += organicResult.providerRequestCount ?? 0
+    result = preferBookingResult(googleHotelsResult, organicResult)
+
+    if (result.matchStatus !== 'matched' && googleHotelsResult.googleHotelsPropertyToken) {
+      // Google Hotels already identified the property but did not expose a
+      // Booking offer for the first stay date. Spend one final request on a
+      // different date instead of repeating the same name query.
+      const alternateDateResult = await searchBookingAffiliateHotelByGoogleHotelsPropertyToken(searchInput, {
+        propertyToken: googleHotelsResult.googleHotelsPropertyToken,
+        propertyName: googleHotelsResult.googleHotelsPropertyName,
+        dateRangeIndex: 1,
+      })
+      if (alternateDateResult) {
+        providerRequestCount += alternateDateResult.providerRequestCount ?? 0
+        result = preferBookingResult(result, alternateDateResult)
       }
-    } else if (googleHotelsResult.matchStatus === 'no_match') {
-      result = {
-        ...googleHotelsResult,
-        providerRequestCount: (googleHotelsResult.providerRequestCount ?? 0) + 1,
+    } else if (result.matchStatus !== 'matched' && googleMapsDataId) {
+      // Autocomplete is useful only with a Google Maps CID. The exact decimal
+      // CID comparison is the identity proof; names never make this branch
+      // eligible on their own.
+      const autocompleteResult = await searchGoogleHotelsAutocompleteProperty({
+        hotelName,
+        alternateHotelNames,
+        city,
+        countryCode,
+        googleMapsDataId,
+      })
+      providerRequestCount += autocompleteResult?.requestCount ?? 0
+      if (autocompleteResult?.matchStatus === 'matched' && autocompleteResult.bestMatch) {
+        const exactPropertyResult = await searchBookingAffiliateHotelByGoogleHotelsPropertyToken(searchInput, {
+          propertyToken: autocompleteResult.bestMatch.propertyToken,
+          propertyName: autocompleteResult.bestMatch.canonicalName,
+          identityVerified: true,
+        })
+        if (exactPropertyResult) {
+          providerRequestCount += exactPropertyResult.providerRequestCount ?? 0
+          result = preferBookingResult(result, exactPropertyResult)
+        }
       }
     }
+
+    result = { ...result, providerRequestCount }
   }
 
   const status = result.matchStatus === 'not_configured' ? 503 : result.matchStatus === 'search_error' ? 502 : 200
-  return NextResponse.json(result, { status })
+  return NextResponse.json(toPublicBookingResult(result), { status })
+}
+
+function preferBookingResult(
+  current: BookingAffiliateSearchResponse | BookingGoogleHotelsSearchResponse,
+  candidate: BookingAffiliateSearchResponse | BookingGoogleHotelsSearchResponse,
+) {
+  return bookingResultRank(candidate.matchStatus) > bookingResultRank(current.matchStatus) ? candidate : current
+}
+
+function bookingResultRank(status: BookingAffiliateSearchResponse['matchStatus']) {
+  if (status === 'matched') return 4
+  if (status === 'needs_review') return 3
+  if (status === 'no_match') return 2
+  if (status === 'search_error') return 1
+  return 0
+}
+
+function toPublicBookingResult(result: BookingAffiliateSearchResponse | BookingGoogleHotelsSearchResponse) {
+  const {
+    googleHotelsPropertyToken: _propertyToken,
+    googleHotelsPropertyName: _propertyName,
+    googleHotelsFailureReason: _failureReason,
+    ...publicResult
+  } = result as BookingGoogleHotelsSearchResponse
+  return publicResult
 }
 
 function cleanString(value: unknown, maxLength: number) {
@@ -175,4 +245,10 @@ function cleanDate(value: unknown) {
   if (typeof value !== 'string') return undefined
   const date = value.trim()
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined
+}
+
+function cleanGoogleMapsDataId(value: unknown) {
+  if (typeof value !== 'string') return undefined
+  const dataId = value.trim().toLowerCase()
+  return /^0x[0-9a-f]{6,32}:0x[0-9a-f]{1,16}$/.test(dataId) ? dataId : undefined
 }

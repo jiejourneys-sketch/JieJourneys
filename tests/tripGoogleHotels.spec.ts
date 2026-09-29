@@ -130,6 +130,11 @@ test('one exact Google Hotels lookup resolves Trip, Agoda and Booking for an uns
     ])
 
     expect(fetchCount).toBe(1)
+    expect(
+      (trip?.providerRequestCount ?? 0) +
+      (agoda?.requestCount ?? 0) +
+      (booking?.providerRequestCount ?? 0),
+    ).toBe(1)
     expect(agoda?.matchStatus).toBe('matched')
     expect(agoda?.bestMatch?.hotelId).toBe('123456789')
     const agodaUrl = new URL(agoda?.bestMatch?.bookingUrl ?? '')
@@ -143,6 +148,44 @@ test('one exact Google Hotels lookup resolves Trip, Agoda and Booking for an uns
     const bookingUrl = new URL(booking?.bestMatch?.bookingUrl ?? '')
     expect(bookingUrl.hostname).toBe('www.jdoqocy.com')
     expect(new URL(bookingUrl.searchParams.get('url') ?? '').hostname).toBe('www.booking.com')
+  } finally {
+    restoreEnvironment()
+  }
+})
+
+test('manual refresh reuses the shared Google Hotels payload cache', async () => {
+  const restoreEnvironment = withSerpApi()
+  let fetchCount = 0
+  const bookingDestination = 'https://www.booking.com/hotel/jp/google-cache-refresh-hotel-nagoya.html'
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      name: 'Google Cache Refresh Hotel Nagoya',
+      property_token: 'google-cache-refresh-hotel-nagoya-token',
+      gps_coordinates: { latitude: 35.170915, longitude: 136.881537 },
+      prices: [{ source: 'Booking.com', link: bookingDestination }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  const input = {
+    hotelName: 'Google Cache Refresh Hotel Nagoya',
+    city: 'Nagoya',
+    countryCode: 'JP',
+    latitude: 35.170915,
+    longitude: 136.881537,
+  }
+
+  try {
+    const first = await searchBookingAffiliateHotelsWithGoogleHotels(input)
+    const second = await searchBookingAffiliateHotelsWithGoogleHotels(input)
+    expect(fetchCount).toBe(1)
+    expect(first?.providerRequestCount).toBe(1)
+    expect(second?.providerRequestCount).toBe(0)
+
+    const refreshed = await searchBookingAffiliateHotelsWithGoogleHotels({ ...input, forceRefresh: true })
+    expect(fetchCount).toBe(1)
+    expect(refreshed?.providerRequestCount).toBe(0)
   } finally {
     restoreEnvironment()
   }
