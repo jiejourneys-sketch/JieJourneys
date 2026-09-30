@@ -147,6 +147,57 @@ const VERIFIED_HOTEL_AFFILIATE_IDENTITIES: Readonly<Record<string, VerifiedHotel
     }),
     verifiedAt: '2026-07-23',
   }),
+  'ChIJ-d-BZACPGGARzReC-9g1tB4': Object.freeze({
+    googlePlaceId: 'ChIJ-d-BZACPGGARzReC-9g1tB4',
+    canonicalNames: Object.freeze([
+      'T-Hotel Iriya',
+      'T-Hotel 入谷',
+    ]),
+    latitude: 35.7198987,
+    longitude: 139.7815531,
+    countryCode: 'JP',
+    agoda: Object.freeze({
+      hotelId: '86827358',
+      hotelName: 'T-Hotel Iriya',
+    }),
+    trip: Object.freeze({
+      hotelId: '134107878',
+      hotelName: 'T-Hotel Iriya',
+      sourceUrl: 'https://tw.trip.com/hotels/tokyo-hotel-detail-134107878/t-hotel-iriya/',
+    }),
+    booking: Object.freeze({
+      hotelId: 'jp/t-hotelru-gu',
+      hotelName: 'T-Hotel入谷',
+      sourceUrl: 'https://www.booking.com/hotel/jp/t-hotelru-gu.zh-tw.html',
+    }),
+    verifiedAt: '2026-10-01',
+  }),
+  'ChIJ_4AIjDbnAGARV489qXmh8vE': Object.freeze({
+    googlePlaceId: 'ChIJ_4AIjDbnAGARV489qXmh8vE',
+    canonicalNames: Object.freeze([
+      'ESLEAD HOTEL Namba South III',
+      'ESLEAD HOTEL NAMBA SOUTH Ⅲ',
+      '難波南３號艾思利德飯店',
+    ]),
+    latitude: 34.6541823,
+    longitude: 135.5045734,
+    countryCode: 'JP',
+    agoda: Object.freeze({
+      hotelId: '22886034',
+      hotelName: 'ESLEAD HOTEL Namba South III',
+    }),
+    trip: Object.freeze({
+      hotelId: '69197985',
+      hotelName: 'ESLEAD HOTEL Namba South III',
+      sourceUrl: 'https://tw.trip.com/hotels/osaka-hotel-detail-69197985/eslead-hotel-namba-south-iii/',
+    }),
+    booking: Object.freeze({
+      hotelId: 'jp/eslead-namba-south-iii',
+      hotelName: 'ESLEAD HOTEL Namba South III',
+      sourceUrl: 'https://www.booking.com/hotel/jp/eslead-namba-south-iii.zh-tw.html',
+    }),
+    verifiedAt: '2026-10-01',
+  }),
 })
 
 const URL_PATTERN = /^(?:https?:\/\/|www\.)/i

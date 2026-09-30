@@ -106,6 +106,16 @@ test('returns only manually verified provider identities by Google Place ID', ()
   expect(identity?.trip?.hotelId).toBe('10748373')
   expect(getVerifiedHotelAffiliateIdentity('ChIJmRrGXnVZSjER_vjDMPLm1lI')?.agoda?.hotelId).toBe('78250696')
   expect(getVerifiedHotelAffiliateIdentity('ChIJ_wZajIRaGGAR87A3xmKJcQc')?.trip?.hotelId).toBe('6236690')
+  expect(getVerifiedHotelAffiliateIdentity('ChIJ-d-BZACPGGARzReC-9g1tB4')).toMatchObject({
+    agoda: { hotelId: '86827358' },
+    trip: { hotelId: '134107878' },
+    booking: { hotelId: 'jp/t-hotelru-gu' },
+  })
+  expect(getVerifiedHotelAffiliateIdentity('ChIJ_4AIjDbnAGARV489qXmh8vE')).toMatchObject({
+    agoda: { hotelId: '22886034' },
+    trip: { hotelId: '69197985' },
+    booking: { hotelId: 'jp/eslead-namba-south-iii' },
+  })
   expect(getVerifiedHotelAffiliateIdentity('unknown-place-id')).toBeUndefined()
 })
 

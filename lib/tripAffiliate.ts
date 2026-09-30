@@ -555,16 +555,24 @@ function searchResultsToCandidates(
   groupedResults.forEach((group, hotelId) => {
     const scoredResults = group
       .map((entry) => {
+        // Google frequently localizes the visible title even though Trip's
+        // canonical Latin property name remains in the hotel-detail slug.
+        // Score both identities before applying the minimum threshold; the
+        // old order extracted the slug only after a localized title had
+        // already been discarded.
+        const candidateIdentities = cleanTripSearchResultIdentities(entry.result.title, entry.parsed)
         const details = queryNames
-          .map((hotelName) =>
-            scoreTripCandidateDetails({
-              query: { ...query, hotelName, alternateHotelNames: [] },
-              title: entry.result.title,
-              snippet: entry.result.snippet,
-              url: entry.parsed.toString(),
-              candidateName: entry.result.title,
-              rankIndex: entry.rankIndex,
-            }),
+          .flatMap((hotelName) =>
+            candidateIdentities.map((candidateName) =>
+              scoreTripCandidateDetails({
+                query: { ...query, hotelName, alternateHotelNames: [] },
+                title: entry.result.title,
+                snippet: entry.result.snippet,
+                url: entry.parsed.toString(),
+                candidateName,
+                rankIndex: entry.rankIndex,
+              }),
+            ),
           )
           .sort(compareTripCandidateScoreDetails)[0]
         return { ...entry, details }

@@ -366,6 +366,10 @@ function cleanBookingTitle(value: string) {
   return value
     .replace(/\s*[-|｜]\s*Booking\.com.*$/i, '')
     .replace(/\s*[-|｜]\s*(?:updated prices|reviews?|deals?|photos?).*$/i, '')
+    // Some localized Google titles use "Property, City (localized 2026
+    // prices)" without mentioning Booking.com. Remove only that tightly
+    // bounded annual wrapper; normal commas inside hotel names remain intact.
+    .replace(/,\s*[^,()]{2,80}\s*\([^()]*\b20\d{2}\b[^()]*\)\s*$/u, '')
     .replace(/^Book\s+/i, '')
     .trim()
     .slice(0, 160)

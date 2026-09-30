@@ -66,12 +66,14 @@ export async function POST(req: NextRequest) {
     verifiedIdentity,
   }
   let result = await searchAgodaAffiliateHotels(searchInput)
+  const indexUnavailable = result.matchStatus === 'not_configured'
 
   // The bundled Agoda catalogue is the free first layer. If a new/rebranded
-  // property is absent or ambiguous, use the exact Google Hotels property as
-  // a generic discovery layer. Its name and coordinates must pass the same
-  // strict branch verifier before an Agoda booking source can be accepted.
-  if (result.matchStatus === 'no_match' || result.matchStatus === 'needs_review') {
+  // property is absent, ambiguous, or unavailable in one serverless bundle,
+  // use the exact Google Hotels property as a generic discovery layer. Its
+  // name and coordinates must pass the same strict branch verifier before an
+  // Agoda booking source can be accepted.
+  if (result.matchStatus === 'no_match' || result.matchStatus === 'needs_review' || indexUnavailable) {
     const googleHotelsResult = await searchAgodaAffiliateHotelsWithGoogleHotels(searchInput)
     if (googleHotelsResult?.matchStatus === 'matched' && googleHotelsResult.bestMatch) {
       result = {
@@ -87,14 +89,34 @@ export async function POST(req: NextRequest) {
         discoveryMethod: 'google_hotels',
         providerRequestCount: googleHotelsResult.requestCount,
       }
-    } else if (googleHotelsResult?.matchStatus === 'search_error' && result.matchStatus === 'no_match') {
+    } else if (
+      googleHotelsResult?.matchStatus === 'search_error' &&
+      (result.matchStatus === 'no_match' || indexUnavailable)
+    ) {
       result = {
         ...result,
+        configured: true,
+        searchProvider: 'serpapi',
         matchStatus: 'api_error',
         error: googleHotelsResult.error ?? 'google_hotels_search_failed',
         searchUrl: googleHotelsResult.searchUrl,
         discoveryMethod: 'google_hotels',
         providerRequestCount: googleHotelsResult.requestCount,
+      }
+    } else if (googleHotelsResult && indexUnavailable) {
+      result = {
+        ...result,
+        configured: true,
+        searchProvider: 'serpapi',
+        matchStatus: googleHotelsResult.matchStatus === 'needs_review' ? 'needs_review' : 'no_match',
+        confidence: googleHotelsResult.matchStatus === 'needs_review' ? 'review' : 'none',
+        ...(googleHotelsResult.bestMatch ? { bestMatch: googleHotelsResult.bestMatch } : {}),
+        candidates: googleHotelsResult.candidates,
+        rawCount: googleHotelsResult.candidates.length,
+        searchUrl: googleHotelsResult.searchUrl,
+        discoveryMethod: 'google_hotels',
+        providerRequestCount: googleHotelsResult.requestCount,
+        error: undefined,
       }
     } else if (googleHotelsResult) {
       result = {

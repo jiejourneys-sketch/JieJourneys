@@ -102,12 +102,34 @@ test('uses one bounded organic search and accepts an exact Booking result', asyn
   expect(new URL(result.bestMatch?.bookingUrl ?? '').hostname).toBe('www.jdoqocy.com')
 })
 
+test('accepts an exact Booking property with a localized city and annual price suffix', async () => {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [{
+      position: 1,
+      title: 'T-Hotel入谷, Tokio (nove cijene za 2026.)',
+      link: 'https://www.booking.com/hotel/jp/t-hotelru-gu.is.html',
+      snippet: 'T-Hotel入谷 in Tokyo',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  const result = await searchBookingAffiliateHotels({
+    hotelName: 'T-Hotel 入谷',
+    city: 'Tokyo',
+    countryCode: 'JP',
+  })
+
+  expect(result.matchStatus).toBe('matched')
+  expect(result.bestMatch?.hotelId).toBe('jp/t-hotelru-gu')
+  expect(result.bestMatch?.hotelName).toBe('T-Hotel入谷')
+})
+
 test('does not accept a different numbered branch', async () => {
   globalThis.fetch = (async () => new Response(JSON.stringify({
     search_metadata: { status: 'Success' },
     organic_results: [{
       position: 1,
-      title: 'Apartment Hotel 11 Namba Minami II - Booking.com',
+      title: 'Apartment Hotel 11 Namba Minami II, Osaka (updated prices for 2026)',
       link: 'https://www.booking.com/hotel/jp/apartment-hotel-11-namba-minami-ii.html',
       snippet: 'Apartment Hotel 11 Namba Minami II in Osaka',
     }],

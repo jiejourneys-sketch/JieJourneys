@@ -380,6 +380,67 @@ test('a full planner save records a newly added manual provider link through the
   }
 })
 
+test('Agoda falls back to Google Hotels when its bundled index is unavailable', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousIndexPath = process.env.AGODA_HOTEL_INDEX_PATH
+  const requestedUrls: URL[] = []
+  process.env.SERPAPI_API_KEY = 'agoda-unavailable-index-fallback'
+  process.env.AGODA_HOTEL_INDEX_PATH = 'data/agoda-index-that-does-not-exist-route-test.jsonl'
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    requestedUrls.push(url)
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      properties: [{
+        name: 'Indexless Harbor Hotel Kobe',
+        property_token: 'indexless-harbor-hotel-kobe-token',
+        gps_coordinates: { latitude: 34.681234, longitude: 135.191234 },
+        prices: [{
+          source: 'Agoda',
+          link: 'https://www.agoda.com/partners/partnersearch.aspx?hid=99887766',
+        }],
+      }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const response = await postAgodaAffiliate(new NextRequest(
+      'http://localhost/api/pass-planner/hotel-affiliate/agoda',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          hotelName: 'Indexless Harbor Hotel Kobe',
+          googlePlaceName: 'Indexless Harbor Hotel Kobe',
+          googlePlaceId: 'ChIJ-indexless-harbor-hotel-kobe',
+          city: 'Kobe',
+          countryCode: 'JP',
+          lat: 34.681234,
+          lng: 135.191234,
+          lodgingHint: true,
+          googlePlaceTypes: ['lodging'],
+        }),
+      },
+    ))
+    const result = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(requestedUrls).toHaveLength(1)
+    expect(requestedUrls[0].searchParams.get('engine')).toBe('google_hotels')
+    expect(result.configured).toBe(true)
+    expect(result.matchStatus).toBe('matched')
+    expect(result.discoveryMethod).toBe('google_hotels')
+    expect(result.bestMatch?.hotelId).toBe('99887766')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+    if (typeof previousIndexPath === 'string') process.env.AGODA_HOTEL_INDEX_PATH = previousIndexPath
+    else delete process.env.AGODA_HOTEL_INDEX_PATH
+  }
+})
+
 test('manually verified Agoda and Trip identities bypass all paid searches', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
@@ -446,6 +507,60 @@ test('manually verified Agoda and Trip identities bypass all paid searches', asy
     else delete process.env.AGODA_SEARCH_PROVIDER
     if (typeof previousTripSearchProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousTripSearchProvider
     else delete process.env.TRIP_SEARCH_PROVIDER
+  }
+})
+
+test('the confirmed T-Hotel identity resolves every provider without a search', async () => {
+  const previousFetch = globalThis.fetch
+  let fetchCount = 0
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    throw new Error('a built-in verified identity must not perform a provider search')
+  }) as typeof fetch
+
+  try {
+    const response = await postHotelAffiliateResolution(new NextRequest(
+      'http://localhost/api/pass-planner/hotel-affiliate/resolve',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          hotelName: 'T-Hotel 入谷',
+          googlePlaceName: 'T-Hotel 入谷',
+          googlePlaceId: 'ChIJ-d-BZACPGGARzReC-9g1tB4',
+          city: 'Tokyo',
+          countryCode: 'JP',
+          lat: 35.7198987,
+          lng: 139.7815531,
+          lodgingHint: true,
+          googlePlaceTypes: ['lodging'],
+          providers: ['Trip', 'Agoda', 'Booking'],
+        }),
+      },
+    ))
+    const result = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(fetchCount).toBe(0)
+    expect(result.agoda).toMatchObject({
+      matchStatus: 'matched',
+      confidence: 'verified',
+      bestMatch: { hotelId: '86827358' },
+    })
+    expect(result.trip).toMatchObject({
+      matchStatus: 'matched',
+      confidence: 'verified',
+      providerRequestCount: 0,
+      bestMatch: { hotelId: '134107878' },
+    })
+    expect(result.booking).toMatchObject({
+      matchStatus: 'matched',
+      confidence: 'verified',
+      providerRequestCount: 0,
+      bestMatch: { hotelId: 'jp/t-hotelru-gu' },
+    })
+  } finally {
+    globalThis.fetch = previousFetch
   }
 })
 

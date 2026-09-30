@@ -374,6 +374,41 @@ test('removes Trip annual price/review wrappers without removing numeric hotel b
   }
 })
 
+test('uses the canonical Trip hotel-detail slug when Google localizes the visible title', async () => {
+  const previousProvider = process.env.TRIP_SEARCH_PROVIDER
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const previousFetch = globalThis.fetch
+  process.env.TRIP_SEARCH_PROVIDER = 'serpapi'
+  process.env.SERPAPI_API_KEY = 'trip-localized-slug-regression'
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [{
+      position: 1,
+      title: 'ESLEAD酒店-大阪難波南Ⅲ - 2026 大阪人氣酒店優惠及真實評論',
+      link: 'https://hk.trip.com/hotels/osaka-hotel-detail-69197985/eslead-hotel-namba-south-iii/',
+      snippet: '大阪浪速區住宿',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  try {
+    const result = await searchTripAffiliateHotels({
+      hotelName: 'ESLEAD HOTEL Namba South III',
+      city: 'Osaka',
+      countryCode: 'JP',
+    })
+
+    expect(result.matchStatus).toBe('matched')
+    expect(result.bestMatch?.hotelId).toBe('69197985')
+    expect(result.bestMatch?.alternateHotelNames).toContain('eslead hotel namba south iii')
+  } finally {
+    globalThis.fetch = previousFetch
+    if (typeof previousProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousProvider
+    else delete process.env.TRIP_SEARCH_PROVIDER
+    if (typeof previousSerpApiKey === 'string') process.env.SERPAPI_API_KEY = previousSerpApiKey
+    else delete process.env.SERPAPI_API_KEY
+  }
+})
+
 test('does not bypass provider search with a curated site card', async () => {
   const previousProvider = process.env.TRIP_SEARCH_PROVIDER
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
@@ -542,12 +577,18 @@ test('searches Maps English, Maps Traditional Chinese, then the user name as sep
         : query.includes(mapsTraditionalChineseName)
           ? userName
           : userName
+    const candidateSlug =
+      query.includes(mapsEnglishName)
+        ? 'different-harbor-view-hotel'
+        : query.includes(mapsTraditionalChineseName)
+          ? 'another-harbor-view-hotel'
+          : 'planner-harbor-view-hotel'
     return new Response(JSON.stringify({
       search_metadata: { status: 'Success' },
       organic_results: [{
         position: 1,
         title: `${candidateName} - Trip.com`,
-        link: 'https://www.trip.com/hotels/naha-hotel-detail-703607/planner-harbor-view-hotel/',
+        link: `https://www.trip.com/hotels/naha-hotel-detail-703607/${candidateSlug}/`,
         snippet: candidateName,
       }],
     }), { status: 200, headers: { 'content-type': 'application/json' } })

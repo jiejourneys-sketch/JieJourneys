@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/pass-planner/hotel-affiliate/agoda': ['./data/agoda-planner-hotels-index.jsonl'],
     '/api/pass-planner/hotel-affiliate/trip': ['./data/agoda-planner-hotels-index.jsonl'],
+    '/api/pass-planner/hotel-affiliate/booking': ['./data/agoda-planner-hotels-index.jsonl'],
+    '/api/pass-planner/hotel-affiliate/resolve': ['./data/agoda-planner-hotels-index.jsonl'],
   },
   images: {
     remotePatterns: [
