@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { isBookingAffiliateUrl } from '@/lib/plannerAffiliate'
+import { MAX_PLANNER_CUSTOM_PLACES, MAX_PLANNER_ITEMS } from '@/lib/plannerLimits'
 
 const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const URL_TOKEN_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 const LEGACY_EDIT_TOKEN_PATTERN = /^[a-f0-9]{64}$/
 const V2_URL_TOKEN_PATTERN = /^[A-Za-z0-9_-]{22}$/
-const MAX_ITEMS = 240
 const MAX_NOTES = 160
 const MAX_NOTE_LENGTH = 500
-const MAX_CUSTOM_PLACES = 200
 const MAX_LINKS_PER_CUSTOM_PLACE = 8
 const MAX_USER_LINK_PLACES = 120
 const MAX_USER_LINKS_PER_PLACE = 8
@@ -262,8 +261,8 @@ function cleanLegacyImageOwnerToken(value: unknown) {
   return /^[A-Za-z0-9_-]{24,96}$/.test(token) ? token : ''
 }
 
-function cleanPayload(value: unknown): PlannerBookPayload | null {
-  if (!value || typeof value !== 'object') return null
+function cleanPayload(value: unknown): { payload: PlannerBookPayload | null; limitExceeded: 'items' | 'custom_places' | null } {
+  if (!value || typeof value !== 'object') return { payload: null, limitExceeded: null }
   const input = value as Record<string, unknown>
   const id = typeof input.id === 'string' ? input.id.trim().slice(0, 32) : undefined
   const editorToken = cleanEditToken(input.edit_token)
@@ -275,7 +274,7 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
     .filter((item): item is string => typeof item === 'string')
     .map((item) => item.trim())
     .filter(Boolean)
-    .slice(0, MAX_ITEMS)
+  if (items.length > MAX_PLANNER_ITEMS) return { payload: null, limitExceeded: 'items' }
 
   const notes: Record<string, string> = {}
   const rawNotes = input.notes && typeof input.notes === 'object' ? (input.notes as Record<string, unknown>) : {}
@@ -293,8 +292,9 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
     input.custom_places && typeof input.custom_places === 'object' && !Array.isArray(input.custom_places)
       ? (input.custom_places as Record<string, unknown>)
       : {}
-  Object.entries(rawCustomPlaces)
-    .slice(0, MAX_CUSTOM_PLACES)
+  const customPlaceEntries = Object.entries(rawCustomPlaces)
+  if (customPlaceEntries.length > MAX_PLANNER_CUSTOM_PLACES) return { payload: null, limitExceeded: 'custom_places' }
+  customPlaceEntries
     .forEach(([idKey, rawPlace]) => {
       if (!rawPlace || typeof rawPlace !== 'object' || Array.isArray(rawPlace)) return
       const source = rawPlace as Record<string, unknown>
@@ -346,7 +346,9 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
       }
     })
 
-  if (!city || (items.length === 0 && Object.keys(customPlaces).length === 0)) return null
+  if (!city || (items.length === 0 && Object.keys(customPlaces).length === 0)) {
+    return { payload: null, limitExceeded: null }
+  }
 
   const userLinks: Record<string, unknown> = {}
   const rawUserLinks =
@@ -373,7 +375,7 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
   const removedAffiliateLinks: RemovedAffiliateLink[] = []
   const removedAffiliateLinkKeys = new Set<string>()
   if (Array.isArray(input.removed_affiliate_links)) {
-    input.removed_affiliate_links.slice(0, MAX_CUSTOM_PLACES * 3).forEach((rawRemoval) => {
+    input.removed_affiliate_links.slice(0, MAX_PLANNER_CUSTOM_PLACES * 3).forEach((rawRemoval) => {
       if (!rawRemoval || typeof rawRemoval !== 'object' || Array.isArray(rawRemoval)) return
       const removal = rawRemoval as Record<string, unknown>
       const placeId = typeof removal.place_id === 'string' ? removal.place_id.trim().slice(0, 80) : ''
@@ -388,17 +390,20 @@ function cleanPayload(value: unknown): PlannerBookPayload | null {
   }
 
   return {
-    id,
-    ...(editorToken ? { edit_token: editorToken } : {}),
-    ...(regionKey ? { region_key: regionKey } : {}),
-    planner_source: plannerSource,
-    city,
-    items,
-    notes: Object.keys(notes).length > 0 ? notes : undefined,
-    custom_places: Object.keys(customPlaces).length > 0 ? customPlaces : undefined,
-    user_links: Object.keys(userLinks).length > 0 ? userLinks : undefined,
-    pre_departure: cleanPreDeparture(input.pre_departure),
-    removed_affiliate_links: removedAffiliateLinks.length > 0 ? removedAffiliateLinks : undefined,
+    payload: {
+      id,
+      ...(editorToken ? { edit_token: editorToken } : {}),
+      ...(regionKey ? { region_key: regionKey } : {}),
+      planner_source: plannerSource,
+      city,
+      items,
+      notes: Object.keys(notes).length > 0 ? notes : undefined,
+      custom_places: Object.keys(customPlaces).length > 0 ? customPlaces : undefined,
+      user_links: Object.keys(userLinks).length > 0 ? userLinks : undefined,
+      pre_departure: cleanPreDeparture(input.pre_departure),
+      removed_affiliate_links: removedAffiliateLinks.length > 0 ? removedAffiliateLinks : undefined,
+    },
+    limitExceeded: null,
   }
 }
 
@@ -463,7 +468,7 @@ function collectNewAffiliateLinkObservations(
     : {}
   const observations: AffiliateLinkObservation[] = []
 
-  Object.entries(nextValue).slice(0, MAX_CUSTOM_PLACES).forEach(([placeId, rawNextPlace]) => {
+  Object.entries(nextValue).slice(0, MAX_PLANNER_CUSTOM_PLACES).forEach(([placeId, rawNextPlace]) => {
     if (!/^custom:[A-Za-z0-9_-]{1,80}$/.test(placeId)) return
     if (!rawNextPlace || typeof rawNextPlace !== 'object' || Array.isArray(rawNextPlace)) return
     const nextLinks = Array.isArray((rawNextPlace as Record<string, unknown>).links)
@@ -495,7 +500,7 @@ function collectNewAffiliateLinkObservations(
     })
   })
 
-  return observations.slice(0, MAX_CUSTOM_PLACES * 3)
+  return observations.slice(0, MAX_PLANNER_CUSTOM_PLACES * 3)
 }
 
 async function recordHotelAffiliateObservations(
@@ -540,7 +545,13 @@ export async function POST(req: NextRequest) {
   if (hasInvalidTextEncoding(input)) {
     return NextResponse.json({ error: 'invalid_text_encoding' }, { status: 422 })
   }
-  const payload = cleanPayload(input)
+  const cleaned = cleanPayload(input)
+  if (cleaned.limitExceeded) {
+    return cleaned.limitExceeded === 'items'
+      ? NextResponse.json({ error: 'item_limit_exceeded', max_items: MAX_PLANNER_ITEMS }, { status: 422 })
+      : NextResponse.json({ error: 'custom_place_limit_exceeded', max_custom_places: MAX_PLANNER_CUSTOM_PLACES }, { status: 422 })
+  }
+  const payload = cleaned.payload
   if (!payload) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
 
   if (payload.id) {

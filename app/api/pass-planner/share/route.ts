@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { MAX_PLANNER_ITEMS } from '@/lib/plannerLimits'
 
 const TABLE = 'pass_planner_shares'
 const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-const MAX_ITEMS = 240
 const MAX_NOTES = 80
 const MAX_NOTE_LENGTH = 500
 const PLANNER_RETENTION_DAYS = 365
@@ -44,8 +44,8 @@ async function contentHash(payload: PlannerSharePayload) {
   return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('')
 }
 
-function cleanPayload(value: unknown): PlannerSharePayload | null {
-  if (!value || typeof value !== 'object') return null
+function cleanPayload(value: unknown): { payload: PlannerSharePayload | null; itemLimitExceeded: boolean } {
+  if (!value || typeof value !== 'object') return { payload: null, itemLimitExceeded: false }
   const input = value as Record<string, unknown>
   const city = typeof input.city === 'string' ? input.city.trim().slice(0, 32) : ''
   const rawItems = Array.isArray(input.items) ? input.items : []
@@ -53,9 +53,9 @@ function cleanPayload(value: unknown): PlannerSharePayload | null {
     .filter((item): item is string => typeof item === 'string')
     .map((item) => item.trim())
     .filter(Boolean)
-    .slice(0, MAX_ITEMS)
+  if (items.length > MAX_PLANNER_ITEMS) return { payload: null, itemLimitExceeded: true }
 
-  if (!city || items.length === 0) return null
+  if (!city || items.length === 0) return { payload: null, itemLimitExceeded: false }
 
   const notes: Record<string, string> = {}
   const rawNotes = input.notes && typeof input.notes === 'object' ? (input.notes as Record<string, unknown>) : {}
@@ -69,9 +69,12 @@ function cleanPayload(value: unknown): PlannerSharePayload | null {
     })
 
   return {
-    city,
-    items,
-    notes: Object.keys(notes).length > 0 ? notes : undefined,
+    payload: {
+      city,
+      items,
+      notes: Object.keys(notes).length > 0 ? notes : undefined,
+    },
+    itemLimitExceeded: false,
   }
 }
 
@@ -79,7 +82,11 @@ export async function POST(req: NextRequest) {
   const supabase = getTripSupabase()
   if (!supabase) return NextResponse.json({ error: 'supabase_env_missing' }, { status: 503 })
 
-  const payload = cleanPayload(await req.json().catch(() => null))
+  const cleaned = cleanPayload(await req.json().catch(() => null))
+  if (cleaned.itemLimitExceeded) {
+    return NextResponse.json({ error: 'item_limit_exceeded', max_items: MAX_PLANNER_ITEMS }, { status: 422 })
+  }
+  const payload = cleaned.payload
   if (!payload) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 })
   const hash = await contentHash(payload)
   const expiresAt = new Date(Date.now() + PLANNER_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString()

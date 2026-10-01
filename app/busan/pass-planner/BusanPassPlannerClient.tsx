@@ -67,6 +67,7 @@ import {
 import { clearSmartMapLabels, syncSmartMapLabels, type SmartMapLabelOverlay } from '@/lib/mapSmartLabels'
 import type { MapPlace } from '@/lib/mapPlace'
 import { isPlannerInspectionMode, PLANNER_INSPECTION_PARAM } from '@/lib/plannerInspection'
+import { MAX_PLANNER_CUSTOM_PLACES, MAX_PLANNER_ITEMS } from '@/lib/plannerLimits'
 import styles from './passPlanner.module.css'
 
 type PlannerMode = 'add' | 'order'
@@ -7627,7 +7628,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [mobilePanelDragging, setMobilePanelDragging] = useState(false)
   const [mobilePanelDragHeight, setMobilePanelDragHeight] = useState<number | null>(null)
   const [updateShareConfirmOpen, setUpdateShareConfirmOpen] = useState(false)
-  const [plannerNotice, setPlannerNotice] = useState<'save-before-photo' | 'copy-complete' | 'copy-failed' | null>(null)
+  const [plannerNotice, setPlannerNotice] = useState<'save-before-photo' | 'copy-complete' | 'copy-failed' | 'plan-item-limit' | 'custom-place-limit' | null>(null)
   const [sharedCopyPrompt, setSharedCopyPrompt] = useState<{ existingTarget: SharedPlannerEditTarget | null } | null>(null)
   const [sharedCopyNamePromptOpen, setSharedCopyNamePromptOpen] = useState(false)
   const [sharedCopyNameDraft, setSharedCopyNameDraft] = useState('')
@@ -7705,6 +7706,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const mobilePanelOpen = mobilePanelState !== 'collapsed'
   const markPlannerCloudUserEdit = useCallback(() => {
     plannerCloudUserEditedRef.current = true
+  }, [])
+  const canAddPlanItems = useCallback((count = 1) => {
+    if (planItemsRef.current.length + count <= MAX_PLANNER_ITEMS) return true
+    setPlannerNotice('plan-item-limit')
+    return false
   }, [])
   const updatePlanItemsWithUndo = useCallback((update: (items: PlannerItem[]) => PlannerItem[]) => {
     setTransportRemovalNotice(null)
@@ -8486,7 +8492,11 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const validPlanItems = useMemo(
     () => {
       const normalizedItems = normalizePlanItems(planItems, placeById)
-      if (normalizedItems.some(isDayItem) && !isDayItem(normalizedItems[0] ?? '')) {
+      if (
+        normalizedItems.length < MAX_PLANNER_ITEMS &&
+        normalizedItems.some(isDayItem) &&
+        !isDayItem(normalizedItems[0] ?? '')
+      ) {
         return [createDayItem(), ...normalizedItems]
       }
       return normalizedItems
@@ -10563,6 +10573,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addPlaceToPlan = (place: MapPlace, dayNumber: number | 'end' = 'end', initialNote = '') => {
     if (readOnlyPlan) return
+    const alreadyPlanned = !canRepeatPlanPlace(place) && planItemsRef.current.some((item) => planItemPlaceId(item) === place.id)
+    if (!alreadyPlanned && !canAddPlanItems()) return
     markPlannerCloudUserEdit()
     const itemId = canRepeatPlanPlace(place) ? createVisitItem(place.id) : place.id
     updatePlanItemsWithUndo((ids) => {
@@ -10592,6 +10604,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addPlace = (place: MapPlace, initialNote = '') => {
     const noteForNewItem = initialNote
+    const alreadyPlanned = !canRepeatPlanPlace(place) && planItemsRef.current.some((item) => planItemPlaceId(item) === place.id)
+    if (!alreadyPlanned && !canAddPlanItems()) return
     if (hasDayDividers && (canRepeatPlanPlace(place) || !plannedSet.has(place.id))) {
       setPendingAddPlace(place)
       setPendingAddPlaceNote(noteForNewItem)
@@ -10695,6 +10709,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
   const addTransportAfter = (itemId: PlannerItem | null) => {
     if (readOnlyPlan) return
+    if (!canAddPlanItems()) return
     let transportItem: PlannerItem | null = null
     const added = updatePlanItemsWithUndo((items) => {
       const scopedItems = dayView === 'all'
@@ -10825,6 +10840,8 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   }
   const addDayDivider = () => {
     if (readOnlyPlan) return
+    const itemCount = isDayItem(planItemsRef.current[0] ?? '') ? 1 : 2
+    if (!canAddPlanItems(itemCount)) return
     markPlannerCloudUserEdit()
     const dividerId = createDayItem()
     pendingDayDividerScrollRef.current = dividerId
@@ -12834,11 +12851,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       setCustomPlaceSaveError('location')
       return
     }
+    const existingPlace = customPlaces[id]
+    if (!existingPlace && Object.keys(customPlaces).length >= MAX_PLANNER_CUSTOM_PLACES) {
+      setPlannerNotice('custom-place-limit')
+      return
+    }
     markPlannerCloudUserEdit()
     const linkLabel = customDraft.linkLabel.trim()
     const linkUrl = customDraft.linkUrl.trim()
     const cleanGoogleUrl = googleMapsUrlFromInput(customDraft.googleUrl)
-    const existingPlace = customPlaces[id]
     const googleUrlChanged =
       Boolean(existingPlace?.googleUrl && cleanGoogleUrl) &&
       normalizePlaceMatchUrl(existingPlace?.googleUrl) !== normalizePlaceMatchUrl(cleanGoogleUrl)
@@ -15528,6 +15549,26 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                       }}
                     >
                       先儲存行程
+                    </button>
+                  </div>
+                </>
+              ) : plannerNotice === 'plan-item-limit' ? (
+                <>
+                  <h2 id="planner-notice-title">已達行程項目上限</h2>
+                  <p>一份行程最多 {MAX_PLANNER_ITEMS} 個項目，包含景點、交通和日期分隔。請先刪除或合併項目再新增；現有內容不會被刪除。</p>
+                  <div className={styles.confirmActions}>
+                    <button type="button" className={styles.confirmPrimary} onClick={() => setPlannerNotice(null)}>
+                      知道了
+                    </button>
+                  </div>
+                </>
+              ) : plannerNotice === 'custom-place-limit' ? (
+                <>
+                  <h2 id="planner-notice-title">已達自訂地點上限</h2>
+                  <p>一份行程最多可建立 {MAX_PLANNER_CUSTOM_PLACES} 個自訂地點。請先刪除不需要的自訂地點再新增；現有內容不會被刪除。</p>
+                  <div className={styles.confirmActions}>
+                    <button type="button" className={styles.confirmPrimary} onClick={() => setPlannerNotice(null)}>
+                      知道了
                     </button>
                   </div>
                 </>
