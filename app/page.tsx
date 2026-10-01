@@ -2,11 +2,41 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import PopularGrid from '@/components/PopularGrid'
 import Footer from '@/components/Footer'
 
+const GROUP_BUY_URL = 'https://www.lapo.com.tw/zh-TW/products/lt17lt28-jiejourneys'
+const GROUP_BUY_VIDEO_SRC = '/assets/group-buy/lapo-travel-goods.mp4'
+const GROUP_BUY_IMAGE_SRC = '/assets/group-buy/lapo-loop-vacuum-bag-hero.png'
+const GROUP_BUY_END_AT = new Date('2026-10-07T23:59:59+08:00').getTime()
+
+type GroupBuyCountdown = {
+  days: number
+  hours: number
+  minutes: number
+  seconds: number
+  ended: boolean
+}
+
+function getGroupBuyCountdown(): GroupBuyCountdown {
+  const remaining = Math.max(0, GROUP_BUY_END_AT - Date.now())
+  const totalSeconds = Math.floor(remaining / 1000)
+
+  return {
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+    ended: remaining === 0,
+  }
+}
+
 export default function HomePage() {
+  const [groupBuyCountdown, setGroupBuyCountdown] = useState<GroupBuyCountdown | null>(null)
+  const [isGroupBuyImageOpen, setGroupBuyImageOpen] = useState(false)
+  const [isGroupBuyVideoOpen, setGroupBuyVideoOpen] = useState(false)
+
   useEffect(() => {
     const header = document.querySelector('header')
     document.querySelectorAll('a[href^="#"]').forEach((a) => {
@@ -22,6 +52,35 @@ export default function HomePage() {
       })
     })
   }, [])
+
+  useEffect(() => {
+    if (!isGroupBuyImageOpen && !isGroupBuyVideoOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setGroupBuyImageOpen(false)
+        setGroupBuyVideoOpen(false)
+      }
+    }
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isGroupBuyImageOpen, isGroupBuyVideoOpen])
+
+  useEffect(() => {
+    const updateCountdown = () => setGroupBuyCountdown(getGroupBuyCountdown())
+    updateCountdown()
+    const timer = window.setInterval(updateCountdown, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const groupBuyEnded = groupBuyCountdown?.ended ?? false
 
   return (
     <>
@@ -53,6 +112,99 @@ export default function HomePage() {
 
       <main className="container">
         <h1 className="sr-only">旅杰 JieJourneys－自由行旅遊攻略</h1>
+        <section className="group-buy-banner" aria-labelledby="group-buy-title">
+          <button
+            type="button"
+            className="group-buy-media"
+            onClick={() => setGroupBuyImageOpen(true)}
+            data-event="home_groupbuy_lapo_20261001_image_open"
+            data-section="group_buy"
+            aria-label="放大查看電動真空行李收納袋團購圖片"
+          >
+            <Image src={GROUP_BUY_IMAGE_SRC} alt="Loop 電動真空行李收納袋，17L 與 28L 團購優惠" fill sizes="(max-width: 680px) 100vw, 300px" />
+            <span className="group-buy-image-expand" aria-hidden="true">↗ 放大圖片</span>
+          </button>
+          <div className="group-buy-copy">
+            <p className="group-buy-kicker">旅杰團購</p>
+            <h2 id="group-buy-title">電動真空收納袋：行李更好收</h2>
+            <div className="group-buy-price" aria-label="團購價格">
+              <p><span>17L</span><strong>NT$790</strong><s>NT$990</s></p>
+              <p><span>28L</span><strong>NT$890</strong><s>NT$1,190</s></p>
+            </div>
+            <div className="group-buy-actions">
+              <div className="group-buy-countdown" aria-live="polite" aria-label="團購倒數時間">
+                {groupBuyEnded ? (
+                  <strong>活動已結束</strong>
+                ) : groupBuyCountdown ? (
+                  <>
+                    <span>倒數</span>
+                    <strong>
+                      {String(groupBuyCountdown.days).padStart(2, '0')} 天 {String(groupBuyCountdown.hours).padStart(2, '0')}:{String(groupBuyCountdown.minutes).padStart(2, '0')}:{String(groupBuyCountdown.seconds).padStart(2, '0')}
+                    </strong>
+                  </>
+                ) : (
+                  <span>倒數載入中</span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="group-buy-video-button"
+                onClick={() => setGroupBuyVideoOpen(true)}
+                data-event="home_groupbuy_lapo_20261001_video_open"
+                data-section="group_buy"
+              >
+                <span aria-hidden="true">▶</span> 看影片
+              </button>
+              {!groupBuyEnded ? (
+                <a
+                  className="group-buy-cta"
+                  href={GROUP_BUY_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="home_groupbuy_lapo_20261001_cta"
+                  data-platform="LAPO"
+                  data-section="group_buy"
+                >
+                  查看優惠 <span aria-hidden="true">→</span>
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </section>
+        {isGroupBuyImageOpen ? (
+          <div className="group-buy-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setGroupBuyImageOpen(false) }}>
+            <div className="group-buy-image-modal-dialog" role="dialog" aria-modal="true" aria-label="電動真空行李收納袋團購圖片">
+              <button
+                type="button"
+                className="group-buy-modal-close"
+                onClick={() => setGroupBuyImageOpen(false)}
+                data-event="home_groupbuy_lapo_20261001_image_close"
+                data-section="group_buy"
+                aria-label="關閉圖片"
+              >
+                ×
+              </button>
+              <Image src={GROUP_BUY_IMAGE_SRC} alt="Loop 電動真空行李收納袋團購資訊" width={941} height={889} sizes="(max-width: 680px) calc(100vw - 32px), 780px" />
+            </div>
+          </div>
+        ) : null}
+        {isGroupBuyVideoOpen ? (
+          <div className="group-buy-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setGroupBuyVideoOpen(false) }}>
+            <div className="group-buy-modal-dialog" role="dialog" aria-modal="true" aria-label="電動真空行李收納袋示範影片">
+              <button
+                type="button"
+                className="group-buy-modal-close"
+                onClick={() => setGroupBuyVideoOpen(false)}
+                data-event="home_groupbuy_lapo_20261001_video_close"
+                data-section="group_buy"
+                aria-label="關閉影片"
+              >
+                ×
+              </button>
+              <video src={GROUP_BUY_VIDEO_SRC} autoPlay controls playsInline preload="metadata" aria-label="電動真空行李收納袋示範影片" />
+            </div>
+          </div>
+        ) : null}
         <section id="popular" className="section" aria-label="熱門攻略">
           <h2>熱門攻略</h2>
           <p className="sub">先選國家，再選要去的城市</p>

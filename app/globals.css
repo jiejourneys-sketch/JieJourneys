@@ -615,6 +615,336 @@ header {
   gap: 8px;
 }
 
+.group-buy-banner {
+  display: grid;
+  grid-template-columns: minmax(210px, 270px) minmax(0, 1fr);
+  align-items: stretch;
+  margin: 14px 0 4px;
+  overflow: hidden;
+  border: 1px solid #e4d4bd;
+  border-radius: 14px;
+  color: #4f382c;
+  background: #fffaf4;
+  box-shadow: 0 10px 24px rgba(105, 74, 50, 0.13);
+}
+
+.group-buy-copy {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 16px;
+}
+
+.group-buy-media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  min-height: 180px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: #eadac7;
+  cursor: pointer;
+}
+
+.group-buy-media::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, transparent 50%, rgba(57, 40, 28, 0.38));
+  content: '';
+  pointer-events: none;
+}
+
+.group-buy-media img {
+  object-fit: contain;
+  object-position: center;
+  transition: transform 0.25s ease;
+}
+
+.group-buy-media:hover img {
+  transform: scale(1.025);
+}
+
+.group-buy-media:focus-visible {
+  z-index: 2;
+  outline: 3px solid #a9653e;
+  outline-offset: -3px;
+}
+
+.group-buy-image-expand {
+  position: absolute;
+  z-index: 2;
+  left: 13px;
+  bottom: 12px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(64, 43, 29, 0.78);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.group-buy-kicker {
+  margin: 0;
+  color: #94704f;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.group-buy-copy h2 {
+  margin: 0;
+  color: #3d2a20;
+  font-size: clamp(19px, 2.3vw, 24px);
+  line-height: 1.2;
+}
+
+.group-buy-price {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.group-buy-price p {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 1px 5px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid #eadac7;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.group-buy-price span {
+  color: #8b6a50;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.group-buy-price strong {
+  color: #8a472b;
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.group-buy-price s {
+  grid-column: 1 / -1;
+  color: #998271;
+  font-size: 10px;
+}
+
+.group-buy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.group-buy-video-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid #d9bea2;
+  border-radius: 9px;
+  color: #75442e;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.group-buy-video-button:hover {
+  background: #f8efe5;
+  transform: translateY(-1px);
+}
+
+.group-buy-video-button:focus-visible {
+  outline: 3px solid #c6895d;
+  outline-offset: 3px;
+}
+
+.group-buy-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #eadac7;
+  border-radius: 9px;
+  background: #f8efe5;
+}
+
+.group-buy-countdown span {
+  color: #8b6a50;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.group-buy-countdown strong {
+  color: #68412d;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.group-buy-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 13px;
+  border-radius: 9px;
+  color: #fff;
+  background: #8b4a2e;
+  box-shadow: 0 2px 0 rgba(81, 42, 26, 0.14);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.group-buy-cta:hover {
+  background: #71371f;
+  transform: translateY(-1px);
+}
+
+.group-buy-cta:focus-visible {
+  outline: 3px solid #c6895d;
+  outline-offset: 3px;
+}
+
+.group-buy-modal {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(32, 23, 17, 0.76);
+}
+
+.group-buy-modal-dialog {
+  position: relative;
+  width: min(100%, 400px);
+  overflow: hidden;
+  border-radius: 14px;
+  background: #21160f;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.36);
+}
+
+.group-buy-image-modal-dialog {
+  position: relative;
+  width: min(100%, 780px);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.36);
+}
+
+.group-buy-image-modal-dialog img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.group-buy-modal-dialog video {
+  width: 100%;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.group-buy-modal-close {
+  position: absolute;
+  z-index: 1;
+  top: 9px;
+  right: 9px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(32, 22, 15, 0.78);
+  font-size: 25px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  .group-buy-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .group-buy-media {
+    min-height: 180px;
+  }
+
+  .group-buy-copy {
+    padding: 14px 16px;
+  }
+
+  .group-buy-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .group-buy-countdown {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .group-buy-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .group-buy-countdown,
+  .group-buy-cta,
+  .group-buy-video-button {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+@media (max-width: 390px) {
+  .group-buy-copy h2 {
+    font-size: 18px;
+  }
+
+  .group-buy-price p {
+    padding: 7px 8px;
+  }
+
+  .group-buy-price strong {
+    font-size: 15px;
+  }
+
+  .group-buy-countdown,
+  .group-buy-cta,
+  .group-buy-video-button {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+}
+
 .home-resource-card {
   display: grid;
   gap: 12px;
