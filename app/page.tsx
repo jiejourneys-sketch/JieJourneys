@@ -10,6 +10,8 @@ const GROUP_BUY_URL = 'https://www.lapo.com.tw/zh-TW/products/lt17lt28-jiejourne
 const GROUP_BUY_VIDEO_SRC = '/assets/group-buy/lapo-travel-goods.mp4'
 const GROUP_BUY_IMAGE_SRC = '/assets/group-buy/lapo-loop-vacuum-bag-hero.png'
 const GROUP_BUY_END_AT = new Date('2026-10-07T23:59:59+08:00').getTime()
+// Keep the completed promotion ready to restore when stock is available again.
+const GROUP_BUY_ENABLED = false
 
 type GroupBuyCountdown = {
   days: number
@@ -73,6 +75,8 @@ export default function HomePage() {
   }, [isGroupBuyImageOpen, isGroupBuyVideoOpen])
 
   useEffect(() => {
+    if (!GROUP_BUY_ENABLED) return
+
     const updateCountdown = () => setGroupBuyCountdown(getGroupBuyCountdown())
     updateCountdown()
     const timer = window.setInterval(updateCountdown, 1000)
@@ -112,6 +116,8 @@ export default function HomePage() {
 
       <main className="container">
         <h1 className="sr-only">旅杰 JieJourneys－自由行旅遊攻略</h1>
+        {GROUP_BUY_ENABLED ? (
+          <>
         <section className="group-buy-banner" aria-labelledby="group-buy-title">
           <button
             type="button"
@@ -204,6 +210,8 @@ export default function HomePage() {
               <video src={GROUP_BUY_VIDEO_SRC} autoPlay controls playsInline preload="metadata" aria-label="電動真空行李收納袋示範影片" />
             </div>
           </div>
+        ) : null}
+          </>
         ) : null}
         <section id="popular" className="section" aria-label="熱門攻略">
           <h2>熱門攻略</h2>
