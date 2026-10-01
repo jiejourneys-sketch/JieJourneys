@@ -5,7 +5,7 @@ import {
   autumnLeavesForecast2026Title,
 } from './pageMeta'
 
-const FORECAST_IMAGE = 'https://www.jiejourneys.com/assets/japan-autumn-leaves-forecast-2026/forecast-map.png'
+const FORECAST_IMAGE = 'https://www.jiejourneys.com/assets/japan-autumn-leaves-forecast-2026/forecast-map-v2.png'
 
 export const metadata: Metadata = {
   title: autumnLeavesForecast2026Title,

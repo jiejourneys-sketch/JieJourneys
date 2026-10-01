@@ -104,6 +104,9 @@ export default function OsakaPassMapPage() {
                 </a>
                 。
               </p>
+
+              <h3 className="seo-h3">地圖有收錄重點景點，但先確認你買的是哪一版</h3>
+              <p>目前地圖已整理 39 個免費設施標記，也有梅田藍天、道頓堀水上觀光船、Wonder Cruise 等需要看時段或換票的提醒。不過地圖是排點工具，不會替你判斷票種：<strong>萬博紀念公園與 OSAKA WHEEL 只適用大阪伊丹空港版</strong>；OSAKA WHEEL 目前又在維護停運中，不能拿來當回本景點。從關西機場抵達且想立刻開始跑景點，則先到攻略頁比較新的 KIX 28 小時券，再決定是否把這張地圖的景點排入同一段時間。</p>
               <SeoVideoLinkMenu label="大阪周遊券" links={passVideoLinks} />
 
               <div className="seo-buy-links seo-action-links" aria-label="大阪周遊券相關連結">

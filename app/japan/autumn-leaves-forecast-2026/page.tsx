@@ -14,7 +14,7 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const PUBLISHED_AT = '2026-09-03'
-const UPDATED_AT = '2026-09-03'
+const UPDATED_AT = '2026-10-01'
 
 const JAPAN_METEOROLOGICAL_CORPORATION_URL = 'https://n-kishou.com/corp/news-contents/autumn/'
 const WEATHERNEWS_AUTUMN_URL = 'https://weathernews.jp/koyo/'
@@ -39,11 +39,11 @@ type MenuLink = {
 
 const trackingSources: TrackingSource[] = [
   {
-    label: '日本氣象｜第 1 回紅葉、黃葉預測',
+    label: '日本氣象｜第 2 回紅葉、黃葉預測',
     href: JAPAN_METEOROLOGICAL_CORPORATION_URL,
     event: 'japanautumn2026_source_jmc',
     platform: 'Japan Meteorological Corporation',
-    purpose: '確認城市紅葉、銀杏日期與 10 月上旬的下一回預測。',
+    purpose: '確認城市紅葉、銀杏日期與名所、山區的最新見頃預測。',
   },
   {
     label: 'Weathernews｜即時紅葉資訊',
@@ -113,19 +113,19 @@ const bookingOptions: MenuLink[] = [
 ]
 
 const forecastRows = [
-  { region: '北海道', city: '札幌', maple: '11/7', ginkgo: '11/6' },
-  { region: '東北', city: '青森', maple: '11/13', ginkgo: '11/6' },
-  { region: '東北', city: '仙台', maple: '11/25', ginkgo: '11/29' },
-  { region: '關東', city: '東京', maple: '11/29', ginkgo: '11/26' },
+  { region: '北海道', city: '札幌', maple: '11/4', ginkgo: '11/3' },
+  { region: '東北', city: '青森', maple: '11/13', ginkgo: '11/5' },
+  { region: '東北', city: '仙台', maple: '11/24', ginkgo: '11/29' },
+  { region: '關東', city: '東京', maple: '11/28', ginkgo: '11/26' },
   { region: '甲信', city: '長野', maple: '11/21', ginkgo: '11/14' },
   { region: '北陸', city: '金澤', maple: '11/30', ginkgo: '11/10' },
   { region: '東海', city: '名古屋', maple: '12/2', ginkgo: '11/17' },
   { region: '關西', city: '京都', maple: '12/11', ginkgo: '11/27' },
   { region: '關西', city: '大阪', maple: '12/4', ginkgo: '11/24' },
-  { region: '關西', city: '和歌山', maple: '12/11', ginkgo: '11/26' },
-  { region: '中國', city: '廣島', maple: '11/28', ginkgo: '11/20' },
+  { region: '關西', city: '和歌山', maple: '12/12', ginkgo: '11/26' },
+  { region: '中國', city: '廣島', maple: '11/28', ginkgo: '11/21' },
   { region: '四國', city: '高知', maple: '12/9', ginkgo: '11/16' },
-  { region: '九州', city: '福岡', maple: '12/7', ginkgo: '11/27' },
+  { region: '九州', city: '福岡', maple: '12/7', ginkgo: '11/28' },
   { region: '九州', city: '鹿兒島', maple: '12/10', ginkgo: '11/27' },
 ]
 
@@ -153,11 +153,11 @@ const regionalRows = [
 const faqItems = [
   {
     q: '2026 日本什麼時候最適合賞楓？',
-    a: '要看地區、海拔與樹種。城市指標預測由北往南約落在 11 月上旬到 12 月中旬；高山通常更早。第 1 回預測中，札幌紅葉約 11/7、東京 11/29、大阪 12/4、京都 12/11。',
+    a: '要看地區、海拔與樹種。城市指標預測由北往南約落在 11 月上旬到 12 月中旬；高山通常更早。第 2 回預測中，札幌紅葉約 11/4、東京 11/28、大阪 12/4、京都 12/11。',
   },
   {
     q: '東京、京都、大阪 2026 紅葉預測是幾月？',
-    a: '日本氣象株式會社第 1 回預測為：東京紅葉約 11/29、京都約 12/11、大阪約 12/4；同一城市的銀杏通常較早，例如東京 11/26、大阪 11/24、京都 11/27。',
+    a: '日本氣象株式會社第 2 回預測為：東京紅葉約 11/28、京都約 12/11、大阪約 12/4；同一城市的銀杏通常較早，例如東京 11/26、大阪 11/24、京都 11/27。',
   },
   {
     q: '預測日期就是景點最漂亮的那一天嗎？',
@@ -169,7 +169,7 @@ const faqItems = [
   },
   {
     q: '今年賞楓預測還會更新嗎？',
-    a: '會。日本氣象株式會社已預告下一回預測在 10 月上旬發布；越接近出發日，越要以各名所的即時色況、短期天氣與交通公告調整行程。',
+    a: '會。日本氣象株式會社已預告下一回預測在 11 月上旬發布；越接近出發日，越要以各名所的即時色況、短期天氣與交通公告調整行程。',
   },
 ]
 
@@ -188,7 +188,7 @@ const articleJsonLd = {
     name: 'JieJourneys(旅杰)',
     logo: { '@type': 'ImageObject', url: `${SITE_URL}/assets/og-share.png` },
   },
-  image: `${SITE_URL}/assets/japan-autumn-leaves-forecast-2026/forecast-map.png`,
+  image: `${SITE_URL}/assets/japan-autumn-leaves-forecast-2026/forecast-map-v2.png`,
 }
 
 const faqJsonLd = {
@@ -224,9 +224,9 @@ export default async function AutumnLeavesForecast2026Page({ searchParams }: Aut
       <CitySubpageHeader backHref={backHref} eventPrefix="japanautumn2026" />
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
-          badge="日本旅遊速報｜2026/9/3 更新"
+          badge="日本旅遊速報｜2026/10/1 更新"
           h1="2026 日本賞楓預測｜東京、京都、大阪何時看紅葉與銀杏？"
-          intro="日本氣象株式會社 9/2 發布第 1 回預測：今年秋季氣溫偏高，許多地區的紅葉、銀杏將落在平年同期或較晚。城市預測中，東京紅葉約 11/29、大阪約 12/4、京都約 12/11；銀杏通常更早進入見頃。"
+          intro="日本氣象株式會社 10/1 發布第 2 回預測：紅葉大多落在平年同期，北日本、東日本的銀杏則可能平年同期或稍晚。城市預測中，東京紅葉約 11/28、大阪約 12/4、京都約 12/11；銀杏通常更早進入見頃。"
           eventPrefix="japanautumn2026"
           showVisual={false}
           ctaLinks={[
@@ -241,17 +241,17 @@ export default async function AutumnLeavesForecast2026Page({ searchParams }: Aut
           <div className="narita-summary-grid haneda-summary-grid" role="list">
             <div role="listitem">
               <span className="narita-summary-label">目前版本</span>
-              <strong>第 1 回預測：2026/9/2</strong>
-              <p>下一回預測預計 10 月上旬發布；接近出發時務必重看。</p>
+              <strong>第 2 回預測：2026/10/1</strong>
+              <p>下一回預測預計 11 月上旬發布；接近出發時務必重看。</p>
             </div>
             <div role="listitem">
               <span className="narita-summary-label">今年整體趨勢</span>
-              <strong>多數地區平年同期或偏晚</strong>
-              <p>秋季氣溫偏高會讓葉片轉色往後；北部與東部更要留意延後。</p>
+              <strong>紅葉多為平年同期</strong>
+              <p>北日本、東日本的銀杏可能平年同期或稍晚；西日本紅葉、銀杏皆大致平年同期。</p>
             </div>
             <div role="listitem">
               <span className="narita-summary-label">東京／大阪／京都紅葉</span>
-              <strong>11/29／12/4／12/11</strong>
+              <strong>11/28／12/4／12/11</strong>
               <p>這是城市指標樹的預測日，不等於所有名所同一天最美。</p>
             </div>
             <div role="listitem">
@@ -268,20 +268,20 @@ export default async function AutumnLeavesForecast2026Page({ searchParams }: Aut
             <p>這張圖把紅葉（楓樹、槭樹等轉紅）與銀杏（轉黃）分開標示。先用它決定要去北海道、東京、關西或九州的哪一週，再依實際想去的寺院、公園或山區調整；同一座城市的高低海拔與樹種不同，見頃不會完全同步。</p>
             <figure className="seo-figure seo-tall-figure">
               <Image
-                src="/assets/japan-autumn-leaves-forecast-2026/forecast-map.png"
+                src="/assets/japan-autumn-leaves-forecast-2026/forecast-map-v2.png"
                 alt="2026 日本紅葉與銀杏預測地圖，標示札幌、東京、京都、大阪、福岡等城市的見頃日期"
                 width={1122}
                 height={1400}
                 sizes="(max-width: 820px) 100vw, 760px"
                 priority
               />
-              <figcaption>旅杰製圖。資料來源：日本氣象株式會社「2026 年紅葉・黃葉見頃預測（第 1 回）」；發布日為 2026/9/2。</figcaption>
+              <figcaption>旅杰製圖。資料來源：日本氣象株式會社「2026 年紅葉・黃葉見頃預測（第 2 回）」；發布日為 2026/10/1。</figcaption>
             </figure>
           </div>
         </section>
 
         <section className="seo-content" id="city-dates" aria-label="2026 日本各城市紅葉銀杏預測日期">
-          <h2 className="seo-h2">各城市預測日期｜東京 11/29、大阪 12/4、京都 12/11</h2>
+          <h2 className="seo-h2">各城市預測日期｜東京 11/28、大阪 12/4、京都 12/11</h2>
           <div className="seo-prose">
             <p>下表是日本氣象株式會社本次公布的主要城市預測。紅葉、銀杏是兩套不同的日期：如果你想同一趟拍兩種顏色，先看銀杏，再看紅葉，通常會比只盯「賞楓」兩字更好排行程。</p>
             <div className="narita-table-scroll">
@@ -306,14 +306,14 @@ export default async function AutumnLeavesForecast2026Page({ searchParams }: Aut
                 </tbody>
               </table>
             </div>
-            <p><strong>怎麼看表：</strong>東京如果想看銀杏先抓 11 月下旬，紅葉則以 11/29 前後為起點；大阪是 11 月下旬銀杏、12 月上旬紅葉；京都銀杏在 11 月下旬，但楓葉可以預留到 12 月上旬。日期是旅行規劃的基準，不是景點保證日。</p>
+            <p><strong>怎麼看表：</strong>東京如果想看銀杏先抓 11 月下旬，紅葉則以 11/28 前後為起點；大阪是 11 月下旬銀杏、12 月上旬紅葉；京都銀杏在 11 月下旬，但楓葉可以預留到 12 月上旬。日期是旅行規劃的基準，不是景點保證日。</p>
           </div>
         </section>
 
         <section className="seo-content" id="regional-timing" aria-label="北日本東日本西日本賞楓時段">
           <h2 className="seo-h2">北日本、東日本、西日本｜山區和平地的見頃時段不同</h2>
           <div className="seo-prose">
-            <p>同一個地區也會因海拔拉開時間差。高處氣溫較低，通常先轉色；平地名所則會晚一些。這也是為什麼「東京 11/29」或「京都 12/11」不能直接套用到近郊山區。</p>
+            <p>同一個地區也會因海拔拉開時間差。高處氣溫較低，通常先轉色；平地名所則會晚一些。這也是為什麼「東京 11/28」或「京都 12/11」不能直接套用到近郊山區。</p>
             <div className="narita-table-scroll">
               <table>
                 <thead>
@@ -336,7 +336,7 @@ export default async function AutumnLeavesForecast2026Page({ searchParams }: Aut
                 </tbody>
               </table>
             </div>
-            <p>今年的首回預測判斷：北日本紅葉大致平年同期、銀杏平年同期或偏晚；東日本兩者平年同期或偏晚；西日本兩者則大致平年同期。另一份 Weathernews 的 9/3 首回預測也認為，全國許多地方會偏晚或稍晚，因此行程最好別只預留單日。</p>
+            <p>第 2 回預測判斷：北日本、東日本的紅葉大致平年同期，銀杏則為平年同期或偏晚；西日本的紅葉、銀杏皆大致平年同期。即使城市預測日接近平年，行程仍應保留彈性，並在出發前確認名所實況。</p>
           </div>
         </section>
 
@@ -350,7 +350,7 @@ export default async function AutumnLeavesForecast2026Page({ searchParams }: Aut
               <li><strong>出發前一週看即時色況：</strong>預測適合先訂旅行週；最後決定哪天去，仍要看名所公告、短期降溫、下雨、強風與交通資訊。</li>
               <li><strong>遇到雨風別硬衝：</strong>秋雨鋒面、颱風或強風可能影響葉況和上山交通；把市區博物館、購物或咖啡行程準備成備案更穩。</li>
             </ol>
-            <p>Weathernews 的首回判斷指出，今年葉況整體仍有機會呈現鮮豔色彩，但前線、颱風與雨風仍會影響名所觀感與交通。這篇會隨下一回預測更新；若你已買機票，現在最實用的做法是選對「週」，而不是為了某一天急著改票。</p>
+            <p>第 2 回預測顯示，各地實際見頃仍會受後續降溫、雨風與名所海拔影響。若你已買機票，現在最實用的做法是選對「週」，而不是為了某一天急著改票；出發前再用即時色況決定當天要去哪裡。</p>
           </div>
         </section>
 
@@ -358,12 +358,12 @@ export default async function AutumnLeavesForecast2026Page({ searchParams }: Aut
           <div className="kyushu-update-heading">
             <div>
               <p className="kyushu-update-kicker">旅杰賞楓更新台</p>
-              <h2 className="seo-h2">下一回預測、名所葉況，先幫你把重點看懂</h2>
+              <h2 className="seo-h2">第 2 回預測、名所葉況，先幫你把重點看懂</h2>
             </div>
           </div>
           <div className="seo-prose">
-            <p>本文城市日期以日本氣象株式會社 2026/9/2 的第 1 回紅葉、黃葉預測為主。該預測用城市指標樹的葉色標準計算，並提供約 700 個賞楓景點與約 3,000 座山的預測；因此非常適合作為旅行週的起點，但不應替代單一名所的即時情報。</p>
-            <p>交叉比對時，Weathernews 9/3 的首回預測也指出今年多數地區偏晚或稍晚，並提醒注意前線、颱風與雨風。第 2 回預測發布後，旅杰會把真正影響旅程的城市日期、差異與安排方式更新在這篇。</p>
+            <p>本文城市日期以日本氣象株式會社 2026/10/1 的第 2 回紅葉、黃葉預測為主。該預測用城市指標樹的葉色標準計算，並提供約 700 個賞楓景點與約 3,000 座山的預測；因此非常適合作為旅行週的起點，但不應替代單一名所的即時情報。</p>
+            <p>第 2 回資料顯示，紅葉大多維持平年同期，北日本、東日本的銀杏則可能稍晚。日本氣象株式會社預告下一回將在 11 月上旬發布；旅杰會持續把真正影響旅程的城市日期與安排方式更新在這篇。</p>
           </div>
           <ul className="kyushu-source-grid" aria-label="2026 日本賞楓預測追蹤來源">
             {trackingSources.map((source) => (

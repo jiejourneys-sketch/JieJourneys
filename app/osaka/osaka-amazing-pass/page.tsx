@@ -12,11 +12,12 @@ import {
 } from './pageMeta'
 
 const officialLinks = {
-  whats: 'https://osaka-amazing-pass.com/howto_whats.html',
-  price: 'https://osaka-amazing-pass.com/info.html',
-  usage: 'https://osaka-amazing-pass.com/howto_guide.html',
-  free: 'https://osaka-amazing-pass.com/service_free.html',
-  privilege: 'https://osaka-amazing-pass.com/service_privilege.html',
+  whats: 'https://osaka-amazing-pass.com/cht/howto_whats.html',
+  price: 'https://osaka-amazing-pass.com/cht/info.html',
+  usage: 'https://osaka-amazing-pass.com/cht/howto_guide.html',
+  free: 'https://osaka-amazing-pass.com/cht/service_free.html',
+  privilege: 'https://osaka-amazing-pass.com/cht/service_privilege.html',
+  kix28: 'https://www.surutto.com/newsrelease/release/s260903.pdf',
 }
 
 const articleJsonLd = {
@@ -38,6 +39,7 @@ const articleJsonLd = {
     },
   },
   mainEntityOfPage: osakaAmazingPassCanonical,
+  dateModified: '2026-10-01',
 }
 
 type OsakaAmazingPassPageProps = {
@@ -66,7 +68,7 @@ export default async function OsakaAmazingPassPage({ searchParams }: OsakaAmazin
         />
 
         <SeoHeroSection
-          badge="大阪周遊券攻略"
+          badge="大阪周遊券攻略｜2026/10/1 更新"
           h1="大阪周遊券攻略｜免費景點、優惠餐飲、交通範圍與回本排法"
           intro="大阪周遊券不是每個人都必買，但如果你一天內會密集跑大阪市區展望台、遊船、摩天輪、大阪城周邊景點，再加上地鐵移動，它就很容易變成大阪自由行最省事的一張票。"
           eventPrefix="osakaamazingpass"
@@ -104,6 +106,39 @@ export default async function OsakaAmazingPassPage({ searchParams }: OsakaAmazin
               </a>
               為準。
             </p>
+
+            <h3 className="seo-h3">2026 票種怎麼選？先看你從哪個機場進大阪</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>票種</th>
+                  <th>適合誰</th>
+                  <th>價格／效期</th>
+                  <th>最要留意</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>大阪市區版</strong><br />1day／2day</td>
+                  <td>已在大阪市區，想集中跑展望台、遊船與市區交通。</td>
+                  <td>¥3,500／¥5,000</td>
+                  <td>關西機場不適用；1 日與 2 日不是啟用後 24／48 小時。</td>
+                </tr>
+                <tr>
+                  <td><strong>大阪伊丹空港版</strong><br />1day／2day</td>
+                  <td>從伊丹機場進大阪，或行程會去萬博紀念公園一帶。</td>
+                  <td>¥3,800／¥5,400</td>
+                  <td>比市區版多大阪單軌、北大阪急行與部分阪急範圍；萬博紀念公園、OSAKA WHEEL 屬此版適用範圍。</td>
+                </tr>
+                <tr>
+                  <td><strong>關西機場 KIX 版</strong><br />28 小時券</td>
+                  <td>從關西機場落地後，就要接著跑大阪市區景點的人。</td>
+                  <td>¥5,300／開始使用後連續 28 小時</td>
+                  <td>含南海「關西機場 → 難波」單程一次；不能反向使用，也不能在關西機場至堺之間中途下車。</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>前兩種票券的 2026 年度販售期為 2026/3/25～2027/3/31，且須在購買日起 3 個月內使用；KIX 28 小時券自 2026/10/1 開售。KIX 版的範圍與限制請以 <a href={officialLinks.kix28} target="_blank" rel="noopener noreferrer" data-event="osakaamazingpass_official_kix28" data-section="article">官方公告</a> 為準。</p>
 
             <figure className="seo-figure">
               <Image
@@ -316,7 +351,7 @@ export default async function OsakaAmazingPassPage({ searchParams }: OsakaAmazin
           <div className="seo-prose">
             <h3 className="seo-h3">1. 這是手機 QR code 票券</h3>
             <p>
-              新版大阪周遊券使用 Surutto QRtto 系統，官方說明是用手機購買並顯示 QR code 來搭電車、巴士和進入觀光設施。使用前請確定手機有電、能連網、瀏覽器相機權限可用；截圖或列印畫面不能拿來使用。
+              新版大阪周遊券使用 Surutto QRtto 系統，官方說明是用手機購買並顯示 QR code 來搭電車、巴士和進入觀光設施。購買需註冊帳號並使用信用卡；使用前請確定手機有電、能連網、瀏覽器相機權限可用，截圖或列印畫面不能拿來使用。
               詳細流程可看
               <a href={officialLinks.usage} target="_blank" rel="noopener noreferrer" data-event="osakaamazingpass_official_usage" data-section="article">
                 官方購買與使用方法
@@ -331,7 +366,7 @@ export default async function OsakaAmazingPassPage({ searchParams }: OsakaAmazin
 
             <h3 className="seo-h3">3. 一次最多購買 4 張，沒有兒童票</h3>
             <p>
-              官方 FAQ 說沒有兒童用周遊券，要買就是成人版。多人同行時可以購買後分配，但啟用後就不能分配或退款。家族旅遊如果有小孩，建議先用大人/小孩各景點原價和交通費重新算一次。
+              官方 FAQ 說沒有兒童用周遊券，要買就是成人版。多人同行時可以購買後分配，但啟用後就不能分配或退款；每次最多購買 4 張。未使用的票券可在購買日起 3 個月內辦理退款，啟用或已使用後則不能退款。家族旅遊如果有小孩，建議先用大人/小孩各景點原價和交通費重新算一次。
             </p>
 
             <h3 className="seo-h3">4. 交通範圍要看清楚</h3>
@@ -380,7 +415,11 @@ export default async function OsakaAmazingPassPage({ searchParams }: OsakaAmazin
             },
             {
               q: '大阪周遊券可以搭 JR 或去關西機場嗎？',
-              a: '不要把它當成 JR Pass 或關西機場交通票。標準版重點是大阪市區的指定地鐵、巴士和部分私鐵範圍；關西機場交通請另外看南海電鐵、JR HARUKA 或利木津巴士。',
+              a: '不要把一般 1 日／2 日券當成 JR Pass 或關西機場交通票：它們不含 JR，標準版與伊丹版也不能用於關西機場。不過 2026/10/1 起另有 KIX 28 小時券，包含南海關西機場到難波的單程一次，且不可反向或中途下車；若不是抵達日立刻跑市區景點，仍應把機場交通與周遊券分開算。',
+            },
+            {
+              q: 'KIX 28 小時券和一般 1 日券，哪一張比較適合？',
+              a: '抵達關西機場後就要進大阪市區、並在接下來 28 小時內使用多個周遊券景點與交通，才優先考慮 KIX 版。若抵達日只打算入住、逛街或吃飯，隔天才密集跑景點，通常分開買機場交通與一般 1 日券會更好安排。',
             },
             {
               q: '大阪周遊券可以用在 USJ 嗎？',

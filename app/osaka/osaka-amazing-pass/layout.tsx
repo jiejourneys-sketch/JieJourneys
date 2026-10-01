@@ -19,6 +19,8 @@ export const metadata: Metadata = {
     '大阪周遊券地圖',
     '大阪自由行票券',
     '大阪交通票券',
+    '大阪周遊券關西機場版',
+    '大阪周遊券28小時券',
   ],
   openGraph: {
     type: 'article',
