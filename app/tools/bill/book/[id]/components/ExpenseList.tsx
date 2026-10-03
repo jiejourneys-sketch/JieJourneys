@@ -152,8 +152,29 @@ export default function ExpenseList({ bookId, baseCurrency, exchangeRates }: { b
       arr.push(e)
       groups.set(k, arr)
     }
-    return [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]))
-  }, [expenses])
+    return [...groups.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([day, list]) => {
+        let total = 0
+        let hasUnconverted = false
+
+        for (const expense of list) {
+          const currency = expense.currency || baseCurrency
+          const amount = Number(expense.amount || 0)
+          const converted = currency === baseCurrency
+            ? amount
+            : convertCents(amount, currency, baseCurrency, baseCurrency, exchangeRates)
+
+          if (Number.isNaN(converted)) {
+            hasUnconverted = true
+          } else {
+            total += converted
+          }
+        }
+
+        return { day, list, total, hasUnconverted }
+      })
+  }, [expenses, baseCurrency, exchangeRates])
 
   return (
     <div>
@@ -184,10 +205,25 @@ export default function ExpenseList({ bookId, baseCurrency, exchangeRates }: { b
 
       {!loading && !error && expenses.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {expenseGroups.map(([day, list]) => (
+          {expenseGroups.map(({ day, list, total, hasUnconverted }) => (
             <div key={day}>
-              <div style={{ color: '#64748b', fontWeight: 700, marginBottom: 8 }}>
-                {day}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  flexWrap: 'wrap',
+                  gap: '4px 12px',
+                  marginBottom: 8
+                }}
+              >
+                <div style={{ color: '#64748b', fontWeight: 700 }}>
+                  {day}
+                </div>
+                <div style={{ color: '#475569', fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>
+                  當日總額：{formatWithCurrency(total, baseCurrency)}
+                  {hasUnconverted ? '（部分未換算）' : ''}
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
