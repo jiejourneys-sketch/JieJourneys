@@ -4,6 +4,7 @@ import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   kyotoSixAreasGuideCanonical,
@@ -13,6 +14,11 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const KYOTO_TRANSPORT_URL = 'https://kyoto.travel/en/getting-around/'
+
+const videoLinks = [
+  { label: 'IG Reels', href: 'https://www.instagram.com/reel/DeCHeFBhYLt/', event: 'kyoto6areas_video_ig', platform: 'IG' },
+  { label: 'YouTube', href: 'https://www.youtube.com/shorts/0L6-7tlXnLM', event: 'kyoto6areas_video_youtube', platform: 'YouTube' },
+]
 
 const areas = [
   {
@@ -157,6 +163,14 @@ export default async function KyotoSixAreasGuidePage({ searchParams }: KyotoSixA
               <strong>一天一主區</strong>
               <p>先用電車跨區，公車只負責最後一段，避開熱門景點周邊的塞車。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="京都六大區域短影音">
+          <h2 className="seo-h2">先看短影音：京都 6 大區域怎麼選</h2>
+          <div className="seo-prose">
+            <p>短影音先幫你建立京都車站、內圍三區與外圍三區的相對位置；排旅程時一天只選一個主區，再用電車或步行串起附近景點。</p>
+            <SeoVideoLinkMenu label="京都 6 大區域" links={videoLinks} />
           </div>
         </section>
 

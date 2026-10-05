@@ -3,6 +3,7 @@ import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import Image from 'next/image'
 import {
@@ -14,6 +15,11 @@ import {
 const SITE_URL = 'https://www.jiejourneys.com'
 const OFFICIAL_INFO_URL = 'https://sakishima-observatory.com/information/'
 const AMAZING_PASS_URL = 'https://osaka-amazing-pass.com/service_free.html'
+
+const videoLinks = [
+  { label: 'IG Reels', href: 'https://www.instagram.com/reel/Dc6BP-KBIU1/', event: 'sakishimacosmotower_video_ig', platform: 'IG' },
+  { label: 'YouTube', href: 'https://www.youtube.com/shorts/a3rOhBTwRsY', event: 'sakishimacosmotower_video_youtube', platform: 'YouTube' },
+]
 
 const faqItems = [
   {
@@ -126,6 +132,14 @@ export default async function SakishimaCosmoTowerGuidePage({ searchParams }: Sak
               <strong>一般營業日可免費進</strong>
               <p>元旦、特別營業日不能使用；安排前先看展望台公告，避免白跑一趟。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="咲洲宇宙塔展望台短影音">
+          <h2 className="seo-h2">先看短影音：咲洲宇宙塔展望台怎麼去</h2>
+          <div className="seo-prose">
+            <p>短影音先帶你掌握大阪灣區展望台的重點；第一次前往再搭配下方從貿易中心前站 2 號出口、ATC 連絡橋到入口的圖文動線會更安心。</p>
+            <SeoVideoLinkMenu label="咲洲宇宙塔展望台" links={videoLinks} />
           </div>
         </section>
 

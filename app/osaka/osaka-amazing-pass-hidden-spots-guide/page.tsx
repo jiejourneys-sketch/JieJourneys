@@ -3,6 +3,7 @@ import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import Image from 'next/image'
 import {
@@ -16,6 +17,11 @@ const AMAZING_PASS_URL = 'https://osaka-amazing-pass.com/cht/service_free.html'
 const SHITENNOJI_URL = 'https://www.shitennoji.or.jp/'
 const GLION_URL = 'https://glion-museum.jp/operating-time-cost/'
 const TENNOJI_ZOO_URL = 'https://www.tennojizoo.jp/info/outline/'
+
+const videoLinks = [
+  { label: 'IG Reels', href: 'https://www.instagram.com/reel/DdMCwztBHar/', event: 'osakapasshidden_video_ig', platform: 'IG' },
+  { label: 'YouTube', href: 'https://www.youtube.com/shorts/6vIii4-Ldss', event: 'osakapasshidden_video_youtube', platform: 'YouTube' },
+]
 
 const faqItems = [
   {
@@ -123,6 +129,14 @@ export default async function OsakaAmazingPassHiddenSpotsGuidePage({ searchParam
               <strong>合計 ¥2,900～¥3,500</strong>
               <p>三者都是免費設施，但同一設施在可使用期間內限用一次，休館日要先避開。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="大阪周遊券低調景點短影音">
+          <h2 className="seo-h2">先看短影音：大阪周遊券 3 個低調景點</h2>
+          <div className="seo-prose">
+            <p>先用短影音快速比較四天王寺、GLION Museum 和天王寺動物園；再用下方的交通、入口與休館提醒，挑一個最符合當天區域與同行者的景點。</p>
+            <SeoVideoLinkMenu label="大阪周遊券 3 個低調景點" links={videoLinks} />
           </div>
         </section>
 

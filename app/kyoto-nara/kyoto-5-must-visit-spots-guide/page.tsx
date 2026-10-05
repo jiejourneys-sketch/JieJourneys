@@ -3,6 +3,7 @@ import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   kyotoFiveMustVisitGuideCanonical,
@@ -12,6 +13,11 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const KYOTO_CONGESTION_URL = 'https://global.kyoto.travel/en/comfort/'
+
+const videoLinks = [
+  { label: 'IG Reels', href: 'https://www.instagram.com/reel/DdwF6stBInS/', event: 'kyoto5spots_video_ig', platform: 'IG' },
+  { label: 'YouTube', href: 'https://youtube.com/shorts/CY4ta6htt2c', event: 'kyoto5spots_video_youtube', platform: 'YouTube' },
+]
 
 const spots = [
   {
@@ -148,6 +154,14 @@ export default async function KyotoFiveMustVisitGuidePage({ searchParams }: Kyot
               <strong>下鴨神社</strong>
               <p>把森林參道留進行程，平衡熱門景點的人潮與節奏。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="京都五個必去景點短影音">
+          <h2 className="seo-h2">先看短影音：京都 5 個必去景點怎麼分天</h2>
+          <div className="seo-prose">
+            <p>先用短影音掌握二條城、金閣寺、伏見稻荷、清水寺與下鴨神社分別落在哪一側；再依區域把它們拆成兩到三天，行程才不會一直花時間折返。</p>
+            <SeoVideoLinkMenu label="京都 5 個必去景點" links={videoLinks} />
           </div>
         </section>
 

@@ -4,6 +4,7 @@ import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import Image from 'next/image'
 import {
@@ -13,6 +14,11 @@ import {
 } from './pageMeta'
 
 const SITE_URL = 'https://www.jiejourneys.com'
+
+const videoLinks = [
+  { label: 'IG Reels', href: 'https://www.instagram.com/reel/DbN3zTshyea/', event: 'osakacastle_video_ig', platform: 'IG' },
+  { label: 'YouTube', href: 'https://www.youtube.com/shorts/fE5RF0eYysM', event: 'osakacastle_video_youtube', platform: 'YouTube' },
+]
 
 type StationGuide = {
   station: string
@@ -171,6 +177,14 @@ export default async function OsakaCastleGuidePage({ searchParams }: OsakaCastle
               <strong>四個重點設施可免費使用</strong>
               <p>天守閣、御座船、海洋堂公仔博物館、西之丸庭園都能用，御座船先換班次票。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="大阪城短影音">
+          <h2 className="seo-h2">先看短影音：大阪城怎麼排進行程</h2>
+          <div className="seo-prose">
+            <p>先用短影音掌握大阪城的重點，再依這篇文章選適合的車站與入口；大阪城公園範圍很大，先決定從哪一側走進去會省下不少時間。</p>
+            <SeoVideoLinkMenu label="大阪城" links={videoLinks} />
           </div>
         </section>
 

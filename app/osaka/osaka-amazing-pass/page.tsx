@@ -4,6 +4,7 @@ import Footer from '@/components/Footer'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   osakaAmazingPassCanonical,
@@ -19,6 +20,11 @@ const officialLinks = {
   privilege: 'https://osaka-amazing-pass.com/cht/service_privilege.html',
   kix28: 'https://www.surutto.com/newsrelease/release/s260903.pdf',
 }
+
+const videoLinks = [
+  { label: 'IG Reels', href: 'https://www.instagram.com/reel/Dap0xBSBbSI/', event: 'osakaamazingpass_video_ig', platform: 'IG' },
+  { label: 'YouTube', href: 'https://www.youtube.com/shorts/u1g5J6SGZR4', event: 'osakaamazingpass_video_youtube', platform: 'YouTube' },
+]
 
 const articleJsonLd = {
   '@context': 'https://schema.org',
@@ -183,6 +189,14 @@ export default async function OsakaAmazingPassPage({ searchParams }: OsakaAmazin
                 </tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="大阪周遊券短影音">
+          <h2 className="seo-h2">先看短影音：大阪周遊券怎麼用才不繞路</h2>
+          <div className="seo-prose">
+            <p>短影音先帶你抓大阪周遊券的使用重點；接著再用這篇文章和地圖確認票種、免費設施與當天移動順序，才不會只為了湊景點而折返。</p>
+            <SeoVideoLinkMenu label="大阪周遊券" links={videoLinks} />
           </div>
         </section>
 
