@@ -7574,6 +7574,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   // Booking starts with newly created lodgings only. Existing plans can opt in
   // with the manual retry button, avoiding a deployment-wide search backfill.
   const bookingAffiliateAutoResolvePlaceIdsRef = useRef<Set<string>>(new Set())
+  // Google Maps can publish a place's English name, coordinates, and types in
+  // separate updates. If one lands while the provider request is in flight,
+  // cancel the stale request and restart it once after the metadata settles.
+  // The one-retry cap prevents an unstable Maps response from multiplying paid
+  // provider searches.
+  const hotelAffiliateMetadataRetryTimersRef = useRef<Map<string, { timeout: number; includeBooking: boolean }>>(new Map())
+  const hotelAffiliateMetadataRetryUsedRef = useRef<Set<string>>(new Set())
   const removedHotelAffiliateLinksRef = useRef<Map<string, RemovedHotelAffiliateLink>>(new Map())
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
   const planItemsRef = useRef<PlannerItem[]>([])
@@ -7802,11 +7809,54 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     [],
   )
 
+  const clearHotelAffiliateMetadataRetryForCustomPlace = useCallback((placeId: string) => {
+    const pendingRetry = hotelAffiliateMetadataRetryTimersRef.current.get(placeId)
+    if (pendingRetry) window.clearTimeout(pendingRetry.timeout)
+    hotelAffiliateMetadataRetryTimersRef.current.delete(placeId)
+    hotelAffiliateMetadataRetryUsedRef.current.delete(placeId)
+  }, [])
+
+  const retryHotelAffiliateLookupAfterGoogleMetadataChange = useCallback((placeId: string) => {
+    const activeProviders = (['Trip', 'Agoda', 'Booking'] as HotelAffiliateProvider[]).filter((provider) =>
+      hotelAffiliateLookupRequestRef.current.has(`${provider}:${placeId}`),
+    )
+    const pendingRetry = hotelAffiliateMetadataRetryTimersRef.current.get(placeId)
+    // Metadata that arrives before a provider request starts leaves the normal
+    // pending flag intact, so it needs no special retry. This path is only for
+    // an already in-flight request that would otherwise be lost on abort.
+    if (activeProviders.length === 0 && !pendingRetry) {
+      cancelHotelAffiliateLookupForCustomPlace(placeId)
+      return
+    }
+
+    const includeBooking = pendingRetry?.includeBooking === true || activeProviders.includes('Booking')
+    cancelHotelAffiliateLookupForCustomPlace(placeId)
+    if (!pendingRetry && hotelAffiliateMetadataRetryUsedRef.current.has(placeId)) return
+
+    if (pendingRetry) window.clearTimeout(pendingRetry.timeout)
+    else hotelAffiliateMetadataRetryUsedRef.current.add(placeId)
+
+    const retry = { timeout: 0, includeBooking }
+    retry.timeout = window.setTimeout(() => {
+      if (hotelAffiliateMetadataRetryTimersRef.current.get(placeId) !== retry) return
+      hotelAffiliateMetadataRetryTimersRef.current.delete(placeId)
+      hotelAffiliateAutoResolvePlaceIdsRef.current.add(placeId)
+      if (retry.includeBooking) bookingAffiliateAutoResolvePlaceIdsRef.current.add(placeId)
+      // Re-run both metadata and provider gates after React has committed the
+      // final Google Maps fields. This does not itself issue a provider query.
+      setGooglePlaceDetailsRevision((revision) => revision + 1)
+    }, 160)
+    hotelAffiliateMetadataRetryTimersRef.current.set(placeId, retry)
+  }, [cancelHotelAffiliateLookupForCustomPlace])
+
   useEffect(() => {
     const activeRequests = hotelAffiliateLookupRequestRef.current
+    const metadataRetryTimers = hotelAffiliateMetadataRetryTimersRef.current
     return () => {
       activeRequests.forEach((request) => request.controller.abort())
       activeRequests.clear()
+      metadataRetryTimers.forEach((retry) => window.clearTimeout(retry.timeout))
+      metadataRetryTimers.clear()
     }
   }, [])
 
@@ -10649,6 +10699,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     setPlanUndoCount(0)
     hotelAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
     bookingAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
+    clearHotelAffiliateMetadataRetryForCustomPlace(placeId)
     cancelHotelAffiliateLookupForCustomPlace(placeId)
     setTransportRemovalNotice(null)
     setPlanItems((ids) => {
@@ -11153,7 +11204,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       currentPlace?.googlePlaceId?.trim() === googlePlaceId.trim() &&
       (!sameStringArray(currentPlace.googlePlaceTypes, types) || currentPlace.googlePlaceTypesResolved !== resolved)
     ) {
-      cancelHotelAffiliateLookupForCustomPlace(placeId)
+      retryHotelAffiliateLookupAfterGoogleMetadataChange(placeId)
     }
     setCustomPlaces((current) => {
       const place = current[placeId]
@@ -11168,7 +11219,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       else delete nextPlace.googlePlaceTypes
       return { ...current, [placeId]: nextPlace }
     })
-  }, [cancelHotelAffiliateLookupForCustomPlace])
+  }, [retryHotelAffiliateLookupAfterGoogleMetadataChange])
 
   const setCustomPlaceGoogleIdentity = useCallback((
     placeId: string,
@@ -11207,7 +11258,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         )
       )
     ) {
-      cancelHotelAffiliateLookupForCustomPlace(placeId)
+      retryHotelAffiliateLookupAfterGoogleMetadataChange(placeId)
     }
     setCustomPlaces((current) => {
       const place = current[placeId]
@@ -11242,7 +11293,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
       return { ...current, [placeId]: nextPlace }
     })
-  }, [cancelHotelAffiliateLookupForCustomPlace])
+  }, [retryHotelAffiliateLookupAfterGoogleMetadataChange])
 
   const setCustomPlaceGoogleDetails = useCallback((
     placeId: string,
@@ -11268,7 +11319,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         currentPlace.googlePlaceTypesResolved !== true
       )
     ) {
-      cancelHotelAffiliateLookupForCustomPlace(placeId)
+      retryHotelAffiliateLookupAfterGoogleMetadataChange(placeId)
     }
     setCustomPlaces((current) => {
       const place = current[placeId]
@@ -11294,7 +11345,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
 
       return { ...current, [placeId]: nextPlace }
     })
-  }, [cancelHotelAffiliateLookupForCustomPlace])
+  }, [retryHotelAffiliateLookupAfterGoogleMetadataChange])
 
   const resolveGooglePlaceDetailsInBrowser = useCallback(async (
     googlePlaceId: string,
@@ -12208,6 +12259,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       if (!place || readOnlyPlan) return
       markPlannerCloudUserEdit()
       const manualPlace: CustomPlannerPlace = { ...place, hotelAffiliateManual: true }
+      clearHotelAffiliateMetadataRetryForCustomPlace(placeId)
       hotelAffiliateForceRefreshRef.current.add(placeId)
       setCustomPlaces((current) => ({ ...current, [placeId]: manualPlace }))
       cancelHotelAffiliateLookupForCustomPlace(placeId, 'Agoda')
@@ -12219,6 +12271,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     },
     [
       cancelHotelAffiliateLookupForCustomPlace,
+      clearHotelAffiliateMetadataRetryForCustomPlace,
       customPlaces,
       markPlannerCloudUserEdit,
       readOnlyPlan,
@@ -12272,7 +12325,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     }
     const currentPlaceIds = new Set(Object.keys(customPlaces))
     hotelAffiliateAutoResolvePlaceIdsRef.current.forEach((placeId) => {
-      if (!currentPlaceIds.has(placeId)) hotelAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
+      if (!currentPlaceIds.has(placeId)) {
+        hotelAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
+        clearHotelAffiliateMetadataRetryForCustomPlace(placeId)
+      }
     })
     bookingAffiliateAutoResolvePlaceIdsRef.current.forEach((placeId) => {
       if (!currentPlaceIds.has(placeId)) bookingAffiliateAutoResolvePlaceIdsRef.current.delete(placeId)
@@ -12292,6 +12348,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         if (eligibility === 'skipped') {
           hotelAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
           bookingAffiliateAutoResolvePlaceIdsRef.current.delete(place.id)
+          clearHotelAffiliateMetadataRetryForCustomPlace(place.id)
         }
         cancelHotelAffiliateLookupForCustomPlace(place.id)
         if (eligibility === 'skipped') {
@@ -12299,6 +12356,10 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           setTripAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
           setBookingAffiliateStatus((status) => (status[place.id] === 'skipped' ? status : { ...status, [place.id]: 'skipped' }))
         }
+        return
+      }
+      if (hotelAffiliateMetadataRetryTimersRef.current.has(place.id)) {
+        cancelHotelAffiliateLookupForCustomPlace(place.id)
         return
       }
       const links = [...(place.links ?? []), ...(placeUserLinks[place.id] ?? [])]
@@ -12368,6 +12429,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     })
   }, [
     cancelHotelAffiliateLookupForCustomPlace,
+    clearHotelAffiliateMetadataRetryForCustomPlace,
     customPlaces,
     googlePlaceDetailsRevision,
     placeUserLinks,
@@ -12898,6 +12960,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
       ...(nextLinks.length > 0 ? { links: nextLinks } : {}),
     }
 
+    clearHotelAffiliateMetadataRetryForCustomPlace(id)
     hotelAffiliateAutoResolvePlaceIdsRef.current.add(id)
     if (!existingPlace) bookingAffiliateAutoResolvePlaceIdsRef.current.add(id)
     setCustomPlaces((current) => ({ ...current, [id]: customPlace }))

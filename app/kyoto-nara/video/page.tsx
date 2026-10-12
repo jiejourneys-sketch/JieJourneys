@@ -78,6 +78,22 @@ const cards: CityCard[] = [
     datasetValue: 'kyoto-station-exits',
     actions: [
       {
+        label: 'IG Reels',
+        href: 'https://www.instagram.com/reel/DeUJBAUtavI/',
+        className: 'btn primary',
+        event: 'kyotonaravideo_station_exits_ig',
+        platform: 'IG',
+        section: 'video',
+      },
+      {
+        label: 'YouTube',
+        href: 'https://www.youtube.com/shorts/sS5veHkCP6I',
+        className: 'btn',
+        event: 'kyotonaravideo_station_exits_youtube',
+        platform: 'YouTube',
+        section: 'video',
+      },
+      {
         label: '文章',
         href: '/kyoto-nara/kyoto-station-guide?from=kyoto-video#north-south',
         className: 'btn',

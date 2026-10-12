@@ -4,6 +4,7 @@ import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   kyotoStationGuideCanonical,
@@ -12,6 +13,11 @@ import {
 } from './pageMeta'
 
 const SITE_URL = 'https://www.jiejourneys.com'
+
+const videoLinks = [
+  { label: '京都車站出口動線 IG', href: 'https://www.instagram.com/reel/DeUJBAUtavI/', event: 'kyotostation_video_ig', platform: 'IG', primary: true },
+  { label: '京都車站出口動線 YouTube', href: 'https://www.youtube.com/shorts/sS5veHkCP6I', event: 'kyotostation_video_youtube', platform: 'YouTube' },
+]
 
 const faqItems = [
   {
@@ -96,6 +102,14 @@ export default async function KyotoStationGuidePage({ searchParams }: KyotoStati
             { label: '車站隱藏景點', href: '#hidden-spots', dataEvent: 'kyotostation_hero_hidden_spots', platform: 'article' },
           ]}
         />
+
+        <section className="seo-content" id="video-guide" aria-label="京都車站出口動線短影音">
+          <h2 className="seo-h2">先看短影音：京都車站出口動線</h2>
+          <div className="seo-prose">
+            <p>先用短影音快速分清北側中央口、南側八條口與 2F 南北自由通路，再回來依這篇文章安排 HARUKA、巴士、新幹線或近鐵的轉乘方向。</p>
+            <SeoVideoLinkMenu label="京都車站出口動線" links={videoLinks} />
+          </div>
+        </section>
 
         <section className="seo-content" aria-label="京都車站快速結論">
           <div className="narita-summary-grid haneda-summary-grid" role="list">
