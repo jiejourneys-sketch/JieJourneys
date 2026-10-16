@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
-import PromoResourceCard from '@/components/PromoResourceCard'
+import PromoResourceCard, { type PromoResourceAction } from '@/components/PromoResourceCard'
 import { BOOKING_AFFILIATE_HOME_URL } from '@/lib/plannerAffiliate'
 
 type Resource = {
   title: string
   tags: string
-  href: string
-  event: string
+  href?: string
+  event?: string
   promoCode?: string
+  actionLinks?: PromoResourceAction[]
 }
 
 const travelResources: Resource[] = [
@@ -57,8 +58,18 @@ const travelResources: Resource[] = [
   {
     title: 'KarDear 上網卡',
     tags: 'eSIM SIM 卡 實體卡 旅遊上網 KarDear',
-    href: 'https://kardear.com/?ref=390',
-    event: 'promo_kardear',
+    actionLinks: [
+      {
+        label: 'eSIM',
+        href: 'https://kardear.com/product-category/kardear/network/esim/?ref=390',
+        event: 'promo_kardear_esim',
+      },
+      {
+        label: 'SIM 卡',
+        href: 'https://kardear.com/product-category/kardear/network/simcard/?ref=390',
+        event: 'promo_kardear_sim',
+      },
+    ],
   },
   {
     title: 'GetYourGuide',

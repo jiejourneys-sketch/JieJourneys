@@ -1,10 +1,17 @@
 'use client'
 
+export type PromoResourceAction = {
+  label: string
+  href: string
+  event: string
+}
+
 type Props = {
   title: string
   tags: string
-  href: string
-  event: string
+  href?: string
+  event?: string
+  actionLinks?: PromoResourceAction[]
   section: string
   promoCode?: string
   onCopied?: (promoCode: string) => void
@@ -29,12 +36,14 @@ async function copyToClipboard(text: string): Promise<void> {
   }
 }
 
-export default function PromoResourceCard({ title, tags, href, event, section, promoCode, onCopied }: Props) {
+export default function PromoResourceCard({ title, tags, href, event, actionLinks, section, promoCode, onCopied }: Props) {
   const handleCopy = async () => {
     if (!promoCode) return
     await copyToClipboard(promoCode)
     onCopied?.(promoCode)
   }
+
+  const visitLinks = actionLinks ?? (href && event ? [{ label: '前往網站', href, event }] : [])
 
   return (
     <article className="promo-resource-card" data-item="tool" data-section={section} data-tags={tags}>
@@ -52,18 +61,21 @@ export default function PromoResourceCard({ title, tags, href, event, section, p
             優惠碼
           </button>
         ) : null}
-        <a
-          href={href}
-          className="promo-resource-visit"
-          target="_blank"
-          rel="noopener noreferrer"
-          data-event={event}
-          data-item="tool"
-          data-section={section}
-          data-tags={tags}
-        >
-          前往網站
-        </a>
+        {visitLinks.map((link) => (
+          <a
+            key={link.event}
+            href={link.href}
+            className="promo-resource-visit"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-event={link.event}
+            data-item="tool"
+            data-section={section}
+            data-tags={tags}
+          >
+            {link.label}
+          </a>
+        ))}
       </div>
     </article>
   )
