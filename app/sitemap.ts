@@ -12,7 +12,7 @@ type SitemapRoute = {
 }
 
 const lastModifiedByPath: Record<string, string> = {
-  '/': '2026-07-11',
+  '/': '2026-10-16',
   '/contact': '2026-04-10',
   '/countries': '2026-05-09',
   '/tools/planner': '2026-07-13',
@@ -20,7 +20,7 @@ const lastModifiedByPath: Record<string, string> = {
   '/tools/resources': '2026-07-01',
   '/japan/tax-free-2026': '2026-07-14',
   '/japan/visit-japan-web-guide': '2026-07-22',
-  '/japan/kyushu-travel-subsidy-2026': '2026-08-31',
+  '/japan/kyushu-travel-subsidy-2026': '2026-10-16',
   '/japan/autumn-leaves-forecast-2026': '2026-10-01',
   '/busan': '2026-05-17',
   '/busan/hotel': '2026-06-06',

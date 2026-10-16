@@ -9,7 +9,7 @@ const EVENT_BATCH_SIZE = 20;
 const PREVIEW_LENGTH = 1_200;
 const TELEGRAM_TEXT_LIMIT = 3_700;
 const SITE_CLAIM_WINDOW_MS = 2 * 60 * 1_000;
-const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches"]);
+const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches", "include_attributes"]);
 
 type SourceType = "html" | "json";
 type EventType = "change" | "error" | "recovered";
@@ -168,6 +168,10 @@ function notificationPatterns(site: MonitorSite) {
     : [];
 }
 
+function shouldIncludeAttributes(site: MonitorSite) {
+  return site.request_headers?.include_attributes === true;
+}
+
 function newContentDelta(before: string | null, after: string) {
   const oldText = normalizeText(before ?? "");
   const newText = normalizeText(after);
@@ -273,6 +277,18 @@ async function fetchContent(site: MonitorSite): Promise<FetchedContent> {
     const target = site.selector_or_path ? $(site.selector_or_path) : $("body").first();
     if (!target.length) throw new Error("CSS selector returned no content");
     extracted = target.text();
+    if (shouldIncludeAttributes(site)) {
+      const attributes = target.find("a[href],img[src],source[srcset],time[datetime]").map((_, element) => {
+        const node = $(element);
+        const tag = element.tagName?.toLowerCase() ?? "node";
+        const values = ["href", "src", "srcset", "datetime", "alt"]
+          .map((attribute) => node.attr(attribute))
+          .filter((value): value is string => Boolean(value?.trim()))
+          .map((value) => normalizeText(value));
+        return values.length ? `${tag}:${values.join("|")}` : "";
+      }).get().filter(Boolean);
+      extracted = `${extracted}\n${attributes.join("\n")}`;
+    }
   } catch (error) {
     throw new Error(`HTML extraction failed: ${errorMessage(error)}`);
   }
@@ -569,7 +585,7 @@ async function deliverPendingEvents() {
   let notified = 0;
 
   for (const group of telegramGroups(events)) {
-    const body = ["JieJourneys 網頁監控", ...group.map(eventText)].join("\n\n");
+    const body = ["旅杰 JieJourneys 網頁監控", ...group.map(eventText)].join("\n\n");
     try {
       await sendTelegram(body);
       await Promise.all(group.map(async (event) => {
@@ -618,7 +634,7 @@ async function main(request: Request) {
 
   const requestUrl = new URL(request.url);
   if (requestUrl.searchParams.get("test") === "telegram") {
-    await sendTelegram("JieJourneys 網頁監控 Telegram 測試成功");
+    await sendTelegram("旅杰 JieJourneys 網頁監控 Telegram 測試成功");
     return Response.json({ ok: true, test: "telegram" });
   }
 

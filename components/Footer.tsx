@@ -14,7 +14,7 @@ export default function Footer() {
   return (
     <footer>
       <div>
-        <strong>JieJourneys</strong> © <span ref={yearRef} />
+        <strong>旅杰 JieJourneys</strong> © <span ref={yearRef} />
       </div>
     </footer>
   )

@@ -4,6 +4,9 @@ import GtagCapture from '@/components/GtagCapture'
 import RwdOverflowWarning from '@/components/RwdOverflowWarning'
 import './globals.css'
 
+const SITE_NAME = '旅杰 JieJourneys'
+const SITE_URL = 'https://www.jiejourneys.com/'
+
 /** 讓 iOS 正確套用 safe-area；避免底部內容被 home 條／工具列視覺裁切 */
 export const viewport: Viewport = {
   width: 'device-width',
@@ -12,7 +15,8 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: '自由行旅遊速成攻略｜JieJourneys(旅杰)',
+  applicationName: SITE_NAME,
+  title: `自由行旅遊速成攻略｜${SITE_NAME}`,
   description:
     '專注於日本、韓國與亞洲自由行攻略，透過短影片快速整理交通、住宿、票券、景點與行程重點，搭配可下載行程、旅遊工具與實用懶人包，讓第一次自由行也能快速上手，用更少時間完成更順暢的旅行規劃。',
   metadataBase: new URL('https://www.jiejourneys.com'),
@@ -20,10 +24,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_TW',
-    siteName: '旅杰 JieJourneys',
-    title: 'JieJourneys(旅杰)-自由行旅遊速成攻略',
+    siteName: SITE_NAME,
+    title: `${SITE_NAME}｜自由行旅遊速成攻略`,
     description:
-      'JieJourneys(旅杰)-以短片拆解旅行重點，含可下載行程與票券連結，讓你用最短時間精準規劃旅程。',
+      `${SITE_NAME} 以短片拆解旅行重點，含可下載行程與票券連結，讓你用最短時間精準規劃旅程。`,
     url: 'https://www.jiejourneys.com/',
     images: [
       {
@@ -35,9 +39,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'JieJourneys(旅杰)-自由行旅遊速成攻略',
+    title: `${SITE_NAME}｜自由行旅遊速成攻略`,
     description:
-      'JieJourneys(旅杰)-以短片拆解旅行重點，含可下載行程與票券連結，讓你用最短時間精準規劃旅程。',
+      `${SITE_NAME} 以短片拆解旅行重點，含可下載行程與票券連結，讓你用最短時間精準規劃旅程。`,
     images: ['https://www.jiejourneys.com/assets/og-share.png'],
   },
   alternates: { canonical: 'https://www.jiejourneys.com/' },
@@ -95,8 +99,10 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'Organization',
-              name: '旅杰 JieJourneys',
-              url: 'https://www.jiejourneys.com/',
+              '@id': `${SITE_URL}#organization`,
+              name: SITE_NAME,
+              alternateName: ['JieJourneys', '旅杰'],
+              url: SITE_URL,
               logo: 'https://www.jiejourneys.com/assets/og-share.png',
               image: 'https://www.jiejourneys.com/assets/og-share.png',
               sameAs: [
@@ -113,15 +119,13 @@ export default function RootLayout({
             __html: JSON.stringify({
               '@context': 'https://schema.org',
               '@type': 'WebSite',
-              name: '旅杰 JieJourneys',
-              url: 'https://www.jiejourneys.com/',
+              '@id': `${SITE_URL}#website`,
+              name: SITE_NAME,
+              alternateName: ['JieJourneys', '旅杰', 'jiejourneys.com'],
+              url: SITE_URL,
               publisher: {
                 '@type': 'Organization',
-                name: '旅杰 JieJourneys',
-                logo: {
-                  '@type': 'ImageObject',
-                  url: 'https://www.jiejourneys.com/assets/og-share.png',
-                },
+                '@id': `${SITE_URL}#organization`,
               },
             }),
           }}

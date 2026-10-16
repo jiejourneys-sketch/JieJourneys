@@ -71,6 +71,22 @@ export default function GtagCapture() {
           affiliate_event: name,
           transport_type: 'beacon',
         })
+
+        const promotionId = element.dataset.promotionId
+        if (promotionId) {
+          gtagFn('event', 'select_promotion', {
+            promotion_id: promotionId,
+            promotion_name: element.dataset.promotionName || promotionId,
+            creative_slot: element.dataset.creativeSlot || eventParameters.section,
+            items: [
+              {
+                item_id: `${promotionId}_${canonicalAffiliatePlatform.toLowerCase()}`,
+                item_name: canonicalAffiliatePlatform,
+                affiliation: '旅杰 JieJourneys',
+              },
+            ],
+          })
+        }
       }
     }
     document.addEventListener('click', handleClick, { capture: true })
