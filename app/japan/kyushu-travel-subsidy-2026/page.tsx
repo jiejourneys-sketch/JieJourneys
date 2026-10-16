@@ -26,6 +26,11 @@ const KUMAMOTO_CAMPAIGN_URL = 'https://kumamoto-ouenwari.com/'
 const OITA_CAMPAIGN_URL = 'https://oita-fukkou-wari.jp/'
 const MIYAZAKI_CAMPAIGN_URL = 'https://miyazaki-ouen.jp/'
 const KAGOSHIMA_CAMPAIGN_URL = 'https://fukko-ouenwari.pref.kagoshima.jp/'
+const RAKUTEN_CAMPAIGN_URL = 'https://travel.rakuten.co.jp/special/kyushuouen/'
+const JTB_CAMPAIGN_URL = 'https://www.jtb.co.jp/kokunai/kyushu-ouen/'
+const JTB_OVERSEAS_MEMBER_FAQ_URL = 'https://faq.jtb.co.jp/faqs/f5258/'
+const NTA_CAMPAIGN_URL = 'https://www.nta.co.jp/kokunai/special/ouen/kyushu/'
+const NAGASAKI_STAYNAVI_URL = 'https://kyushuouen-nagasaki.staynavi.direct/campaign/prefecture/nagasaki/kyushuouen'
 const INSTAGRAM_CHANNEL_URL = 'https://www.instagram.com/channel/AbZxb3pZjSFNqWvD/'
 
 type ActionLink = {
@@ -51,6 +56,16 @@ type PrefectureRow = {
   stay: string
   status: string
   href: string
+  event: string
+}
+
+type PrefectureBookingResource = {
+  area: string
+  hotelLabel: string
+  hotelHref: string
+  agencyLabel: string
+  agencyHref: string
+  note: string
   event: string
 }
 
@@ -144,6 +159,72 @@ const prefectureRows: PrefectureRow[] = [
   },
 ]
 
+const prefectureBookingResources: PrefectureBookingResource[] = [
+  {
+    area: '福岡',
+    hotelLabel: '參與飯店名單',
+    hotelHref: 'https://fukuoka-fukkou-wari.jp/stay/',
+    agencyLabel: '參與旅行社名單',
+    agencyHref: 'https://fukuoka-fukkou-wari.jp/agt/',
+    note: '直訂時先向飯店表明要使用補助；OTA 入口在縣官方首頁。',
+    event: 'fukuoka',
+  },
+  {
+    area: '佐賀',
+    hotelLabel: '直訂飯店名單 PDF',
+    hotelHref: 'https://saga-ouen.jp/assets/pdf/hotels.pdf',
+    agencyLabel: '旅行社名單 PDF',
+    agencyHref: 'https://saga-ouen.jp/assets/pdf/travel-agencies.pdf',
+    note: '官方列出的 OTA 已完售；飯店名單會逐家標示受付終了。',
+    event: 'saga',
+  },
+  {
+    area: '長崎',
+    hotelLabel: 'STAYNAVI 飯店與發券',
+    hotelHref: NAGASAKI_STAYNAVI_URL,
+    agencyLabel: '官方預訂入口',
+    agencyHref: NAGASAKI_CAMPAIGN_URL,
+    note: '直訂第一期已滿；第二期預定 10/23 10:00 開放發券。',
+    event: 'nagasaki',
+  },
+  {
+    area: '熊本',
+    hotelLabel: '參與飯店名單',
+    hotelHref: 'https://kumamoto-ouenwari.com/accommodation-list.html',
+    agencyLabel: '參與旅行社名單',
+    agencyHref: 'https://kumamoto-ouenwari.com/travel-list.html',
+    note: '各飯店與旅行社分批販售，沒有全縣統一剩餘額度。',
+    event: 'kumamoto',
+  },
+  {
+    area: '大分',
+    hotelLabel: '參與飯店名單',
+    hotelHref: 'https://oita-fukkou-wari.jp/stay/',
+    agencyLabel: '參與旅行社名單',
+    agencyHref: 'https://oita-fukkou-wari.jp/agt/',
+    note: '住宿直訂已於 10/16 開始；是否仍有額度由各飯店回答。',
+    event: 'oita',
+  },
+  {
+    area: '宮崎',
+    hotelLabel: '參與飯店名單 PDF',
+    hotelHref: 'https://miyazaki-ouen.jp/__assets/pdf/hotel_list1014.pdf',
+    agencyLabel: '旅行社名單 PDF',
+    agencyHref: 'https://miyazaki-ouen.jp/__assets/pdf/travel_agencies1013.pdf',
+    note: '飯店直訂後還必須成功取得 STAYNAVI 優惠券。',
+    event: 'miyazaki',
+  },
+  {
+    area: '鹿兒島',
+    hotelLabel: '參與飯店名單',
+    hotelHref: 'https://fukko-ouenwari.pref.kagoshima.jp/stay/',
+    agencyLabel: '參與旅行社名單',
+    agencyHref: 'https://fukko-ouenwari.pref.kagoshima.jp/agt/',
+    note: '直訂最長至 2027/2/28；12/26～2027/1/3 不適用。',
+    event: 'kagoshima',
+  },
+]
+
 const affiliateDecisionOptions: AffiliateDecisionOption[] = [
   {
     intent: '想先保留可取消住宿',
@@ -185,6 +266,7 @@ const affiliateDecisionOptions: AffiliateDecisionOption[] = [
 
 const trackedSectionIds = [
   'quick-answer',
+  'booking-selector',
   'booking-status',
   'discount',
   'eligibility',
@@ -270,7 +352,15 @@ const faqItems = [
   },
   {
     q: '楽天、じゃらん、Agoda、Booking.com 都能訂嗎？',
-    a: '不是所有平台、所有住宿方案都適用。楽天與じゃらん已出現在多個縣的官方通路名單；Agoda、Booking.com 或一般國際訂房頁面不能因為有九州住宿就視為補助商品。結帳前一定要看到該縣活動名稱與折扣已套用。',
+    a: '不是。楽天與じゃらん雖出現在多個縣的官方名單，仍只有活動指定商品適用；楽天更明確排除外語版網站、JR 新幹線或特急＋住宿，以及跨兩縣訂單。Agoda、Booking.com 或一般國際訂房頁面不能因為有九州住宿就視為補助商品。',
+  },
+  {
+    q: '台灣旅客可以直接在 JTB 或日本旅行買交通＋住宿嗎？',
+    a: '不能當成保證可買。JTB 網路補助券要求 JTB Travel Member，但 JTB 官方 FAQ 說海外居住者不屬於會員註冊對象；日本旅行的活動頁則寫明網路方案限日本國內居住者。台灣旅客應先向各縣官方名單中的旅行社確認是否接受海外居住者，以及商品是否已包含本活動補助。',
+  },
+  {
+    q: '自己分開訂福岡與熊本飯店，可以拿跨縣最高 ¥35,000 嗎？',
+    a: '不可以因為住過兩縣就自動升級。最高 ¥35,000 適用的是參與旅行社事先包裝、以同一旅行契約販售的跨縣周遊商品；旅客分開成立的兩張飯店訂單仍各自依住宿商品規則計算。楽天也明確排除跨兩縣的活動訂單。',
   },
   {
     q: '兒童與連住怎麼計算？',
@@ -386,6 +476,39 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               <span className="narita-summary-label">現在最重要</span>
               <strong>有活動不等於有額度</strong>
               <p>佐賀多家 OTA、長崎首波額度已完售；各縣與各通路狀態不同。</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="booking-selector" aria-label="九州旅遊補助預訂方式選擇" style={{ scrollMarginTop: '76px' }}>
+          <h2 className="seo-h2">我要怎麼領優惠？先看你想省的是哪一種</h2>
+          <div className="seo-prose">
+            <p>不要先選平台，先選旅行需求。不同商品的入口、上限與能不能讓台灣旅客完成訂購都不一樣。</p>
+          </div>
+          <div className="narita-summary-grid haneda-summary-grid" role="list">
+            <div role="listitem">
+              <span className="narita-summary-label">只訂九州飯店</span>
+              <strong>先查參與飯店直訂</strong>
+              <p>向飯店確認補助額度；長崎、宮崎還要另外取得 STAYNAVI 優惠券。</p>
+              <a className="seo-buy-link" href="#direct-booking-guide" data-event="kyushusubsidy_selector_direct" data-platform="article" data-section="booking_selector">看飯店直訂教學</a>
+            </div>
+            <div role="listitem">
+              <span className="narita-summary-label">想用楽天訂房</span>
+              <strong>只能走日文活動頁</strong>
+              <p>外語版訂單不適用；領券後仍要在完成訂單前確認折扣沒有掉券。</p>
+              <a className="seo-buy-link" href="#rakuten-guide" data-event="kyushusubsidy_selector_rakuten" data-platform="article" data-section="booking_selector">看楽天領券教學</a>
+            </div>
+            <div role="listitem">
+              <span className="narita-summary-label">JR／日本國內航班＋住宿</span>
+              <strong>必須買業者套裝商品</strong>
+              <p>不能自己把交通票與飯店合併；平台還必須接受海外居住者購買。</p>
+              <a className="seo-buy-link" href="#transport-package-guide" data-event="kyushusubsidy_selector_transport" data-platform="article" data-section="booking_selector">看交通套裝教學</a>
+            </div>
+            <div role="listitem">
+              <span className="narita-summary-label">只買車票、JR Pass 或一日遊</span>
+              <strong>不適用政府 50%～60% 補助</strong>
+              <p>這些要另外購買；可直接比較一般交通、票券及活動價格。</p>
+              <a className="seo-buy-link" href="#travel-next-step" data-event="kyushusubsidy_selector_activities" data-platform="article" data-section="booking_selector">比較一般票券</a>
             </div>
           </div>
         </section>
@@ -529,91 +652,205 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
         </section>
 
         <section className="seo-content" id="how-to-book" aria-label="九州旅遊補助實際預訂教學" style={{ scrollMarginTop: '76px' }}>
-          <h2 className="seo-h2">九州旅遊補助怎麼訂？不是輸入共通折扣碼，照這 4 步完成</h2>
+          <h2 className="seo-h2">九州旅遊補助實際訂購教學：先確認通路真的讓台灣旅客完成</h2>
           <div className="seo-prose">
             <p>
-              <strong>不是從 Agoda、Trip.com、KKday 或 Klook 任意搜尋九州商品，再輸入一組政府折扣碼。</strong>這次沒有全九州共用的折扣碼；補助額度在各縣指定的住宿、OTA 與旅行社手上，必須從官方頁找到仍有額度的通路。
+              <strong>政府允許訪日旅客使用，不代表每一家日本訂房網站都接受海外居住者購買。</strong>這次沒有全九州共用折扣碼；補助額度分散在各縣的參與飯店、OTA 與旅行社，還要同時符合販售平台自己的會員及商品條件。
             </p>
 
-            <h3 className="seo-h3">第 1 步：先選「住宿所在縣」，從官方頁開始</h3>
-            <p>點入住縣別後，找頁面上的「預約／申込」「対象事業者」「宿泊施設」「旅行会社」或 OTA 名單。跨縣旅行則分別確認每一晚住宿是否符合方案。</p>
-            <div className="seo-action-links" aria-label="九州七縣旅遊補助官方預訂入口">
-              {prefectureRows.map((row) => (
-                <a
-                  className="seo-buy-link"
-                  href={row.href}
-                  key={`booking-${row.area}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-event={`${row.event}_booking_guide`}
-                  data-platform={`${row.area} official`}
-                  data-section="booking_guide"
-                >
-                  {row.area}官方入口
-                </a>
-              ))}
-            </div>
-
-            <h3 className="seo-h3">第 2 步：依你選的通路完成預訂</h3>
             <div className="narita-table-scroll">
               <table>
                 <thead>
                   <tr>
-                    <th>預訂方式</th>
-                    <th>實際操作</th>
-                    <th>折扣怎麼出現</th>
+                    <th>預訂通路</th>
+                    <th>台灣旅客怎麼看</th>
+                    <th>本文建議</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td><strong>OTA 線上訂房</strong></td>
-                    <td>由縣官方頁進入指定平台，領取活動優惠券或選擇標有活動名稱的住宿方案。</td>
-                    <td>優惠券套用或折後金額會在付款前顯示；沒顯示就先不要付款。</td>
+                    <td><strong>參與飯店官方直訂</strong></td>
+                    <td>制度確定包含訪日旅客；直接向飯店確認是否仍有補助額度與付款方式。</td>
+                    <td><strong>優先查這條路</strong>，但採 STAYNAVI 的縣還要完成發券。</td>
                   </tr>
                   <tr>
-                    <td><strong>向飯店直接預訂</strong></td>
-                    <td>先確認飯店在官方參與名單，再從飯店官網或電話訂房。若採 STAYNAVI，訂房後還要回 STAYNAVI 取得補助優惠券。</td>
-                    <td>依飯店規則於線上或入住現場折抵；只有飯店訂單、沒有必要的 STAYNAVI 優惠券，不能使用補助。</td>
+                    <td><strong>楽天日文版</strong></td>
+                    <td>只有日文活動頁與指定商品可能適用；外語版訂單明確排除。</td>
+                    <td>可依下方流程嘗試，付款前一定要看到優惠券仍在訂單上。</td>
                   </tr>
                   <tr>
-                    <td><strong>旅行社交通＋住宿</strong></td>
-                    <td>從官方名單找旅行社，購買明確標示為活動對象、已把交通與住宿包在一起的商品。</td>
-                    <td>旅行社報價或付款明細會列出補助後金額；自己先買的機票、JR 或巴士票不能事後加入。</td>
+                    <td><strong>JTB 網路預訂</strong></td>
+                    <td>補助券要求 JTB 會員，但 JTB 官方 FAQ 說海外居住者不屬於會員註冊對象。</td>
+                    <td>不寫成台灣旅客保證入口；只有本來就符合會員與商品條件者再確認。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>日本旅行網路預訂</strong></td>
+                    <td>活動頁目前寫明日本國內居住者適用。</td>
+                    <td>不列為台灣旅客建議通路。</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <h3 className="seo-h3">第 3 步：付款前確認這 3 件事</h3>
+            <h3 className="seo-h3" id="direct-booking-guide" style={{ scrollMarginTop: '76px' }}>方式 A｜飯店官方直訂：目前最值得台灣旅客先確認</h3>
             <ol>
-              <li>畫面或方案名稱明確寫出該縣的九州旅遊補助活動。</li>
-              <li>訂單明細已顯示優惠券、補助金額或折後應付價格。</li>
-              <li>入住日期、人數、房型與預訂人姓名都正確，且通路尚未標示額度用完。</li>
+              <li><strong>從下表打開住宿縣的參與飯店名單：</strong>不要直接從搜尋引擎任選同一家飯店。</li>
+              <li><strong>從飯店官網或電話建立新訂單：</strong>訂房前先確認是活動適用方案、目前仍有額度，並表明要使用九州旅遊補助。</li>
+              <li><strong>確認是否還要自行領券：</strong>長崎、宮崎的飯店直訂採 STAYNAVI 時，飯店訂單完成後還要另外註冊並取得補助優惠券。</li>
+              <li><strong>保存兩份證明：</strong>飯店訂單與 STAYNAVI 優惠券缺一不可；飯店訂成功但優惠券沒有發出，仍不能折。</li>
+              <li><strong>入住時完成資格確認：</strong>帶護照、訂單與必要優惠券，預訂代表人姓名須和護照一致，並依規定簽署利用證明。</li>
             </ol>
+            <p>
+              <strong>長崎目前特別注意：</strong>飯店直訂第一期已額滿；第二期預定在<strong>10 月 23 日 10:00</strong>開放，適用 10 月 23 日起入住。取消訂房時，也要分別取消飯店訂單與 STAYNAVI 優惠券。
+            </p>
 
-            <h3 className="seo-h3">第 4 步：入住時帶護照與必要優惠券</h3>
+            <h3 className="seo-h3">七縣飯店與旅行社官方名單</h3>
+            <p>下列連結直接前往各縣目前公布的名單；PDF 與額度會持續更新，若深層連結變動，可回到上方該縣官方首頁。</p>
+            <div className="narita-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>住宿縣</th>
+                    <th>飯店直訂入口</th>
+                    <th>交通套裝／旅行社入口</th>
+                    <th>目前重點</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prefectureBookingResources.map((resource) => (
+                    <tr key={resource.area}>
+                      <td><strong>{resource.area}</strong></td>
+                      <td>
+                        <a href={resource.hotelHref} target="_blank" rel="noopener noreferrer" data-event={`kyushusubsidy_resource_${resource.event}_hotel`} data-platform={`${resource.area} official`} data-section="booking_resources">
+                          {resource.hotelLabel}
+                        </a>
+                      </td>
+                      <td>
+                        <a href={resource.agencyHref} target="_blank" rel="noopener noreferrer" data-event={`kyushusubsidy_resource_${resource.event}_agency`} data-platform={`${resource.area} official`} data-section="booking_resources">
+                          {resource.agencyLabel}
+                        </a>
+                      </td>
+                      <td>{resource.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="seo-h3" id="rakuten-guide" style={{ scrollMarginTop: '76px' }}>方式 B｜楽天日文版：領券後還要成功完成訂單</h3>
+            <div className="seo-action-links" aria-label="楽天九州旅遊補助官方入口">
+              <a className="seo-buy-link primary" href={RAKUTEN_CAMPAIGN_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_rakuten_official" data-platform="Rakuten Travel" data-section="booking_guide">
+                打開楽天日文活動頁
+              </a>
+            </div>
+            <ol>
+              <li>使用楽天 ID 登入日文版活動頁，再選擇實際住宿縣。</li>
+              <li>領取對應人數、住宿天數與商品類型的補助優惠券。</li>
+              <li>從優惠券頁的適用設施入口搜尋飯店，不要另開外語版重新搜尋。</li>
+              <li>進入付款步驟後，確認活動優惠券已套用、折扣額與最終應付金額正確。</li>
+              <li>完成訂單後再次查看預訂明細；只有「完成預訂」才占到名額，領到券不等於保留額度。</li>
+            </ol>
             <p>
-              預訂人姓名請和護照一致。入住時依業者要求出示護照、訂單或 STAYNAVI 優惠券，並簽署利用證明。<strong>最簡單的判斷是：付款前看不到補助，入住時就不會突然幫你折。</strong>
+              楽天官方明確排除<strong>外語版網站、JR 新幹線／特急＋住宿、跨兩縣訂單、日歸與商務用途</strong>。國內航班＋住宿的 ANA 樂包、JAL 樂包屬可能適用商品，但仍要以該縣優惠券與結帳畫面為準。台灣旅客若無法在日文版完成帳號、聯絡資料或付款流程，不要改用外語版並期待入住時補折，應改查飯店官方直訂。
+            </p>
+
+            <h3 className="seo-h3" id="transport-package-guide" style={{ scrollMarginTop: '76px' }}>方式 C｜交通＋住宿：先確認是同一份補助旅行商品</h3>
+            <div className="narita-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>想省的項目</th>
+                    <th>符合條件的訂法</th>
+                    <th>不能這樣做</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>日本國內航班＋住宿</strong></td>
+                    <td>購買活動指定的國內套裝，例如符合優惠券條件的航空＋飯店商品。</td>
+                    <td>不能把台灣往返日本的國際機票或原有機票事後加入。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>JR／特急＋住宿</strong></td>
+                    <td>向縣官方名單中的旅行社購買已包裝完成的活動商品。</td>
+                    <td>楽天的 JR 新幹線／特急＋住宿明確不適用，也不能自行買 JR 後合併。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>跨兩縣以上周遊</strong></td>
+                    <td>購買旅行社以同一旅行契約販售的跨縣周遊商品，才有機會適用每人最高 ¥35,000。</td>
+                    <td>分開訂福岡與熊本兩張飯店訂單，不會自動升級成周遊商品。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p>
+              聯絡旅行社前先問清楚三件事：<strong>是否接受海外居住者購買、商品是否明確套用九州旅遊補助、交通與住宿是否在同一份旅行契約內</strong>。三項都有明確答案，再確認折後報價與取消條件。
             </p>
             <p>
-              只想買 JR、巴士、機票或景點票券，可以另外使用一般平台比價，但這些單獨購買的票券不會享有本次 50%～60% 補助；要補助交通，必須買官方參與旅行社事先組合好的「交通＋住宿」商品。
+              JTB 官方確實提供「先複製優惠碼與密碼，再於付款頁套用」的流程，但網路券要求 JTB Travel Member；其官方會員 FAQ 又將註冊對象限於日本國內居住者，因此本文不把它寫成台灣旅客保證可用的交通入口。日本旅行的活動頁也明載網路方案限日本國內居住者。可查看
+              <a href={JTB_CAMPAIGN_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_transport_jtb_campaign" data-platform="JTB" data-section="booking_guide"><strong>JTB 活動說明</strong></a>
+              、
+              <a href={JTB_OVERSEAS_MEMBER_FAQ_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_transport_jtb_membership" data-platform="JTB" data-section="booking_guide"><strong>JTB 海外居住者會員規則</strong></a>
+              與
+              <a href={NTA_CAMPAIGN_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_transport_nta_campaign" data-platform="Nippon Travel Agency" data-section="booking_guide"><strong>日本旅行活動頁</strong></a>
+              交叉確認。
             </p>
+
+            <h3 className="seo-h3">送出訂單前的最後檢查</h3>
+            <ol>
+              <li>方案名稱或訂單明細明確寫出住宿縣的九州旅遊補助活動。</li>
+              <li>優惠券、補助金額或折後應付價格已經顯示，沒有在最後一步掉券。</li>
+              <li>入住日期、人數、住宿縣、房型與預訂代表人姓名都正確。</li>
+              <li>已看過取消費；補助訂單取消費可能按折扣前價格計算。</li>
+            </ol>
+            <p><strong>最簡單的判斷：付款前看不到補助，入住時就不會突然幫你折。</strong></p>
           </div>
         </section>
 
         <section className="seo-content" id="platforms" aria-label="九州旅遊補助訂房平台與完售狀態">
-          <h2 className="seo-h2">哪些平台能訂？楽天、じゃらん有參加，但每一縣名單不同</h2>
+          <h2 className="seo-h2">台灣旅客可用，不代表所有訂房網站都能用</h2>
           <div className="seo-prose">
             <p>
-              現在已確認的官方通路包含住宿設施直接預訂、指定旅行社與 OTA。楽天トラベル、じゃらん已出現在多個縣的名單，大分另列 Yahoo!トラベル、一休.com；佐賀還列出 ANA X、るるぶトラベル與 JTB，但佐賀官方標示的這批 OTA 額度目前都已完售。
+              「訪日旅客是制度對象」只代表國籍與居住地不會被九州各縣一律排除，實際販售業者仍可設定自己的網站、會員、付款與商品限制。以下是目前官方資料能確認的差別。
             </p>
-            <h3 className="seo-h3">Agoda、Booking.com、Trip.com 要特別小心</h3>
-            <p>
-              一般訂房頁面出現九州飯店，不代表它是補助商品。本文下方的 Agoda、Trip.com 等合作連結是一般比價入口，<strong>不是九州旅遊補助官方入口</strong>。要使用補助，請優先從上方七縣官方頁進入指定通路，並在付款前確認折扣已經顯示。
-            </p>
-            <p>
-              住宿直訂也不是訂好飯店就完成。長崎、宮崎等縣使用 STAYNAVI，必須在訂房後另外取得活動優惠券；如果優惠券額度已用完，即使房間訂成功也不能享有補助。
-            </p>
+            <div className="narita-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>網站／通路</th>
+                    <th>官方確認內容</th>
+                    <th>台灣讀者應怎麼做</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>楽天</strong></td>
+                    <td>日文版指定商品可領券；外語版、JR＋住宿與跨縣訂單排除。</td>
+                    <td>從日文活動頁開始，完成訂單前確認折扣仍存在。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>JTB</strong></td>
+                    <td>補助券需會員；海外居住者不屬於 JTB Travel Member 註冊對象。</td>
+                    <td>不要當成所有台灣旅客都能使用的固定入口。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>日本旅行</strong></td>
+                    <td>目前活動頁將網路商品對象寫為日本國內居住者。</td>
+                    <td>不列入台灣旅客建議通路。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Agoda／Booking.com／Trip.com</strong></td>
+                    <td>一般國際訂房頁面不會因為住宿位於九州就自動成為補助商品。</td>
+                    <td>只作一般房價與可取消方案比較。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>KKday／Klook</strong></td>
+                    <td>單獨購買 JR Pass、交通票、景點票與一日遊不屬於本次政府補助。</td>
+                    <td>住宿確定後再用來補齊一般票券與行程。</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
             <h3 className="seo-h3">台灣出發的國際機票能不能一起折？</h3>
             <p>
               官方把航空、付費列車、巴士、船舶等列為可能符合的交通服務，但前提是由參與旅行業者在出發前和住宿包成同一個補助旅行商品。<strong>台灣自行購買的九州來回機票不能事後併入</strong>；目前也不能把所有「機票＋飯店」網站方案都當成適用，仍要看到販售業者明確標示本活動。
