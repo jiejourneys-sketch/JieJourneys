@@ -83,13 +83,13 @@ function getSupabaseClient() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-function getCronSecret() {
-  return Deno.env.get("CONTENT_MONITOR_CRON_SECRET") ?? "";
-}
-
 function isAuthorized(request: Request) {
-  const expected = getCronSecret();
-  return Boolean(expected) && request.headers.get("x-content-monitor-secret") === expected;
+  const provided = request.headers.get("x-content-monitor-secret") ?? "";
+  const allowed = [
+    Deno.env.get("CONTENT_MONITOR_CRON_SECRET") ?? "",
+    Deno.env.get("CONTENT_MONITOR_ADMIN_SECRET") ?? "",
+  ].filter(Boolean);
+  return Boolean(provided) && allowed.some((expected) => provided === expected);
 }
 
 function errorMessage(error: unknown) {
@@ -287,7 +287,24 @@ async function fetchContent(site: MonitorSite): Promise<FetchedContent> {
           .map((value) => normalizeText(value));
         return values.length ? `${tag}:${values.join("|")}` : "";
       }).get().filter(Boolean);
-      extracted = `${extracted}\n${attributes.join("\n")}`;
+      const stateful = target
+        .filter("[class],[aria-disabled],[disabled]")
+        .add(target.find("[class],[aria-disabled],[disabled]"));
+      const stateAttributes = stateful.map((_, element) => {
+        const node = $(element);
+        const stateClasses = (node.attr("class") ?? "")
+          .split(/\s+/)
+          .filter((token) => /(^|[-_])(sold-?out|ended?|closed|open|available|unavailable|disabled)([-_]|$)/i.test(token));
+        const ariaDisabled = node.attr("aria-disabled");
+        const disabled = node.attr("disabled");
+        const values = [
+          stateClasses.length ? `class=${stateClasses.join(".")}` : "",
+          ariaDisabled !== undefined ? `aria-disabled=${ariaDisabled}` : "",
+          disabled !== undefined ? "disabled" : "",
+        ].filter(Boolean);
+        return values.length ? `${element.tagName?.toLowerCase() ?? "node"}:${values.join("|")}` : "";
+      }).get().filter(Boolean);
+      extracted = `${extracted}\n${attributes.concat(stateAttributes).join("\n")}`;
     }
   } catch (error) {
     throw new Error(`HTML extraction failed: ${errorMessage(error)}`);
