@@ -653,7 +653,7 @@ test('a durable verified identity bypasses provider searches for all routes', as
   }
 })
 
-test('the combined route resolves all providers for a previously unseen hotel with one metered lookup', async () => {
+test('the combined route resolves all providers for a previously unseen hotel with one shared Google Hotels lookup', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const previousTripSearchProvider = process.env.TRIP_SEARCH_PROVIDER
@@ -874,7 +874,7 @@ test('Trip searches the Agoda catalogue identity before a translated user name',
   }
 })
 
-test('Booking route resolves from the exact Google Hotels property details in two searches', async () => {
+test('Booking route resolves a stable property page without a quote or stay dates', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const requestedUrls: URL[] = []
@@ -909,9 +909,18 @@ test('Booking route resolves from the exact Google Hotels property details in tw
         name: hotelName,
         property_token: propertyToken,
         gps_coordinates: { latitude: 33.839157, longitude: 132.765575 },
-        prices: [{
-          source: 'Booking.com',
-          link: 'https://www.booking.com/hotel/jp/adaptive-direct-details-matsuyama-q731.html',
+        prices: [{ source: 'Agoda', link: 'https://www.agoda.com/adaptive-direct-details-q731' }],
+      })
+    }
+
+    if (requestedUrls.length === 3 && engine === 'google') {
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        organic_results: [{
+          position: 1,
+          title: `${hotelName} - Booking.com`,
+          link: 'https://www.booking.com/hotel/jp/adaptive-direct-details-matsuyama-q731.html?checkin=2026-11-02&checkout=2026-11-04',
+          snippet: `${hotelName} in Matsuyama`,
         }],
       })
     }
@@ -935,19 +944,23 @@ test('Booking route resolves from the exact Google Hotels property details in tw
     const result = await response.json()
 
     expect(response.status).toBe(200)
-    expect(requestedUrls).toHaveLength(2)
+    expect(requestedUrls).toHaveLength(3)
     expect(result.matchStatus).toBe('matched')
-    expect(result.discoveryMethod).toBe('google_hotels')
-    expect(result.providerRequestCount).toBe(2)
+    expect(result.discoveryMethod).toBe('web_search')
+    expect(result.providerRequestCount).toBe(3)
     expect(result.bestMatch?.hotelId).toBe('jp/adaptive-direct-details-matsuyama-q731')
-    expect(new URL(result.bestMatch?.bookingUrl).hostname).toBe('www.jdoqocy.com')
+    const affiliateUrl = new URL(result.bestMatch?.bookingUrl)
+    expect(affiliateUrl.hostname).toBe('www.jdoqocy.com')
+    const destination = new URL(affiliateUrl.searchParams.get('url') ?? '')
+    expect(destination.searchParams.get('checkin')).toBeNull()
+    expect(destination.searchParams.get('checkout')).toBeNull()
   } finally {
     globalThis.fetch = previousFetch
     restoreHotelAffiliateRouteEnvironment('SERPAPI_API_KEY', previousSerpApiKey)
   }
 })
 
-test('Booking route uses one multilingual organic rescue after bounded Google Hotels details', async () => {
+test('Booking route uses bounded shared Google Hotels details when a Booking source is present', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const requestedUrls: URL[] = []
@@ -984,24 +997,9 @@ test('Booking route uses one multilingual organic rescue after bounded Google Ho
         name: hotelName,
         property_token: propertyToken,
         gps_coordinates: { latitude: 35.443708, longitude: 139.638026 },
-        prices: [{ source: 'Agoda', link: 'https://www.agoda.com/adaptive-organic-harbor-q842' }],
-      })
-    }
-
-    if (requestedUrls.length === 3 && engine === 'google') {
-      const query = url.searchParams.get('q') ?? ''
-      expect(query).toContain(`"${hotelName}"`)
-      expect(query).toContain(`"${alternateName}"`)
-      expect(query).toContain(`"${userName}"`)
-      expect(query).toContain(' OR ')
-      expect(url.searchParams.get('num')).toBe('30')
-      return hotelAffiliateRouteJsonResponse({
-        search_metadata: { status: 'Success' },
-        organic_results: [{
-          position: 1,
-          title: `${hotelName} - Booking.com`,
+        prices: [{
+          source: 'Booking.com',
           link: 'https://www.booking.com/hotel/jp/adaptive-organic-harbor-yokohama-q842.html',
-          snippet: `${hotelName} in Yokohama`,
         }],
       })
     }
@@ -1026,10 +1024,10 @@ test('Booking route uses one multilingual organic rescue after bounded Google Ho
     const result = await response.json()
 
     expect(response.status).toBe(200)
-    expect(requestedUrls).toHaveLength(3)
+    expect(requestedUrls).toHaveLength(2)
     expect(result.matchStatus).toBe('matched')
-    expect(result.discoveryMethod).toBe('web_search')
-    expect(result.providerRequestCount).toBe(3)
+    expect(result.discoveryMethod).toBe('google_hotels')
+    expect(result.providerRequestCount).toBe(2)
     expect(result.bestMatch?.hotelId).toBe('jp/adaptive-organic-harbor-yokohama-q842')
     expect(new URL(result.bestMatch?.bookingUrl).hostname).toBe('www.jdoqocy.com')
   } finally {
@@ -1038,7 +1036,7 @@ test('Booking route uses one multilingual organic rescue after bounded Google Ho
   }
 })
 
-test('Booking route resolves an exact Maps CID through autocomplete within four searches', async () => {
+test('Booking route resolves an exact Maps CID through autocomplete within five searches', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
   const requestedUrls: URL[] = []
@@ -1060,14 +1058,14 @@ test('Booking route resolves an exact Maps CID through autocomplete within four 
       })
     }
 
-    if (requestedUrls.length === 2 && engine === 'google') {
+    if ((requestedUrls.length === 2 || requestedUrls.length === 3) && engine === 'google') {
       return hotelAffiliateRouteJsonResponse({
         search_metadata: { status: 'Success' },
         organic_results: [],
       })
     }
 
-    if (requestedUrls.length === 3 && engine === 'google_hotels_autocomplete') {
+    if (requestedUrls.length === 4 && engine === 'google_hotels_autocomplete') {
       expect(url.searchParams.get('q')).toBe(hotelName)
       return hotelAffiliateRouteJsonResponse({
         search_metadata: { status: 'Success' },
@@ -1082,7 +1080,7 @@ test('Booking route resolves an exact Maps CID through autocomplete within four 
     }
 
     if (
-      requestedUrls.length === 4 &&
+      requestedUrls.length === 5 &&
       engine === 'google_hotels' &&
       url.searchParams.get('property_token') === propertyToken
     ) {
@@ -1121,11 +1119,12 @@ test('Booking route resolves an exact Maps CID through autocomplete within four 
     expect(requestedUrls.map((url) => url.searchParams.get('engine'))).toEqual([
       'google_hotels',
       'google',
+      'google',
       'google_hotels_autocomplete',
       'google_hotels',
     ])
     expect(result.matchStatus).toBe('matched')
-    expect(result.providerRequestCount).toBe(4)
+    expect(result.providerRequestCount).toBe(5)
     expect(result.bestMatch?.hotelId).toBe('jp/adaptive-exact-cid-takamatsu-q953')
     expect(new URL(result.bestMatch?.bookingUrl).hostname).toBe('www.jdoqocy.com')
   } finally {
@@ -1154,14 +1153,14 @@ test('Booking route rejects a wrong autocomplete CID without fetching property d
       })
     }
 
-    if (requestedUrls.length === 2 && engine === 'google') {
+    if ((requestedUrls.length === 2 || requestedUrls.length === 3) && engine === 'google') {
       return hotelAffiliateRouteJsonResponse({
         search_metadata: { status: 'Success' },
         organic_results: [],
       })
     }
 
-    if (requestedUrls.length === 3 && engine === 'google_hotels_autocomplete') {
+    if (requestedUrls.length === 4 && engine === 'google_hotels_autocomplete') {
       return hotelAffiliateRouteJsonResponse({
         search_metadata: { status: 'Success' },
         suggestions: [{
@@ -1194,14 +1193,15 @@ test('Booking route rejects a wrong autocomplete CID without fetching property d
     const result = await response.json()
 
     expect(response.status).toBe(200)
-    expect(requestedUrls).toHaveLength(3)
+    expect(requestedUrls).toHaveLength(4)
     expect(requestedUrls.map((url) => url.searchParams.get('engine'))).toEqual([
       'google_hotels',
+      'google',
       'google',
       'google_hotels_autocomplete',
     ])
     expect(result.matchStatus).toBe('no_match')
-    expect(result.providerRequestCount).toBe(3)
+    expect(result.providerRequestCount).toBe(4)
     expect(result.bestMatch).toBeUndefined()
   } finally {
     globalThis.fetch = previousFetch

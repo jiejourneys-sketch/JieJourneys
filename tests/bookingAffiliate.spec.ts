@@ -30,7 +30,7 @@ test.afterEach(() => {
   else delete process.env.SERPAPI_PLANNER_ACCOUNT_GUARD_ENABLED
 })
 
-test('creates a CJ deep link for one exact Booking property', () => {
+test('creates a date-independent CJ deep link for one exact Booking property', () => {
   const source = 'https://www.booking.com/hotel/jp/r-b-hotel-otsukaeki-kitaguchi.html?aid=someone-else&checkin=2026-11-02&checkout=2026-11-04'
   const result = buildBookingAffiliateUrl(source)
   const affiliateUrl = new URL(result)
@@ -39,7 +39,8 @@ test('creates a CJ deep link for one exact Booking property', () => {
   expect(affiliateUrl.hostname).toBe('www.jdoqocy.com')
   expect(destination.hostname).toBe('www.booking.com')
   expect(destination.pathname).toBe('/hotel/jp/r-b-hotel-otsukaeki-kitaguchi.html')
-  expect(destination.searchParams.get('checkin')).toBe('2026-11-02')
+  expect(destination.searchParams.get('checkin')).toBeNull()
+  expect(destination.searchParams.get('checkout')).toBeNull()
   expect(destination.searchParams.get('aid')).toBeNull()
   expect(bookingPropertyIdFromUrl(result)).toBe('jp/r-b-hotel-otsukaeki-kitaguchi')
   expect(bookingPropertyIdFromUrl('https://www.booking.com/hotel/jp/r-b-hotel-otsukaeki-kitaguchi.zh-tw.html'))
@@ -102,6 +103,42 @@ test('uses one bounded organic search and accepts an exact Booking result', asyn
   expect(new URL(result.bestMatch?.bookingUrl ?? '').hostname).toBe('www.jdoqocy.com')
 })
 
+test('automatically retries one broad multilingual Booking search after the exact query misses', async () => {
+  const requestedQueries: string[] = []
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    const searchQuery = url.searchParams.get('q') ?? ''
+    requestedQueries.push(searchQuery)
+    const organicResults = searchQuery.includes('"')
+      ? []
+      : [{
+          position: 1,
+          title: '神戶自動搜尋河景住宿, 神戶 (2026 年最新價格)',
+          link: 'https://www.booking.com/hotel/jp/automatic-recall-riverside.html',
+          snippet: 'Accommodation in Kobe',
+        }]
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: organicResults,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  const result = await searchBookingAffiliateHotels({
+    hotelName: 'Automatic Recall Riverside',
+    alternateHotelNames: ['神戶自動搜尋河景住宿'],
+    city: 'Kobe',
+    countryCode: 'JP',
+  })
+
+  expect(requestedQueries).toEqual([
+    'site:booking.com/hotel/jp/ ("Automatic Recall Riverside" OR "神戶自動搜尋河景住宿") Kobe',
+    'site:booking.com/hotel/jp/ (Automatic Recall Riverside) OR (神戶自動搜尋河景住宿) Kobe',
+  ])
+  expect(result.matchStatus).toBe('matched')
+  expect(result.bestMatch?.hotelId).toBe('jp/automatic-recall-riverside')
+  expect(result.providerRequestCount).toBe(2)
+})
+
 test('accepts an exact Booking property with a localized city and annual price suffix', async () => {
   globalThis.fetch = (async () => new Response(JSON.stringify({
     search_metadata: { status: 'Success' },
@@ -122,6 +159,124 @@ test('accepts an exact Booking property with a localized city and annual price s
   expect(result.matchStatus).toBe('matched')
   expect(result.bestMatch?.hotelId).toBe('jp/t-hotelru-gu')
   expect(result.bestMatch?.hotelName).toBe('T-Hotel入谷')
+})
+
+test('accepts the same Booking branch when No.1 is written as 1', async () => {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [{
+      position: 1,
+      title: 'Toyoko Inn Busan Station No.1, Busan (updated prices for 2026)',
+      link: 'https://www.booking.com/hotel/kr/toyoko-inn-busan-no-1.html',
+      snippet: 'Toyoko Inn Busan Station No.1 in Busan',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  const result = await searchBookingAffiliateHotels({
+    hotelName: 'Toyoko Inn Busan Station 1',
+    city: 'Busan',
+    countryCode: 'KR',
+  })
+
+  expect(result.matchStatus).toBe('matched')
+  expect(result.confidence).toBe('high')
+  expect(result.bestMatch?.hotelId).toBe('kr/toyoko-inn-busan-no-1')
+  expect(result.providerRequestCount).toBe(1)
+})
+
+test('uses the canonical Booking property slug when the visible title is localized', async () => {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [{
+      position: 1,
+      title: '三井花園飯店上野, 東京 (2026 年最新價格)',
+      link: 'https://www.booking.com/hotel/jp/mitsui-garden-ueno.html',
+      snippet: '位於東京上野的住宿',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  const result = await searchBookingAffiliateHotels({
+    hotelName: 'Mitsui Garden Hotel Ueno - Tokyo',
+    city: 'Tokyo',
+    countryCode: 'JP',
+  })
+
+  expect(result.matchStatus).toBe('matched')
+  expect(result.bestMatch?.hotelId).toBe('jp/mitsui-garden-ueno')
+  expect(result.bestMatch?.alternateHotelNames).toContain('mitsui garden ueno')
+  expect(result.providerRequestCount).toBe(1)
+})
+
+test('recognizes a canonical alias inside a bilingual Booking title', async () => {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [{
+      position: 1,
+      title: '三井花園飯店上野 / Mitsui Garden Hotel Ueno - Booking.com',
+      link: 'https://www.booking.com/hotel/jp/ueno-garden-property.html',
+      snippet: 'Hotel in Tokyo',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  const result = await searchBookingAffiliateHotels({
+    hotelName: 'Mitsui Garden Hotel Ueno',
+    city: 'Tokyo',
+    countryCode: 'JP',
+  })
+
+  expect(result.matchStatus).toBe('matched')
+  expect(result.bestMatch?.hotelId).toBe('jp/ueno-garden-property')
+})
+
+test('does not use the query name as evidence when a Booking result has no title', async () => {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [{
+      position: 1,
+      title: '',
+      link: 'https://www.booking.com/hotel/jp/different-property.html',
+      snippet: 'Target Riverside Lodge appears only in this untrusted snippet',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  const result = await searchBookingAffiliateHotels({
+    hotelName: 'Target Riverside Lodge',
+    city: 'Tokyo',
+    countryCode: 'JP',
+  })
+
+  expect(result.matchStatus).toBe('no_match')
+  expect(result.bestMatch).toBeUndefined()
+})
+
+test('requires review when two Booking properties are equally strong matches', async () => {
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    organic_results: [
+      {
+        position: 1,
+        title: 'Harbor View Hotel - Booking.com',
+        link: 'https://www.booking.com/hotel/jp/harbor-view-main.html',
+        snippet: 'Harbor View Hotel in Yokohama',
+      },
+      {
+        position: 2,
+        title: 'Harbor View Hotel - Booking.com',
+        link: 'https://www.booking.com/hotel/jp/harbor-view-annex.html',
+        snippet: 'Harbor View Hotel in Yokohama',
+      },
+    ],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  const result = await searchBookingAffiliateHotels({
+    hotelName: 'Harbor View Hotel',
+    city: 'Yokohama',
+    countryCode: 'JP',
+  })
+
+  expect(result.matchStatus).toBe('needs_review')
+  expect(result.candidates).toHaveLength(2)
+  expect(result.providerRequestCount).toBe(1)
 })
 
 test('does not accept a different numbered branch', async () => {

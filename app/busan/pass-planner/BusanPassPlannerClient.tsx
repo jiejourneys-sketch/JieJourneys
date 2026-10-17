@@ -167,10 +167,10 @@ const MAX_PRE_DEPARTURE_GENERAL_LINKS = 20
 const MAX_PLANNER_USER_LINK_LENGTH = 4_000
 type HotelAffiliateProvider = 'Agoda' | 'Trip' | 'Booking'
 type RemovedHotelAffiliateLink = { place_id: string; provider: HotelAffiliateProvider }
-type HotelAffiliateStatus = 'searching' | 'matched' | 'none' | 'error' | 'not_configured' | 'needs_city_id' | 'skipped'
+type HotelAffiliateStatus = 'searching' | 'matched' | 'needs_review' | 'none' | 'error' | 'not_configured' | 'needs_city_id' | 'skipped'
 type HotelAffiliateCooldownStatus = Extract<
   HotelAffiliateStatus,
-  'none' | 'error' | 'not_configured' | 'needs_city_id'
+  'needs_review' | 'none' | 'error' | 'not_configured' | 'needs_city_id'
 >
 type PlannerCountryCode = 'JP' | 'KR' | 'VN' | 'TW' | ''
 type HotelAffiliateEligibility = 'eligible' | 'pending_place_type' | 'skipped'
@@ -1219,7 +1219,8 @@ function hotelAffiliateLookupCoolingDown(cacheKey: string) {
       const status: HotelAffiliateCooldownStatus =
         data.status === 'error' ||
         data.status === 'not_configured' ||
-        data.status === 'needs_city_id'
+        data.status === 'needs_city_id' ||
+        data.status === 'needs_review'
           ? data.status
           : 'none'
       return status
@@ -1299,6 +1300,7 @@ function nearbyKnownPlacesSuggestion(anchorPlaces: MapPlace[], candidatePlaces: 
 function hotelAffiliateStatusText(provider: HotelAffiliateProvider, status: HotelAffiliateStatus | undefined) {
   if (status === 'searching') return `正在找 ${provider}`
   if (status === 'matched') return `已加入 ${provider}`
+  if (status === 'needs_review') return `${provider} 找到候選，待確認`
   if (status === 'none') return `${provider} 未命中`
   if (status === 'not_configured') return `${provider} 未設定`
   if (status === 'needs_city_id') return `${provider} 資料不足`
@@ -11947,13 +11949,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           return
         }
         if (data.matchStatus === 'needs_review' || data.matchStatus === 'no_match') {
+          const lookupStatus = data.matchStatus === 'needs_review' ? 'needs_review' : 'none'
           rememberHotelAffiliateLookupMiss(
             cacheKey,
             data.matchStatus === 'needs_review'
               ? AGODA_AFFILIATE_REVIEW_COOLDOWN_MS
               : AGODA_AFFILIATE_NO_MATCH_COOLDOWN_MS,
+            lookupStatus,
           )
-          setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
+          setAgodaAffiliateStatus((status) => ({ ...status, [place.id]: lookupStatus }))
           return
         }
         if (data.matchStatus !== 'matched') throw new Error('agoda_affiliate_unknown_status')
@@ -12084,13 +12088,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           return
         }
         if (data.matchStatus === 'needs_review' || data.matchStatus === 'no_match') {
+          const lookupStatus = data.matchStatus === 'needs_review' ? 'needs_review' : 'none'
           rememberHotelAffiliateLookupMiss(
             cacheKey,
             data.matchStatus === 'needs_review'
               ? TRIP_AFFILIATE_REVIEW_COOLDOWN_MS
               : TRIP_AFFILIATE_NO_MATCH_COOLDOWN_MS,
+            lookupStatus,
           )
-          setTripAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
+          setTripAffiliateStatus((status) => ({ ...status, [place.id]: lookupStatus }))
           return
         }
         if (data.matchStatus !== 'matched') throw new Error('trip_affiliate_unknown_status')
@@ -12220,13 +12226,15 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
           return
         }
         if (data.matchStatus === 'needs_review' || data.matchStatus === 'no_match') {
+          const lookupStatus = data.matchStatus === 'needs_review' ? 'needs_review' : 'none'
           rememberHotelAffiliateLookupMiss(
             cacheKey,
             data.matchStatus === 'needs_review'
               ? BOOKING_AFFILIATE_REVIEW_COOLDOWN_MS
               : BOOKING_AFFILIATE_NO_MATCH_COOLDOWN_MS,
+            lookupStatus,
           )
-          setBookingAffiliateStatus((status) => ({ ...status, [place.id]: 'none' }))
+          setBookingAffiliateStatus((status) => ({ ...status, [place.id]: lookupStatus }))
           return
         }
         if (data.matchStatus !== 'matched') throw new Error('booking_affiliate_unknown_status')

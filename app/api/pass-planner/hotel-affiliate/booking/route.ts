@@ -147,26 +147,26 @@ export async function POST(req: NextRequest) {
   } else if (googleHotelsResult.matchStatus === 'matched') {
     result = googleHotelsResult
   } else {
-    // All locale aliases share one organic request. A review candidate is not
-    // accepted automatically; it remains available only as the best fallback.
-    const organicResult = await searchBookingAffiliateHotels(searchInput)
+    // Google Hotels is shared with Trip/Agoda and gives us the strongest
+    // property identity. A missing Booking offer is not a failure, though:
+    // search the stable Booking property page with the confirmed canonical
+    // name instead of spending another request on a different stay date.
+    const googleHotelsPropertyName = cleanString(googleHotelsResult.googleHotelsPropertyName, 160)
+    const organicResult = await searchBookingAffiliateHotels(googleHotelsPropertyName
+      ? {
+          ...searchInput,
+          hotelName: googleHotelsPropertyName,
+          alternateHotelNames: [hotelName, ...alternateHotelNames],
+        }
+      : searchInput)
     providerRequestCount += organicResult.providerRequestCount ?? 0
     result = preferBookingResult(googleHotelsResult, organicResult)
 
-    if (result.matchStatus !== 'matched' && googleHotelsResult.googleHotelsPropertyToken) {
-      // Google Hotels already identified the property but did not expose a
-      // Booking offer for the first stay date. Spend one final request on a
-      // different date instead of repeating the same name query.
-      const alternateDateResult = await searchBookingAffiliateHotelByGoogleHotelsPropertyToken(searchInput, {
-        propertyToken: googleHotelsResult.googleHotelsPropertyToken,
-        propertyName: googleHotelsResult.googleHotelsPropertyName,
-        dateRangeIndex: 1,
-      })
-      if (alternateDateResult) {
-        providerRequestCount += alternateDateResult.providerRequestCount ?? 0
-        result = preferBookingResult(result, alternateDateResult)
-      }
-    } else if (result.matchStatus !== 'matched' && googleMapsDataId) {
+    if (
+      result.matchStatus !== 'matched' &&
+      !googleHotelsResult.googleHotelsPropertyToken &&
+      googleMapsDataId
+    ) {
       // Autocomplete is useful only with a Google Maps CID. The exact decimal
       // CID comparison is the identity proof; names never make this branch
       // eligible on their own.

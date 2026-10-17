@@ -1113,12 +1113,17 @@ const TRIP_CANDIDATE_SOURCE_PRIORITY: Record<TripAffiliateHotelCandidate['source
 }
 
 function normalizeTripText(value: string) {
-  return value
+  const normalized = value
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/https?:\/\/|www\.|tw\.trip\.com|trip\.com/g, ' ')
     .replace(/[^\p{Letter}\p{Number}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+/gu, ' ')
+
+  // Booking and Trip often spell the same branch as "No.1", "No1", "#1", or just "1".
+  // Keep the number itself so a nearby branch (for example No.2) still cannot match.
+  return normalized
+    .replace(/\b(?:no|number)\s*(?=\d+\b)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }

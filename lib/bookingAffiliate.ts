@@ -43,6 +43,7 @@ export type BookingAffiliateHotelCandidate = {
   originalUrl: string
   title?: string
   snippet?: string
+  alternateHotelNames?: string[]
   latitude?: number
   longitude?: number
   distanceKm?: number
@@ -84,6 +85,19 @@ type BookingSearchOutcome = {
   providerRequestCount: number
 }
 
+type GroupedBookingSearchResult = {
+  result: BookingSearchResult
+  parsed: URL
+  rankIndex: number
+  candidateNames: string[]
+}
+
+type ScoredBookingCandidate = {
+  candidate: BookingAffiliateHotelCandidate
+  evaluation: ReturnType<typeof evaluateTripAffiliateCandidateMatch>
+  rankIndex: number
+}
+
 class BookingSearchError extends Error {
   readonly providerRequestCount: number
 
@@ -107,7 +121,12 @@ export function buildBookingAffiliateUrl(sourceUrl: string | URL) {
     const source = typeof sourceUrl === 'string' ? new URL(sourceUrl) : sourceUrl
     const destination = getBookingDestination(source)
     if (!destination || !bookingPropertyIdFromUrl(destination)) return ''
-    return normalizePlannerAffiliateUrl(destination) ?? ''
+    // Automatic discovery only needs the stable property page. Search and
+    // Google Hotels URLs can contain stale stay dates or occupancy details;
+    // sending those through would incorrectly make a valid property link look
+    // dependent on a quote. Booking will ask the visitor for their own stay.
+    const propertyPage = new URL(`https://www.booking.com${destination.pathname}`)
+    return normalizePlannerAffiliateUrl(propertyPage) ?? ''
   } catch {
     return ''
   }
@@ -155,61 +174,27 @@ export async function searchBookingAffiliateHotels(
 
   let providerRequestCount = 0
   try {
-    const searchOutcome = await searchBookingResults(query)
-    const results = searchOutcome.results
-    providerRequestCount = searchOutcome.providerRequestCount
-    const candidates = results.flatMap((result) => {
-      const parsed = parseBookingPropertyUrl(result.url)
-      if (!parsed) return []
-      const hotelId = bookingPropertyIdFromUrl(parsed)
-      const candidateName = cleanBookingTitle(result.title) || hotelName
-      const evaluation = evaluateTripAffiliateCandidateMatch({
-        hotelName,
-        alternateHotelNames,
-        city: query.city,
-        countryCode: query.countryCode,
-        latitude: query.latitude,
-        longitude: query.longitude,
-        candidateTitle: candidateName,
-        candidateName,
-        candidateSnippet: result.snippet,
-        candidateUrl: parsed.toString(),
-        rankIndex: Math.max(0, result.position - 1),
-      })
-      const bookingUrl = buildBookingAffiliateUrl(parsed)
-      if (!hotelId || !bookingUrl || evaluation.score < 0.55) return []
-      return [{
-        hotelId,
-        hotelName: candidateName,
-        score: evaluation.score,
-        bookingUrl,
-        source: 'serpapi' as const,
-        originalUrl: parsed.toString(),
-        title: result.title,
-        snippet: result.snippet,
-        matchStatus: evaluation.matchStatus,
-      }]
-    })
-      .sort((left, right) => {
-        const leftMatched = left.matchStatus === 'matched' ? 1 : 0
-        const rightMatched = right.matchStatus === 'matched' ? 1 : 0
-        return rightMatched - leftMatched || right.score - left.score
-      })
-      .filter((candidate, index, all) => all.findIndex((item) => item.hotelId === candidate.hotelId) === index)
-      .slice(0, query.maxResult)
-    const best = candidates[0]
-    const matchStatus: TripAffiliateMatchStatus = best?.matchStatus === 'matched'
-      ? 'matched'
-      : best?.score != null && best.score >= 0.68
-        ? 'needs_review'
-        : 'no_match'
-    const cleanCandidates = candidates.map(({ matchStatus: _matchStatus, ...candidate }) => candidate)
+    let results: BookingSearchResult[] = []
+    let scoredCandidates: ScoredBookingCandidate[] = []
+    let classification = classifyBookingCandidates(scoredCandidates)
+    for (const searchQuery of bookingOrganicSearchQueries(query)) {
+      const searchOutcome = await searchBookingResults(query, searchQuery)
+      providerRequestCount += searchOutcome.providerRequestCount
+      results = mergeBookingSearchResults(results, searchOutcome.results)
+      scoredCandidates = bookingSearchResultsToCandidates(results, query)
+      classification = classifyBookingCandidates(scoredCandidates)
+      // A confirmed match needs no broader search. Two equally strong matches
+      // are a real identity ambiguity, so another wording should not override it.
+      if (classification.matchStatus === 'matched' || classification.ambiguousRunnerUp) break
+    }
+    const matchStatus = classification.matchStatus
+    const candidates = scoredCandidates.map(({ candidate }) => candidate)
     return {
       ...base,
       matchStatus,
       confidence: matchStatus === 'matched' ? 'high' : matchStatus === 'needs_review' ? 'review' : 'none',
-      ...(cleanCandidates[0] ? { bestMatch: cleanCandidates[0] } : {}),
-      candidates: cleanCandidates,
+      ...(candidates[0] ? { bestMatch: candidates[0] } : {}),
+      candidates,
       rawCount: results.length,
       providerRequestCount,
       searchUrl: bookingSearchUrl(hotelName),
@@ -229,14 +214,162 @@ export async function searchBookingAffiliateHotels(
   }
 }
 
+function classifyBookingCandidates(scoredCandidates: ScoredBookingCandidate[]) {
+  const best = scoredCandidates[0]
+  const runnerUp = scoredCandidates[1]
+  const ambiguousRunnerUp = Boolean(
+    best?.evaluation.matchStatus === 'matched' &&
+    runnerUp?.evaluation.matchStatus === 'matched' &&
+    best.candidate.score - runnerUp.candidate.score <= 0.08,
+  )
+  const matchStatus: TripAffiliateMatchStatus = best?.evaluation.matchStatus === 'matched' && !ambiguousRunnerUp
+    ? 'matched'
+    : best?.candidate.score != null && best.candidate.score >= 0.68
+      ? 'needs_review'
+      : 'no_match'
+  return { matchStatus, ambiguousRunnerUp }
+}
+
+function mergeBookingSearchResults(
+  current: BookingSearchResult[],
+  incoming: BookingSearchResult[],
+) {
+  const seen = new Set<string>()
+  return [...current, ...incoming].filter((result) => {
+    const key = `${result.url.trim().toLowerCase()}|${normalizeText(result.title)}`
+    if (!result.url || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function bookingSearchResultsToCandidates(
+  results: BookingSearchResult[],
+  query: BookingAffiliateSearchResponse['query'],
+) {
+  const groupedResults = new Map<string, GroupedBookingSearchResult[]>()
+
+  results.forEach((result, index) => {
+    const parsed = parseBookingPropertyUrl(result.url)
+    if (!parsed) return
+    const hotelId = bookingPropertyIdFromUrl(parsed)
+    if (!hotelId) return
+    const candidateNames = cleanBookingSearchResultIdentities(result.title, parsed)
+    if (candidateNames.length === 0) return
+    const existing = groupedResults.get(hotelId) ?? []
+    existing.push({
+      result,
+      parsed,
+      rankIndex: typeof result.position === 'number' ? Math.max(0, result.position - 1) : index,
+      candidateNames,
+    })
+    groupedResults.set(hotelId, existing)
+  })
+
+  const candidates: ScoredBookingCandidate[] = []
+  groupedResults.forEach((group, hotelId) => {
+    const scoredIdentities = group.flatMap((entry) =>
+      entry.candidateNames.map((candidateName) => ({
+        ...entry,
+        candidateName,
+        evaluation: evaluateTripAffiliateCandidateMatch({
+          hotelName: query.hotelName,
+          alternateHotelNames: query.alternateHotelNames,
+          city: query.city,
+          countryCode: query.countryCode,
+          latitude: query.latitude,
+          longitude: query.longitude,
+          candidateTitle: cleanBookingTitle(entry.result.title) || candidateName,
+          candidateName,
+          candidateSnippet: entry.result.snippet,
+          candidateUrl: entry.parsed.toString(),
+          rankIndex: entry.rankIndex,
+        }),
+      })),
+    )
+      .sort(compareBookingScoredIdentities)
+    const best = scoredIdentities[0]
+    if (!best || best.evaluation.score < 0.55) return
+
+    const bookingUrl = buildBookingAffiliateUrl(best.parsed)
+    if (!bookingUrl) return
+    const allCandidateNames = cleanBookingIdentityList(group.flatMap((entry) => entry.candidateNames), 16)
+    const displayName = cleanBookingTitle(best.result.title) || best.candidateName
+    const alternateNames = allCandidateNames.filter(
+      (candidateName) => normalizeText(candidateName) !== normalizeText(displayName),
+    )
+    candidates.push({
+      candidate: {
+        hotelId,
+        hotelName: displayName,
+        score: best.evaluation.score,
+        bookingUrl,
+        source: 'serpapi',
+        originalUrl: best.parsed.toString(),
+        title: best.result.title,
+        snippet: best.result.snippet,
+        ...(alternateNames.length > 0 ? { alternateHotelNames: alternateNames } : {}),
+      },
+      evaluation: best.evaluation,
+      rankIndex: best.rankIndex,
+    })
+  })
+
+  return candidates
+    .sort(compareBookingCandidates)
+    .slice(0, query.maxResult)
+}
+
+function compareBookingScoredIdentities(
+  left: GroupedBookingSearchResult & {
+    candidateName: string
+    evaluation: ReturnType<typeof evaluateTripAffiliateCandidateMatch>
+  },
+  right: GroupedBookingSearchResult & {
+    candidateName: string
+    evaluation: ReturnType<typeof evaluateTripAffiliateCandidateMatch>
+  },
+) {
+  const statusDifference = bookingMatchStatusRank(right.evaluation.matchStatus) - bookingMatchStatusRank(left.evaluation.matchStatus)
+  if (statusDifference !== 0) return statusDifference
+  if (left.evaluation.highConfidenceNameEvidence !== right.evaluation.highConfidenceNameEvidence) {
+    return left.evaluation.highConfidenceNameEvidence ? -1 : 1
+  }
+  if (left.evaluation.nameSimilarity !== right.evaluation.nameSimilarity) {
+    return right.evaluation.nameSimilarity - left.evaluation.nameSimilarity
+  }
+  if (left.evaluation.distinctiveNameCoverage !== right.evaluation.distinctiveNameCoverage) {
+    return right.evaluation.distinctiveNameCoverage - left.evaluation.distinctiveNameCoverage
+  }
+  if (left.evaluation.score !== right.evaluation.score) return right.evaluation.score - left.evaluation.score
+  return left.rankIndex - right.rankIndex
+}
+
+function compareBookingCandidates(left: ScoredBookingCandidate, right: ScoredBookingCandidate) {
+  const statusDifference = bookingMatchStatusRank(right.evaluation.matchStatus) - bookingMatchStatusRank(left.evaluation.matchStatus)
+  if (statusDifference !== 0) return statusDifference
+  if (left.evaluation.highConfidenceNameEvidence !== right.evaluation.highConfidenceNameEvidence) {
+    return left.evaluation.highConfidenceNameEvidence ? -1 : 1
+  }
+  if (left.candidate.score !== right.candidate.score) return right.candidate.score - left.candidate.score
+  if (left.rankIndex !== right.rankIndex) return left.rankIndex - right.rankIndex
+  return left.candidate.hotelId.localeCompare(right.candidate.hotelId)
+}
+
+function bookingMatchStatusRank(status: TripAffiliateMatchStatus) {
+  if (status === 'matched') return 2
+  if (status === 'needs_review') return 1
+  return 0
+}
+
 async function searchBookingResults(
   query: BookingAffiliateSearchResponse['query'],
+  searchQuery: string,
 ): Promise<BookingSearchOutcome> {
   const cacheKey = [
-    'booking-v2',
+    'booking-v3',
     query.countryCode ?? '',
-    normalizeText(query.city ?? ''),
-    ...bookingOrganicSearchNames(query).map(normalizeText),
+    searchQuery.toLowerCase(),
   ].join('|')
   const cached = resultCache.get(cacheKey)
   // A user recheck may bypass the browser cooldown, but it must not turn the
@@ -261,7 +394,7 @@ async function searchBookingResults(
   const request = (async () => {
     const url = new URL('https://serpapi.com/search.json')
     url.searchParams.set('engine', 'google')
-    url.searchParams.set('q', bookingOrganicSearchQuery(query))
+    url.searchParams.set('q', searchQuery)
     url.searchParams.set('hl', 'en')
     url.searchParams.set('gl', query.countryCode?.toLowerCase() || 'tw')
     // SerpAPI charges per successful search rather than per returned result.
@@ -313,16 +446,48 @@ function plannerSerpApiSearchAttemptCount(resultOrError: unknown) {
   return getPlannerSerpApiRequestMetadata(resultOrError)?.searchFetchAttempted ? 1 : 0
 }
 
+function bookingOrganicSearchQueries(query: BookingAffiliateSearchResponse['query']) {
+  const seen = new Set<string>()
+  return [bookingOrganicSearchQuery(query), bookingOrganicBroadSearchQuery(query)]
+    .map((searchQuery) => searchQuery.replace(/\s+/g, ' ').trim())
+    .filter((searchQuery) => {
+      const key = searchQuery.toLowerCase()
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
 function bookingOrganicSearchQuery(query: BookingAffiliateSearchResponse['query']) {
   const countryPath = query.countryCode?.toLowerCase().match(/^[a-z]{2}$/)?.[0]
   const site = `site:booking.com/hotel/${countryPath ? `${countryPath}/` : ''}`
   const hotelNames = bookingOrganicSearchNames(query)
   const exactNames = hotelNames.map((hotelName) => `"${hotelName}"`)
   const exactNameQuery = exactNames.length > 1 ? `(${exactNames.join(' OR ')})` : exactNames[0]
+  return `${site} ${exactNameQuery}${bookingOrganicCitySuffix(query, hotelNames)}`
+}
+
+function bookingOrganicBroadSearchQuery(query: BookingAffiliateSearchResponse['query']) {
+  const countryPath = query.countryCode?.toLowerCase().match(/^[a-z]{2}$/)?.[0]
+  const site = `site:booking.com/hotel/${countryPath ? `${countryPath}/` : ''}`
+  const hotelNames = bookingOrganicSearchNames(query)
+  const broadNames = hotelNames.map((hotelName) =>
+    hotelName.replace(/["“”()\r\n]+/g, ' ').replace(/\s+/g, ' ').trim(),
+  )
+  const broadNameQuery = broadNames.length > 1
+    ? broadNames.map((hotelName) => `(${hotelName})`).join(' OR ')
+    : broadNames[0]
+  return `${site} ${broadNameQuery}${bookingOrganicCitySuffix(query, hotelNames)}`
+}
+
+function bookingOrganicCitySuffix(
+  query: BookingAffiliateSearchResponse['query'],
+  hotelNames: string[],
+) {
   const city = query.city?.replace(/["\r\n]+/g, ' ').replace(/\s+/g, ' ').trim() ?? ''
   const normalizedCity = normalizeText(city)
   const includeCity = city && !hotelNames.some((hotelName) => normalizeText(hotelName).includes(normalizedCity))
-  return `${site} ${exactNameQuery}${includeCity ? ` ${city}` : ''}`
+  return includeCity ? ` ${city}` : ''
 }
 
 function bookingOrganicSearchNames(query: BookingAffiliateSearchResponse['query']) {
@@ -373,6 +538,45 @@ function cleanBookingTitle(value: string) {
     .replace(/^Book\s+/i, '')
     .trim()
     .slice(0, 160)
+}
+
+function cleanBookingSearchResultIdentities(title: string, url: URL) {
+  const cleanedTitle = cleanBookingTitle(title)
+  const titleAliases = cleanedTitle
+    ? [
+        cleanedTitle,
+        ...Array.from(cleanedTitle.matchAll(/[（(]([^()（）]{2,120})[)）]/g))
+          .map((match) => match[1]?.trim() ?? ''),
+        ...cleanedTitle.split(/\s+(?:\/|[|｜])\s+/g),
+      ]
+    : []
+  const propertySlug = bookingPropertySlugFromUrl(url)
+  return cleanBookingIdentityList([...titleAliases, propertySlug], 12)
+}
+
+function bookingPropertySlugFromUrl(url: URL) {
+  const hotelId = bookingPropertyIdFromUrl(url)
+  const rawSlug = hotelId?.split('/').slice(1).join('/') ?? ''
+  if (!rawSlug) return ''
+  try {
+    return decodeURIComponent(rawSlug).replace(/[-_]+/g, ' ').trim()
+  } catch {
+    return rawSlug.replace(/[-_]+/g, ' ').trim()
+  }
+}
+
+function cleanBookingIdentityList(values: string[], maxNames: number) {
+  const seen = new Set<string>()
+  const names: string[] = []
+  for (const value of values) {
+    const name = value.replace(/\s+/g, ' ').trim().slice(0, 160)
+    const key = normalizeText(name)
+    if (!key || seen.has(key) || !/[\p{L}\p{N}]/u.test(name)) continue
+    seen.add(key)
+    names.push(name)
+    if (names.length >= maxNames) break
+  }
+  return names
 }
 
 function bookingSearchUrl(hotelName: string) {

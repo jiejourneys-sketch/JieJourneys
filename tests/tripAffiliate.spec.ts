@@ -226,6 +226,27 @@ test('does not confuse numeric hotel branches', () => {
   }
 })
 
+test('treats equivalent numeric branch markers as the same hotel identity', () => {
+  const cases = [
+    ['Toyoko Inn Busan Station 1', 'Toyoko Inn Busan Station No.1'],
+    ['Toyoko Inn Busan Station No1', 'Toyoko Inn Busan Station #1'],
+    ['Toyoko Inn Busan Station Number 1', 'Toyoko Inn Busan Station 1'],
+  ]
+
+  for (const [hotelName, candidateTitle] of cases) {
+    const result = evaluateTripAffiliateCandidateMatch({
+      hotelName,
+      city: 'Busan',
+      candidateTitle: `${candidateTitle} - Booking.com`,
+      candidateName: candidateTitle,
+      candidateUrl: 'https://www.booking.com/hotel/kr/toyoko-inn-busan-no-1.html',
+      rankIndex: 0,
+    })
+
+    expect(result.matchStatus, `${hotelName} should match ${candidateTitle}`).toBe('matched')
+  }
+})
+
 test('does not let a conflicting alternate branch override the primary hotel identity', () => {
   const wrongBranch = evaluateTripAffiliateCandidateMatch({
     hotelName: 'Toyoko Inn Seoul Dongdaemun No.2',
