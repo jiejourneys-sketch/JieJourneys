@@ -1,18 +1,30 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
-import type { CityCard } from '@/components/CityTabbedList'
+import type { CityCard, CityTagPreset } from '@/components/CityTabbedList'
+import listStyles from '@/components/TicketListLayout.module.css'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
+import FujiTicketQuickGuide from './FujiTicketQuickGuide'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
   { value: '一日遊', label: '一日遊', dataArea: '一日遊' },
   { value: '二日遊', label: '二日遊', dataArea: '二日遊' },
   { value: '景點', label: '景點', dataArea: '景點' },
+]
+
+const tagPresets: CityTagPreset[] = [
+  { id: 'kawaguchiko-classic', label: '河口湖經典', tags: ['淺間公園', '大石公園', '忍野八海'], match: 'all' },
+  { id: 'ropeway-cruise', label: '纜車・遊覽船', tags: ['河口湖纜車', '河口湖遊覽船'] },
+  { id: 'fifth-station', label: '五合目', tags: ['五合目'] },
+  { id: 'yamanakako', label: '山中湖', tags: ['山中湖'] },
+  { id: 'hakone', label: '箱根', tags: ['箱根神社', '箱根纜車', '箱根海賊船', '大涌谷', '蘆之湖'] },
+  { id: 'family-parks', label: '親子樂園', tags: ['富士急樂園', '富士野生動物園'] },
+  { id: 'charter', label: '包車', tags: ['包車'] },
 ]
 
 const cards: CityCard[] = [
@@ -390,7 +402,7 @@ const cards: CityCard[] = [
     area: '一日遊',
     datasetKey: 'title',
     datasetValue: '客制化行程｜包車',
-    tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定', '西湖', 'KABA水陸巴士', '箱根神社', '箱根纜車', '箱根海賊船', '川越', '大涌谷', '蘆之湖', '江之島', '富士急樂園', '富士野生動物園'],
+    tags: ['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定', '西湖', 'KABA水陸巴士', '箱根神社', '箱根纜車', '箱根海賊船', '川越', '大涌谷', '蘆之湖', '江之島', '富士急樂園', '富士野生動物園', '包車'],
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131172-japan-private-car-charter-tokyo-fuji-hakone-kamakura-karuizawa-izu-kawagoe-nagano-nikko?cid=22312', className: 'btn primary', event: 'fujiticket_oneday_all_kkday', platform: 'KKDAY', section: 'ticket_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/120898-car-rental-with-driver-tokyo-mtfuji-chinesespeaking/?aid=93798', className: 'btn', event: 'fujiticket_oneday_all_klook', platform: 'KLOOK', section: 'ticket_card' },
@@ -531,16 +543,23 @@ export default async function FujiTicketPage({ searchParams }: FujiTicketPagePro
           ]}
         />
 
-        <h2 className="seo-h2" id="ticketListTitle">
-          富士河口湖票券推薦（一日遊、二日遊、景點一次看懂）
-        </h2>
-        <CityTabbedList
-          tabs={tabs}
-          cards={cards}
-          tabEvent="fuji_ticket_tab"
-          tagFilterArea="一日遊"
-          tagOrder={['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定', '西湖', 'KABA水陸巴士', '箱根神社', '箱根纜車', '箱根海賊船', '川越', '大涌谷', '蘆之湖', '江之島', '富士急樂園', '富士野生動物園']}
-        />
+        <FujiTicketQuickGuide cards={cards} />
+
+        <div className={listStyles.ticketList}>
+          <h2 className="seo-h2" id="ticketListTitle">
+            富士河口湖完整票券與行程
+          </h2>
+          <CityTabbedList
+            tabs={tabs}
+            cards={cards}
+            tabEvent="fuji_ticket_tab"
+            tagFilterArea="一日遊"
+            tagOrder={['淺間公園', '日川時計', '大石公園', '忍野八海', 'Lawson', '河口湖纜車', '河口湖遊覽船', '山中湖', '五合目', '御殿場Outlet', '抹茶體驗', '溫泉', '季節限定', '西湖', 'KABA水陸巴士', '箱根神社', '箱根纜車', '箱根海賊船', '川越', '大涌谷', '蘆之湖', '江之島', '富士急樂園', '富士野生動物園', '包車']}
+            tagPresets={tagPresets}
+            tagPresetLabel="快速選路線"
+            showAllTagsWithPresets
+          />
+        </div>
 
         <SeoCtaSection text="" href="/fuji/map" linkText="富士河口湖熱門景點地圖" newTab dataEvent="fujiticket_SEO_spotmap" />
 

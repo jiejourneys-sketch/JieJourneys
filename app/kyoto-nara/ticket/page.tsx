@@ -1,5 +1,7 @@
 import KyotoNaraGuidePage from '@/components/KyotoNaraGuidePage'
 import { kyotoNaraOneDayTagOrder, kyotoNaraOneDayTicketCards, kyotoNaraSpotTicketCards } from '@/data/kyoto-nara/tickets'
+import listStyles from '@/components/TicketListLayout.module.css'
+import KyotoTicketQuickGuide from './KyotoTicketQuickGuide'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -9,6 +11,16 @@ const tabs = [
 
 const cards = [...kyotoNaraOneDayTicketCards, ...kyotoNaraSpotTicketCards]
 
+const kyotoDayTripPresets = [
+  { id: 'amanohashidate', label: '天橋立・伊根', tags: ['天橋立View Land', '伊根舟屋'] },
+  { id: 'miyama', label: '美山', tags: ['美山合掌村'] },
+  { id: 'arashiyama', label: '嵐山', tags: ['嵐山竹林', '嵐山小火車'] },
+  { id: 'classic-kyoto', label: '京都經典', tags: ['金閣寺', '清水寺', '伏見稻荷大社'] },
+  { id: 'nara', label: '奈良', tags: ['奈良公園', '東大寺'] },
+  { id: 'uji', label: '宇治', tags: ['宇治', '平等院'] },
+  { id: 'ohara-biwako', label: '大原・琵琶湖', tags: ['三千院', '貴船神社', '琵琶湖纜車'] },
+]
+
 export default function KyotoNaraTicketPage() {
   return (
     <KyotoNaraGuidePage
@@ -16,12 +28,16 @@ export default function KyotoNaraTicketPage() {
       badge="票券"
       title="京都・奈良票券｜熱門門票、一日遊與體驗完整整理"
       intro="把京都市區熱門單點票券與京都、奈良近郊一日遊分開整理；單點品項優先保留 KKday／Klook 公開頁顯示已售或已參加破百的選擇。"
-      listTitle="京都・奈良票券推薦"
+      listTitle="京都・奈良票券完整清單"
       tabs={tabs}
       cards={cards}
       tagFilterArea="一日遊"
       tagOrder={kyotoNaraOneDayTagOrder}
       tagHideOnAll
+      tagPresets={kyotoDayTripPresets}
+      showAllTagsWithPresets
+      beforeGuideList={<KyotoTicketQuickGuide cards={cards} />}
+      guideListClassName={listStyles.ticketList}
       contentTitle="京都・奈良票券怎麼選、怎麼排？"
       faqTitle="京都・奈良票券常見問題"
       faqs={[

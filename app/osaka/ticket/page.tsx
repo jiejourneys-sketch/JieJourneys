@@ -9,6 +9,8 @@ import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 import { kyotoNaraOneDayTagSet } from '@/data/kyoto-nara/tickets'
 import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
+import listStyles from '@/components/TicketListLayout.module.css'
+import OsakaTicketQuickGuide from './OsakaTicketQuickGuide'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -40,8 +42,18 @@ const osakaOneDayTagOrder = [
   '琵琶湖纜車',
   '有馬溫泉',
   '六甲山',
+  '姬路城',
   '和歌山城',
   'MIHO美術館',
+  '包車',
+]
+
+const osakaDayTripPresets = [
+  { id: 'arima', label: '有馬・六甲', tags: ['有馬溫泉', '六甲山'] },
+  { id: 'himeji', label: '姬路', tags: ['姬路城'] },
+  { id: 'wakayama', label: '和歌山', tags: ['和歌山城'] },
+  { id: 'biwako', label: '琵琶湖・MIHO', tags: ['MIHO美術館'] },
+  { id: 'charter', label: '包車', tags: ['包車'] },
 ]
 
 const customOneDayTitle = '客制化行程｜包車'
@@ -680,16 +692,22 @@ export default async function OsakaTicketPage({ searchParams }: OsakaTicketPageP
           ]}
         />
 
-        <h2 className="seo-h2" id="ticketListTitle">
-          大阪票券推薦（周遊券、景點門票一次看懂）
-        </h2>
-        <CityTabbedList
-          tabs={tabs}
-          cards={osakaTicketCards}
-          tabEvent="osaka_ticket_tab"
-          tagFilterArea="一日遊"
-          tagOrder={osakaOneDayTagOrder}
-        />
+        <OsakaTicketQuickGuide cards={osakaTicketCards} />
+
+        <div className={listStyles.ticketList}>
+          <h2 className="seo-h2" id="ticketListTitle">
+            大阪票券完整清單（周遊券、景點與一日遊）
+          </h2>
+          <CityTabbedList
+            tabs={tabs}
+            cards={osakaTicketCards}
+            tabEvent="osaka_ticket_tab"
+            tagFilterArea="一日遊"
+            tagOrder={osakaOneDayTagOrder}
+            tagPresets={osakaDayTripPresets}
+            showAllTagsWithPresets
+          />
+        </div>
 
         <SeoCtaSection text="" href="/osaka/map" linkText="大阪熱門景點地圖" newTab dataEvent="osakaticket_SEO_spotmap" />
         <SeoCtaSection text="" href="/osaka/pass-map" linkText="大阪周遊券地圖" newTab dataEvent="osakaticket_SEO_passmap" />

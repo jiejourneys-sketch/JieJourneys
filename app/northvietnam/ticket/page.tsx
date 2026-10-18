@@ -1,12 +1,34 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
+import type { CityTagPreset } from '@/components/CityTabbedList'
+import listStyles from '@/components/TicketListLayout.module.css'
 import { northVietnamTicketCards, northVietnamTicketTabs } from '@/data/northvietnam'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
+import NorthVietnamTicketQuickGuide from './NorthVietnamTicketQuickGuide'
+
+const tagPresets: CityTagPreset[] = [
+  { id: 'hanoi-classic', label: '經典市區', areas: ['河內'], match: 'all', tags: ['胡志明陵寢', '文廟', '鎮國寺'] },
+  { id: 'hanoi-train-street', label: '火車街', areas: ['河內'], tags: ['火車街'] },
+  { id: 'hanoi-experience', label: '美食・體驗', areas: ['河內'], tags: ['美食之旅', '吉普車', '水木偶'] },
+  { id: 'hanoi-incense', label: '河內香村', areas: ['河內'], tags: ['河內香村'] },
+  { id: 'sapa-fansipan', label: '番西邦', areas: ['沙壩'], tags: ['番西邦峰', '番西邦纜車'] },
+  { id: 'sapa-cat-cat', label: '貓貓村', areas: ['沙壩'], tags: ['貓貓村', 'Moana Sapa'] },
+  { id: 'sapa-glass-bridge', label: '玻璃步道', areas: ['沙壩'], tags: ['玻璃天空步道', '銀瀑', '天堂之門'] },
+  { id: 'sapa-multiday', label: '多日遊', areas: ['沙壩'], tags: ['2日遊', '3日遊'] },
+  { id: 'halong-day-cruise', label: '一日郵輪', areas: ['下龍灣'], tags: ['1日遊'] },
+  { id: 'halong-overnight', label: '二日郵輪', areas: ['下龍灣'], tags: ['2日遊'] },
+  { id: 'halong-five-star', label: '五星', areas: ['下龍灣'], tags: ['5星級'] },
+  { id: 'halong-six-star', label: '頂級六星', areas: ['下龍灣'], tags: ['6星級'] },
+  { id: 'ninh-binh-boat', label: '長安・三谷', areas: ['陸龍灣'], tags: ['長安', '三谷'] },
+  { id: 'ninh-binh-mua-cave', label: '舞洞', areas: ['陸龍灣'], tags: ['舞洞'] },
+  { id: 'ninh-binh-history', label: '古都寺院', areas: ['陸龍灣'], tags: ['華閭古都', '白亭寺'] },
+  { id: 'ninh-binh-two-day', label: '兩日遊', areas: ['陸龍灣'], tags: ['2日遊'] },
+]
 
 type NorthVietnamTicketPageProps = {
   searchParams?: PageSearchParams
@@ -33,15 +55,22 @@ export default async function NorthVietnamTicketPage({ searchParams }: NorthViet
           ]}
         />
 
-        <h2 className="seo-h2" id="ticketListTitle">北越票券整理（依地區與標籤篩選）</h2>
-        <CityTabbedList
-          tabs={northVietnamTicketTabs}
-          cards={northVietnamTicketCards}
-          tabEvent="northvietnam_ticket_tab"
-          tagFilterAreas={['河內', '沙壩', '下龍灣', '陸龍灣']}
-          tagDefaultAreaOnAll="河內"
-          tagOrder={['火車街', '還劍湖', '玉山祠', '胡志明陵寢', '胡志明博物館', '河內教堂', '文廟', '鎮國寺', '越南民族學博物館', '越南婦女博物館', '火爐監獄博物館', '昇龍皇城', '龍邊橋', '西湖', '陶瓷路', '同春市場', '吉普車', '河內香村', '制帽體驗', '水木偶', '鉢場陶瓷村', '河內大世界', '水舞表演', '美食之旅', '番西邦峰', '番西邦纜車', '貓貓村', 'Moana Sapa', '沙壩高山滑車', '玻璃天空步道', '銀瀑', '天堂之門', '義靈湖、老寨和塔萬村莊', '華閭古都', '白亭寺', '三谷', '長安', '舞洞', '1日遊', '2日遊', '3日遊', '6星級', '5星級', '3星級']}
-        />
+        <NorthVietnamTicketQuickGuide cards={northVietnamTicketCards} />
+
+        <div className={listStyles.ticketList}>
+          <h2 className="seo-h2" id="ticketListTitle">北越完整票券與行程</h2>
+          <CityTabbedList
+            tabs={northVietnamTicketTabs}
+            cards={northVietnamTicketCards}
+            tabEvent="northvietnam_ticket_tab"
+            tagFilterAreas={['河內', '沙壩', '下龍灣', '陸龍灣']}
+            tagDefaultAreaOnAll="河內"
+            tagOrder={['火車街', '還劍湖', '玉山祠', '胡志明陵寢', '胡志明博物館', '河內教堂', '文廟', '鎮國寺', '越南民族學博物館', '越南婦女博物館', '火爐監獄博物館', '昇龍皇城', '龍邊橋', '西湖', '陶瓷路', '同春市場', '吉普車', '河內香村', '制帽體驗', '水木偶', '鉢場陶瓷村', '河內大世界', '水舞表演', '美食之旅', '番西邦峰', '番西邦纜車', '貓貓村', 'Moana Sapa', '沙壩高山滑車', '玻璃天空步道', '銀瀑', '天堂之門', '義靈湖、老寨和塔萬村莊', '華閭古都', '白亭寺', '三谷', '長安', '舞洞', '1日遊', '2日遊', '3日遊', '6星級', '5星級', '3星級']}
+            tagPresets={tagPresets}
+            tagPresetLabel="快速選玩法"
+            showAllTagsWithPresets
+          />
+        </div>
 
         <SeoCtaSection text="" href="/northvietnam/map" linkText="北越熱門景點地圖" newTab dataEvent="northvietnamticket_SEO_spotmap" />
 

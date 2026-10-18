@@ -8,6 +8,8 @@ import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
+import TokyoTicketQuickGuide from './TokyoTicketQuickGuide'
+import listStyles from '@/components/TicketListLayout.module.css'
 
 type TokyoTicketPageProps = {
   searchParams?: PageSearchParams
@@ -23,6 +25,15 @@ const observationVideos = {
     { label: 'YouTube', href: 'https://www.youtube.com/shorts/Q-zM2k47oVY', event: 'tokyoticket_article_skytree_yt', platform: 'YouTube' },
   ],
 }
+
+const tokyoDayTripPresets = [
+  { id: 'fuji', label: '富士山・河口湖', tags: ['富士山', '河口湖', '富士山一日遊'] },
+  { id: 'kamakura', label: '鎌倉・江之島', tags: ['江之島'] },
+  { id: 'yokohama', label: '鎌倉＋橫濱', tags: ['橫濱紅磚倉庫'] },
+  { id: 'nikko', label: '日光', tags: ['東照宮', '中禪寺湖', '華嚴瀑布'] },
+  { id: 'hitachi', label: '常陸海濱公園', tags: ['國營常陸海濱公園'] },
+  { id: 'charter', label: '包車', tags: ['包車'] },
+]
 
 export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageProps) {
   const params = (await searchParams) ?? {}
@@ -45,16 +56,21 @@ export default async function TokyoTicketPage({ searchParams }: TokyoTicketPageP
           ]}
         />
 
-        <h2 className="seo-h2" id="ticketListTitle">
-          東京票券整理（依主題分類）
-        </h2>
-        <CityTabbedList
-          tabs={tokyoTicketTabs}
-          cards={tokyoTicketCards}
-          tabEvent="tokyo_ticket_tab"
-          tagFilterArea="一日遊"
-          tagOrder={['富士山', '河口湖', '富士山一日遊', '鎌倉大佛', '鎌倉高中', '江之島', '鶴岡八幡宮', '江之電體驗', '小町通', '長谷寺', '極樂寺', '白燈塔', '橫濱空中纜車', '橫濱紅磚倉庫', '橫濱大摩天輪', '東照宮', '伊呂波山道', '中禪寺湖', '華嚴瀑布', '大洗磯前神社', '那珂湊海鮮市場', '國營常陸海濱公園']}
-        />
+        <TokyoTicketQuickGuide />
+
+        <div className={listStyles.ticketList}>
+          <h2 className="seo-h2" id="ticketListTitle">
+            東京票券完整清單（依主題分類）
+          </h2>
+          <CityTabbedList
+            tabs={tokyoTicketTabs}
+            cards={tokyoTicketCards}
+            tabEvent="tokyo_ticket_tab"
+            tagFilterArea="一日遊"
+            tagPresets={tokyoDayTripPresets}
+            showAllTagsWithPresets
+          />
+        </div>
 
         <SeoCtaSection text="" href="/tokyo/map" linkText="東京熱門景點地圖" newTab dataEvent="tokyoticket_SEO_spotmap" />
 

@@ -46,6 +46,16 @@ export type CityCard = {
   tags?: string[]
 }
 
+export type CityTagPreset = {
+  id: string
+  label: string
+  /** 限定捷徑顯示在哪些 area；未指定時在所有啟用 tag 的 area 顯示。 */
+  areas?: string[]
+  /** 預設符合其中任一 tag 即顯示；設為 all 時需同時符合全部 tag。 */
+  match?: 'any' | 'all'
+  tags: string[]
+}
+
 type Props = {
   tabs: TabItem[]
   cards: CityCard[]
@@ -64,6 +74,12 @@ type Props = {
   tagHideOnAll?: boolean
   /** 在「全部」tab 預設顯示指定 area 的 tag，但卡片仍維持全部列表。 */
   tagDefaultAreaOnAll?: string
+  /** 以少量單選群組整理完整 tag 列表。 */
+  tagPresets?: CityTagPreset[]
+  /** tag 群組上方的短標題。 */
+  tagPresetLabel?: string
+  /** 使用群組捷徑時，仍以可展開區塊保留全部細項 tag。 */
+  showAllTagsWithPresets?: boolean
 }
 
 function videoPlatformKey(action: CityCardAction) {
@@ -110,10 +126,11 @@ function CardVideoMenu({ cardTitle, actions }: { cardTitle: string; actions: Cit
   )
 }
 
-export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoActions = false, tagFilterArea, tagFilterAreas, tagOrder, tagHideOnAll, tagDefaultAreaOnAll }: Props) {
+export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoActions = false, tagFilterArea, tagFilterAreas, tagOrder, tagHideOnAll, tagDefaultAreaOnAll, tagPresets, tagPresetLabel = '快速選目的地', showAllTagsWithPresets = false }: Props) {
   const [activeTab, setActiveTab] = useState('all')
   const [hasSelectedTab, setHasSelectedTab] = useState(false)
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null)
   const [returnHref, setReturnHref] = useState<string | null>(null)
   const filterAreas = useMemo(() => tagFilterAreas ?? (tagFilterArea ? [tagFilterArea] : []), [tagFilterArea, tagFilterAreas])
 
@@ -151,6 +168,19 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
     return ordered
   }, [filterAreas, tagAreaCards, tagOrder])
 
+  const visibleTagPresets = useMemo(() => {
+    if (!tagPresets) return []
+    const presetArea = activeTab === 'all' ? tagDefaultAreaOnAll : activeTab
+    if (!presetArea) return tagPresets
+    return tagPresets.filter((preset) => !preset.areas?.length || preset.areas.includes(presetArea))
+  }, [activeTab, tagDefaultAreaOnAll, tagPresets])
+
+  const selectedPreset = useMemo(
+    () => tagPresets?.find((preset) => preset.id === selectedPresetId) ?? null,
+    [selectedPresetId, tagPresets],
+  )
+  const hasTagSelection = selectedTags.size > 0 || selectedPreset !== null
+
   useEffect(() => {
     if (filterAreas.length === 0 || typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
@@ -170,6 +200,7 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
       if (!matchingCard) return
       setActiveTab(matchingCard.area)
       setHasSelectedTab(true)
+      setSelectedPresetId(null)
       setSelectedTags(new Set([tag]))
     }, 0)
     return () => window.clearTimeout(id)
@@ -181,6 +212,7 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
       if (!value || !tabs.some((tab) => tab.value === value)) return
       setActiveTab(value)
       setHasSelectedTab(true)
+      setSelectedPresetId(null)
       setSelectedTags(new Set())
     }
 
@@ -189,7 +221,16 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
   }, [tabs])
 
   const shownCards = useMemo(() => {
-    if (!isTagFilterActive || selectedTags.size === 0) return tabCards
+    if (!isTagFilterActive) return tabCards
+    if (selectedPreset) {
+      return tabCards.filter((card) => {
+        const cardTags = new Set(card.tags ?? [])
+        return selectedPreset.match === 'all'
+          ? selectedPreset.tags.every((tag) => cardTags.has(tag))
+          : selectedPreset.tags.some((tag) => cardTags.has(tag))
+      })
+    }
+    if (selectedTags.size === 0) return tabCards
     return tabCards.filter((card) => {
       const cardTags = new Set(card.tags ?? [])
       for (const t of selectedTags) {
@@ -197,13 +238,14 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
       }
       return true
     })
-  }, [isTagFilterActive, selectedTags, tabCards])
+  }, [isTagFilterActive, selectedPreset, selectedTags, tabCards])
 
   const toggleTag = (tag: string) => {
     if (activeTab === 'all' && filterAreas.length > 0) {
-      setActiveTab(filterAreas[0])
+      setActiveTab(tagDefaultAreaOnAll ?? filterAreas[0])
       setHasSelectedTab(true)
     }
+    setSelectedPresetId(null)
     setSelectedTags((prev) => {
       const next = new Set(prev)
       if (next.has(tag)) next.delete(tag)
@@ -212,9 +254,24 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
     })
   }
 
+  const selectTagPreset = (presetId: string) => {
+    if (activeTab === 'all' && filterAreas.length > 0) {
+      setActiveTab(tagDefaultAreaOnAll ?? filterAreas[0])
+      setHasSelectedTab(true)
+    }
+    setSelectedTags(new Set())
+    setSelectedPresetId((current) => current === presetId ? null : presetId)
+  }
+
+  const clearTagFilter = () => {
+    setSelectedPresetId(null)
+    setSelectedTags(new Set())
+  }
+
   const handleTabChange = (value: string) => {
     setActiveTab(value)
     setHasSelectedTab(true)
+    setSelectedPresetId(null)
     setSelectedTags(new Set())
   }
 
@@ -228,28 +285,60 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
         showActive={hasSelectedTab}
       />
 
-      {showTagFilter && availableTags.length > 0 && (
+      {showTagFilter && (visibleTagPresets.length > 0 || availableTags.length > 0) && (
         <div className="tag-filter-row">
           <span className="tag-filter-label">
-            {isTagFilterActive ? '篩選景點' : '點選景點篩選一日遊'}
+            {visibleTagPresets.length
+              ? tagPresetLabel
+              : isTagFilterActive ? '篩選景點' : '點選景點篩選一日遊'}
           </span>
           <div className="tag-chips">
-            {availableTags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                className={`tag-chip ${selectedTags.has(tag) ? 'active' : ''}`}
-                onClick={() => toggleTag(tag)}
-              >
-                {tag}
-              </button>
-            ))}
+            {visibleTagPresets.length
+              ? visibleTagPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={`tag-chip ${selectedPresetId === preset.id ? 'active' : ''}`}
+                    aria-pressed={selectedPresetId === preset.id}
+                    onClick={() => selectTagPreset(preset.id)}
+                  >
+                    {preset.label}
+                  </button>
+                ))
+              : availableTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={`tag-chip ${selectedTags.has(tag) ? 'active' : ''}`}
+                    onClick={() => toggleTag(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
           </div>
-          {selectedTags.size > 0 && (
+          {visibleTagPresets.length && showAllTagsWithPresets && availableTags.length > 0 ? (
+            <details className="tag-filter-more">
+              <summary>展開全部景點篩選（{availableTags.length}）</summary>
+              <div className="tag-chips tag-chips-all">
+                {availableTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={`tag-chip ${selectedTags.has(tag) ? 'active' : ''}`}
+                    aria-pressed={selectedTags.has(tag)}
+                    onClick={() => toggleTag(tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </details>
+          ) : null}
+          {hasTagSelection && (
             <button
               type="button"
               className="tag-clear"
-              onClick={() => setSelectedTags(new Set())}
+              onClick={clearTagFilter}
             >
               清除篩選
             </button>
@@ -263,7 +352,7 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
       )}
 
       <section className="stay-list" id="stayList">
-        {shownCards.length === 0 && showTagFilter && selectedTags.size > 0 ? (
+        {shownCards.length === 0 && showTagFilter && hasTagSelection ? (
           <p className="tag-no-result">目前沒有符合所有條件的行程，請取消部分篩選。</p>
         ) : (
           shownCards.map((card) => {

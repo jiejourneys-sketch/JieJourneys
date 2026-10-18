@@ -1,12 +1,24 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
+import type { CityTagPreset } from '@/components/CityTabbedList'
+import listStyles from '@/components/TicketListLayout.module.css'
 import { busanTicketCards, busanTicketTabs } from '@/data/busan/tickets'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import { safePlannerReturnHref, type PageSearchParams } from '@/lib/plannerReturn'
+import BusanTicketQuickGuide from './BusanTicketQuickGuide'
+
+const tagPresets: CityTagPreset[] = [
+  { id: 'gamcheon-huinnyeoul', label: '甘川・白淺灘', tags: ['甘川文化村', '白淺灘文化村'] },
+  { id: 'east-busan', label: '海雲台東部', tags: ['膠囊列車', '海岸列車', '海東龍宮寺', '青沙浦踏石展望台'] },
+  { id: 'songdo-nampo', label: '松島・南浦', tags: ['南浦洞', '松島纜車', '松島步道', '松島龍宮雲橋'] },
+  { id: 'yacht-oryukdo', label: '遊艇・五六島', tags: ['遊艇', '五六島天空步道'] },
+  { id: 'gyeongju', label: '慶州', tags: ['佛國寺', '大陵苑', '東宮與月池'] },
+  { id: 'charter', label: '包車', tags: ['包車'] },
+]
 
 type BusanTicketPageProps = {
   searchParams?: PageSearchParams
@@ -48,17 +60,24 @@ export default async function BusanTicketPage({ searchParams }: BusanTicketPageP
           ]}
         />
 
-<h2 className="seo-h2" id="ticketListTitle">
-          釜山票券推薦（一日遊、通行證、景點門票一次看懂）
-        </h2>
+        <BusanTicketQuickGuide cards={busanTicketCards} />
 
-        <CityTabbedList
-          tabs={busanTicketTabs}
-          cards={busanTicketCards}
-          tabEvent="busan_ticket_tab"
-          tagFilterArea="一日遊"
-          tagOrder={['甘川文化村', '膠囊列車', '海岸列車', '遊艇', '白淺灘文化村', '海東龍宮寺', '青沙浦踏石展望台', '南浦洞', '五六島天空步道', '太宗台', '松島海水浴場', '松島纜車', '松島步道', '松島龍宮雲橋', '佛國寺', '大陵苑', '皇理團路', '慶州校村', '慶州良洞村', '東宮與月池', '月精橋']}
-        />
+        <div className={listStyles.ticketList}>
+          <h2 className="seo-h2" id="ticketListTitle">
+            釜山完整票券與一日遊
+          </h2>
+
+          <CityTabbedList
+            tabs={busanTicketTabs}
+            cards={busanTicketCards}
+            tabEvent="busan_ticket_tab"
+            tagFilterArea="一日遊"
+            tagOrder={['甘川文化村', '膠囊列車', '海岸列車', '遊艇', '白淺灘文化村', '海東龍宮寺', '青沙浦踏石展望台', '南浦洞', '五六島天空步道', '太宗台', '松島海水浴場', '松島纜車', '松島步道', '松島龍宮雲橋', '佛國寺', '大陵苑', '皇理團路', '慶州校村', '慶州良洞村', '東宮與月池', '月精橋', '包車']}
+            tagPresets={tagPresets}
+            tagPresetLabel="快速選區域"
+            showAllTagsWithPresets
+          />
+        </div>
 
         <SeoCtaSection text="" href="/busan/map" linkText="釜山熱門景點地圖" newTab dataEvent="busanticket_SEO_spotmap" />
         <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanticket_SEO_passmap" />

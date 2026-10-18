@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import CityTabbedList from '@/components/CityTabbedList'
-import type { CityCard } from '@/components/CityTabbedList'
+import type { CityCard, CityTagPreset } from '@/components/CityTabbedList'
 import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
@@ -19,6 +19,8 @@ type Props = {
   tagFilterArea?: string
   tagOrder?: string[]
   tagHideOnAll?: boolean
+  tagPresets?: CityTagPreset[]
+  showAllTagsWithPresets?: boolean
   collapseVideoActions?: boolean
   showGuideList?: boolean
   beforeGuideList?: ReactNode
@@ -40,6 +42,8 @@ export default function KyotoNaraGuidePage({
   tagFilterArea,
   tagOrder,
   tagHideOnAll,
+  tagPresets,
+  showAllTagsWithPresets,
   collapseVideoActions = false,
   showGuideList = true,
   beforeGuideList,
@@ -85,6 +89,8 @@ export default function KyotoNaraGuidePage({
                   tagFilterArea={tagFilterArea}
                   tagOrder={tagOrder}
                   tagHideOnAll={tagHideOnAll}
+                  tagPresets={tagPresets}
+                  showAllTagsWithPresets={showAllTagsWithPresets}
                 />
               </div>
             ) : (
@@ -96,6 +102,8 @@ export default function KyotoNaraGuidePage({
                 tagFilterArea={tagFilterArea}
                 tagOrder={tagOrder}
                 tagHideOnAll={tagHideOnAll}
+                tagPresets={tagPresets}
+                showAllTagsWithPresets={showAllTagsWithPresets}
               />
             )}
           </>

@@ -54,6 +54,10 @@ export const kyotoNaraOneDayTagOrder = [
   '宇治',
   '平等院',
   '三千院',
+  '貴船神社',
+  '白鬚神社',
+  '琵琶湖纜車',
+  'La Collina 近江八幡',
 ]
 
 export const kyotoNaraOneDayTagSet = new Set(kyotoNaraOneDayTagOrder)

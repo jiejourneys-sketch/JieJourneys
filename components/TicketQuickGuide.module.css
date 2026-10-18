@@ -1,0 +1,365 @@
+.guide {
+  margin: 24px 0 34px;
+  padding: clamp(18px, 3vw, 30px);
+  border: 1px solid #d8e8eb;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(31, 122, 140, 0.12), transparent 36%),
+    linear-gradient(145deg, #ffffff 0%, #f3fafb 100%);
+  box-shadow: 0 16px 38px rgba(31, 41, 55, 0.08);
+}
+
+.heading {
+  max-width: 760px;
+}
+
+.heading > span {
+  display: inline-flex;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #176070;
+  background: #dff3f5;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.heading h2 {
+  margin: 10px 0 6px;
+  color: #1f2937;
+  font-size: clamp(24px, 4vw, 34px);
+  line-height: 1.25;
+}
+
+.heading p {
+  margin: 0;
+  color: #526173;
+}
+
+.scenarioTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 22px 0 18px;
+  padding-bottom: 2px;
+}
+
+.scenarioTabs button {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  border: 1px solid #c8d7dc;
+  border-radius: 999px;
+  color: #334155;
+  background: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.scenarioTabs button:hover {
+  border-color: #1f7a8c;
+  transform: translateY(-1px);
+}
+
+.scenarioTabs .activeScenario {
+  border-color: #1f7a8c;
+  color: #fff;
+  background: #1f7a8c;
+  box-shadow: 0 7px 18px rgba(31, 122, 140, 0.22);
+}
+
+.mobileScenarioSelect {
+  display: none;
+}
+
+.result {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.72fr) minmax(0, 2.28fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.categorySummary {
+  min-height: 100%;
+  padding: 18px;
+  border-radius: 16px;
+  color: #fff;
+  background: #253f4a;
+}
+
+.categoryTitle > span {
+  color: #b9e5eb;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.categoryTitle h3 {
+  margin: 3px 0 9px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.categorySummary p {
+  margin: 0 0 14px;
+  color: #f5fbfc;
+  font-weight: 650;
+}
+
+.categorySummary small {
+  display: block;
+  color: #c9d8dd;
+  line-height: 1.55;
+}
+
+.mobileCategoryNote {
+  display: none;
+}
+
+.ticketGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ticketGrid[data-card-count='2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ticketGrid[data-card-count='1'] {
+  grid-template-columns: 1fr;
+}
+
+.ticketCard {
+  display: flex;
+  min-width: 0;
+  min-height: 230px;
+  padding: 16px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #dbe3e8;
+  border-radius: 15px;
+  background: #fff;
+}
+
+.pickReason {
+  display: block;
+  margin-bottom: 7px;
+  color: #1f7a8c;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.ticketCard h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #1f2937;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.ticketCard p {
+  margin: 7px 0 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ticketActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ticketActions a:first-child {
+  grid-column: 1 / -1;
+}
+
+.ticketActions[data-action-count='2'] {
+  grid-template-columns: 1fr;
+}
+
+.ticketActions[data-action-count='1'] {
+  grid-template-columns: 1fr;
+}
+
+.ticketActions a {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 5px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.primaryAction {
+  color: #fff;
+  background: #1f7a8c;
+}
+
+.secondaryAction {
+  border: 1px solid #b8cbd1;
+  color: #176070;
+  background: #f7fbfc;
+}
+
+.resultFooter {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 2px;
+}
+
+.resultFooter a {
+  color: #176070;
+  font-weight: 800;
+}
+
+@media (max-width: 840px) {
+  .result {
+    grid-template-columns: 1fr;
+  }
+
+  .categorySummary {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .guide {
+    margin: 14px -4px 24px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .heading > span {
+    padding: 4px 9px;
+    font-size: 12px;
+  }
+
+  .heading h2 {
+    margin-top: 8px;
+    font-size: 23px;
+  }
+
+  .heading p {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .scenarioTabs {
+    display: none;
+  }
+
+  .mobileScenarioSelect {
+    display: grid;
+    gap: 6px;
+    margin: 16px 0 12px;
+    color: #415364;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .mobileScenarioSelect select {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 38px 10px 12px;
+    border: 1px solid #aac8ce;
+    border-radius: 12px;
+    color: #17333d;
+    background: #fff;
+    font: inherit;
+  }
+
+  .ticketGrid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .ticketGrid[data-card-count='2'],
+  .ticketGrid[data-card-count='1'] {
+    grid-template-columns: 1fr;
+  }
+
+  .ticketCard {
+    min-height: 0;
+    padding: 13px;
+    gap: 10px;
+    border-radius: 12px;
+  }
+
+  .ticketCard p {
+    display: none;
+  }
+
+  .ticketActions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ticketActions a:first-child {
+    grid-column: auto;
+  }
+
+  .ticketActions[data-action-count='2'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ticketActions[data-action-count='1'] {
+    grid-template-columns: 1fr;
+  }
+
+  .pickReason {
+    margin-bottom: 3px;
+  }
+
+  .categorySummary {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .categoryTitle {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+  }
+
+  .categoryTitle h3 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  .categorySummary p {
+    margin: 6px 0 0;
+    font-size: 14px;
+  }
+
+  .desktopCategoryNote {
+    display: none !important;
+  }
+
+  .mobileCategoryNote {
+    display: block;
+    margin-top: 9px;
+    color: #c9d8dd;
+    font-size: 12px;
+  }
+
+  .mobileCategoryNote summary {
+    width: max-content;
+    cursor: pointer;
+    font-weight: 750;
+  }
+
+  .mobileCategoryNote small {
+    padding-top: 6px;
+  }
+}

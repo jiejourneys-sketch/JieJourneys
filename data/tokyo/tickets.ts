@@ -709,7 +709,7 @@ export const tokyoTicketCards = [
     area: '一日遊',
     datasetKey: 'title',
     datasetValue: '客制化行程｜包車',
-    tags: ['鎌倉大佛', '鎌倉高中', '江之島', '鶴岡八幡宮', '江之電體驗', '小町通', '長谷寺', '極樂寺', '白燈塔', '橫濱空中纜車', '橫濱紅磚倉庫', '橫濱大摩天輪', '東照宮', '伊呂波山道', '中禪寺湖', '華嚴瀑布', '大洗磯前神社', '那珂湊海鮮市場', '國營常陸海濱公園'],
+    tags: ['包車', '鎌倉大佛', '鎌倉高中', '江之島', '鶴岡八幡宮', '江之電體驗', '小町通', '長谷寺', '極樂寺', '白燈塔', '橫濱空中纜車', '橫濱紅磚倉庫', '橫濱大摩天輪', '東照宮', '伊呂波山道', '中禪寺湖', '華嚴瀑布', '大洗磯前神社', '那珂湊海鮮市場', '國營常陸海濱公園'],
     actions: [
       { label: 'KKDAY', href: 'https://www.kkday.com/zh-tw/product/131172-japan-private-car-charter-tokyo-fuji-hakone-kamakura-karuizawa-izu-kawagoe-nagano-nikko?cid=22312', className: 'btn primary', event: 'tokyoticket_oneday_all_kkday', platform: 'KKDAY', section: 'ticket_card' },
       { label: 'KLOOK', href: 'https://www.klook.com/zh-TW/activity/120898-car-rental-with-driver-tokyo-mtfuji-chinesespeaking/?aid=93798', className: 'btn', event: 'tokyoticket_oneday_all_klook', platform: 'KLOOK', section: 'ticket_card' },

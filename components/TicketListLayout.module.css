@@ -1,0 +1,53 @@
+.ticketList :global(.tag-filter-row) {
+  align-items: flex-start;
+}
+
+.ticketList :global(.tag-filter-more) {
+  flex: 1 0 100%;
+  margin-top: 2px;
+  padding: 9px 11px;
+  border: 1px solid #d7e4e8;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.ticketList :global(.tag-filter-more summary) {
+  width: max-content;
+  color: #176070;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ticketList :global(.tag-chips-all) {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e4ecef;
+}
+
+@media (max-width: 680px) {
+  .ticketList :global(#areaTabs) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ticketList :global(#areaTabs .tab) {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 4px;
+    white-space: nowrap;
+  }
+
+  .ticketList :global(.tag-filter-label) {
+    width: 100%;
+  }
+
+  .ticketList :global(.tag-filter-more) {
+    padding: 9px 10px;
+  }
+
+  .ticketList :global(.tag-filter-more summary) {
+    width: 100%;
+  }
+}
