@@ -96,9 +96,10 @@ const lastModifiedByPath: Record<string, string> = {
   '/fuji/video': '2026-05-17',
   '/fuji/map': '2026-06-18',
   '/fuji/pass-map': '2026-06-17',
-  '/kyoto-nara/video': '2026-09-14',
-  '/kyoto-nara/kyoto-5-must-visit-spots-guide': '2026-09-25',
-  '/kyoto-nara/kyoto-6-areas-guide': '2026-09-25',
+  '/kyoto-nara/video': '2026-10-18',
+  '/kyoto-nara/kyoto-fushimi-inari-guide': '2026-10-18',
+  '/kyoto-nara/kyoto-5-must-visit-spots-guide': '2026-10-18',
+  '/kyoto-nara/kyoto-6-areas-guide': '2026-10-18',
   '/kyoto-nara/kyoto-station-guide': '2026-10-06',
   '/kyoto-nara/hotel': '2026-09-14',
   '/kyoto-nara/ticket': '2026-09-14',
@@ -198,6 +199,17 @@ const sitemapRoutes: SitemapRoute[] = [
   { path: '/fuji/pass-map', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/fuji-passmap-search.png'] },
 
   { path: '/kyoto-nara/video', changeFrequency: 'monthly', priority: 0.7 },
+  {
+    path: '/kyoto-nara/kyoto-fushimi-inari-guide',
+    changeFrequency: 'monthly',
+    priority: 0.8,
+    images: [
+      '/assets/kyoto-fushimi-inari/precinct-map.png',
+      '/assets/kyoto-fushimi-inari/station-to-romon.png',
+      '/assets/kyoto-fushimi-inari/romon-honden-tamayama.png',
+      '/assets/kyoto-fushimi-inari/senbon-torii-loop.png',
+    ],
+  },
   { path: '/kyoto-nara/kyoto-5-must-visit-spots-guide', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/kyoto-nara/kyoto-6-areas-guide', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/kyoto-guides/kyoto-six-areas-map.png'] },
   {

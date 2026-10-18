@@ -263,6 +263,7 @@ export default async function KyotoSixAreasGuidePage({ searchParams }: KyotoSixA
         <SeoRelatedLinksSection
           title="接著安排京都行程"
           links={[
+            { label: '伏見稻荷千本鳥居攻略', href: '/kyoto-nara/kyoto-fushimi-inari-guide', event: 'kyoto6areas_related_fushimiinari', platform: 'internal' },
             { label: '京都 5 個必去景點', href: '/kyoto-nara/kyoto-5-must-visit-spots-guide', event: 'kyoto6areas_related_spots', platform: 'internal' },
             { label: '大阪・京都・奈良地圖', href: '/osaka/map', event: 'kyoto6areas_related_map', platform: 'internal' },
             { label: '京都奈良通訊／交通', href: '/kyoto-nara/transport', event: 'kyoto6areas_related_transport', platform: 'internal' },

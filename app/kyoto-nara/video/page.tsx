@@ -136,6 +136,23 @@ const cards: CityCard[] = [
       },
     ],
   },
+  {
+    title: '伏見稻荷大社｜千本鳥居攻略',
+    meta: '京都攻略',
+    area: 'all',
+    datasetKey: 'video',
+    datasetValue: 'kyoto-fushimi-inari-guide',
+    actions: [
+      {
+        label: '文章',
+        href: '/kyoto-nara/kyoto-fushimi-inari-guide?from=kyoto-video',
+        className: 'btn',
+        event: 'kyotonaravideo_fushimiinari_article',
+        platform: 'article',
+        section: 'video',
+      },
+    ],
+  },
 ]
 
 export default function KyotoNaraVideoPage() {
