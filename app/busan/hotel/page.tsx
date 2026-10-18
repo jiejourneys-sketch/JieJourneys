@@ -6,6 +6,8 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import BusanHotelQuickGuide from './BusanHotelQuickGuide'
+import styles from './busanHotel.module.css'
 
 export default function BusanHotelPage() {
   const hotelCards = busanHotelCards.map((c) => ({
@@ -72,10 +74,14 @@ export default function BusanHotelPage() {
           ]}
         />
 
-<h2 className="seo-h2" id="stayListTitle">
-          釜山住宿推薦飯店（海雲台／廣安里／西面／南浦洞）
+        <BusanHotelQuickGuide cards={hotelCards} />
+
+        <h2 className="seo-h2" id="stayListTitle">
+          釜山住宿完整飯店清單（海雲台／廣安里／西面／南浦洞）
         </h2>
-        <CityTabbedList tabs={busanHotelTabs} cards={hotelCards} tabEvent="busan_hotel_tab" />
+        <div className={styles.hotelList}>
+          <CityTabbedList tabs={busanHotelTabs} cards={hotelCards} tabEvent="busan_hotel_tab" />
+        </div>
 
         <SeoCtaSection text="" href="/busan/map" linkText="釜山住宿地圖" newTab dataEvent="busanhotel_SEO_spotmap" />
         <SeoCtaSection text="" href="/busan/pass-map" linkText="釜山通行證地圖" newTab dataEvent="busanhotel_SEO_passmap" />

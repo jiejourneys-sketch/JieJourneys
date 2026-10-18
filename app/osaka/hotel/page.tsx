@@ -6,6 +6,8 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
+import OsakaHotelQuickGuide from './OsakaHotelQuickGuide'
+import styles from './osakaHotel.module.css'
 import {
   osakaAdditionalHotelCardBySlug,
   osakaAdditionalHotelSlugs,
@@ -286,10 +288,14 @@ export default function OsakaHotelPage() {
           ]}
         />
 
+        <OsakaHotelQuickGuide cards={cards} />
+
         <h2 className="seo-h2" id="stayListTitle">
-          大阪住宿推薦
+          大阪住宿完整飯店清單
         </h2>
-        <CityTabbedList tabs={tabs} cards={cards} tabEvent="osaka_hotel_tab" />
+        <div className={styles.hotelList}>
+          <CityTabbedList tabs={tabs} cards={cards} tabEvent="osaka_hotel_tab" />
+        </div>
 
         <SeoCtaSection text="" href="/osaka/map" linkText="大阪住宿地圖" newTab dataEvent="osakahotel_SEO_spotmap" />
         <SeoCtaSection text="" href="/osaka/pass-map" linkText="大阪周遊券地圖" newTab dataEvent="osakahotel_SEO_passmap" />

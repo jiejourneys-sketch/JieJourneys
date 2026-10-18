@@ -49,7 +49,6 @@ export default function AccommodationAffiliatePanel({
             </a>
           ))}
         </div>
-        <p><small>本區含聯盟連結；若完成預訂，本站可能獲得分潤，價格不會因此增加。房況與價格以平台頁面為準。</small></p>
       </div>
     </section>
   )

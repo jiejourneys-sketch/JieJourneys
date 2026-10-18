@@ -9,6 +9,19 @@ const AFFILIATE_PLATFORM_LABELS: Record<string, string> = {
   agoda: 'Agoda',
   trip: 'Trip',
   'trip.com': 'Trip',
+  booking: 'Booking.com',
+  'booking.com': 'Booking.com',
+}
+
+function pageType(pathname: string) {
+  if (pathname === '/tools/planner' || pathname.endsWith('/planner') || pathname.endsWith('/pass-planner')) {
+    return 'planner'
+  }
+  if (pathname.endsWith('/hotel')) return 'hotel'
+  if (pathname.endsWith('/ticket')) return 'ticket'
+  if (pathname.endsWith('/map') || pathname.endsWith('/pass-map')) return 'map'
+  if (pathname === '/') return 'home'
+  return 'article'
 }
 
 function affiliatePlatform(platform: string, destinationUrl: string): string | null {
@@ -21,6 +34,7 @@ function affiliatePlatform(platform: string, destinationUrl: string): string | n
     if (hostname === 'klook.com' || hostname.endsWith('.klook.com')) return 'KLOOK'
     if (hostname === 'agoda.com' || hostname.endsWith('.agoda.com')) return 'Agoda'
     if (hostname === 'trip.com' || hostname.endsWith('.trip.com')) return 'Trip'
+    if (hostname === 'booking.com' || hostname.endsWith('.booking.com')) return 'Booking.com'
   } catch {
     // A relative/internal link is not an affiliate destination.
   }
@@ -48,22 +62,31 @@ export default function GtagCapture() {
       const element = el as HTMLElement
       const destinationUrl = (el as HTMLAnchorElement).href || ''
       const platform = element.dataset.platform || ''
+      const canonicalAffiliatePlatform = affiliatePlatform(platform, destinationUrl)
+      const currentPath = typeof window !== 'undefined' ? location.pathname : ''
+      const hotel = element.dataset.hotel || (card as HTMLElement)?.dataset?.hotel || titleText
+      const item = element.dataset.item || (card as HTMLElement)?.dataset?.item || ''
+      const section = element.dataset.section || (card as HTMLElement)?.dataset?.section || ''
       const eventParameters = {
-        page_path: typeof window !== 'undefined' ? location.pathname : '',
+        page_path: currentPath,
+        page_type: element.dataset.pageType || pageType(currentPath),
         label: element.dataset.label || '',
-        hotel: element.dataset.hotel || (card as HTMLElement)?.dataset?.hotel || titleText,
+        hotel,
         platform,
+        provider: canonicalAffiliatePlatform || platform,
         area: element.dataset.area || (card as HTMLElement)?.dataset?.area || '',
         url: destinationUrl,
-        item: element.dataset.item || (card as HTMLElement)?.dataset?.item || '',
-        section: element.dataset.section || (card as HTMLElement)?.dataset?.section || '',
+        item,
+        item_id: element.dataset.itemId || item,
+        item_name: element.dataset.itemName || hotel || titleText,
+        section,
+        placement: element.dataset.placement || section,
         video: (card as HTMLElement)?.dataset?.video || '',
         title: (card as HTMLElement)?.dataset?.title || titleText,
       }
 
       gtagFn('event', name, eventParameters)
 
-      const canonicalAffiliatePlatform = affiliatePlatform(platform, destinationUrl)
       if (canonicalAffiliatePlatform) {
         gtagFn('event', 'affiliate_click', {
           ...eventParameters,

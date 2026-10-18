@@ -5,6 +5,8 @@ import AreaTabs, { type TabItem } from '@/components/AreaTabs'
 import PromoLink from '@/components/PromoLink'
 import { useShortVideoMenuAutoClose } from '@/components/shortVideoMenu'
 
+export const CITY_TAB_SELECT_EVENT = 'jiejourneys:city-tab-select'
+
 export type CityCardAction = {
   label: string
   href: string
@@ -172,6 +174,19 @@ export default function CityTabbedList({ tabs, cards, tabEvent, collapseVideoAct
     }, 0)
     return () => window.clearTimeout(id)
   }, [cards, filterAreas])
+
+  useEffect(() => {
+    const handleExternalTabSelect = (event: Event) => {
+      const value = (event as CustomEvent<{ value?: string }>).detail?.value
+      if (!value || !tabs.some((tab) => tab.value === value)) return
+      setActiveTab(value)
+      setHasSelectedTab(true)
+      setSelectedTags(new Set())
+    }
+
+    window.addEventListener(CITY_TAB_SELECT_EVENT, handleExternalTabSelect)
+    return () => window.removeEventListener(CITY_TAB_SELECT_EVENT, handleExternalTabSelect)
+  }, [tabs])
 
   const shownCards = useMemo(() => {
     if (!isTagFilterActive || selectedTags.size === 0) return tabCards

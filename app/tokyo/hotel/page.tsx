@@ -6,6 +6,8 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import TokyoHotelQuickGuide from './TokyoHotelQuickGuide'
+import styles from './tokyoHotel.module.css'
 
 export default function TokyoHotelPage() {
   return (
@@ -40,8 +42,12 @@ export default function TokyoHotelPage() {
           ]}
         />
 
-        <h2 className="seo-h2" id="stayListTitle">東京住宿推薦飯店</h2>
-        <CityTabbedList tabs={tokyoHotelTabs} cards={tokyoHotelCards} tabEvent="tokyo_hotel_tab" />
+        <TokyoHotelQuickGuide />
+
+        <h2 className="seo-h2" id="stayListTitle">東京住宿完整飯店清單</h2>
+        <div className={styles.hotelList}>
+          <CityTabbedList tabs={tokyoHotelTabs} cards={tokyoHotelCards} tabEvent="tokyo_hotel_tab" />
+        </div>
 
         <SeoCtaSection text="" href="/tokyo/map" linkText="東京住宿地圖" newTab dataEvent="tokyohotel_SEO_map" />
 

@@ -21,6 +21,8 @@ type Props = {
   tagHideOnAll?: boolean
   collapseVideoActions?: boolean
   showGuideList?: boolean
+  beforeGuideList?: ReactNode
+  guideListClassName?: string
   contentTitle: string
   children: ReactNode
   faqTitle: string
@@ -40,6 +42,8 @@ export default function KyotoNaraGuidePage({
   tagHideOnAll,
   collapseVideoActions = false,
   showGuideList = true,
+  beforeGuideList,
+  guideListClassName,
   contentTitle,
   children,
   faqTitle,
@@ -64,20 +68,36 @@ export default function KyotoNaraGuidePage({
           ]}
         />
 
+        {beforeGuideList}
+
         {showGuideList ? (
           <>
             <h2 className="seo-h2" id="guideListTitle">
               {listTitle}
             </h2>
-            <CityTabbedList
-              tabs={tabs}
-              cards={cards}
-              tabEvent={`${eventPrefix}_tab`}
-              collapseVideoActions={collapseVideoActions}
-              tagFilterArea={tagFilterArea}
-              tagOrder={tagOrder}
-              tagHideOnAll={tagHideOnAll}
-            />
+            {guideListClassName ? (
+              <div className={guideListClassName}>
+                <CityTabbedList
+                  tabs={tabs}
+                  cards={cards}
+                  tabEvent={`${eventPrefix}_tab`}
+                  collapseVideoActions={collapseVideoActions}
+                  tagFilterArea={tagFilterArea}
+                  tagOrder={tagOrder}
+                  tagHideOnAll={tagHideOnAll}
+                />
+              </div>
+            ) : (
+              <CityTabbedList
+                tabs={tabs}
+                cards={cards}
+                tabEvent={`${eventPrefix}_tab`}
+                collapseVideoActions={collapseVideoActions}
+                tagFilterArea={tagFilterArea}
+                tagOrder={tagOrder}
+                tagHideOnAll={tagHideOnAll}
+              />
+            )}
           </>
         ) : null}
 

@@ -6,6 +6,8 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
+import NorthVietnamHotelQuickGuide from './NorthVietnamHotelQuickGuide'
+import styles from './northVietnamHotel.module.css'
 
 export default function NorthVietnamHotelPage() {
   return (
@@ -40,8 +42,12 @@ export default function NorthVietnamHotelPage() {
           ]}
         />
 
-        <h2 className="seo-h2" id="stayListTitle">北越住宿推薦飯店</h2>
-        <CityTabbedList tabs={northVietnamHotelTabs} cards={northVietnamHotelCards} tabEvent="northvietnam_hotel_tab" />
+        <NorthVietnamHotelQuickGuide />
+
+        <h2 className="seo-h2" id="stayListTitle">北越住宿完整飯店清單</h2>
+        <div className={styles.hotelList}>
+          <CityTabbedList tabs={northVietnamHotelTabs} cards={northVietnamHotelCards} tabEvent="northvietnam_hotel_tab" />
+        </div>
 
         <SeoCtaSection text="" href="/northvietnam/map" linkText="北越住宿地圖" newTab dataEvent="northvietnamhotel_SEO_map" />
 

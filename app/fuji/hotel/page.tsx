@@ -6,6 +6,8 @@ import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
+import FujiHotelQuickGuide from './FujiHotelQuickGuide'
+import styles from './fujiHotel.module.css'
 
 export default function FujiHotelPage() {
   return (
@@ -55,10 +57,14 @@ export default function FujiHotelPage() {
           ]}
         />
 
+        <FujiHotelQuickGuide />
+
         <h2 className="seo-h2" id="stayListTitle">
-          富士河口湖住宿推薦飯店
+          富士河口湖住宿完整飯店清單
         </h2>
-        <CityTabbedList tabs={fujiHotelTabs} cards={fujiHotelCards} tabEvent="fuji_hotel_tab" />
+        <div className={styles.hotelList}>
+          <CityTabbedList tabs={fujiHotelTabs} cards={fujiHotelCards} tabEvent="fuji_hotel_tab" />
+        </div>
 
         <SeoCtaSection text="" href="/fuji/map" linkText="富士河口湖住宿點地圖" newTab dataEvent="fujihotel_SEO_spotmap" />
 

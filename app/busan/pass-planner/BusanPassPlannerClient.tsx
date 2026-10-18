@@ -2466,6 +2466,24 @@ function orderHotelAffiliateLinks<T extends CustomPlannerLink>(links: T[]) {
   return ordered
 }
 
+function plannerUserLinkTrackingProps(place: Pick<MapPlace, 'id' | 'name'>, link: PlannerUserLink) {
+  const provider = hotelAffiliateProviderForLink(link)
+  const platform = provider === 'Booking' ? 'Booking.com' : provider || plannerLinkLabelFromHref(link.href)
+  const itemName = shortName(place.name)
+  return {
+    'data-event': provider ? 'planner_hotel_affiliate_click' : 'planner_user_link_open',
+    'data-item': place.id,
+    'data-item-id': place.id,
+    'data-item-name': itemName,
+    'data-hotel': provider ? itemName : undefined,
+    'data-platform': platform,
+    'data-section': provider ? 'planner_hotel_affiliate' : 'planner_user_link',
+    'data-placement': 'planner_card',
+    'data-page-type': 'planner',
+    'data-label': link.label,
+  }
+}
+
 function shortName(name: string) {
   return name.replace(/\s*\d+\s*元$/, '').trim()
 }
@@ -6718,7 +6736,13 @@ function PlannerActionPanel({
         <div className={styles.userLinksList}>
           {visibleUserLinks.map(({ link, index }) => (
             <span key={`${link.label}-${link.href}-${index}`} className={styles.userLinkRow}>
-              <a className={styles.userLinkOpen} href={link.href} target="_blank" rel="noopener noreferrer">
+              <a
+                className={styles.userLinkOpen}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                {...plannerUserLinkTrackingProps(place, link)}
+              >
                 <span>{link.label}</span>
                 <span>開啟</span>
               </a>
@@ -14717,7 +14741,24 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                                     <div className={styles.customPlaceLinkList}>
                                       {customDraftLinks.map((link, index) => (
                                         <span key={`${link.label}-${link.href}-${index}`} className={styles.customPlaceLinkItem}>
-                                          <a href={link.href} target="_blank" rel="noopener noreferrer">
+                                          <a
+                                            href={link.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            {...(customDraftSavedPlace
+                                              ? plannerUserLinkTrackingProps(customDraftSavedPlace, link)
+                                              : {
+                                                  'data-event': 'planner_user_link_open',
+                                                  'data-item': customDraft.id ?? '',
+                                                  'data-item-id': customDraft.id ?? '',
+                                                  'data-item-name': customDraft.name,
+                                                  'data-platform': plannerLinkLabelFromHref(link.href),
+                                                  'data-section': 'planner_user_link',
+                                                  'data-placement': 'planner_editor',
+                                                  'data-page-type': 'planner',
+                                                  'data-label': link.label,
+                                                })}
+                                          >
                                             {link.label}
                                           </a>
                                           <button

@@ -1,5 +1,7 @@
 import type { CityCard } from '@/components/CityTabbedList'
 import KyotoNaraGuidePage from '@/components/KyotoNaraGuidePage'
+import KyotoHotelQuickGuide from './KyotoHotelQuickGuide'
+import styles from './kyotoHotel.module.css'
 
 const agodaHotelUrl = (id: number) => `https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=${id}`
 const tripHotelUrl = (path: string) => `https://tw.trip.com${path}?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16704417`
@@ -177,9 +179,11 @@ export default function KyotoNaraHotelPage() {
       badge="住宿"
       title="京都住宿推薦｜京都站、河原町、祇園與烏丸怎麼選？"
       intro="第一次京都自由行住京都車站最省轉車；想逛街吃美食、走祇園與清水寺選河原町・祇園；想住市中心的設計旅宿或安靜一點的街區，選烏丸・市中心。"
-      listTitle="京都住宿推薦"
+      listTitle="京都住宿完整飯店清單"
       tabs={tabs}
       cards={cards}
+      beforeGuideList={<KyotoHotelQuickGuide cards={cards} />}
+      guideListClassName={styles.hotelList}
       contentTitle="京都住哪裡最好？先用行程回答"
       faqTitle="京都住宿常見問題"
       faqs={[
