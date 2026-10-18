@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Stay22PageScript from '@/components/Stay22PageScript'
 import {
   busanNampoGuideCanonical,
   busanNampoGuideDescription,
@@ -41,5 +42,10 @@ export const metadata: Metadata = {
 }
 
 export default function BusanNampoGuideLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <Stay22PageScript pathname="/busan/nampo-dong-guide" scriptId="stay22-busan-nampo-dong-guide" />
+      {children}
+    </>
+  )
 }

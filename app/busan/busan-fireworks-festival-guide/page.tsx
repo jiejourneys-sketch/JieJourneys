@@ -1,5 +1,6 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
+import AccommodationAffiliatePanel from '@/components/seo/AccommodationAffiliatePanel'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
@@ -482,6 +483,16 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
             </div>
           </div>
         </section>
+
+        <AccommodationAffiliatePanel
+          id="accommodation"
+          title="煙火節住宿要提早比價"
+          intro="煙火節當晚散場時間難抓，住宿可優先看廣安里或地鐵 2 號線沿線。用同一入住日期比較兩個平台，並特別確認免費取消期限，等官方交通配置公布後仍保有調整空間。"
+          destination="釜山"
+          agodaHref="https://www.agoda.com/zh-tw/city/busan-kr.html?cid=1945734"
+          tripHref="https://tw.trip.com/hotels/busan-hotels-list-253/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664"
+          eventPrefix="busanfireworks_stay"
+        />
 
         <SeoRelatedLinksSection
           title="看煙火前，先把海岸交通和住宿位置看懂"

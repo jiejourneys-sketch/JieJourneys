@@ -111,6 +111,22 @@ const cards: CityCard[] = [
     datasetValue: 'kyoto-station-hidden-spots',
     actions: [
       {
+        label: 'IG Reels',
+        href: 'https://www.instagram.com/reel/DemKrCJNVtp/',
+        className: 'btn primary',
+        event: 'kyotonaravideo_station_hidden_ig',
+        platform: 'IG',
+        section: 'video',
+      },
+      {
+        label: 'YouTube',
+        href: 'https://www.youtube.com/shorts/Cs8S2RNrMvk',
+        className: 'btn',
+        event: 'kyotonaravideo_station_hidden_youtube',
+        platform: 'YouTube',
+        section: 'video',
+      },
+      {
         label: '文章',
         href: '/kyoto-nara/kyoto-station-guide?from=kyoto-video#hidden-spots',
         className: 'btn',

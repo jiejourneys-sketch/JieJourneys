@@ -1,5 +1,6 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
+import AccommodationAffiliatePanel from '@/components/seo/AccommodationAffiliatePanel'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
@@ -423,6 +424,16 @@ export default async function Tokyo9AreasGuidePage({ searchParams }: Tokyo9Areas
             </p>
           </div>
         </section>
+
+        <AccommodationAffiliatePanel
+          id="accommodation"
+          title="東京住宿先按行程區域篩選"
+          intro="行程偏上野、淺草就先看東側，偏新宿、澀谷則先看西側；不要只按最低價排序。決定區域後，再用相同日期比較 Agoda 與 Trip.com 的房型和取消條件。"
+          destination="東京"
+          agodaHref="https://www.agoda.com/zh-tw/city/tokyo-jp.html?cid=1945734"
+          tripHref="https://tw.trip.com/hotels/tokyo-hotels-list-228/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664"
+          eventPrefix="tokyo9areas_stay"
+        />
 
         <SeoRelatedLinksSection
           title="選好區域後，接著把景點和交通排進去"

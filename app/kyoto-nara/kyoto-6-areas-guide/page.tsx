@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
+import AccommodationAffiliatePanel from '@/components/seo/AccommodationAffiliatePanel'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
@@ -248,6 +249,16 @@ export default async function KyotoSixAreasGuidePage({ searchParams }: KyotoSixA
             <p>京都官方建議搭配鐵路與公車移動，並提供 <a href={KYOTO_TRANSPORT_URL} target="_blank" rel="noopener noreferrer" data-event="kyoto6areas_official_transport" data-platform="Kyoto Travel" data-section="article_link">京都官方交通指引</a>。熱門時段跨區時，先搭 JR、私鐵或地下鐵，再用公車完成最後一段，通常更好掌握時間。</p>
           </div>
         </section>
+
+        <AccommodationAffiliatePanel
+          id="accommodation"
+          title="京都住宿先決定每天從哪一區出發"
+          intro="常搭 JR 或有大件行李可先看京都站；重視晚餐、逛街與東山動線則可比較四條河原町一帶。選好區域後，再用同一日期比較兩個平台的房價與取消條件。"
+          destination="京都"
+          agodaHref="https://www.agoda.com/zh-tw/city/kyoto-jp.html?cid=1945734"
+          tripHref="https://tw.trip.com/hotels/kyoto-hotels-list-734/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664"
+          eventPrefix="kyoto6areas_stay"
+        />
 
         <SeoRelatedLinksSection
           title="接著安排京都行程"

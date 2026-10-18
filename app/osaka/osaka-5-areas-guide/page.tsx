@@ -1,5 +1,6 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
+import AccommodationAffiliatePanel from '@/components/seo/AccommodationAffiliatePanel'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
@@ -282,6 +283,16 @@ export default function Osaka5AreasGuidePage() {
             </p>
           </div>
         </section>
+
+        <AccommodationAffiliatePanel
+          id="accommodation"
+          title="大阪住宿先選難波或梅田，再比房價"
+          intro="想把道頓堀、心齋橋和南區夜生活排得輕鬆，可先看難波；會常往京都、神戶或搭 JR，梅田通常更方便。區域決定後，再比較同一日期的房型與取消條件。"
+          destination="大阪"
+          agodaHref="https://www.agoda.com/zh-tw/city/osaka-jp.html?cid=1945734"
+          tripHref="https://tw.trip.com/hotels/osaka-hotels-list-219/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664"
+          eventPrefix="osaka5areas_stay"
+        />
 
         <SeoRelatedLinksSection
           title="把選好的區域變成實際路線"

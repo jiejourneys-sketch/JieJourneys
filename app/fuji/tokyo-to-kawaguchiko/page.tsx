@@ -1,5 +1,6 @@
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
+import AccommodationAffiliatePanel from '@/components/seo/AccommodationAffiliatePanel'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
@@ -290,6 +291,16 @@ export default async function TokyoToKawaguchikoPage({ searchParams }: TokyoToKa
             </div>
           </div>
         </section>
+
+        <AccommodationAffiliatePanel
+          id="accommodation"
+          title="河口湖過夜，先確認住宿離哪個站或景點最近"
+          intro="住一晚能避開當日往返的趕車壓力，但河口湖周邊住宿位置差很多。比價時除了價格，也要確認接駁服務、最近車站、晚餐供應與取消條件。"
+          destination="河口湖"
+          agodaHref="https://www.agoda.com/zh-tw/city/fujikawaguchiko-jp.html?cid=1945734"
+          tripHref="https://tw.trip.com/hotels/fujikawaguchiko-hotels-list-50160/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664"
+          eventPrefix="tokyokawaguchiko_stay"
+        />
 
         <SeoRelatedLinksSection
           title="抵達河口湖後，接著排富士山行程"

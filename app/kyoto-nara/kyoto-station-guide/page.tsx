@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
+import AccommodationAffiliatePanel from '@/components/seo/AccommodationAffiliatePanel'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
@@ -17,6 +18,11 @@ const SITE_URL = 'https://www.jiejourneys.com'
 const videoLinks = [
   { label: '京都車站出口動線 IG', href: 'https://www.instagram.com/reel/DeUJBAUtavI/', event: 'kyotostation_video_ig', platform: 'IG', primary: true },
   { label: '京都車站出口動線 YouTube', href: 'https://www.youtube.com/shorts/sS5veHkCP6I', event: 'kyotostation_video_youtube', platform: 'YouTube' },
+]
+
+const hiddenSpotsVideoLinks = [
+  { label: '京都車站隱藏景點 IG', href: 'https://www.instagram.com/reel/DemKrCJNVtp/', event: 'kyotostation_hidden_spots_video_ig', platform: 'IG', primary: true },
+  { label: '京都車站隱藏景點 YouTube', href: 'https://www.youtube.com/shorts/Cs8S2RNrMvk', event: 'kyotostation_hidden_spots_video_youtube', platform: 'YouTube' },
 ]
 
 const faqItems = [
@@ -242,6 +248,8 @@ export default async function KyotoStationGuidePage({ searchParams }: KyotoStati
           <div className="seo-prose">
             <p>很多人從中央口出站、搭完巴士就離開了；其實京都車站的高處空間很值得專程留半小時到一小時。<strong>最簡單的走法是從北側大廳開始往上，先到 4F 看京都塔，再到 10F 走空中徑路與拉麵小路，最後沿著大階段慢慢往下。</strong> 不用另外搭車，雨天、抵達日或回程前都很好安排。</p>
 
+            <SeoVideoLinkMenu label="京都車站隱藏景點" links={hiddenSpotsVideoLinks} />
+
             <figure className="seo-figure seo-tall-figure">
               <Image
                 src="/assets/kyoto-guides/kyoto-station-north-side-escalators.png"
@@ -295,6 +303,16 @@ export default async function KyotoStationGuidePage({ searchParams }: KyotoStati
             <p>若飯店在京都站周邊，可先寄放行李，再依當天主區域出發：東山、祇園等市區景點多會從北側巴士總站或地下鐵方向開始；安排奈良一日遊、新幹線移動，則從南側八條口與近鐵一帶接續。抵達日還有空檔時，就把 4F 到 10F 的車站散步排在晚餐前或回飯店前；若剛好晚上抵達，大階段與京都塔夜景會比硬塞遠一點的景點更適合。</p>
           </div>
         </section>
+
+        <AccommodationAffiliatePanel
+          id="accommodation"
+          title="想住京都站附近？先比較同一日期的房價"
+          intro="京都站適合抵達晚、隔天搭新幹線或安排奈良一日遊的人。先用相同入住日期比較 Agoda 與 Trip.com，再確認房型、取消條件和是否真的在步行範圍內。"
+          destination="京都"
+          agodaHref="https://www.agoda.com/zh-tw/city/kyoto-jp.html?cid=1945734"
+          tripHref="https://tw.trip.com/hotels/kyoto-hotels-list-734/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664"
+          eventPrefix="kyotostation_stay"
+        />
 
         <SeoRelatedLinksSection
           title="接著安排京都行程"

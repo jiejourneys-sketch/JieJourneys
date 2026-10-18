@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Stay22PageScript from '@/components/Stay22PageScript'
 import {
   osakaCastleGuideCanonical,
   osakaCastleGuideDescription,
@@ -39,5 +40,10 @@ export const metadata: Metadata = {
 }
 
 export default function OsakaCastleGuideLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <Stay22PageScript pathname="/osaka/osaka-castle-guide" scriptId="stay22-osaka-castle-guide" />
+      {children}
+    </>
+  )
 }
