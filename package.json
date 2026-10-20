@@ -12,7 +12,8 @@
     "agoda:planner-index": "node scripts/build-agoda-planner-index.mjs",
     "rwd:scan": "node scripts/rwd-scan.mjs",
     "links:list": "node scripts/link-monitor.mjs --list-only",
-    "links:check": "node scripts/link-monitor.mjs"
+    "links:check": "node scripts/link-monitor.mjs",
+    "affiliate:check:kyushu": "node scripts/check-kyushu-trip-affiliate.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -4,7 +4,6 @@ import {
   kyushuTravelSubsidy2026Description,
   kyushuTravelSubsidy2026Title,
 } from './pageMeta'
-import Stay22Script from './Stay22Script'
 
 export const metadata: Metadata = {
   title: kyushuTravelSubsidy2026Title,
@@ -40,10 +39,5 @@ export const metadata: Metadata = {
 }
 
 export default function KyushuTravelSubsidy2026Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <Stay22Script />
-      {children}
-    </>
-  )
+  return children
 }

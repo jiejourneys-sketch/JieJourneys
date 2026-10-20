@@ -1,0 +1,261 @@
+{
+  "retrievedAt": "2026-10-20",
+  "campaignId": "JP-54391",
+  "sourceLabel": "Trip.com 九州ふっこう応援割活動頁",
+  "prefectures": [
+    {
+      "id": "nagasaki",
+      "name": "長崎",
+      "status": "open",
+      "statusLabel": "目前可查詢",
+      "sourceGroupId": 11075,
+      "checkedDates": [
+        "2026-10-21",
+        "2026-10-24",
+        "2026-10-31",
+        "2026-11-09",
+        "2026-11-20",
+        "2026-12-05",
+        "2026-12-14",
+        "2026-12-20",
+        "2026-12-24"
+      ],
+      "hotels": [
+        {
+          "hotelId": "704207",
+          "nameZh": "長崎 S-PERIA 飯店",
+          "nameJa": "エスペリア長崎",
+          "city": "長崎市"
+        },
+        {
+          "hotelId": "121203156",
+          "nameZh": "長崎體育館城市飯店",
+          "nameJa": "スタジアムシティホテル長崎",
+          "city": "長崎市"
+        },
+        {
+          "hotelId": "704873",
+          "nameZh": "豪斯登堡日航飯店",
+          "nameJa": "ホテル日航ハウステンボス",
+          "city": "佐世保"
+        },
+        {
+          "hotelId": "23195284",
+          "nameZh": "雲仙神門飯店本館",
+          "nameJa": "雲仙みかどホテル本館",
+          "city": "南島原"
+        },
+        {
+          "hotelId": "704185",
+          "nameZh": "長崎蒙特利飯店",
+          "nameJa": "ホテルモントレ長崎",
+          "city": "長崎市"
+        },
+        {
+          "hotelId": "705761",
+          "nameZh": "佐世保華盛頓飯店",
+          "nameJa": "佐世保ワシントンホテル",
+          "city": "佐世保"
+        },
+        {
+          "hotelId": "705720",
+          "nameZh": "豪斯登堡海牙飯店",
+          "nameJa": "ホテルデンハーグ ハウステンボス",
+          "city": "佐世保"
+        },
+        {
+          "hotelId": "7517816",
+          "nameZh": "長崎巴士總站飯店",
+          "nameJa": "長崎 バス ターミナル ホテル",
+          "city": "長崎市"
+        },
+        {
+          "hotelId": "2254544",
+          "nameZh": "JR 豪斯登堡大倉飯店",
+          "nameJa": "ホテルオークラ JR ハウステンボス",
+          "city": "佐世保"
+        },
+        {
+          "hotelId": "704051",
+          "nameZh": "豪斯登堡歐洲飯店",
+          "nameJa": "ホテルヨーロッパ ハウステンボス",
+          "city": "佐世保"
+        },
+        {
+          "hotelId": "2199712",
+          "nameZh": "長崎競速飯店",
+          "nameJa": "ホテルフォルツァ長崎",
+          "city": "長崎市"
+        },
+        {
+          "hotelId": "2134894",
+          "nameZh": "長崎港永飯店",
+          "nameJa": "ウイング・ポート",
+          "city": "長崎市"
+        },
+        {
+          "hotelId": "3443230",
+          "nameZh": "豪斯登堡鹿特丹飯店",
+          "nameJa": "ホテルロッテルダム ハウステンボス",
+          "city": "佐世保"
+        },
+        {
+          "hotelId": "2545213",
+          "nameZh": "豪斯登堡阿姆斯特丹飯店",
+          "nameJa": "ホテルアムステルダム ハウステンボス",
+          "city": "佐世保"
+        },
+        {
+          "hotelId": "704045",
+          "nameZh": "豪斯登堡 森林小別墅",
+          "nameJa": "フォレストヴィラ ハウステンボス",
+          "city": "佐世保"
+        },
+        {
+          "hotelId": "97657028",
+          "nameZh": "五島 RETREAT ray by 溫故知新",
+          "nameJa": "五島リトリートray by 温故知新",
+          "city": "五島市"
+        },
+        {
+          "hotelId": "6078233",
+          "nameZh": "青雲莊水療度假飯店",
+          "nameJa": "雲仙温泉 青雲荘",
+          "city": "雲仙"
+        },
+        {
+          "hotelId": "17452023",
+          "nameZh": "壹岐 RETREAT 海里村上 by 溫故知新",
+          "nameJa": "壱岐リトリート 海里村上 by 温故知新",
+          "city": "壱岐"
+        },
+        {
+          "hotelId": "25659016",
+          "nameZh": "津巴吉飯店",
+          "nameJa": "GOTO TSUBAKI HOTEL　“五島灘をのぞむ宿”",
+          "city": "五島市"
+        },
+        {
+          "hotelId": "10751253",
+          "nameZh": "五島孔卡納王國酒莊度假村",
+          "nameJa": "五島コンカナ王国",
+          "city": "五島市"
+        },
+        {
+          "hotelId": "704175",
+          "nameZh": "大江戶長崎溫泉物語高級清風長崎飯店",
+          "nameJa": "大江戸温泉物語Premium 長崎ホテル清風",
+          "city": "長崎市"
+        }
+      ]
+    },
+    {
+      "id": "fukuoka",
+      "name": "福岡",
+      "status": "paused",
+      "statusLabel": "補助暫停",
+      "sourceGroupId": 11100,
+      "checkedDates": [
+        "2026-10-21",
+        "2026-10-24",
+        "2026-10-31",
+        "2026-11-09",
+        "2026-11-20",
+        "2026-12-05",
+        "2026-12-14"
+      ],
+      "hotels": [
+        {
+          "hotelId": "705180",
+          "nameZh": "博多市善騰飯店",
+          "nameJa": "サットンホテル博多シティ",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "56699615",
+          "nameZh": "三井花園飯店福岡中洲",
+          "nameJa": "三井ガーデンホテル福岡中洲",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "6596757",
+          "nameZh": "The BREAKFAST HOTEL 福岡天神",
+          "nameJa": "The BREAKFAST HOTEL 福岡天神",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "704240",
+          "nameZh": "小倉麗嘉皇家飯店",
+          "nameJa": "リーガロイヤルホテル小倉",
+          "city": "北九州市"
+        },
+        {
+          "hotelId": "705327",
+          "nameZh": "博多 CROOM 西鐵飯店",
+          "nameJa": "西鉄ホテル クルーム博多 天然温泉博多駅前の湯",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "131827888",
+          "nameZh": "福岡王子飯店百道濱",
+          "nameJa": "福岡プリンスホテル ももち浜",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "705475",
+          "nameZh": "博多克萊奧苑飯店",
+          "nameJa": "ホテルクリオコート博多",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "3118587",
+          "nameZh": "JR 九州小倉站飯店",
+          "nameJa": "JR九州ステーションホテル小倉",
+          "city": "北九州市"
+        },
+        {
+          "hotelId": "80802926",
+          "nameZh": "福岡燈光圖書飯店",
+          "nameJa": "ランプライトブックスホテル福岡",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "7632186",
+          "nameZh": "新蓋亞飯店－巨蛋前",
+          "nameJa": "ホテルニューガイア ドーム前",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "63007260",
+          "nameZh": "博多祗園托裡菲託飯店",
+          "nameJa": "ホテル・トリフィート博多祇園",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "25048207",
+          "nameZh": "福岡天神東急 STAY 飯店",
+          "nameJa": "東急ステイ 福岡天神",
+          "city": "福岡市"
+        },
+        {
+          "hotelId": "123756775",
+          "nameZh": "福岡休雷克蓋特飯店",
+          "nameJa": "ザ・ゲートホテル福岡 by HULIC",
+          "city": "福岡市"
+        }
+      ]
+    }
+  ],
+  "pendingPrefectures": [
+    {
+      "id": "kumamoto",
+      "name": "熊本",
+      "publishNote": "Trip 預定 10/22 13:00 開賣，目前尚未回傳住宿名單。"
+    },
+    {
+      "id": "kagoshima",
+      "name": "鹿兒島",
+      "publishNote": "Trip 預定 10/22 13:00 開賣，目前尚未回傳住宿名單。"
+    }
+  ]
+}

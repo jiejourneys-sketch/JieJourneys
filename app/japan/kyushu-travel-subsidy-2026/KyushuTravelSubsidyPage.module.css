@@ -1,0 +1,6 @@
+.prefectureColumn {
+  min-width: 5.5rem;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
