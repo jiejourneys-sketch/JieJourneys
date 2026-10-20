@@ -6,7 +6,9 @@ const MAX_SITES_PER_RUN = clampNumber(Deno.env.get("CONTENT_MONITOR_MAX_SITES_PE
 const MAX_CONCURRENCY = clampNumber(Deno.env.get("CONTENT_MONITOR_CONCURRENCY"), 3, 1, 5);
 const FAILURE_ALERT_THRESHOLD = clampNumber(Deno.env.get("CONTENT_MONITOR_FAILURE_ALERT_THRESHOLD"), 3, 1, 10);
 const EVENT_BATCH_SIZE = 20;
-const PREVIEW_LENGTH = 1_200;
+// Keep enough of the monitored block to produce a useful diff even when the
+// changed OTA or coupon appears near the end of a long prefectural list.
+const PREVIEW_LENGTH = 12_000;
 const TELEGRAM_TEXT_LIMIT = 3_700;
 const SITE_CLAIM_WINDOW_MS = 2 * 60 * 1_000;
 const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches", "include_attributes"]);
@@ -187,7 +189,12 @@ function newContentDelta(before: string | null, after: string) {
     oldEnd -= 1;
     newEnd -= 1;
   }
-  return newText.slice(prefixLength, newEnd + 1);
+  // Notification filters need a little surrounding text. A bare character
+  // delta (for example "3" -> "4") cannot tell a date change from a rotating
+  // carousel counter, while nearby labels such as 発売 or 完売 can.
+  const contextStart = Math.max(0, prefixLength - 120);
+  const contextEnd = Math.min(newText.length, newEnd + 121);
+  return newText.slice(contextStart, contextEnd);
 }
 
 function shouldNotifyChange(site: MonitorSite, content: string, previousContent: string | null) {
@@ -318,8 +325,8 @@ function nextCheckAt(site: MonitorSite) {
 }
 
 function changeSnippet(before: string | null, after: string | null) {
-  const oldText = preview(before, 900);
-  const newText = preview(after, 900);
+  const oldText = normalizeText(before ?? "");
+  const newText = normalizeText(after ?? "");
   if (!oldText) return `新內容：${preview(newText, 260)}`;
   if (!newText) return `原內容已清空：${preview(oldText, 260)}`;
 
@@ -336,7 +343,22 @@ function changeSnippet(before: string | null, after: string | null) {
 
   const oldChanged = oldText.slice(prefixLength, oldEnd + 1);
   const newChanged = newText.slice(prefixLength, newEnd + 1);
-  return `原：${preview(oldChanged, 180)}\n新：${preview(newChanged, 180)}`;
+  if (!oldChanged && !newChanged) {
+    return "偵測到監控區內容變動，但差異位於可用摘要之外；請開啟原頁面確認。";
+  }
+
+  const oldContextStart = Math.max(0, prefixLength - 80);
+  const newContextStart = Math.max(0, prefixLength - 80);
+  const oldContextEnd = Math.min(oldText.length, oldEnd + 81);
+  const newContextEnd = Math.min(newText.length, newEnd + 81);
+  const oldContext = oldText.slice(oldContextStart, oldContextEnd);
+  const newContext = newText.slice(newContextStart, newContextEnd);
+  const oldLead = oldContextStart > 0 ? "…" : "";
+  const newLead = newContextStart > 0 ? "…" : "";
+  const oldTail = oldContextEnd < oldText.length ? "…" : "";
+  const newTail = newContextEnd < newText.length ? "…" : "";
+
+  return `原：${oldLead}${preview(oldContext, 300)}${oldTail}\n新：${newLead}${preview(newContext, 300)}${newTail}`;
 }
 
 function shouldRebaselineAfterResponseShift(site: MonitorSite, state: MonitorState, hashable: string) {
