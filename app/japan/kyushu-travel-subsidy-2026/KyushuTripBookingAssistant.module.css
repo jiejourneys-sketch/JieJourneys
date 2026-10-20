@@ -22,23 +22,6 @@
   letter-spacing: 0.1em;
 }
 
-.eyebrowRow {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 6px;
-}
-
-.eyebrowRow > span {
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: #ccfbf1;
-  color: #0f766e;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
 .heading {
   margin: 0;
   color: #0f172a;
@@ -53,36 +36,6 @@
   color: #475569;
   font-size: 14px;
   line-height: 1.6;
-}
-
-.trustBadge {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 13px;
-  border: 1px solid rgba(15, 118, 110, 0.2);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.86);
-  color: #0f766e;
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1.35;
-}
-
-.trustBadge > span:first-child {
-  display: grid;
-  width: 25px;
-  height: 25px;
-  place-items: center;
-  border-radius: 999px;
-  background: #ccfbf1;
-}
-
-.trustBadge small {
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 700;
 }
 
 .summaryStrip {
@@ -496,13 +449,6 @@
   font-weight: 800;
 }
 
-.affiliateNote {
-  margin: 8px 1px 0;
-  color: #64748b;
-  font-size: 9px;
-  line-height: 1.5;
-}
-
 @media (max-width: 760px) {
   .assistant {
     padding: 15px 12px 14px !important;
@@ -615,12 +561,6 @@
 }
 
 @media (max-width: 380px) {
-  .eyebrowRow {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
   .prefectureMeta {
     align-items: flex-start;
     flex-direction: column;

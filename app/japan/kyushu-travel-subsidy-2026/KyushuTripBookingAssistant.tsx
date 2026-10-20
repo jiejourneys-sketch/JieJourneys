@@ -127,10 +127,7 @@ export default function KyushuTripBookingAssistant() {
     >
       <div className={styles.headingRow}>
         <div>
-          <div className={styles.eyebrowRow}>
-            <p className={styles.eyebrow}>TRIP.COM 補助中文快查</p>
-            <span>✓ 聯盟連結已驗證</span>
-          </div>
+          <p className={styles.eyebrow}>TRIP.COM 補助中文快查</p>
           <h2 className={styles.heading} id="kyushu-booking-assistant-title">
             先找參與住宿，再到 Trip 選日期
           </h2>
@@ -267,9 +264,6 @@ export default function KyushuTripBookingAssistant() {
           </div>
         )}
 
-        <p className={styles.affiliateNote}>
-          名單整理自 Trip 多個日期的活動結果；是否有補助仍以當天房型標示為準。以上皆為旅杰 Trip 聯盟連結，完成訂單可能產生佣金，你的房價不會增加。
-        </p>
       </section>
     </section>
   )
