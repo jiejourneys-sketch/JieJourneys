@@ -17,7 +17,7 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const PUBLISHED_AT = '2026-08-28'
-const UPDATED_AT = '2026-10-20'
+const UPDATED_AT = '2026-10-21'
 
 const JAPAN_TOURISM_AGENCY_URL = 'https://www.mlit.go.jp/kankocho/page13_00002.html'
 const KYUSHU_CAMPAIGN_URL = 'https://fightkyushu.welcomekyushu.jp/'
@@ -110,7 +110,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '50%',
     booking: '9/24 起',
     stay: '10/1～12/15',
-    status: 'Trip.com 已停止受理；東武 Top Tours 預定 10/21 14:00 開賣。其他通路額度另查。',
+    status: 'Trip.com 已停止受理；東武 Top Tours 已於 10/21 14:00 開賣。其他通路額度另查。',
     href: FUKUOKA_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_fukuoka',
   },
@@ -164,7 +164,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '60%',
     booking: '10/14 起，各平台分批開賣',
     stay: 'OTA／旅行社至 2027/1/31；直訂至 2027/2/28',
-    status: '10/20 新增るるぶトラベル但未標開賣時間；Trip.com 預定 10/22 13:00 開賣。',
+    status: 'JTB、るるぶトラベル皆標示 10/20 開賣；Trip.com 預定 10/22 13:00 開賣。',
     href: KAGOSHIMA_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_kagoshima',
   },
@@ -446,14 +446,14 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
       <CitySubpageHeader backHref={backHref} eventPrefix="kyushusubsidy" />
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
-          badge="九州旅遊速報｜2026/10/20 更新"
+          badge="九州旅遊速報｜2026/10/21 更新"
           h1="九州旅遊補助已開賣｜台灣旅客可用、七縣日期與訂房方式"
           intro="九州旅遊補助已在七縣分批開賣，台灣等訪日旅客確定適用。熊本、鹿兒島最高折抵 60%，其餘五縣 50%；但舊訂單不能事後補折，每個平台、旅行社與住宿設施也都有各自額度，訂房前要先看最新販售狀態。"
           eventPrefix="kyushusubsidy"
           showVisual={false}
           ctaLinks={[
             { label: '查看 Trip 參與住宿', href: '#booking-assistant', dataEvent: 'kyushusubsidy_hero_assistant', platform: 'article' },
-            { label: '先看 10/20 新消息', href: '#latest-update', dataEvent: 'kyushusubsidy_hero_latest', platform: 'article' },
+            { label: '先看 10/21 新消息', href: '#latest-update', dataEvent: 'kyushusubsidy_hero_latest', platform: 'article' },
             { label: '先看已確認重點', href: '#quick-answer', dataEvent: 'kyushusubsidy_hero_quick', platform: 'article' },
             { label: '折扣與上限', href: '#discount', dataEvent: 'kyushusubsidy_hero_discount', platform: 'article' },
             { label: '補助實際怎麼訂', href: '#how-to-book', dataEvent: 'kyushusubsidy_hero_booking_guide', platform: 'article' },
@@ -462,21 +462,19 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
 
         <KyushuTripBookingAssistant />
 
-        <section className="seo-content" id="latest-update" aria-label="2026 年 10 月 20 日九州旅遊補助最新消息" style={{ scrollMarginTop: '76px' }}>
-          <h2 className="seo-h2">10/20 最新：通路有新增，但上線不等於現在還有額度</h2>
+        <section className="seo-content" id="latest-update" aria-label="2026 年 10 月 21 日九州旅遊補助最新消息" style={{ scrollMarginTop: '76px' }}>
+          <h2 className="seo-h2">10/21 最新：福岡新通路開賣，鹿兒島補上兩個日期</h2>
           <div className="seo-prose">
             <p>
-              以下為<strong>2026/10/20 本次複查</strong>結果；平台可能因取消釋回或追加預算重新開放，下單前仍要以結帳頁為準。
+              以下為<strong>2026/10/21 本次複查</strong>結果；平台可能因取消釋回或追加預算重新開放，下單前仍要以結帳頁為準。
             </p>
             <ul>
               <li><strong>Trip.com：</strong>福岡已顯示額度用完、暫停受理；長崎已開賣；熊本與鹿兒島預定 10/22 13:00 開賣。</li>
-              <li><strong>AEON Compass：</strong>福岡、熊本已於 10/20 11:00 配發，但兩個縣別頁面當時所列各人數優惠券皆顯示「配發結束」。</li>
-              <li><strong>福岡：</strong>官方 OTA 名單新增東武 Top Tours，預定 10/21 14:00 開賣。</li>
-              <li><strong>鹿兒島：</strong>官方 OTA 名單新增るるぶトラベル，但尚未標示開賣時間；Trip.com 預定 10/22 13:00、近畿日本ツーリスト預定同日 14:00 開賣。</li>
-              <li><strong>宮崎：</strong>參與住宿 PDF 更新為 10/20 版；這是名單更新，不是新增訂房平台。</li>
-              <li><strong>大分：</strong>本次是官網移除直訂提醒後造成段落位移，OTA 區本來就有，沒有確認到新通路。</li>
+              <li><strong>福岡：</strong>官方 OTA 名單中的東武 Top Tours 已於 10/21 14:00 開賣。</li>
+              <li><strong>鹿兒島：</strong>JTB、るるぶトラベル皆補上 10/20 開賣；Trip.com 預定 10/22 13:00、近畿日本ツーリスト預定同日 14:00 開賣。</li>
+              <li><strong>其他縣：</strong>佐賀 OTA 仍全數顯示完售；大分、宮崎本次沒有確認到新的訂房通路或開賣日期。</li>
             </ul>
-            <div className="seo-action-links" aria-label="10 月 20 日新增訂房通路">
+            <div className="seo-action-links" aria-label="10 月 21 日最新訂房狀態">
               <a className="seo-buy-link primary" href="#booking-assistant" data-event="kyushusubsidy_latest_trip_assistant" data-platform="article" data-section="latest_update">
                 用中文查看 Trip 參與住宿
               </a>
@@ -555,7 +553,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           <h2 className="seo-h2">七縣開賣日期與最新狀態：先找還有額度的通路</h2>
           <div className="seo-prose">
             <p>
-              這次不是全九州同一天、同一平台統一放券，而是由各縣把額度分配給住宿設施、旅行社與 OTA。即使官方活動期間尚未結束，個別通路也可能已經完售；以下為<strong>截至 2026 年 10 月 20 日</strong>的官方與平台資訊。
+              這次不是全九州同一天、同一平台統一放券，而是由各縣把額度分配給住宿設施、旅行社與 OTA。即使官方活動期間尚未結束，個別通路也可能已經完售；以下為<strong>截至 2026 年 10 月 21 日</strong>的官方與平台資訊。
             </p>
             <div className="narita-table-scroll">
               <table>
@@ -596,7 +594,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               最容易誤會的是「活動期間」不等於「現在還訂得到」。請從縣別名稱進入官方特設頁，再確認該平台或住宿設施是否仍接受補助訂單；結帳畫面沒有顯示活動名稱與折扣，就不要當成補助訂單。
             </p>
             <p>
-              <strong>10 月 20 日新增／更新：</strong>福岡新增東武 Top Tours、鹿兒島新增るるぶトラベル，宮崎參與住宿名單更新為 10/20 版。新通路可能在開賣當天快速額滿；「開始販售」不代表現在仍可預訂。
+              <strong>10 月 21 日複查：</strong>福岡東武 Top Tours 已到開賣時間；鹿兒島 JTB、るるぶトラベル皆標示 10/20 開賣。新通路可能很快額滿；「開始販售」不代表現在仍可預訂。
             </p>
           </div>
         </section>
@@ -754,7 +752,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               <li><strong>付款前看最終價格：</strong>即使前一頁看到活動方案，預算也可能在你完成付款前用完。</li>
             </ol>
             <p>
-              <strong>10/20 當下狀態：</strong>福岡已停止受理；長崎已開賣；熊本、鹿兒島預定於<strong>10/22 13:00</strong>開賣。各縣的活動截止日也不同，以專屬頁即時顯示為準。
+              <strong>10/21 當下狀態：</strong>福岡已停止受理；長崎已開賣；熊本、鹿兒島預定於<strong>10/22 13:00</strong>開賣。各縣的活動截止日也不同，以專屬頁即時顯示為準。
             </p>
 
             <h3 className="seo-h3" id="direct-booking-guide" style={{ scrollMarginTop: '76px' }}>方式 B｜飯店官方直訂：目前最值得台灣旅客先確認</h3>

@@ -2,3 +2,7 @@
 # Cron sends its own random secret in x-content-monitor-secret. Do not expose
 # this endpoint to the public internet without that header.
 verify_jwt = false
+
+[functions.link-monitor]
+# Link Monitor also uses a dedicated random Cron secret instead of a user JWT.
+verify_jwt = false

@@ -28,6 +28,7 @@
 - `TELEGRAM_CHAT_ID`
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `LINK_MONITOR_CRON_SECRET`
 
 建議一起設：
 
@@ -42,20 +43,22 @@
 
 ## 4. 排程
 
-建議每天跑一次，讓它自動輪到不同批次。
+建議每天跑一次，讓它自動輪到不同批次。排程必須使用 `POST`，並帶入：
+
+- `x-link-monitor-secret: <LINK_MONITOR_CRON_SECRET>`
 
 如果要測試：
 
-- `.../functions/v1/link-monitor?dryrun=true`
+- `POST .../functions/v1/link-monitor?dryrun=true`
 
 如果要手動指定批次：
 
-- `.../functions/v1/link-monitor?batch=0`
-- `.../functions/v1/link-monitor?batch=1`
+- `POST .../functions/v1/link-monitor?batch=0`
+- `POST .../functions/v1/link-monitor?batch=1`
 
 如果要全部都跑：
 
-- `.../functions/v1/link-monitor?batch=all`
+- `POST .../functions/v1/link-monitor?batch=all`
 
 ## 5. 未來新增網址
 

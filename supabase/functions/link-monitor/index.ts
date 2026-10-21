@@ -4,12 +4,14 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
 const TELEGRAM_CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID") ?? "";
+const LINK_MONITOR_CRON_SECRET = Deno.env.get("LINK_MONITOR_CRON_SECRET") ?? "";
 const SITE_SITEMAP_URL = Deno.env.get("SITE_SITEMAP_URL") ?? "https://www.jiejourneys.com/sitemap.xml";
-const LINK_MONITOR_TIMEOUT_MS = Number(Deno.env.get("LINK_MONITOR_TIMEOUT_MS") ?? "12000");
+const LINK_MONITOR_TIMEOUT_MS = Number(Deno.env.get("LINK_MONITOR_TIMEOUT_MS") ?? "8000");
 const LINK_MONITOR_CONCURRENCY = Number(Deno.env.get("LINK_MONITOR_CONCURRENCY") ?? "6");
 const EFFECTIVE_LINK_MONITOR_CONCURRENCY = Math.min(LINK_MONITOR_CONCURRENCY, 2);
 // Max links checked per run. Keeps each invocation within Edge Function time limits.
-const LINKS_PER_RUN = Number(Deno.env.get("LINK_MONITOR_LINKS_PER_RUN") ?? "60");
+const LINKS_PER_RUN = Number(Deno.env.get("LINK_MONITOR_LINKS_PER_RUN") ?? "30");
+const PRODUCT_PAGE_SCAN_LIMIT = 180_000;
 
 // Scheduling intervals (hours) — controls next_check_at after each result
 const INTERVAL_HEALTHY_FRESH = 7 * 24;    // healthy, seen < 4 times
@@ -102,13 +104,25 @@ type LinkResult = LinkCandidate & {
 type ExistingState = {
   state_key: string;
   last_fingerprint: string | null;
+  last_alerted_fingerprint: string | null;
   last_status: string | null;
   next_check_at: string | null;
   consecutive_healthy: number;
 };
 
+type AffiliateIdentity = {
+  platform: "KKday" | "Klook" | "Trip.com" | "Agoda";
+  type: "product" | "activity" | "hotel" | "detail" | "property";
+  value: string;
+};
+
 function errorMessage(error: unknown) {
   return String((error as Error)?.message ?? error ?? "unknown error");
+}
+
+function isAuthorized(request: Request) {
+  return Boolean(LINK_MONITOR_CRON_SECRET) &&
+    request.headers.get("x-link-monitor-secret") === LINK_MONITOR_CRON_SECRET;
 }
 
 function choosePlatform(url: string) {
@@ -316,7 +330,7 @@ function hostKeyFromUrl(urlString: string) {
   }
 }
 
-function extractAffiliateIdentity(urlString: string) {
+function extractAffiliateIdentity(urlString: string): AffiliateIdentity | null {
   try {
     const url = new URL(urlString);
     const hostname = url.hostname.toLowerCase();
@@ -367,6 +381,46 @@ function isAffiliateIdentityPreserved(originalUrl: string, finalUrl: string) {
     original.value === finalIdentity.value;
 }
 
+function shouldInspectProductPage(identity: AffiliateIdentity | null) {
+  if (!identity) return false;
+  if (identity.platform === "KKday" || identity.platform === "Klook") return true;
+  return identity.platform === "Trip.com" && (identity.type === "product" || identity.type === "detail");
+}
+
+function extractPageTitle(html: string) {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return normalizeWhitespace(decodeEntities(match?.[1] ?? ""));
+}
+
+// Product pages often respond with HTTP 200 after being removed. Only use
+// explicit product-unavailable wording; never treat ordinary date availability
+// or price text as a failure signal.
+function detectUnavailableProductPage(html: string, identity: AffiliateIdentity) {
+  const title = extractPageTitle(html);
+  const text = normalizeWhitespace(stripHtml(html.slice(0, PRODUCT_PAGE_SCAN_LIMIT)));
+  const haystack = `${title}\n${text}`.toLowerCase();
+  const unavailablePatterns = [
+    /this activity is no longer available/,
+    /this activity is not available/,
+    /this product is no longer available/,
+    /product (?:is )?not found/,
+    /page you requested (?:is )?not found/,
+    /page not found/,
+    /商品已下架/,
+    /此商品已下架/,
+    /商品不存在/,
+    /找不到此商品/,
+    /活動已下架/,
+    /找不到此活動/,
+  ];
+
+  if (unavailablePatterns.some((pattern) => pattern.test(haystack))) {
+    return `unavailable_product_page:${identity.platform}`;
+  }
+
+  return null;
+}
+
 function summarizeFailure(error: unknown) {
   const message = errorMessage(error);
   if (/timed out|timeout|aborted/i.test(message)) return { status: "down", detail: "timeout" };
@@ -396,7 +450,7 @@ function classifyResponse(originalUrl: string, finalUrl: string, statusCode: num
   const finalPath = normalizeFinalPath(finalUrl);
 
   if (originalPath !== "/" && finalPath === "/" && original.hostname === final.hostname) {
-    if (hostnameIncludes(original.hostname, travelHosts)) {
+    if (hostnameIncludes(original.hostname, travelHosts) && !extractAffiliateIdentity(originalUrl)) {
       return { status: "healthy", detail: "homepage_redirect_allowed" };
     }
     return { status: "suspicious", detail: "redirected_to_homepage" };
@@ -405,7 +459,7 @@ function classifyResponse(originalUrl: string, finalUrl: string, statusCode: num
   return { status: "healthy", detail: "ok" };
 }
 
-async function fetchWithFallback(url: string) {
+async function fetchWithFallback(url: string, requireResponseBody: boolean) {
   const headers = {
     "user-agent": "JieJourneysLinkMonitor/1.0 (+https://www.jiejourneys.com)",
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -418,7 +472,13 @@ async function fetchWithFallback(url: string) {
     signal: AbortSignal.timeout(LINK_MONITOR_TIMEOUT_MS),
   }).catch(() => null);
 
-  if (headResponse && headResponse.status < 400) {
+  // A bot block is already definitive enough. Do not immediately make a
+  // second request that could worsen rate limiting for this affiliate host.
+  if (headResponse && (headResponse.status === 403 || headResponse.status === 429)) {
+    return headResponse;
+  }
+
+  if (headResponse && headResponse.status < 400 && !requireResponseBody) {
     return headResponse;
   }
 
@@ -433,8 +493,22 @@ async function fetchWithFallback(url: string) {
 async function checkLink(candidate: LinkCandidate): Promise<LinkResult> {
   let response: Response | undefined;
   try {
-    response = await fetchWithFallback(candidate.url);
-    const result = classifyResponse(candidate.url, response.url, response.status);
+    const identity = extractAffiliateIdentity(candidate.url);
+    response = await fetchWithFallback(candidate.url, shouldInspectProductPage(identity));
+    let result = classifyResponse(candidate.url, response.url, response.status);
+
+    if (
+      result.status === "healthy" &&
+      identity &&
+      shouldInspectProductPage(identity) &&
+      response.headers.get("content-type")?.toLowerCase().includes("text/html")
+    ) {
+      const unavailableDetail = detectUnavailableProductPage(await response.text(), identity);
+      if (unavailableDetail) {
+        result = { status: "suspicious", detail: unavailableDetail };
+      }
+    }
+
     return {
       ...candidate,
       status: result.status,
@@ -632,6 +706,7 @@ function chooseReasonText(result: LinkResult) {
   if (result.status === "suspicious") {
     if (result.detail === "redirected_to_homepage") return "連結被導回首頁";
     if (result.detail === "affiliate_target_changed") return "商品頁疑似失效或被導到其他頁";
+    if (result.detail.startsWith("unavailable_product_page:")) return "商品頁顯示已下架或不存在";
     return "連結跳轉結果可疑";
   }
   return "正常";
@@ -642,11 +717,21 @@ function buildFingerprint(result: LinkResult) {
 }
 
 function shouldAlert(result: LinkResult) {
-  return result.status === "broken" || result.status === "down" || result.status === "suspicious";
+  // Temporary vendor timeouts should be retried and recorded, not sent to
+  // Telegram. This prevents a transient host outage from becoming a message flood.
+  return result.status === "broken" || result.status === "suspicious";
 }
 
 function isAlertStatus(status: string | null | undefined) {
-  return status === "broken" || status === "down" || status === "suspicious";
+  return status === "broken" || status === "suspicious";
+}
+
+function dedupeProblemsByUrl(results: LinkResult[]) {
+  const unique = new Map<string, LinkResult>();
+  for (const result of results) {
+    if (!unique.has(result.url)) unique.set(result.url, result);
+  }
+  return Array.from(unique.values());
 }
 
 function buildTelegramMessage(results: LinkResult[]) {
@@ -698,7 +783,7 @@ async function getExistingState(keys: string[]) {
     const chunk = keys.slice(i, i + chunkSize);
     const { data, error } = await supabase
       .from("monitor_link_state")
-      .select("state_key,last_fingerprint,last_status,next_check_at,consecutive_healthy")
+      .select("state_key,last_fingerprint,last_alerted_fingerprint,last_status,next_check_at,consecutive_healthy")
       .in("state_key", chunk);
 
     if (error) throw error;
@@ -733,6 +818,11 @@ async function upsertState(results: LinkResult[], existingState: Map<string, Exi
       last_final_url: result.finalUrl,
       last_checked_at: result.checkedAt,
       last_fingerprint: buildFingerprint(result),
+      // A healthy or inconclusive retry clears the alert memory, so a future
+      // recurrence of the same fault is reported again.
+      last_alerted_fingerprint: shouldAlert(result)
+        ? previous?.last_alerted_fingerprint ?? null
+        : null,
       consecutive_healthy: consecutiveHealthy,
       next_check_at: nextCheckAt,
       active: true,
@@ -740,6 +830,22 @@ async function upsertState(results: LinkResult[], existingState: Map<string, Exi
   });
 
   const { error } = await supabase.from("monitor_link_state").upsert(rows, { onConflict: "state_key" });
+  if (error) throw error;
+}
+
+// Mark only after Telegram accepted the message.  This lets the first pass
+// build a silent baseline, but still reports a persistent problem next time.
+async function markAlertsSent(results: LinkResult[]) {
+  if (results.length === 0) return;
+  const supabase = getSupabaseClient();
+  const updates = await Promise.all(results.map(async (result) => {
+    const { error } = await supabase
+      .from("monitor_link_state")
+      .update({ last_alerted_fingerprint: buildFingerprint(result) })
+      .eq("state_key", result.stateKey);
+    return error;
+  }));
+  const error = updates.find(Boolean);
   if (error) throw error;
 }
 
@@ -777,6 +883,7 @@ async function deferLinks(candidates: LinkCandidate[], existingState: Map<string
       last_final_url: null,
       last_checked_at: new Date().toISOString(),
       last_fingerprint: null,
+      last_alerted_fingerprint: null,
       consecutive_healthy: 0,
       next_check_at: deferredUntil,
       active: true,
@@ -824,6 +931,40 @@ async function upsertRun(run: Record<string, unknown>) {
   const supabase = getSupabaseClient();
   const { error } = await supabase.from("monitor_link_runs").insert(run);
   if (error) throw error;
+}
+
+// A fatal invocation error should be visible, but must not become a Telegram
+// message every six hours.  A successful run naturally clears this latch by
+// becoming the newest run record.
+async function recordFatalRun(error: unknown) {
+  const message = errorMessage(error).slice(0, 500);
+  const supabase = getSupabaseClient();
+  const { data: latest, error: readError } = await supabase
+    .from("monitor_link_runs")
+    .select("payload")
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (readError) throw readError;
+
+  const previousPayload = latest?.payload as { kind?: string; error_message?: string } | undefined;
+  const duplicate = previousPayload?.kind === "fatal" && previousPayload.error_message === message;
+
+  await upsertRun({
+    batch_index: null,
+    batch_count: 0,
+    checked_pages: 0,
+    checked_links: 0,
+    healthy_count: 0,
+    broken_count: 0,
+    down_count: 0,
+    suspicious_count: 0,
+    manual_review_count: 0,
+    new_problem_count: 0,
+    payload: { ok: false, kind: "fatal", error_message: message },
+  });
+
+  return !duplicate;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -890,8 +1031,12 @@ async function main(request: Request) {
     if (dryRun) return true;
     const previous = allExistingState.get(item.stateKey);
     const fingerprint = buildFingerprint(item);
-    return !previous || !isAlertStatus(previous.last_status) || previous.last_fingerprint !== fingerprint;
+    // A new link is added to the baseline without sending a message.  If its
+    // problem persists, it will be reported on its next scheduled check.
+    if (!previous) return false;
+    return !isAlertStatus(previous.last_status) || previous.last_alerted_fingerprint !== fingerprint;
   });
+  const notificationProblems = dedupeProblemsByUrl(newProblems);
 
   // Stage 6: Persist results
   if (!dryRun) {
@@ -907,8 +1052,9 @@ async function main(request: Request) {
     await deferLinks(deferred, allExistingState);
   }
 
-  if (!dryRun && newProblems.length > 0) {
-    await sendTelegram(buildTelegramMessage(newProblems));
+  if (!dryRun && notificationProblems.length > 0) {
+    await sendTelegram(buildTelegramMessage(notificationProblems));
+    await markAlertsSent(newProblems);
   }
 
   const summary = {
@@ -930,7 +1076,8 @@ async function main(request: Request) {
     suspicious: results.filter((item) => item.status === "suspicious").length,
     suspectedUnavailable: results.filter((item) => item.detail === "affiliate_target_changed").length,
     manualReview: results.filter((item) => item.status === "manual_review").length,
-    newProblems: newProblems.length,
+    newProblems: notificationProblems.length,
+    rawNewProblems: newProblems.length,
     brokenLinks: results
       .filter((item) => item.status === "broken")
       .slice(0, 50)
@@ -975,11 +1122,27 @@ async function main(request: Request) {
   });
 }
 
-Deno.serve((request) =>
-  main(request).catch(async (error) => {
+Deno.serve((request) => {
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ ok: false, error: "method_not_allowed" }), {
+      status: 405,
+      headers: { "content-type": "application/json; charset=utf-8", allow: "POST" },
+    });
+  }
+
+  if (!isAuthorized(request)) {
+    return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
+      status: 401,
+      headers: { "content-type": "application/json; charset=utf-8" },
+    });
+  }
+
+  return main(request).catch(async (error) => {
     console.error(error);
     try {
-      await sendTelegram(`JieJourneys 外連監控失敗\n${String(error?.message ?? error)}`);
+      if (await recordFatalRun(error)) {
+        await sendTelegram("JieJourneys 外連監控系統錯誤\n請至 Supabase Edge Functions Log 查看詳細原因。");
+      }
     } catch {
       // ignore secondary telegram failures
     }
@@ -988,5 +1151,5 @@ Deno.serve((request) =>
       JSON.stringify({ ok: false, error: String(error?.message ?? error) }, null, 2),
       { status: 500, headers: { "content-type": "application/json; charset=utf-8" } },
     );
-  })
-);
+  });
+});

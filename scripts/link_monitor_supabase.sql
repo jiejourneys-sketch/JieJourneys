@@ -11,6 +11,7 @@ create table if not exists public.monitor_link_state (
   last_final_url text,
   last_checked_at timestamptz not null default now(),
   last_fingerprint text,
+  last_alerted_fingerprint text,
   active boolean not null default true,
   next_check_at timestamptz,
   consecutive_healthy integer not null default 0
@@ -45,7 +46,8 @@ create table if not exists public.monitor_link_runs (
 --
 -- alter table public.monitor_link_state
 --   add column if not exists next_check_at timestamptz,
---   add column if not exists consecutive_healthy integer not null default 0;
+--   add column if not exists consecutive_healthy integer not null default 0,
+--   add column if not exists last_alerted_fingerprint text;
 --
 -- create index if not exists monitor_link_state_next_check_at_idx
 --   on public.monitor_link_state (next_check_at);
@@ -63,7 +65,7 @@ create table if not exists public.monitor_link_runs (
 --         url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/link-monitor',
 --         headers := jsonb_build_object(
 --           'Content-Type', 'application/json',
---           'Authorization', 'Bearer YOUR_SUPABASE_ANON_OR_SERVICE_ROLE_KEY'
+--           'x-link-monitor-secret', 'YOUR_LINK_MONITOR_CRON_SECRET'
 --         ),
 --         body := '{}'::jsonb
 --       );

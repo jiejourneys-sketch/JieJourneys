@@ -166,7 +166,7 @@ function publicSourceUrl(site: MonitorSite) {
 function notificationPatterns(site: MonitorSite) {
   const configured = site.request_headers?.notify_if_matches;
   return Array.isArray(configured)
-    ? configured.filter((item): item is string => typeof item === "string" && item.trim())
+    ? configured.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
     : [];
 }
 
