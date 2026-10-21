@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-const title = '日本退稅新制懶人包｜2026/11/1 起免稅流程、機場退稅、完美行購物一次看懂'
+const title = '日本退稅新制懶人包｜2026/11/1 退稅流程、VJW 與 90 天規定'
 const description =
-  '日本 2026 年 11 月 1 日起調整外國旅客免稅制度，從現場直接免稅改為先付款、出境確認後退稅。整理新舊制度差異、最新退稅流程、機場 KIOSK 退稅注意事項，以及完美行購物優惠碼 GGGT6XAA。'
+  '日本 2026 年 11 月 1 日購買分起改採先付含稅價、出境確認後退款。整理同店同日未稅 5,000 日圓門檻、90 天期限、KIOSK、Visit Japan Web 七座機場、紅綠燈判定與托運注意事項。'
 const shareImage = 'https://www.jiejourneys.com/assets/og-share.png'
 
 export const metadata: Metadata = {
@@ -13,13 +13,11 @@ export const metadata: Metadata = {
     '日本退稅新制',
     '日本退稅2026',
     '日本免稅',
-    '日本免稅制度',
-    '日本退稅流程',
+    '日本免稅新制',
     '日本機場退稅',
-    '日本購物攻略',
-    '完美行購物',
-    'WAmazing',
-    'GGGT6XAA',
+    'Visit Japan Web退稅',
+    '日本退稅90天',
+    'Tax Refund Kiosk',
   ],
   alternates: { canonical: 'https://www.jiejourneys.com/japan/tax-free-2026' },
   openGraph: {

@@ -18,7 +18,7 @@ const lastModifiedByPath: Record<string, string> = {
   '/tools/planner': '2026-07-13',
   '/tools/bill': '2026-04-16',
   '/tools/resources': '2026-07-01',
-  '/japan/tax-free-2026': '2026-07-14',
+  '/japan/tax-free-2026': '2026-10-21',
   '/japan/visit-japan-web-guide': '2026-07-22',
   '/japan/kyushu-travel-subsidy-2026': '2026-10-20',
   '/japan/autumn-leaves-forecast-2026': '2026-10-01',
@@ -114,7 +114,7 @@ const sitemapRoutes: SitemapRoute[] = [
   { path: '/tools/bill', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/tools/resources', changeFrequency: 'monthly', priority: 0.5 },
 
-  { path: '/japan/tax-free-2026', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/japan-tax-free-comparison-2026.png'] },
+  { path: '/japan/tax-free-2026', changeFrequency: 'monthly', priority: 0.8, images: ['/assets/japan-tax-free-2026-j-taxrefund-flow.png', '/assets/japan-tax-free-2026-reminders.png'] },
   { path: '/japan/visit-japan-web-guide', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/japan/kyushu-travel-subsidy-2026', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/japan/autumn-leaves-forecast-2026', changeFrequency: 'weekly', priority: 0.8, images: ['/assets/japan-autumn-leaves-forecast-2026/forecast-map-v2.png'] },
