@@ -9,7 +9,7 @@ import {
 import styles from './KyushuTripBookingAssistant.module.css'
 
 type ChannelState = 'open' | 'scheduled' | 'paused' | 'ended'
-type DirectoryFilter = 'all' | 'nagasaki' | 'fukuoka'
+type DirectoryFilter = 'all' | 'nagasaki' | 'kumamoto' | 'kagoshima' | 'fukuoka'
 
 type PrefectureOption = {
   name: string
@@ -48,7 +48,7 @@ const prefectures: PrefectureOption[] = [
     stayEnd: '12/25',
     saleStartsAt: '2026-10-22T04:00:00Z',
     saleEndsAt: '2026-12-25T14:59:00Z',
-    staticState: 'scheduled',
+    staticState: 'open',
   },
   {
     name: '鹿兒島',
@@ -57,7 +57,7 @@ const prefectures: PrefectureOption[] = [
     stayEnd: '2027/1/31',
     saleStartsAt: '2026-10-22T04:00:00Z',
     saleEndsAt: '2027-01-31T14:59:00Z',
-    staticState: 'scheduled',
+    staticState: 'open',
     exclusion: '12/26～2027/1/3 不適用',
   },
 ]
@@ -72,6 +72,14 @@ const directoryTabs: Array<{ id: DirectoryFilter; label: string }> = [
   {
     id: 'nagasaki',
     label: `長崎 ${hotelDirectory.prefectures.find((item) => item.id === 'nagasaki')?.hotels.length ?? 0}`,
+  },
+  {
+    id: 'kumamoto',
+    label: `熊本 ${hotelDirectory.prefectures.find((item) => item.id === 'kumamoto')?.hotels.length ?? 0}`,
+  },
+  {
+    id: 'kagoshima',
+    label: `鹿兒島 ${hotelDirectory.prefectures.find((item) => item.id === 'kagoshima')?.hotels.length ?? 0}`,
   },
   {
     id: 'fukuoka',
@@ -211,7 +219,7 @@ export default function KyushuTripBookingAssistant() {
           </label>
         </div>
 
-        <p className={styles.pendingStrip}>熊本、鹿兒島：Trip 預定 10/22 開賣，住宿名單公開後更新。</p>
+        <p className={styles.pendingStrip}>熊本、鹿兒島已於 10/22 開賣；顯示的住宿會隨入住日期與剩餘補助房型變動。</p>
 
         {visibleHotelCount === 0 ? (
           <div className={styles.emptyState} role="status">

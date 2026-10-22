@@ -1,5 +1,5 @@
 {
-  "retrievedAt": "2026-10-20",
+  "retrievedAt": "2026-10-22",
   "campaignId": "JP-54391",
   "sourceLabel": "Trip.com 九州ふっこう応援割活動頁",
   "prefectures": [
@@ -150,6 +150,215 @@
       ]
     },
     {
+      "id": "kumamoto",
+      "name": "熊本",
+      "status": "open",
+      "statusLabel": "目前可查詢",
+      "sourceGroupId": 11072,
+      "checkedDates": [
+        "2026-10-24",
+        "2026-10-31",
+        "2026-11-11",
+        "2026-11-20",
+        "2026-12-05",
+        "2026-12-20"
+      ],
+      "hotels": [
+        {
+          "hotelId": "94327236",
+          "nameZh": "KOKO HOTEL Premier 熊本",
+          "nameJa": "KOKO HOTEL Premier 熊本",
+          "city": "熊本市"
+        },
+        {
+          "hotelId": "114782339",
+          "nameZh": "熊本格里茲高級飯店",
+          "nameJa": "グリッズプレミアムホテル熊本",
+          "city": "熊本市"
+        },
+        {
+          "hotelId": "85649825",
+          "nameZh": "熊本銀座通大和 ROYNET 飯店 PREMIER",
+          "nameJa": "ダイワロイネットホテル 熊本銀座通り PREMIER",
+          "city": "熊本市"
+        },
+        {
+          "hotelId": "73238907",
+          "nameZh": "熊本大和 ROYNET 飯店",
+          "nameJa": "ダイワロイネットホテル熊本",
+          "city": "熊本市"
+        },
+        {
+          "hotelId": "3542145",
+          "nameZh": "Vessel Hotel 熊本機場",
+          "nameJa": "ベッセルホテル熊本空港",
+          "city": "大津町"
+        },
+        {
+          "hotelId": "705272",
+          "nameZh": "熊本 Mielparque 飯店",
+          "nameJa": "ホテル メルパルク熊本",
+          "city": "熊本市"
+        },
+        {
+          "hotelId": "134921253",
+          "nameZh": "La Vista 南阿蘇（共立度假村）",
+          "nameJa": "ラビスタ南阿蘇（共立リゾート）",
+          "city": "南阿蘇"
+        },
+        {
+          "hotelId": "704124",
+          "nameZh": "ONE STATION HOTEL 熊本",
+          "nameJa": "ワン・ステーションホテル熊本",
+          "city": "熊本市"
+        },
+        {
+          "hotelId": "704121",
+          "nameZh": "三井花園飯店熊本",
+          "nameJa": "三井ガーデンホテル熊本",
+          "city": "熊本市"
+        },
+        {
+          "hotelId": "97980744",
+          "nameZh": "相鐵 Grand Fresa 熊本",
+          "nameJa": "相鉄グランドフレッサ 熊本",
+          "city": "熊本市"
+        },
+        {
+          "hotelId": "3163807",
+          "nameZh": "富士飯店",
+          "nameJa": "富士ホテル",
+          "city": "山鹿"
+        },
+        {
+          "hotelId": "5517454",
+          "nameZh": "熊本和數奇司館",
+          "nameJa": "熊本 和数奇 司館",
+          "city": "熊本市"
+        }
+      ]
+    },
+    {
+      "id": "kagoshima",
+      "name": "鹿兒島",
+      "status": "open",
+      "statusLabel": "目前可查詢",
+      "sourceGroupId": 11073,
+      "checkedDates": [
+        "2026-10-24",
+        "2026-10-31",
+        "2026-11-11",
+        "2026-11-20",
+        "2026-12-05",
+        "2026-12-20",
+        "2027-01-15"
+      ],
+      "hotels": [
+        {
+          "hotelId": "705431",
+          "nameZh": "JR 九州飯店鹿兒島",
+          "nameJa": "JR九州ホテル鹿児島",
+          "city": "鹿兒島市"
+        },
+        {
+          "hotelId": "5518242",
+          "nameZh": "沖永良部 Floral 飯店",
+          "nameJa": "おきえらぶフローラルホテル",
+          "city": "知名町"
+        },
+        {
+          "hotelId": "127645841",
+          "nameZh": "THE PULSE 霧島",
+          "nameJa": "ザ・パルス霧島",
+          "city": "霧島"
+        },
+        {
+          "hotelId": "705553",
+          "nameZh": "鹿兒島索拉利亞西鐵飯店",
+          "nameJa": "ソラリア西鉄ホテル鹿児島",
+          "city": "鹿兒島市"
+        },
+        {
+          "hotelId": "705539",
+          "nameZh": "鹿兒島廣場飯店天文館",
+          "nameJa": "ビジネスホテル かごしまプラザホテル天文館",
+          "city": "鹿兒島市"
+        },
+        {
+          "hotelId": "3701495",
+          "nameZh": "奄美 Native Sea 小型度假村",
+          "nameJa": "プチリゾート　ネイティブシー奄美",
+          "city": "龍鄉町"
+        },
+        {
+          "hotelId": "704200",
+          "nameZh": "Pricia Resort Yoron",
+          "nameJa": "プリシアリゾートヨロン",
+          "city": "與論島"
+        },
+        {
+          "hotelId": "1483453",
+          "nameZh": "奄美 Sundays 飯店",
+          "nameJa": "ホテルサンデイズ奄美",
+          "city": "奄美"
+        },
+        {
+          "hotelId": "3000542",
+          "nameZh": "鹿兒島 Sunflex 飯店",
+          "nameJa": "ホテルサンフレックス鹿児島",
+          "city": "鹿兒島市"
+        },
+        {
+          "hotelId": "1642321",
+          "nameZh": "Taisei Annex 飯店",
+          "nameJa": "ホテルタイセイアネックス",
+          "city": "鹿兒島市"
+        },
+        {
+          "hotelId": "705544",
+          "nameZh": "鹿兒島法華俱樂部飯店",
+          "nameJa": "ホテル法華クラブ鹿児島",
+          "city": "鹿兒島市"
+        },
+        {
+          "hotelId": "48533071",
+          "nameZh": "泉國邸飯店",
+          "nameJa": "ホテル泉國邸",
+          "city": "出水"
+        },
+        {
+          "hotelId": "704056",
+          "nameZh": "鹿兒島金生町里士滿飯店",
+          "nameJa": "リッチモンドホテル鹿児島金生町",
+          "city": "鹿兒島市"
+        },
+        {
+          "hotelId": "5620782",
+          "nameZh": "種子島高爾夫度假村",
+          "nameJa": "中種子町コスモリゾート種子島ゴルフリゾート",
+          "city": "中種子町"
+        },
+        {
+          "hotelId": "6395834",
+          "nameZh": "奄美大島 Big Marine 飯店",
+          "nameJa": "奄美大島 ホテル ビッグマリン奄美",
+          "city": "奄美"
+        },
+        {
+          "hotelId": "1498987",
+          "nameZh": "屋久島綠色飯店",
+          "nameJa": "屋久島グリーンホテル",
+          "city": "屋久島町"
+        },
+        {
+          "hotelId": "705506",
+          "nameZh": "鹿兒島華盛頓廣場飯店",
+          "nameJa": "鹿児島ワシントンホテルプラザ",
+          "city": "鹿兒島市"
+        }
+      ]
+    },
+    {
       "id": "fukuoka",
       "name": "福岡",
       "status": "paused",
@@ -244,18 +453,6 @@
           "city": "福岡市"
         }
       ]
-    }
-  ],
-  "pendingPrefectures": [
-    {
-      "id": "kumamoto",
-      "name": "熊本",
-      "publishNote": "Trip 預定 10/22 13:00 開賣，目前尚未回傳住宿名單。"
-    },
-    {
-      "id": "kagoshima",
-      "name": "鹿兒島",
-      "publishNote": "Trip 預定 10/22 13:00 開賣，目前尚未回傳住宿名單。"
     }
   ]
 }

@@ -17,7 +17,7 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const PUBLISHED_AT = '2026-08-28'
-const UPDATED_AT = '2026-10-21'
+const UPDATED_AT = '2026-10-22'
 
 const JAPAN_TOURISM_AGENCY_URL = 'https://www.mlit.go.jp/kankocho/page13_00002.html'
 const KYUSHU_CAMPAIGN_URL = 'https://fightkyushu.welcomekyushu.jp/'
@@ -137,7 +137,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '60%',
     booking: '9/15 起，各業者陸續販售',
     stay: '10/1～12/25',
-    status: 'AEON 10/20 上線的頁面所列優惠券目前皆顯示配發結束；Trip.com 預定 10/22 13:00 開賣。',
+    status: 'AEON 10/20 上線的頁面所列優惠券目前皆顯示配發結束；Trip.com 已於 10/22 13:00 開賣。',
     href: KUMAMOTO_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_kumamoto',
   },
@@ -164,7 +164,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '60%',
     booking: '10/14 起，各平台分批開賣',
     stay: 'OTA／旅行社至 2027/1/31；直訂至 2027/2/28',
-    status: 'JTB、るるぶトラベル皆標示 10/20 開賣；Trip.com 預定 10/22 13:00 開賣。',
+    status: 'JTB、るるぶトラベル皆標示 10/20 開賣；Trip.com 已於 10/22 13:00 開賣。',
     href: KAGOSHIMA_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_kagoshima',
   },
@@ -446,14 +446,14 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
       <CitySubpageHeader backHref={backHref} eventPrefix="kyushusubsidy" />
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
-          badge="九州旅遊速報｜2026/10/21 更新"
+          badge="九州旅遊速報｜2026/10/22 更新"
           h1="九州旅遊補助已開賣｜台灣旅客可用、七縣日期與訂房方式"
           intro="九州旅遊補助已在七縣分批開賣，台灣等訪日旅客確定適用。熊本、鹿兒島最高折抵 60%，其餘五縣 50%；但舊訂單不能事後補折，每個平台、旅行社與住宿設施也都有各自額度，訂房前要先看最新販售狀態。"
           eventPrefix="kyushusubsidy"
           showVisual={false}
           ctaLinks={[
             { label: '查看 Trip 參與住宿', href: '#booking-assistant', dataEvent: 'kyushusubsidy_hero_assistant', platform: 'article' },
-            { label: '先看 10/21 新消息', href: '#latest-update', dataEvent: 'kyushusubsidy_hero_latest', platform: 'article' },
+            { label: '先看 10/22 新消息', href: '#latest-update', dataEvent: 'kyushusubsidy_hero_latest', platform: 'article' },
             { label: '先看已確認重點', href: '#quick-answer', dataEvent: 'kyushusubsidy_hero_quick', platform: 'article' },
             { label: '折扣與上限', href: '#discount', dataEvent: 'kyushusubsidy_hero_discount', platform: 'article' },
             { label: '補助實際怎麼訂', href: '#how-to-book', dataEvent: 'kyushusubsidy_hero_booking_guide', platform: 'article' },
@@ -462,19 +462,20 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
 
         <KyushuTripBookingAssistant />
 
-        <section className="seo-content" id="latest-update" aria-label="2026 年 10 月 21 日九州旅遊補助最新消息" style={{ scrollMarginTop: '76px' }}>
-          <h2 className="seo-h2">10/21 最新：福岡新通路開賣，鹿兒島補上兩個日期</h2>
+        <section className="seo-content" id="latest-update" aria-label="2026 年 10 月 22 日九州旅遊補助最新消息" style={{ scrollMarginTop: '76px' }}>
+          <h2 className="seo-h2">10/22 最新：Trip 熊本、鹿兒島補助住宿正式上線</h2>
           <div className="seo-prose">
             <p>
-              以下為<strong>2026/10/21 本次複查</strong>結果；平台可能因取消釋回或追加預算重新開放，下單前仍要以結帳頁為準。
+              以下為<strong>2026/10/22 本次複查</strong>結果；平台可能因取消釋回或追加預算重新開放，下單前仍要以結帳頁為準。
             </p>
             <ul>
-              <li><strong>Trip.com：</strong>福岡已顯示額度用完、暫停受理；長崎已開賣；熊本與鹿兒島預定 10/22 13:00 開賣。</li>
+              <li><strong>Trip.com：</strong>熊本、鹿兒島已於 10/22 13:00 開賣；本站跨日期整理出熊本 12 間、鹿兒島 17 間補助住宿，點飯店即可用聯盟連結查房。</li>
+              <li><strong>目前四縣狀態：</strong>長崎、熊本、鹿兒島可查詢補助住宿；福岡已顯示額度用完、暫停受理。</li>
               <li><strong>福岡：</strong>官方 OTA 名單中的東武 Top Tours 已於 10/21 14:00 開賣。</li>
-              <li><strong>鹿兒島：</strong>JTB、るるぶトラベル皆補上 10/20 開賣；Trip.com 預定 10/22 13:00、近畿日本ツーリスト預定同日 14:00 開賣。</li>
+              <li><strong>鹿兒島：</strong>JTB、るるぶトラベル皆補上 10/20 開賣；Trip.com 已於 10/22 13:00 開賣，近畿日本ツーリスト預定同日 14:00 開賣。</li>
               <li><strong>其他縣：</strong>佐賀 OTA 仍全數顯示完售；大分、宮崎本次沒有確認到新的訂房通路或開賣日期。</li>
             </ul>
-            <div className="seo-action-links" aria-label="10 月 21 日最新訂房狀態">
+            <div className="seo-action-links" aria-label="10 月 22 日最新訂房狀態">
               <a className="seo-buy-link primary" href="#booking-assistant" data-event="kyushusubsidy_latest_trip_assistant" data-platform="article" data-section="latest_update">
                 用中文查看 Trip 參與住宿
               </a>
@@ -490,7 +491,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
             <div role="listitem">
               <span className="narita-summary-label">最早適用</span>
               <strong>七縣均已開賣</strong>
-              <p>鹿兒島 10/14 開始；Trip.com 熊本、鹿兒島到 10/22 才開賣。</p>
+              <p>鹿兒島 10/14 開始；Trip.com 熊本、鹿兒島已於 10/22 開賣。</p>
             </div>
             <div role="listitem">
               <span className="narita-summary-label">台灣旅客</span>
@@ -752,7 +753,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               <li><strong>付款前看最終價格：</strong>即使前一頁看到活動方案，預算也可能在你完成付款前用完。</li>
             </ol>
             <p>
-              <strong>10/21 當下狀態：</strong>福岡已停止受理；長崎已開賣；熊本、鹿兒島預定於<strong>10/22 13:00</strong>開賣。各縣的活動截止日也不同，以專屬頁即時顯示為準。
+              <strong>10/22 當下狀態：</strong>福岡已停止受理；長崎、熊本與鹿兒島皆已開賣。本站目前整理出 63 間跨日期曾回傳補助方案的住宿，各縣截止日與即時房況仍以專屬頁顯示為準。
             </p>
 
             <h3 className="seo-h3" id="direct-booking-guide" style={{ scrollMarginTop: '76px' }}>方式 B｜飯店官方直訂：目前最值得台灣旅客先確認</h3>
