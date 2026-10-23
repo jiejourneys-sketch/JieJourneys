@@ -198,6 +198,32 @@ const VERIFIED_HOTEL_AFFILIATE_IDENTITIES: Readonly<Record<string, VerifiedHotel
     }),
     verifiedAt: '2026-10-01',
   }),
+  ChIJXT95OFXnAGARvwg6dyc44fM: Object.freeze({
+    googlePlaceId: 'ChIJXT95OFXnAGARvwg6dyc44fM',
+    canonicalNames: Object.freeze([
+      '星野の宿',
+      'Hoshino Homestay',
+      'Hoshino no Yado',
+    ]),
+    latitude: 34.6640765,
+    longitude: 135.5080438,
+    countryCode: 'JP',
+    agoda: Object.freeze({
+      hotelId: '59660981',
+      hotelName: 'Hoshino Homestay',
+    }),
+    trip: Object.freeze({
+      hotelId: '121766774',
+      hotelName: 'Hoshino Homestay',
+      sourceUrl: 'https://tw.trip.com/hotels/osaka-hotel-detail-121766774/hoshino-homestay/',
+    }),
+    booking: Object.freeze({
+      hotelId: 'jp/xing-ye-nosu-hoshino-homestay-da-ban-fu',
+      hotelName: '星野の宿 Hoshino Homestay 大阪府',
+      sourceUrl: 'https://www.booking.com/hotel/jp/xing-ye-nosu-hoshino-homestay-da-ban-fu.zh-tw.html',
+    }),
+    verifiedAt: '2026-10-23',
+  }),
 })
 
 const URL_PATTERN = /^(?:https?:\/\/|www\.)/i

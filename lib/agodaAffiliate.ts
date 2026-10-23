@@ -20,6 +20,12 @@ const REVIEW_MATCH_MIN_SCORE = 0.78
 const AUTO_MATCH_MIN_MARGIN = 0.04
 const MAX_AUTO_MATCH_DISTANCE_KM = 1
 const MAX_INDEX_CANDIDATE_DISTANCE_KM = 2
+// Agoda occasionally reissues a property ID while keeping the same canonical
+// listing. Keep the immutable source catalogue intact and apply confirmed ID
+// replacements while loading it.
+const AGODA_HOTEL_ID_REPLACEMENTS: Readonly<Record<string, string>> = Object.freeze({
+  '59622077': '59660981',
+})
 
 export type AgodaAffiliateMatchStatus =
   | 'matched'
@@ -548,6 +554,16 @@ function normalizeAgodaLandingUrl(
   }
 }
 
+function applyAgodaHotelIndexCorrections(record: AgodaHotelIndexRecord) {
+  const replacementHotelId = AGODA_HOTEL_ID_REPLACEMENTS[record.hotelId]
+  if (!replacementHotelId) return record
+  return {
+    ...record,
+    hotelId: replacementHotelId,
+    url: buildAgodaPartnerUrl(replacementHotelId),
+  }
+}
+
 async function searchAgodaHotelIndex(
   config: AgodaAffiliateConfig,
   query: AgodaAffiliateSearchResponse['query'],
@@ -657,7 +673,8 @@ async function loadAgodaHotelIndex() {
         .split(/\n+/)
         .filter(Boolean)
         .map((line) => JSON.parse(line) as AgodaHotelIndexRecord)
-        .filter((record) => record.hotelId && record.hotelName),
+        .filter((record) => record.hotelId && record.hotelName)
+        .map(applyAgodaHotelIndexCorrections),
     }))
     .catch((error: NodeJS.ErrnoException) => {
       if (error.code !== 'ENOENT') console.error('[agoda index]', error)

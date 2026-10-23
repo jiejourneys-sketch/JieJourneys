@@ -315,6 +315,12 @@ function cleanPayload(value: unknown): { payload: PlannerBookPayload | null; lim
       const naverPlaceName = typeof source.naverPlaceName === 'string' ? source.naverPlaceName.trim().slice(0, 120) : ''
       const category = typeof source.category === 'string' && CUSTOM_PLACE_CATEGORIES.has(source.category) ? source.category : 'free'
       const hotelAffiliateManual = source.hotelAffiliateManual === true
+      const hotelAffiliateDisabledProviders = Array.isArray(source.hotelAffiliateDisabledProviders)
+        ? [...new Set(source.hotelAffiliateDisabledProviders.filter(
+            (provider): provider is AffiliateProvider =>
+              provider === 'Agoda' || provider === 'Trip' || provider === 'Booking',
+          ))]
+        : []
       const links = Array.isArray(source.links)
         ? source.links
             .filter((link): link is Record<string, unknown> => Boolean(link) && typeof link === 'object' && !Array.isArray(link))
@@ -342,6 +348,7 @@ function cleanPayload(value: unknown): { payload: PlannerBookPayload | null; lim
         ...(naverPlaceId ? { naverPlaceId } : {}),
         ...(naverPlaceName ? { naverPlaceName } : {}),
         ...(hotelAffiliateManual ? { hotelAffiliateManual: true } : {}),
+        ...(hotelAffiliateDisabledProviders.length > 0 ? { hotelAffiliateDisabledProviders } : {}),
         ...(links.length > 0 ? { links } : {}),
       }
     })

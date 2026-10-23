@@ -116,6 +116,11 @@ test('returns only manually verified provider identities by Google Place ID', ()
     trip: { hotelId: '69197985' },
     booking: { hotelId: 'jp/eslead-namba-south-iii' },
   })
+  expect(getVerifiedHotelAffiliateIdentity('ChIJXT95OFXnAGARvwg6dyc44fM')).toMatchObject({
+    agoda: { hotelId: '59660981' },
+    trip: { hotelId: '121766774' },
+    booking: { hotelId: 'jp/xing-ye-nosu-hoshino-homestay-da-ban-fu' },
+  })
   expect(getVerifiedHotelAffiliateIdentity('unknown-place-id')).toBeUndefined()
 })
 

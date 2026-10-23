@@ -79,6 +79,39 @@ test('finds the Okinawa Kenchomae Agoda identity from the local index without ne
   }
 })
 
+test('keeps a dense-area Japanese homestay match under review and corrects its stale Agoda ID', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (() => {
+    throw new Error('Hoshino identity lookup must not use the network')
+  }) as typeof fetch
+
+  try {
+    const query = {
+      hotelName: '星野の宿',
+      countryCode: 'JP',
+      latitude: 34.6640765,
+      longitude: 135.5080438,
+      lodgingHint: true,
+    }
+    const [identity, result] = await Promise.all([
+      findAgodaHotelIndexIdentity(query),
+      searchAgodaAffiliateHotels(query),
+    ])
+
+    expect(identity).toBeNull()
+    expect(result.matchStatus).toBe('needs_review')
+    expect(result.candidates[0]).toMatchObject({
+      hotelId: '59660981',
+      hotelName: 'hoshino homestay',
+      countryCode: 'JP',
+      latitude: 34.664085,
+      longitude: 135.507919,
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test('uses the local Agoda catalogue without spending SerpAPI quota', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY
@@ -196,9 +229,19 @@ test('uses a manually verified Google Place ID before fuzzy matching', async () 
     longitude: 139.7756721,
     lodgingHint: true,
   })
+  const hoshinoResult = await searchAgodaAffiliateHotels({
+    hotelName: '星野の宿',
+    googlePlaceId: 'ChIJXT95OFXnAGARvwg6dyc44fM',
+    latitude: 34.6640765,
+    longitude: 135.5080438,
+    lodgingHint: true,
+  })
 
   expect(result.matchStatus).toBe('matched')
   expect(result.confidence).toBe('verified')
   expect(result.bestMatch?.hotelId).toBe('2232362')
   expect(result.bestMatch?.source).toBe('verified')
+  expect(hoshinoResult.matchStatus).toBe('matched')
+  expect(hoshinoResult.bestMatch?.hotelId).toBe('59660981')
+  expect(hoshinoResult.bestMatch?.source).toBe('verified')
 })

@@ -230,6 +230,7 @@ test('a full planner save preserves newer affiliate links unless the owner expli
     category: 'hotel',
     lat: 35.16,
     lng: 129.06,
+    hotelAffiliateDisabledProviders: ['Trip', 'Trip', 'Unknown'],
     links: [{ label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' }],
   }
   const save = async (removed = false) => postPlannerBook(new NextRequest(
@@ -254,6 +255,9 @@ test('a full planner save preserves newer affiliate links unless the owner expli
 
   try {
     expect((await save()).status).toBe(200)
+    expect((updateBodies[0].p_custom_places as Record<string, Record<string, unknown>>)['custom:hotel-1']).toMatchObject({
+      hotelAffiliateDisabledProviders: ['Trip'],
+    })
     expect((updateBodies[0].p_custom_places as typeof storedBook.custom_places)['custom:hotel-1'].links).toEqual([
       { label: 'Agoda', href: 'https://www.agoda.com/partners/partnersearch.aspx?hid=123' },
       { label: 'Trip', href: 'https://tw.trip.com/hotels/detail/?hotelId=456' },
