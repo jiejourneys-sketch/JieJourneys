@@ -242,7 +242,7 @@ const affiliateDecisionOptions: AffiliateDecisionOption[] = [
     title: 'Agoda｜比較九州可取消住宿',
     description: '先看一般房價與免費取消期限，避免只等追加額度而錯過房間。',
     action: '查看九州住宿',
-    href: 'https://www.agoda.com/zh-tw/region/kyushu-region-jp.html?cid=1945734',
+    href: 'https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hl=zh-tw&textToSearch=Kyushu',
     event: 'kyushusubsidy_intent_agoda',
     platform: 'Agoda',
   },

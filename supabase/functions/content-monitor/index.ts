@@ -11,7 +11,14 @@ const EVENT_BATCH_SIZE = 20;
 const PREVIEW_LENGTH = 12_000;
 const TELEGRAM_TEXT_LIMIT = 3_700;
 const SITE_CLAIM_WINDOW_MS = 2 * 60 * 1_000;
-const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches", "include_attributes"]);
+const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches", "include_attributes", "structured_rows"]);
+const STRUCTURED_ROW_SOURCE_URLS = new Set([
+  "https://fukuoka-fukkou-wari.jp/",
+  "https://saga-ouen.jp/",
+  "https://oita-fukkou-wari.jp/",
+  "https://miyazaki-ouen.jp/",
+  "https://fukko-ouenwari.pref.kagoshima.jp/",
+]);
 
 type SourceType = "html" | "json";
 type EventType = "change" | "error" | "recovered";
@@ -102,8 +109,17 @@ function normalizeText(value: string) {
   return value.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function normalizeLines(value: string) {
+  return value
+    .replace(/\u00a0/g, " ")
+    .split(/\r?\n/)
+    .map((line) => normalizeText(line))
+    .filter(Boolean)
+    .join("\n");
+}
+
 function preview(value: string | null | undefined, max = PREVIEW_LENGTH) {
-  const normalized = normalizeText(value ?? "");
+  const normalized = normalizeLines(value ?? "");
   return normalized.length > max ? `${normalized.slice(0, max - 1)}…` : normalized;
 }
 
@@ -174,10 +190,32 @@ function shouldIncludeAttributes(site: MonitorSite) {
   return site.request_headers?.include_attributes === true;
 }
 
+function shouldStructureRows(site: MonitorSite) {
+  return site.request_headers?.structured_rows === true || STRUCTURED_ROW_SOURCE_URLS.has(site.url);
+}
+
+function lineChanges(before: string, after: string) {
+  if (!before.includes("\n") && !after.includes("\n")) return null;
+
+  const oldLines = normalizeLines(before).split("\n").filter(Boolean);
+  const newLines = normalizeLines(after).split("\n").filter(Boolean);
+  const oldSet = new Set(oldLines);
+  const newSet = new Set(newLines);
+  return {
+    removed: oldLines.filter((line) => !newSet.has(line)),
+    added: newLines.filter((line) => !oldSet.has(line)),
+  };
+}
+
 function newContentDelta(before: string | null, after: string) {
-  const oldText = normalizeText(before ?? "");
-  const newText = normalizeText(after);
+  const oldText = normalizeLines(before ?? "");
+  const newText = normalizeLines(after);
   if (!oldText) return newText;
+
+  const rows = lineChanges(oldText, newText);
+  if (rows && (rows.removed.length || rows.added.length)) {
+    return [...rows.removed, ...rows.added].join("\n");
+  }
 
   let prefixLength = 0;
   while (prefixLength < oldText.length && prefixLength < newText.length && oldText[prefixLength] === newText[prefixLength]) {
@@ -213,7 +251,7 @@ function shouldNotifyChange(site: MonitorSite, content: string, previousContent:
   });
 }
 
-function applyIgnorePatterns(content: string, patterns: string[] | null) {
+function applyIgnorePatterns(content: string, patterns: string[] | null, preserveLines = false) {
   let result = content;
   for (const pattern of patterns ?? []) {
     if (!pattern?.trim()) continue;
@@ -224,7 +262,56 @@ function applyIgnorePatterns(content: string, patterns: string[] | null) {
       console.warn("Ignoring invalid ignore pattern", pattern);
     }
   }
-  return normalizeText(result);
+  return preserveLines ? normalizeLines(result) : normalizeText(result);
+}
+
+function structuredHtmlRows(
+  $: ReturnType<typeof load>,
+  target: ReturnType<ReturnType<typeof load>>,
+  baseUrl: string,
+  includeAttributes: boolean,
+) {
+  return target.map((_, element) => {
+    const node = $(element).clone();
+    node.find("img[alt]").each((_imageIndex, image) => {
+      const alt = normalizeText($(image).attr("alt") ?? "");
+      $(image).replaceWith(alt ? ` ${alt} ` : "");
+    });
+
+    const parts = [normalizeText(node.text())];
+    if (includeAttributes) {
+      const links = Array.from(new Set(node.find("a[href]").map((_linkIndex, anchor) => {
+        const href = $(anchor).attr("href")?.trim();
+        if (!href) return "";
+        try {
+          return new URL(href, baseUrl).href;
+        } catch {
+          return normalizeText(href);
+        }
+      }).get().filter(Boolean)));
+      if (links.length) parts.push(`網址：${links.join("、")}`);
+
+      const stateful = node
+        .filter("[class],[aria-disabled],[disabled]")
+        .add(node.find("[class],[aria-disabled],[disabled]"));
+      const states = Array.from(new Set(stateful.map((_stateIndex, stateElement) => {
+        const stateNode = $(stateElement);
+        const stateClasses = (stateNode.attr("class") ?? "")
+          .split(/\s+/)
+          .filter((token) => /(^|[-_])(sold-?out|ended?|closed|open|available|unavailable|disabled)([-_]|$)/i.test(token));
+        const ariaDisabled = stateNode.attr("aria-disabled");
+        const disabled = stateNode.attr("disabled");
+        return [
+          ...stateClasses,
+          ariaDisabled !== undefined ? `aria-disabled=${ariaDisabled}` : "",
+          disabled !== undefined ? "disabled" : "",
+        ].filter(Boolean).join("|");
+      }).get().filter(Boolean)));
+      if (states.length) parts.push(`狀態：${states.join("、")}`);
+    }
+
+    return parts.filter(Boolean).join("｜");
+  }).get().filter(Boolean).join("\n");
 }
 
 function formatJsonPreview(value: unknown) {
@@ -283,8 +370,12 @@ async function fetchContent(site: MonitorSite): Promise<FetchedContent> {
     // lets one monitor rule track an entire notice list without unrelated UI.
     const target = site.selector_or_path ? $(site.selector_or_path) : $("body").first();
     if (!target.length) throw new Error("CSS selector returned no content");
-    extracted = target.text();
-    if (shouldIncludeAttributes(site)) {
+    if (shouldStructureRows(site)) {
+      extracted = structuredHtmlRows($, target, response.url, shouldIncludeAttributes(site));
+    } else {
+      extracted = target.text();
+    }
+    if (shouldIncludeAttributes(site) && !shouldStructureRows(site)) {
       const attributes = target.find("a[href],img[src],source[srcset],time[datetime]").map((_, element) => {
         const node = $(element);
         const tag = element.tagName?.toLowerCase() ?? "node";
@@ -316,7 +407,7 @@ async function fetchContent(site: MonitorSite): Promise<FetchedContent> {
   } catch (error) {
     throw new Error(`HTML extraction failed: ${errorMessage(error)}`);
   }
-  const content = applyIgnorePatterns(extracted, site.ignore_patterns);
+  const content = applyIgnorePatterns(extracted, site.ignore_patterns, shouldStructureRows(site));
   return { hashable: content, display: content };
 }
 
@@ -325,10 +416,20 @@ function nextCheckAt(site: MonitorSite) {
 }
 
 function changeSnippet(before: string | null, after: string | null) {
-  const oldText = normalizeText(before ?? "");
-  const newText = normalizeText(after ?? "");
+  const oldText = normalizeLines(before ?? "");
+  const newText = normalizeLines(after ?? "");
   if (!oldText) return `新內容：${preview(newText, 260)}`;
   if (!newText) return `原內容已清空：${preview(oldText, 260)}`;
+
+  const rows = lineChanges(oldText, newText);
+  if (rows && (rows.removed.length || rows.added.length)) {
+    const lines: string[] = [];
+    for (const line of rows.removed.slice(0, 3)) lines.push(`移除：${preview(line, 420)}`);
+    for (const line of rows.added.slice(0, 3)) lines.push(`新增：${preview(line, 420)}`);
+    const hiddenCount = rows.removed.length + rows.added.length - lines.length;
+    if (hiddenCount > 0) lines.push(`另有 ${hiddenCount} 項差異，請開啟原頁面確認。`);
+    return lines.join("\n");
+  }
 
   let prefixLength = 0;
   while (prefixLength < oldText.length && prefixLength < newText.length && oldText[prefixLength] === newText[prefixLength]) {
@@ -362,13 +463,14 @@ function changeSnippet(before: string | null, after: string | null) {
 }
 
 function shouldRebaselineAfterResponseShift(site: MonitorSite, state: MonitorState, hashable: string) {
-  const previous = normalizeText(state.last_content_preview ?? "");
-  const current = normalizeText(hashable);
+  const previous = normalizeLines(state.last_content_preview ?? "");
+  const current = normalizeLines(hashable);
   if (!previous || !current) return false;
 
   // Old states can survive a selector or source-type adjustment. The first
   // complete response after that adjustment is a new baseline, not a website
   // update. This also protects against a temporary "shell" response.
+  if (shouldStructureRows(site) && !previous.includes("\n") && current.includes("\n")) return true;
   if (site.source_type === "json" && !previous.includes("：") && !/^[{[]/.test(previous) && /^[{[]/.test(current)) return true;
   return previous.length < 80 && current.length > Math.max(240, previous.length * 4);
 }
