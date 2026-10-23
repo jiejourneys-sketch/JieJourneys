@@ -17,7 +17,7 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const PUBLISHED_AT = '2026-08-28'
-const UPDATED_AT = '2026-10-22'
+const UPDATED_AT = '2026-10-23'
 
 const JAPAN_TOURISM_AGENCY_URL = 'https://www.mlit.go.jp/kankocho/page13_00002.html'
 const KYUSHU_CAMPAIGN_URL = 'https://fightkyushu.welcomekyushu.jp/'
@@ -128,7 +128,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '50%',
     booking: 'OTA 9/15、直訂 9/28、旅行社等 9/30 起',
     stay: '10/1～12/25',
-    status: 'Trip.com 已於 10/19 13:00 開賣；直訂第一期已滿，第二期 10/23 10:00 開放。',
+    status: 'STAYNAVI 直訂第一、二期皆已額滿；じゃらん第二期 11/2 日本時間 10:00 開賣。',
     href: NAGASAKI_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_nagasaki',
   },
@@ -195,7 +195,7 @@ const prefectureBookingResources: PrefectureBookingResource[] = [
     hotelHref: NAGASAKI_STAYNAVI_URL,
     agencyLabel: '官方預訂入口',
     agencyHref: NAGASAKI_CAMPAIGN_URL,
-    note: '直訂第一期已滿；第二期預定 10/23 10:00 開放發券。',
+    note: 'STAYNAVI 第一、二期皆已額滿，取消名額可能無預警釋回。',
     event: 'nagasaki',
   },
   {
@@ -446,14 +446,14 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
       <CitySubpageHeader backHref={backHref} eventPrefix="kyushusubsidy" />
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
-          badge="九州旅遊速報｜2026/10/22 更新"
+          badge="九州旅遊速報｜2026/10/23 更新"
           h1="九州旅遊補助已開賣｜台灣旅客可用、七縣日期與訂房方式"
           intro="九州旅遊補助已在七縣分批開賣，台灣等訪日旅客確定適用。熊本、鹿兒島最高折抵 60%，其餘五縣 50%；但舊訂單不能事後補折，每個平台、旅行社與住宿設施也都有各自額度，訂房前要先看最新販售狀態。"
           eventPrefix="kyushusubsidy"
           showVisual={false}
           ctaLinks={[
             { label: '查看 Trip 參與住宿', href: '#booking-assistant', dataEvent: 'kyushusubsidy_hero_assistant', platform: 'article' },
-            { label: '先看 10/22 新消息', href: '#latest-update', dataEvent: 'kyushusubsidy_hero_latest', platform: 'article' },
+            { label: '先看 10/23 新消息', href: '#latest-update', dataEvent: 'kyushusubsidy_hero_latest', platform: 'article' },
             { label: '先看已確認重點', href: '#quick-answer', dataEvent: 'kyushusubsidy_hero_quick', platform: 'article' },
             { label: '折扣與上限', href: '#discount', dataEvent: 'kyushusubsidy_hero_discount', platform: 'article' },
             { label: '補助實際怎麼訂', href: '#how-to-book', dataEvent: 'kyushusubsidy_hero_booking_guide', platform: 'article' },
@@ -462,25 +462,25 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
 
         <KyushuTripBookingAssistant />
 
-        <section className="seo-content" id="latest-update" aria-label="2026 年 10 月 22 日九州旅遊補助最新消息" style={{ scrollMarginTop: '76px' }}>
-          <h2 className="seo-h2">10/22 最新：Trip 熊本、鹿兒島補助住宿正式上線</h2>
+        <section className="seo-content" id="latest-update" aria-label="2026 年 10 月 23 日九州旅遊補助最新消息" style={{ scrollMarginTop: '76px' }}>
+          <h2 className="seo-h2">10/23 最新：長崎直訂第二期已額滿，下一次 11/2 開賣</h2>
           <div className="seo-prose">
             <p>
-              以下為<strong>2026/10/22 本次複查</strong>結果；平台可能因取消釋回或追加預算重新開放，下單前仍要以結帳頁為準。
+              以下為<strong>2026/10/23 本次複查</strong>結果；平台可能因取消釋回或追加預算重新開放，下單前仍要以結帳頁為準。
             </p>
             <ul>
+              <li><strong>長崎飯店直訂：</strong>STAYNAVI 第二期已在 10/23 日本時間 10:00 開放，但目前也已達預算上限，第一、二期皆無法領券。</li>
+              <li><strong>下一個確定時間：</strong>じゃらん第二期將於 11/2 日本時間 10:00（台灣時間 09:00）開賣，適用 12/1～12/25 入住；楽天第二期仍在準備中。</li>
+              <li><strong>取消釋回：</strong>長崎官方表示，若有訂單取消，STAYNAVI 優惠券可能不另行通知就重新開放。</li>
               <li><strong>Trip.com：</strong>熊本、鹿兒島已於 10/22 13:00 開賣；本站跨日期整理出熊本 12 間、鹿兒島 17 間補助住宿，點飯店即可用聯盟連結查房。</li>
               <li><strong>目前四縣狀態：</strong>長崎、熊本、鹿兒島可查詢補助住宿；福岡已顯示額度用完、暫停受理。</li>
-              <li><strong>福岡：</strong>官方 OTA 名單中的東武 Top Tours 已於 10/21 14:00 開賣。</li>
-              <li><strong>鹿兒島：</strong>JTB、るるぶトラベル皆補上 10/20 開賣；Trip.com 已於 10/22 13:00 開賣，近畿日本ツーリスト預定同日 14:00 開賣。</li>
-              <li><strong>其他縣：</strong>佐賀 OTA 仍全數顯示完售；大分、宮崎本次沒有確認到新的訂房通路或開賣日期。</li>
             </ul>
-            <div className="seo-action-links" aria-label="10 月 22 日最新訂房狀態">
+            <div className="seo-action-links" aria-label="10 月 23 日最新訂房狀態">
               <a className="seo-buy-link primary" href="#booking-assistant" data-event="kyushusubsidy_latest_trip_assistant" data-platform="article" data-section="latest_update">
                 用中文查看 Trip 參與住宿
               </a>
-              <a className="seo-buy-link" href={AEON_CAMPAIGN_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_latest_aeon" data-platform="AEON Compass" data-section="latest_update">
-                查看 AEON 即時狀態
+              <a className="seo-buy-link" href={NAGASAKI_CAMPAIGN_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_latest_nagasaki" data-platform="Nagasaki Prefecture" data-section="latest_update">
+                查看長崎官方最新狀態
               </a>
             </div>
           </div>
@@ -506,7 +506,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
             <div role="listitem">
               <span className="narita-summary-label">現在最重要</span>
               <strong>有活動不等於有額度</strong>
-              <p>Trip.com 福岡、AEON 當日上線的福岡與熊本優惠券都已顯示額滿。</p>
+              <p>長崎 STAYNAVI 第一、二期皆已額滿；下一次確定開賣是 11/2 的じゃらん第二期。</p>
             </div>
           </div>
         </section>
@@ -554,7 +554,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           <h2 className="seo-h2">七縣開賣日期與最新狀態：先找還有額度的通路</h2>
           <div className="seo-prose">
             <p>
-              這次不是全九州同一天、同一平台統一放券，而是由各縣把額度分配給住宿設施、旅行社與 OTA。即使官方活動期間尚未結束，個別通路也可能已經完售；以下為<strong>截至 2026 年 10 月 21 日</strong>的官方與平台資訊。
+              這次不是全九州同一天、同一平台統一放券，而是由各縣把額度分配給住宿設施、旅行社與 OTA。即使官方活動期間尚未結束，個別通路也可能已經完售；以下為<strong>截至 2026 年 10 月 23 日</strong>的官方與平台資訊。
             </p>
             <div className="narita-table-scroll">
               <table>
@@ -595,7 +595,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               最容易誤會的是「活動期間」不等於「現在還訂得到」。請從縣別名稱進入官方特設頁，再確認該平台或住宿設施是否仍接受補助訂單；結帳畫面沒有顯示活動名稱與折扣，就不要當成補助訂單。
             </p>
             <p>
-              <strong>10 月 21 日複查：</strong>福岡東武 Top Tours 已到開賣時間；鹿兒島 JTB、るるぶトラベル皆標示 10/20 開賣。新通路可能很快額滿；「開始販售」不代表現在仍可預訂。
+              <strong>10 月 23 日複查：</strong>長崎 STAYNAVI 第二期開放後已額滿；下一個已公布的時間是 11/2 日本時間 10:00（台灣時間 09:00）的じゃらん第二期。新通路可能很快額滿；「開始販售」不代表現在仍可預訂。
             </p>
           </div>
         </section>
@@ -753,7 +753,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               <li><strong>付款前看最終價格：</strong>即使前一頁看到活動方案，預算也可能在你完成付款前用完。</li>
             </ol>
             <p>
-              <strong>10/22 當下狀態：</strong>福岡已停止受理；長崎、熊本與鹿兒島皆已開賣。本站目前整理出 63 間跨日期曾回傳補助方案的住宿，各縣截止日與即時房況仍以專屬頁顯示為準。
+              <strong>目前狀態：</strong>福岡已停止受理；長崎、熊本與鹿兒島皆已開賣。本站目前整理出 63 間跨日期曾回傳補助方案的住宿，各縣截止日與即時房況仍以專屬頁顯示為準。
             </p>
 
             <h3 className="seo-h3" id="direct-booking-guide" style={{ scrollMarginTop: '76px' }}>方式 B｜飯店官方直訂：目前最值得台灣旅客先確認</h3>
@@ -762,10 +762,10 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               <li><strong>從飯店官網或電話建立新訂單：</strong>訂房前先確認是活動適用方案、目前仍有額度，並表明要使用九州旅遊補助。</li>
               <li><strong>確認是否還要自行領券：</strong>長崎、宮崎的飯店直訂採 STAYNAVI 時，飯店訂單完成後還要另外註冊並取得補助優惠券。</li>
               <li><strong>保存兩份證明：</strong>飯店訂單與 STAYNAVI 優惠券缺一不可；飯店訂成功但優惠券沒有發出，仍不能折。</li>
-              <li><strong>入住時完成資格確認：</strong>帶護照、訂單與必要優惠券，預訂代表人姓名須和護照一致，並依規定簽署利用證明。</li>
+              <li><strong>入住時完成資格確認：</strong>帶護照、訂單與必要優惠券，預訂代表人姓名須和護照一致，並依通路規定在優惠券簽名或填寫利用證明。</li>
             </ol>
             <p>
-              <strong>長崎目前特別注意：</strong>飯店直訂第一期已額滿；第二期預定在<strong>10 月 23 日 10:00</strong>開放，適用 10 月 23 日起入住。取消訂房時，也要分別取消飯店訂單與 STAYNAVI 優惠券。
+              <strong>長崎目前特別注意：</strong>STAYNAVI 飯店直訂第一、二期皆已額滿，取消名額可能無預警釋回。下一個確定開賣的是<strong>11 月 2 日日本時間 10:00（台灣時間 09:00）</strong>的じゃらん第二期，適用 12 月 1～25 日入住；楽天第二期仍在準備中。
             </p>
 
             <h3 className="seo-h3">七縣飯店與旅行社官方名單</h3>

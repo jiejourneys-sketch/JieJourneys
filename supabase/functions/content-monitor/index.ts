@@ -415,53 +415,6 @@ function nextCheckAt(site: MonitorSite) {
   return new Date(Date.now() + site.check_every_minutes * 60_000).toISOString();
 }
 
-function changeSnippet(before: string | null, after: string | null) {
-  const oldText = normalizeLines(before ?? "");
-  const newText = normalizeLines(after ?? "");
-  if (!oldText) return `新內容：${preview(newText, 260)}`;
-  if (!newText) return `原內容已清空：${preview(oldText, 260)}`;
-
-  const rows = lineChanges(oldText, newText);
-  if (rows && (rows.removed.length || rows.added.length)) {
-    const lines: string[] = [];
-    for (const line of rows.removed.slice(0, 3)) lines.push(`移除：${preview(line, 420)}`);
-    for (const line of rows.added.slice(0, 3)) lines.push(`新增：${preview(line, 420)}`);
-    const hiddenCount = rows.removed.length + rows.added.length - lines.length;
-    if (hiddenCount > 0) lines.push(`另有 ${hiddenCount} 項差異，請開啟原頁面確認。`);
-    return lines.join("\n");
-  }
-
-  let prefixLength = 0;
-  while (prefixLength < oldText.length && prefixLength < newText.length && oldText[prefixLength] === newText[prefixLength]) {
-    prefixLength += 1;
-  }
-  let oldEnd = oldText.length - 1;
-  let newEnd = newText.length - 1;
-  while (oldEnd >= prefixLength && newEnd >= prefixLength && oldText[oldEnd] === newText[newEnd]) {
-    oldEnd -= 1;
-    newEnd -= 1;
-  }
-
-  const oldChanged = oldText.slice(prefixLength, oldEnd + 1);
-  const newChanged = newText.slice(prefixLength, newEnd + 1);
-  if (!oldChanged && !newChanged) {
-    return "偵測到監控區內容變動，但差異位於可用摘要之外；請開啟原頁面確認。";
-  }
-
-  const oldContextStart = Math.max(0, prefixLength - 80);
-  const newContextStart = Math.max(0, prefixLength - 80);
-  const oldContextEnd = Math.min(oldText.length, oldEnd + 81);
-  const newContextEnd = Math.min(newText.length, newEnd + 81);
-  const oldContext = oldText.slice(oldContextStart, oldContextEnd);
-  const newContext = newText.slice(newContextStart, newContextEnd);
-  const oldLead = oldContextStart > 0 ? "…" : "";
-  const newLead = newContextStart > 0 ? "…" : "";
-  const oldTail = oldContextEnd < oldText.length ? "…" : "";
-  const newTail = newContextEnd < newText.length ? "…" : "";
-
-  return `原：${oldLead}${preview(oldContext, 300)}${oldTail}\n新：${newLead}${preview(newContext, 300)}${newTail}`;
-}
-
 function shouldRebaselineAfterResponseShift(site: MonitorSite, state: MonitorState, hashable: string) {
   const previous = normalizeLines(state.last_content_preview ?? "");
   const current = normalizeLines(hashable);
@@ -477,24 +430,24 @@ function shouldRebaselineAfterResponseShift(site: MonitorSite, state: MonitorSta
 
 function eventText(event: MonitorEvent) {
   if (event.event_type === "change") {
-    return `🔔 ${event.site_name}\n${changeSnippet(event.old_content_preview, event.new_content_preview)}\n${event.site_url}`;
+    return `🔔 ${event.site_name}\n網站內容有更新\n${event.site_url}`;
   }
   if (event.event_type === "recovered") {
-    return `✅ ${event.site_name} 已恢復讀取\n${event.site_url}`;
+    return `✅ ${event.site_name}\n網站已恢復讀取\n${event.site_url}`;
   }
-  return `⚠️ ${event.site_name} 連續讀取失敗\n${event.error_message ?? "未知錯誤"}\n${event.site_url}`;
+  return `⚠️ ${event.site_name}\n網站連續讀取失敗\n${event.site_url}`;
 }
 
 function telegramGroups(events: MonitorEvent[]) {
   const groups: MonitorEvent[][] = [];
   let current: MonitorEvent[] = [];
-  let currentLength = "JieJourneys 網頁監控".length;
+  let currentLength = 0;
   for (const event of events) {
     const itemLength = eventText(event).length + 2;
     if (current.length > 0 && currentLength + itemLength > TELEGRAM_TEXT_LIMIT) {
       groups.push(current);
       current = [];
-      currentLength = "JieJourneys 網頁監控".length;
+      currentLength = 0;
     }
     current.push(event);
     currentLength += itemLength;
@@ -726,7 +679,7 @@ async function deliverPendingEvents() {
   let notified = 0;
 
   for (const group of telegramGroups(events)) {
-    const body = ["旅杰 JieJourneys 網頁監控", ...group.map(eventText)].join("\n\n");
+    const body = group.map(eventText).join("\n\n");
     try {
       await sendTelegram(body);
       await Promise.all(group.map(async (event) => {
