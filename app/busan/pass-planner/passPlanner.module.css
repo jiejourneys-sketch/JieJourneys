@@ -1408,12 +1408,18 @@
   z-index: 8;
   display: grid;
   min-width: 144px;
+  max-height: min(260px, 42vh);
   gap: 5px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(31, 122, 140, 0.16);
   border-radius: 14px;
   padding: 8px;
   background: #ffffff;
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .batchMoveMenuTitle {
@@ -5425,12 +5431,14 @@
     overscroll-behavior: contain;
   }
 
-  .orderControlBarDayMenuOpen,
-  .orderControlBarDayMenuOpen .dayMenuList {
+  .orderControlBarVerticalMenuOpen,
+  .orderControlBarVerticalMenuOpen .dayMenuList,
+  .orderControlBarVerticalMenuOpen .batchMoveMenuList {
     touch-action: pan-y;
   }
 
-  .orderControlBarDayMenuOpen .dayMenuList {
+  .orderControlBarVerticalMenuOpen .dayMenuList,
+  .orderControlBarVerticalMenuOpen .batchMoveMenuList {
     overscroll-behavior: contain;
   }
 

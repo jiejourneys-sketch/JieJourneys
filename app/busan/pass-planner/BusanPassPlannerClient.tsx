@@ -14348,7 +14348,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const handlePanelControlTouchStart = useCallback((e: ReactTouchEvent<HTMLElement>) => {
     if (e.touches.length !== 1 || !isMobilePlannerViewport()) return
     const target = e.target as HTMLElement
-    if (target.closest(`.${styles.dayMenuList}`)) {
+    if (target.closest(`.${styles.dayMenuList}, .${styles.batchMoveMenuList}`)) {
       panelControlTouchStartRef.current = null
       return
     }
@@ -14364,7 +14364,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const start = panelControlTouchStartRef.current
     if (!start || start.collapsed || e.touches.length !== 1) return
     const target = e.target as HTMLElement
-    if (target.closest(`.${styles.dayMenuList}`)) {
+    if (target.closest(`.${styles.dayMenuList}, .${styles.batchMoveMenuList}`)) {
       panelControlTouchStartRef.current = null
       return
     }
@@ -15048,7 +15048,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                   </div>
                 ) : (
                   <>
-                    <div className={`${styles.orderControlBar} ${!readOnlyPlan && !batchSelectionActive ? styles.orderControlBarWithUndo : ''} ${batchSelectionActive ? styles.orderControlBarBatchSelecting : ''} ${openPlannerMenu === 'day' ? styles.orderControlBarDayMenuOpen : ''}`}>
+                    <div className={`${styles.orderControlBar} ${!readOnlyPlan && !batchSelectionActive ? styles.orderControlBarWithUndo : ''} ${batchSelectionActive ? styles.orderControlBarBatchSelecting : ''} ${openPlannerMenu === 'day' || openPlannerMenu === 'batch-move' ? styles.orderControlBarVerticalMenuOpen : ''}`}>
                       {!batchSelectionActive ? (
                       <div className={styles.dayViewControl} aria-label="行程查看範圍">
                         {hasDayDividers ? (
