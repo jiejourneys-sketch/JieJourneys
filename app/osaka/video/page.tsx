@@ -81,7 +81,7 @@ const cards: CityCard[] = [
     datasetValue: 'osaka-5-areas-guide',
     actions: [
       { label: 'IG Reels', href: 'https://www.instagram.com/reel/DZPs30vhboN/', className: 'btn primary', event: 'osakavideo_5areasIG', platform: 'IG', section: 'video' },
-      { label: 'YouTube', href: 'https://www.youtube.com/shorts/0DAV327wmN4', className: 'btn', event: 'osakavideo_5areasYT', platform: 'YouTube', section: 'video' },
+      { label: 'YouTube', href: 'https://www.youtube.com/shorts/yOIe09YioCc', className: 'btn', event: 'osakavideo_5areasYT', platform: 'YouTube', section: 'video' },
       { label: '文章', href: '/osaka/osaka-5-areas-guide?from=osaka-video', className: 'btn', event: 'osakavideo_5areasArticle', platform: 'article', section: 'video' },
     ],
   },

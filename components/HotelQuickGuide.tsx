@@ -141,7 +141,9 @@ export default function HotelQuickGuide({
 
         <div className={styles.hotelGrid} data-card-count={Math.min(recommendations.length, 3)}>
           {recommendations.map(({ hotel, reason }) => {
-            const bookingActions = hotel.actions.filter((action) => action.platform === 'Trip' || action.platform === 'Agoda')
+            const bookingActions = hotel.actions.filter(
+              (action) => action.platform === 'Trip' || action.platform === 'Agoda' || action.platform === 'Booking',
+            )
             return (
               <article className={styles.hotelCard} key={`${activeScenario.id}-${hotel.title}`} data-hotel={hotel.title} data-area={hotel.area}>
                 <div>

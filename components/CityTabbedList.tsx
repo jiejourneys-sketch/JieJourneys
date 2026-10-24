@@ -14,6 +14,8 @@ export type CityCardAction = {
   event?: string
   platform?: string
   section?: string
+  /** 地圖卡的短影音選單名稱；相同名稱的 IG／YouTube 會收在同一個獨立選單。 */
+  videoGroup?: string
   /** 點擊後先複製此優惠碼並顯示 toast，1 秒後再跳轉 */
   promoCode?: string
   /** 僅影響地圖卡片按鈕分排：設在「新一排的第一顆」上（勿設在第一顆）。/busan/ticket 仍為單排。 */

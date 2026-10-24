@@ -1,5 +1,6 @@
 import type { TabItem } from '@/components/AreaTabs';
 import type { CityCard } from '@/components/CityTabbedList';
+import { withNorthVietnamBookingHotelAction } from '@/data/northvietnam/bookingHotels';
 
 export const northVietnamHotelTabs: TabItem[] = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -864,4 +865,4 @@ export const northVietnamHotelCards: CityCard[] = [
       },
     ],
   },
-];
+].map(withNorthVietnamBookingHotelAction);

@@ -12,6 +12,7 @@ import {
   osakaAdditionalHotelCardBySlug,
   osakaAdditionalHotelSlugs,
 } from '@/data/osaka/hotel'
+import { withOsakaBookingHotelAction } from '@/data/osaka/bookingHotels'
 
 const tabs = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -238,7 +239,7 @@ const cards: CityCard[] = [
   ...osakaAdditionalHotelSlugs
     .filter((slug) => !insertedAdditionalHotelSlugs.has(slug))
     .map((slug) => osakaAdditionalHotelCardBySlug[slug]),
-]
+].map(withOsakaBookingHotelAction)
 
 export default function OsakaHotelPage() {
   return (

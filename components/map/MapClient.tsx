@@ -570,6 +570,7 @@ function commercePlatform(action: CityCardAction) {
   const value = `${action.platform ?? ''} ${action.label} ${action.href}`
   if (/kkday/i.test(value)) return 'KKDAY'
   if (/klook/i.test(value)) return 'KLOOK'
+  if (/(?:booking\.com|\bbooking\b)/i.test(value)) return 'Booking'
   if (/agoda/i.test(value)) return 'Agoda'
   if (/(?:trip\.com|\btrip\b)/i.test(value)) return 'Trip'
   return null
@@ -770,7 +771,7 @@ function MapCommerceMenu({ actions, place }: { actions: CityCardAction[]; place:
   return <ExpandedMapCommerceMenu actions={actions} place={place} />
 }
 
-function MapVideoMenu({ actions, place }: { actions: CityCardAction[]; place: MapPlace }) {
+function MapVideoMenu({ actions, place, label = '短影音' }: { actions: CityCardAction[]; place: MapPlace; label?: string }) {
   const { detailsRef, onToggle } = useShortVideoMenuAutoClose({ revealOnOpen: true })
 
   return (
@@ -782,7 +783,7 @@ function MapVideoMenu({ actions, place }: { actions: CityCardAction[]; place: Ma
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
     >
-      <summary>短影音</summary>
+      <summary>{label}</summary>
       <div className={styles.mapVideoPlatforms}>
         {actions.map((action) => (
           <MapActionLink
@@ -801,14 +802,27 @@ function MapActionLinks({ actions, place }: { actions: CityCardAction[]; place: 
   const commerceActions = actions.filter((action) => commercePlatform(action))
   const videoActions = actions.filter((action) => shortVideoPlatform(action))
   const otherActions = actions.filter((action) => !commercePlatform(action) && !shortVideoPlatform(action))
+  const namedVideoGroups = videoActions.reduce<Array<{ label: string; actions: CityCardAction[] }>>((groups, action) => {
+    const label = action.videoGroup?.trim()
+    if (!label) return groups
+
+    const existingGroup = groups.find((group) => group.label === label)
+    if (existingGroup) existingGroup.actions.push(action)
+    else groups.push({ label, actions: [action] })
+    return groups
+  }, [])
+  const ungroupedVideoActions = videoActions.filter((action) => !action.videoGroup?.trim())
 
   return (
     <>
       {commerceActions.length > 0 ? <MapCommerceMenu actions={commerceActions} place={place} /> : null}
-      {videoActions.length >= 2 ? (
-        <MapVideoMenu actions={videoActions} place={place} />
+      {namedVideoGroups.map((group) => (
+        <MapVideoMenu key={group.label} actions={group.actions} place={place} label={group.label} />
+      ))}
+      {ungroupedVideoActions.length >= 2 ? (
+        <MapVideoMenu actions={ungroupedVideoActions} place={place} />
       ) : (
-        videoActions.map((action) => <MapActionLink key={`${action.label}-${action.href}`} action={action} place={place} />)
+        ungroupedVideoActions.map((action) => <MapActionLink key={`${action.label}-${action.href}`} action={action} place={place} />)
       )}
       {otherActions.map((action) => <MapActionLink key={`${action.label}-${action.href}`} action={action} place={place} />)}
     </>

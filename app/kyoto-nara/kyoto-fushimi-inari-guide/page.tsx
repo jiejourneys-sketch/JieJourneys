@@ -4,6 +4,7 @@ import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   kyotoFushimiInariGuideCanonical,
@@ -17,6 +18,11 @@ const OFFICIAL_MAP_URL = 'https://inari.jp/en/map/'
 const OFFICIAL_SENBON_TORII_URL = 'https://inari.jp/en/map/spot_07/'
 const OFFICIAL_VISITOR_RULES_URL = 'https://inari.jp/en/request/'
 const KYOTO_CONGESTION_URL = 'https://global.kyoto.travel/en/comfort/'
+
+const videoLinks = [
+  { label: '伏見稻荷千本鳥居 IG', href: 'https://www.instagram.com/reels/De4MOpctLrE/', event: 'kyotofushimiinari_video_ig', platform: 'IG', primary: true },
+  { label: '伏見稻荷千本鳥居 YouTube', href: 'https://www.youtube.com/shorts/q7pzRGNVqv8', event: 'kyotofushimiinari_video_youtube', platform: 'YouTube' },
+]
 
 const faqItems = [
   {
@@ -101,6 +107,14 @@ export default async function KyotoFushimiInariGuidePage({ searchParams }: Kyoto
             { label: '時間怎麼抓', href: '#time', dataEvent: 'kyotofushimiinari_hero_time', platform: 'article' },
           ]}
         />
+
+        <section className="seo-content" id="video-guide" aria-label="伏見稻荷大社千本鳥居短影音">
+          <h2 className="seo-h2">先看短影音：伏見稻荷千本鳥居路線</h2>
+          <div className="seo-prose">
+            <p>先用短影音掌握伏見稻荷大社、千本鳥居與步行路線，再依文章地圖決定只走前段，或延伸到三ツ辻後繞回。</p>
+            <SeoVideoLinkMenu label="伏見稻荷大社千本鳥居" links={videoLinks} />
+          </div>
+        </section>
 
         <section className="seo-content" aria-label="伏見稻荷大社快速結論">
           <div className="narita-summary-grid haneda-summary-grid" role="list">

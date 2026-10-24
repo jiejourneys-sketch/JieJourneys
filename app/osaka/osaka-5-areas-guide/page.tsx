@@ -23,7 +23,7 @@ const videoLinks = [
   },
   {
     label: 'YouTube',
-    href: 'https://www.youtube.com/shorts/0DAV327wmN4',
+    href: 'https://www.youtube.com/shorts/yOIe09YioCc',
     event: 'osaka5areas_video_youtube',
     platform: 'YouTube',
   },

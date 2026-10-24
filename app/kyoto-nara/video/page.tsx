@@ -144,6 +144,22 @@ const cards: CityCard[] = [
     datasetValue: 'kyoto-fushimi-inari-guide',
     actions: [
       {
+        label: 'IG Reels',
+        href: 'https://www.instagram.com/reels/De4MOpctLrE/',
+        className: 'btn primary',
+        event: 'kyotonaravideo_fushimiinari_ig',
+        platform: 'IG',
+        section: 'video',
+      },
+      {
+        label: 'YouTube',
+        href: 'https://www.youtube.com/shorts/q7pzRGNVqv8',
+        className: 'btn',
+        event: 'kyotonaravideo_fushimiinari_youtube',
+        platform: 'YouTube',
+        section: 'video',
+      },
+      {
         label: '文章',
         href: '/kyoto-nara/kyoto-fushimi-inari-guide?from=kyoto-video',
         className: 'btn',

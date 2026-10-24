@@ -1,4 +1,6 @@
+import type { CityCardAction } from '@/components/CityTabbedList'
 import type { MapPlace } from '@/lib/mapPlace'
+import { withKyotoBookingMapAction } from '@/data/kyoto-nara/bookingHotels'
 
 export const KYOTO_NARA_MAP_CENTER = { lat: 34.89, lng: 135.78 }
 
@@ -10,6 +12,10 @@ type KyotoNaraPlaceInput = {
   lng: number
   googlePlaceId?: string
   category?: MapPlace['category']
+  spotActions?: CityCardAction[]
+  relatedArticleHref?: string
+  relatedArticleLabel?: string
+  relatedArticleEvent?: string
 }
 
 function googleMapsSearchUrl(place: KyotoNaraPlaceInput) {
@@ -33,6 +39,15 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lng: 135.7587667,
     googlePlaceId: 'ChIJ7wKLka4IAWARCByidG5EGrY',
     category: 'transport',
+    spotActions: [
+      { label: '出口動線 IG', href: 'https://www.instagram.com/reel/DeUJBAUtavI/', className: 'btn', mapEvent: 'osakamap_kyoto_station_exits_ig', platform: 'IG', section: 'map_bar', videoGroup: '出口動線' },
+      { label: '出口動線 YouTube', href: 'https://www.youtube.com/shorts/sS5veHkCP6I', className: 'btn', mapEvent: 'osakamap_kyoto_station_exits_youtube', platform: 'YouTube', section: 'map_bar', videoGroup: '出口動線' },
+      { label: '隱藏景點 IG', href: 'https://www.instagram.com/reel/DemKrCJNVtp/', className: 'btn', mapEvent: 'osakamap_kyoto_station_hidden_ig', platform: 'IG', section: 'map_bar', videoGroup: '隱藏景點' },
+      { label: '隱藏景點 YouTube', href: 'https://www.youtube.com/shorts/Cs8S2RNrMvk', className: 'btn', mapEvent: 'osakamap_kyoto_station_hidden_youtube', platform: 'YouTube', section: 'map_bar', videoGroup: '隱藏景點' },
+    ],
+    relatedArticleHref: '/kyoto-nara/kyoto-station-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_kyoto_station_article',
   },
   {
     id: 'kiyomizu-dera',
@@ -297,6 +312,13 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lat: 34.9670429,
     lng: 135.7746595,
     googlePlaceId: 'ChIJGVpMOBQPAWARF96_WA-XIl0',
+    spotActions: [
+      { label: '千本鳥居 IG', href: 'https://www.instagram.com/reels/De4MOpctLrE/', className: 'btn', mapEvent: 'osakamap_fushimi_inari_ig', platform: 'IG', section: 'map_bar' },
+      { label: '千本鳥居 YouTube', href: 'https://www.youtube.com/shorts/q7pzRGNVqv8', className: 'btn', mapEvent: 'osakamap_fushimi_inari_youtube', platform: 'YouTube', section: 'map_bar' },
+    ],
+    relatedArticleHref: '/kyoto-nara/kyoto-fushimi-inari-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_fushimi_inari_article',
   },
   {
     id: 'ujigami-shrine',
@@ -403,6 +425,10 @@ export const kyotoNaraMapPlaces: MapPlace[] = kyotoNaraPlaceInputs.map((place) =
   lat: place.lat,
   lng: place.lng,
   spotGoogleMapsUrl: googleMapsSearchUrl(place),
+  spotActions: place.spotActions,
+  relatedArticleHref: place.relatedArticleHref,
+  relatedArticleLabel: place.relatedArticleLabel,
+  relatedArticleEvent: place.relatedArticleEvent,
   mapButtonMapEvent: `kyotonaramap_${place.id.replace(/-/g, '_')}_map`,
   markerColor: place.category === 'transport' ? '#64748b' : '#2563eb',
 }))
@@ -413,7 +439,7 @@ const tripHotelUrl = (path: string) =>
 const agodaHotelUrl = (id: number) =>
   `https://www.agoda.com/partners/partnersearch.aspx?pcs=1&cid=1945734&hid=${id}`
 
-export const kyotoNaraHotelMapPlaces: MapPlace[] = [
+export const kyotoNaraHotelMapPlaces = ([
   {
     id: 'kyoto-hotel-vischio',
     category: 'hotel',
@@ -596,4 +622,4 @@ export const kyotoNaraHotelMapPlaces: MapPlace[] = [
       { label: 'Agoda', href: agodaHotelUrl(17526170), className: 'btn', event: 'osakamap_kyoto_hotel_mitsui_luxury_agoda', platform: 'Agoda', section: 'map_bar' },
     ],
   },
-]
+] satisfies MapPlace[]).map(withKyotoBookingMapAction)

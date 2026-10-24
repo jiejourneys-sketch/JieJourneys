@@ -5,6 +5,7 @@ import type { CityCardAction } from '@/components/CityTabbedList'
 import { busanShopMapPlaces } from '@/data/busan/shop'
 import { busanFreeMapPlaces } from '@/data/busan/free'
 import { busanHotelCards } from '@/data/busan/hotels'
+import { withBusanBookingHotelAction } from '@/data/busan/bookingHotels'
 import type { BusanMapPlace } from '@/data/busan/map/types'
 import { busanTicketCards } from '@/data/busan/tickets'
 import { BUSAN_MAP_SPOT_NAVER_ACTIONS } from '@/data/busan/map/spotNaverActions'
@@ -264,5 +265,5 @@ export const busanMapPlaces: BusanMapPlace[] = [
   ...ticketCardsToSpots(),
   ...busanFreeMapPlaces,
   ...busanShopMapPlaces,
-  ...busanHotelCards.map(hotelCardToPlace),
+  ...busanHotelCards.map(withBusanBookingHotelAction).map(hotelCardToPlace),
 ]

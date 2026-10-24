@@ -6,6 +6,22 @@ import { POST as resolveBooking } from '@/app/api/pass-planner/hotel-affiliate/b
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+function providerDiagnostic(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return { matchStatus: 'missing' }
+  const result = value as Record<string, unknown>
+  const text = (key: string, fallback = '') =>
+    typeof result[key] === 'string' ? String(result[key]).slice(0, 80) : fallback
+  const count = (key: string) =>
+    typeof result[key] === 'number' && Number.isFinite(result[key]) ? result[key] : 0
+  return {
+    matchStatus: text('matchStatus', result.error ? 'error' : 'missing'),
+    discoveryMethod: text('discoveryMethod'),
+    providerRequestCount: count('providerRequestCount'),
+    rawCount: count('rawCount'),
+    error: text('error'),
+  }
+}
+
 /**
  * Resolve hotel providers inside one server request. Besides avoiding a
  * browser race, this lets Agoda, Trip and Booking share the same metered Google
@@ -44,6 +60,20 @@ export async function POST(req: NextRequest) {
     agodaResponse?.json().catch(() => ({ error: 'agoda_invalid_response' })),
     bookingResponse?.json().catch(() => ({ error: 'booking_invalid_response' })),
   ])
+
+  if (process.env.NODE_ENV !== 'test') {
+    const googlePlaceId = typeof input.googlePlaceId === 'string' ? input.googlePlaceId.trim().slice(0, 180) : ''
+    console.info('[planner-hotel-affiliate]', JSON.stringify({
+      googlePlaceId,
+      providers: [...requestedProviders],
+      forceRefresh: input.forceRefresh === true,
+      results: {
+        ...(trip ? { Trip: providerDiagnostic(trip) } : {}),
+        ...(agoda ? { Agoda: providerDiagnostic(agoda) } : {}),
+        ...(booking ? { Booking: providerDiagnostic(booking) } : {}),
+      },
+    }))
+  }
 
   return NextResponse.json({
     ...(trip ? { trip } : {}),

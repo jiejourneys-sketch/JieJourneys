@@ -1,5 +1,6 @@
 import type { CityCard } from '@/components/CityTabbedList'
 import KyotoNaraGuidePage from '@/components/KyotoNaraGuidePage'
+import { withKyotoBookingHotelAction } from '@/data/kyoto-nara/bookingHotels'
 import KyotoHotelQuickGuide from './KyotoHotelQuickGuide'
 import styles from './kyotoHotel.module.css'
 
@@ -13,7 +14,7 @@ const tabs = [
   { value: '烏丸・市中心', label: '烏丸・市中心', dataArea: '烏丸・市中心' },
 ]
 
-const cards: CityCard[] = [
+const cards = ([
   {
     title: '京都比偲奇飯店',
     meta: '京都車站｜八條口步行約2分鐘・大浴場與三溫暖',
@@ -170,7 +171,7 @@ const cards: CityCard[] = [
       { label: '地圖', href: 'https://maps.app.goo.gl/sCo98AEfi3L6nXDk9', className: 'btn', event: 'kyotonarahotel_mitsui_luxury_map', platform: 'map', section: 'hotel_card' },
     ],
   },
-]
+] satisfies CityCard[]).map(withKyotoBookingHotelAction)
 
 export default function KyotoNaraHotelPage() {
   return (

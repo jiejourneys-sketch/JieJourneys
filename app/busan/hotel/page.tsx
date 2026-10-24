@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
 import { busanHotelCards, busanHotelTabs } from '@/data/busan/hotels'
+import { withBusanBookingHotelAction } from '@/data/busan/bookingHotels'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
@@ -10,14 +11,17 @@ import BusanHotelQuickGuide from './BusanHotelQuickGuide'
 import styles from './busanHotel.module.css'
 
 export default function BusanHotelPage() {
-  const hotelCards = busanHotelCards.map((c) => ({
-    ...c,
-    note: undefined,
-    actions: c.actions
-      .filter((a) => a.label === 'Trip' || a.label === 'Agoda' || a.label === '地圖' || a.label === 'Navermap')
+  const hotelCards = busanHotelCards.map((c) => {
+    const cardWithBooking = withBusanBookingHotelAction(c)
+
+    return {
+      ...cardWithBooking,
+      note: undefined,
+      actions: cardWithBooking.actions
+      .filter((a) => a.label === 'Trip' || a.label === 'Agoda' || a.label === 'Booking' || a.label === '地圖' || a.label === 'Navermap')
       .slice()
       .sort((a, b) => {
-        const order: Record<string, number> = { Trip: 0, Agoda: 1, 地圖: 2, Navermap: 3 }
+        const order: Record<string, number> = { Trip: 0, Agoda: 1, Booking: 2, 地圖: 3, Navermap: 4 }
         return (order[a.label] ?? 99) - (order[b.label] ?? 99)
       })
       .map((a) => {
@@ -25,7 +29,8 @@ export default function BusanHotelPage() {
         if (a.label === 'Agoda') return { ...a, className: 'btn' }
         return a
       }),
-  }))
+    }
+  })
 
   return (
     <>

@@ -6,6 +6,7 @@ import {
 import { osakaShopMapPlaces } from '@/data/osaka/shop'
 import { osakaPassMapPlaces } from '@/data/osaka/pass-map/places'
 import { kyotoNaraHotelMapPlaces, kyotoNaraMapPlaces } from '@/data/kyoto-nara'
+import { withOsakaBookingMapAction } from '@/data/osaka/bookingHotels'
 import type { MapPlace } from '@/lib/mapPlace'
 
 export const OSAKA_MAP_CENTER = { lat: 34.735, lng: 135.555 }
@@ -37,8 +38,12 @@ type SpotPlaceInput = {
   lng: number
   mapUrl?: string
   actions?: TicketActionInput[]
+  extraActions?: CityCardAction[]
   relatedTicketTag?: string
   passMapPlaceId?: string
+  relatedArticleHref?: string
+  relatedArticleLabel?: string
+  relatedArticleEvent?: string
 }
 
 function googleMapsSearchUrl(query: string) {
@@ -121,6 +126,7 @@ function spotPlaceToMapPlace(place: SpotPlaceInput): MapPlace {
   const actions = [
     ...(place.actions ? ticketActions(place.actions) : []),
     ...(place.passMapPlaceId ? [passMapAction(place.passMapPlaceId, `osakamap_${place.id.replace(/-/g, '_')}_passmap`)] : []),
+    ...(place.extraActions ?? []),
   ]
 
   return {
@@ -133,6 +139,9 @@ function spotPlaceToMapPlace(place: SpotPlaceInput): MapPlace {
     spotGoogleMapsUrl: place.mapUrl ?? googleMapsSearchUrl(place.name),
     mapButtonMapEvent: `osakamap_${place.id.replace(/-/g, '_')}_map`,
     spotActions: actions.length ? actions : undefined,
+    relatedArticleHref: place.relatedArticleHref,
+    relatedArticleLabel: place.relatedArticleLabel,
+    relatedArticleEvent: place.relatedArticleEvent,
     ...(place.relatedTicketTag
       ? {
           relatedTicketHref: osakaRelatedTicketHref(place.relatedTicketTag, place.id),
@@ -684,6 +693,13 @@ const osakaSpotPlaces: SpotPlaceInput[] = [
     lng: 135.7791876,
     mapUrl: 'https://maps.app.goo.gl/ARyUAkVg8MXcZwzH6',
     relatedTicketTag: '伏見稻荷大社',
+    extraActions: [
+      { label: '千本鳥居 IG', href: 'https://www.instagram.com/reels/De4MOpctLrE/', className: 'btn', mapEvent: 'osakamap_fushimi_inari_ig', platform: 'IG', section: 'map_bar' },
+      { label: '千本鳥居 YouTube', href: 'https://www.youtube.com/shorts/q7pzRGNVqv8', className: 'btn', mapEvent: 'osakamap_fushimi_inari_youtube', platform: 'YouTube', section: 'map_bar' },
+    ],
+    relatedArticleHref: '/kyoto-nara/kyoto-fushimi-inari-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_fushimi_inari_article',
   },
   {
     id: 'osaka-nara-park',
@@ -1144,6 +1160,6 @@ export const osakaMapPlaces: MapPlace[] = [
   ...addedKyotoNaraPlaces,
   ...osakaAirportPlaces,
   ...osakaShopMapPlaces,
-  ...osakaOrderedHotelPlaces,
+  ...osakaOrderedHotelPlaces.map(withOsakaBookingMapAction),
   ...kyotoNaraHotelMapPlaces,
 ]

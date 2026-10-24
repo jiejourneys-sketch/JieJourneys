@@ -7,6 +7,7 @@ import type { CityCardAction } from '@/components/CityTabbedList'
 import { tokyoShopMapPlaces } from '@/data/tokyo/shop'
 import { tokyoFreeMapPlaces } from '@/data/tokyo/free'
 import { tokyoHotelCards } from '@/data/tokyo/hotels'
+import { withTokyoBookingHotelAction } from '@/data/tokyo/bookingHotels'
 import type { TokyoMapPlace } from '@/data/tokyo/map/types'
 import { tokyoTicketCards } from '@/data/tokyo/tickets'
 import { TOKYO_MAP_SPOT_EXTRA_ACTIONS } from '@/data/tokyo/map/spotExtraActions'
@@ -249,5 +250,5 @@ export const tokyoMapPlaces: TokyoMapPlace[] = [
   ...ticketCardsToSpots(),
   ...tokyoFreeMapPlaces,
   ...tokyoShopMapPlaces,
-  ...tokyoHotelCards.map(hotelCardToPlace),
+  ...tokyoHotelCards.map(withTokyoBookingHotelAction).map(hotelCardToPlace),
 ]

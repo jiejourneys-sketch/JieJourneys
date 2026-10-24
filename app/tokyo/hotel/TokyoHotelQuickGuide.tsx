@@ -1,5 +1,5 @@
 import HotelQuickGuide, { type HotelQuickGuideScenario } from '@/components/HotelQuickGuide'
-import { tokyoHotelCards } from '@/data/tokyo'
+import type { CityCard } from '@/components/CityTabbedList'
 
 const stayScenarios: HotelQuickGuideScenario[] = [
   {
@@ -69,11 +69,15 @@ const stayScenarios: HotelQuickGuideScenario[] = [
   },
 ]
 
-export default function TokyoHotelQuickGuide() {
+type Props = {
+  cards: CityCard[]
+}
+
+export default function TokyoHotelQuickGuide({ cards }: Props) {
   return (
     <HotelQuickGuide
       scenarios={stayScenarios}
-      cards={tokyoHotelCards}
+      cards={cards}
       eventPrefix="tokyohotel"
       badge="30 秒住宿決策"
       title="先回答需求，再看三間飯店"

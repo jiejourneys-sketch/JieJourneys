@@ -170,6 +170,8 @@
 .hotelActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 83px;
+  align-content: start;
   gap: 7px;
 }
 
@@ -285,6 +287,10 @@
 
   .hotelCard p {
     display: none;
+  }
+
+  .hotelActions {
+    min-height: 0;
   }
 
   .pickReason {

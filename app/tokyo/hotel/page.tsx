@@ -2,6 +2,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import CityTabbedList from '@/components/CityTabbedList'
 import { tokyoHotelCards, tokyoHotelTabs } from '@/data/tokyo'
+import { withTokyoBookingHotelAction } from '@/data/tokyo/bookingHotels'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoContentSection from '@/components/seo/SeoContentSection'
 import SeoCtaSection from '@/components/seo/SeoCtaSection'
@@ -10,6 +11,8 @@ import TokyoHotelQuickGuide from './TokyoHotelQuickGuide'
 import styles from './tokyoHotel.module.css'
 
 export default function TokyoHotelPage() {
+  const hotelCards = tokyoHotelCards.map(withTokyoBookingHotelAction)
+
   return (
     <>
       <CitySubpageHeader backHref="/tokyo" eventPrefix="tokyohotel" />
@@ -42,11 +45,11 @@ export default function TokyoHotelPage() {
           ]}
         />
 
-        <TokyoHotelQuickGuide />
+        <TokyoHotelQuickGuide cards={hotelCards} />
 
         <h2 className="seo-h2" id="stayListTitle">東京住宿完整飯店清單</h2>
         <div className={styles.hotelList}>
-          <CityTabbedList tabs={tokyoHotelTabs} cards={tokyoHotelCards} tabEvent="tokyo_hotel_tab" />
+          <CityTabbedList tabs={tokyoHotelTabs} cards={hotelCards} tabEvent="tokyo_hotel_tab" />
         </div>
 
         <SeoCtaSection text="" href="/tokyo/map" linkText="東京住宿地圖" newTab dataEvent="tokyohotel_SEO_map" />

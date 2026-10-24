@@ -1,5 +1,6 @@
 import type { CityCard } from '@/components/CityTabbedList'
 import type { TabItem } from '@/components/AreaTabs'
+import { withFujiBookingHotelAction } from './bookingHotels'
 
 export const fujiHotelTabs: TabItem[] = [
   { value: 'all', label: '全部', dataArea: 'all' },
@@ -8,7 +9,7 @@ export const fujiHotelTabs: TabItem[] = [
   { value: '交通方便/高CP', label: '交通方便/高CP', dataArea: '交通方便/高CP' },
 ]
 
-export const fujiHotelCards: CityCard[] = [
+export const fujiHotelCards = ([
   // ── 富士山景 ──────────────────────────────────────────────
   {
     title: '虹夕諾雅富士',
@@ -289,4 +290,4 @@ export const fujiHotelCards: CityCard[] = [
       { label: '地圖', href: 'https://maps.app.goo.gl/YjjxjnGCE2bnNQsB8', className: 'btn', event: 'fujihotel_kawaguchiko_station_inn_map', platform: 'Maps', section: 'hotel_card' },
     ],
   },
-]
+] satisfies CityCard[]).map(withFujiBookingHotelAction)

@@ -484,7 +484,7 @@ export const tokyoHotelCards: CityCard[] = [
     actions: [
       {
         label: 'Trip',
-        href: 'https://tw.trip.com/hotels/tokyo-hotel-detail-686532/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16730765',
+        href: 'https://tw.trip.com/hotels/tokyo-hotel-detail-5024267/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D16730765',
         className: 'btn primary',
         event: 'tokyohotel_richmond_asakusa_trip',
         platform: 'Trip',

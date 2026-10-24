@@ -109,11 +109,16 @@ export default async function KyotoStationGuidePage({ searchParams }: KyotoStati
           ]}
         />
 
-        <section className="seo-content" id="video-guide" aria-label="京都車站出口動線短影音">
-          <h2 className="seo-h2">先看短影音：京都車站出口動線</h2>
+        <section className="seo-content" id="video-guide" aria-label="京都車站出口動線與隱藏景點短影音">
+          <h2 className="seo-h2">先看短影音：出口動線與隱藏景點</h2>
           <div className="seo-prose">
-            <p>先用短影音快速分清北側中央口、南側八條口與 2F 南北自由通路，再回來依這篇文章安排 HARUKA、巴士、新幹線或近鐵的轉乘方向。</p>
+            <h3 className="seo-h3">京都車站出口動線</h3>
+            <p>先快速分清北側中央口、南側八條口與 2F 南北自由通路，再回來依這篇文章安排 HARUKA、巴士、新幹線或近鐵的轉乘方向。</p>
             <SeoVideoLinkMenu label="京都車站出口動線" links={videoLinks} />
+
+            <h3 className="seo-h3">京都車站隱藏景點</h3>
+            <p>想在轉車、抵達日或回程前多排一段散步，可先看空中徑路、拉麵小路與大階段的短影音，再到下方閱讀完整路線。</p>
+            <SeoVideoLinkMenu label="京都車站隱藏景點" links={hiddenSpotsVideoLinks} />
           </div>
         </section>
 
@@ -247,8 +252,6 @@ export default async function KyotoStationGuidePage({ searchParams }: KyotoStati
           <h2 className="seo-h2">京都車站不只轉車｜從北側一路往上的 4 個隱藏景點</h2>
           <div className="seo-prose">
             <p>很多人從中央口出站、搭完巴士就離開了；其實京都車站的高處空間很值得專程留半小時到一小時。<strong>最簡單的走法是從北側大廳開始往上，先到 4F 看京都塔，再到 10F 走空中徑路與拉麵小路，最後沿著大階段慢慢往下。</strong> 不用另外搭車，雨天、抵達日或回程前都很好安排。</p>
-
-            <SeoVideoLinkMenu label="京都車站隱藏景點" links={hiddenSpotsVideoLinks} />
 
             <figure className="seo-figure seo-tall-figure">
               <Image
