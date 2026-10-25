@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   searchAgodaAffiliateHotelsWithGoogleHotels,
   searchBookingAffiliateHotelsWithGoogleHotels,
+  searchExactGoogleHotelsAffiliateSources,
   searchTripAffiliateHotelsWithGoogleHotels,
 } from '../lib/tripGoogleHotels'
 
@@ -148,6 +149,93 @@ test('one exact Google Hotels lookup resolves Trip, Agoda and Booking for an uns
     const bookingUrl = new URL(booking?.bestMatch?.bookingUrl ?? '')
     expect(bookingUrl.hostname).toBe('www.jdoqocy.com')
     expect(new URL(bookingUrl.searchParams.get('url') ?? '').hostname).toBe('www.booking.com')
+  } finally {
+    restoreEnvironment()
+  }
+})
+
+test('an exact CID property resolves every provider even when the planner name is only Chinese', async () => {
+  const restoreEnvironment = withSerpApi()
+  let fetchCount = 0
+  const propertyToken = 'exact-cid-taipei-property-token'
+  globalThis.fetch = (async (input) => {
+    fetchCount += 1
+    const url = new URL(String(input))
+    expect(url.searchParams.get('engine')).toBe('google_hotels')
+    expect(url.searchParams.get('property_token')).toBe(propertyToken)
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      name: 'Guide Hotel Taipei Chongqing',
+      property_token: propertyToken,
+      gps_coordinates: { latitude: 25.051895, longitude: 121.513832 },
+      prices: [
+        {
+          source: 'Trip.com',
+          link: 'https://tw.trip.com/hotels/taipei-hotel-detail-668062/fortune-hiya-hotel/',
+        },
+        {
+          source: 'Agoda',
+          link: 'https://www.agoda.com/partners/partnersearch.aspx?hid=1986603',
+        },
+        {
+          source: 'Booking.com',
+          link: 'https://www.booking.com/hotel/tw/fortune-haiyatt.html',
+        },
+      ],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  try {
+    const result = await searchExactGoogleHotelsAffiliateSources({
+      propertyToken,
+      propertyName: 'Guide Hotel Taipei Chongqing',
+      hotelName: '承攜行旅 - 台北重慶',
+      countryCode: 'TW',
+      city: 'Taipei',
+      latitude: 25.051895,
+      longitude: 121.513832,
+    })
+
+    expect(fetchCount).toBe(1)
+    expect(result?.matchStatus).toBe('matched')
+    expect(result?.requestCount).toBe(1)
+    expect(result?.agoda?.hotelId).toBe('1986603')
+    expect(result?.trip?.hotelId).toBe('668062')
+    expect(result?.booking?.hotelId).toBe('tw/fortune-haiyatt')
+    expect(result?.agoda?.score).toBe(1)
+    expect(result?.trip?.score).toBe(1)
+    expect(result?.booking?.score).toBe(1)
+  } finally {
+    restoreEnvironment()
+  }
+})
+
+test('an exact property token still rejects coordinates from a different place', async () => {
+  const restoreEnvironment = withSerpApi()
+  globalThis.fetch = (async () => new Response(JSON.stringify({
+    search_metadata: { status: 'Success' },
+    name: 'Different City Hotel',
+    property_token: 'exact-cid-coordinate-conflict-token',
+    gps_coordinates: { latitude: 24.147736, longitude: 120.673648 },
+    prices: [{
+      source: 'Agoda',
+      link: 'https://www.agoda.com/partners/partnersearch.aspx?hid=99999999',
+    }],
+  }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch
+
+  try {
+    const result = await searchExactGoogleHotelsAffiliateSources({
+      propertyToken: 'exact-cid-coordinate-conflict-token',
+      hotelName: '台北測試旅館',
+      countryCode: 'TW',
+      latitude: 25.051895,
+      longitude: 121.513832,
+    })
+
+    expect(result?.matchStatus).toBe('no_match')
+    expect(result?.agoda).toBeUndefined()
+    expect(result?.trip).toBeUndefined()
+    expect(result?.booking).toBeUndefined()
   } finally {
     restoreEnvironment()
   }

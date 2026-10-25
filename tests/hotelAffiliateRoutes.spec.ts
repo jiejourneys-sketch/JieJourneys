@@ -698,6 +698,7 @@ test('the combined route resolves all providers for a previously unseen hotel wi
           hotelName: 'Unseen Riverside Hotel Kyoto',
           googlePlaceName: 'Unseen Riverside Hotel Kyoto',
           googlePlaceId: 'ChIJ-unseen-riverside-hotel-kyoto',
+          googleMapsDataId: '0xabcdef123456:0x112210f47de98115',
           city: 'Kyoto',
           countryCode: 'JP',
           lat: 35.012345,
@@ -726,6 +727,107 @@ test('the combined route resolves all providers for a previously unseen hotel wi
     else delete process.env.SERPAPI_API_KEY
     if (typeof previousTripSearchProvider === 'string') process.env.TRIP_SEARCH_PROVIDER = previousTripSearchProvider
     else delete process.env.TRIP_SEARCH_PROVIDER
+  }
+})
+
+test('the combined route rescues an unresolved Chinese hotel with its exact Google Maps CID', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const requestedUrls: URL[] = []
+  const hotelName = '測試河畔旅宿'
+  const canonicalName = 'Exact Riverside Hotel Taiwan Q271'
+  const propertyToken = 'exact-riverside-taiwan-property-token-q271'
+  process.env.SERPAPI_API_KEY = 'combined-route-exact-cid-q271'
+
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    requestedUrls.push(url)
+    const engine = url.searchParams.get('engine')
+
+    if (engine === 'google_hotels' && !url.searchParams.has('property_token')) {
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        properties: [],
+      })
+    }
+
+    if (engine === 'google_hotels_autocomplete') {
+      expect(url.searchParams.get('q')).toBe(`${hotelName} Taipei`)
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        suggestions: [{
+          type: 'accommodation',
+          value: canonicalName,
+          location: 'Taipei, Taiwan',
+          data_cid: '1234567890123456789',
+          property_token: propertyToken,
+        }],
+      })
+    }
+
+    if (engine === 'google_hotels' && url.searchParams.get('property_token') === propertyToken) {
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        name: canonicalName,
+        property_token: propertyToken,
+        gps_coordinates: { latitude: 2, longitude: 2 },
+        prices: [{
+          source: 'Agoda',
+          link: 'https://www.agoda.com/partners/partnersearch.aspx?hid=27127127',
+        }],
+      })
+    }
+
+    throw new Error(`unexpected combined exact-CID request ${requestedUrls.length}: ${engine ?? 'missing-engine'}`)
+  }) as typeof fetch
+
+  try {
+    const response = await postHotelAffiliateResolution(new NextRequest(
+      'http://localhost/api/pass-planner/hotel-affiliate/resolve',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          hotelName,
+          googlePlaceName: hotelName,
+          name: hotelName,
+          googlePlaceId: 'ChIJ-combined-exact-cid-q271',
+          googleMapsDataId: '0xabcdef123456:0x112210f47de98115',
+          city: 'Taipei',
+          countryCode: 'TW',
+          lat: 2,
+          lng: 2,
+          lodgingHint: true,
+          googlePlaceTypes: ['lodging'],
+          providers: ['Agoda'],
+        }),
+      },
+    ))
+    const result = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(requestedUrls.map((url) => url.searchParams.get('engine'))).toEqual([
+      'google_hotels',
+      'google_hotels_autocomplete',
+      'google_hotels',
+    ])
+    expect(result.exactCidStatus).toBe('matched')
+    expect(result.exactCidRequestCount).toBe(2)
+    expect(result.agoda).toMatchObject({
+      matchStatus: 'matched',
+      confidence: 'high',
+      discoveryMethod: 'google_hotels',
+      identityMethod: 'google_maps_cid',
+      providerRequestCount: 3,
+      bestMatch: {
+        hotelId: '27127127',
+        hotelName: canonicalName,
+        score: 1,
+      },
+    })
+  } finally {
+    globalThis.fetch = previousFetch
+    restoreHotelAffiliateRouteEnvironment('SERPAPI_API_KEY', previousSerpApiKey)
   }
 })
 

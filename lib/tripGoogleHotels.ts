@@ -122,6 +122,38 @@ export type BookingGoogleHotelsSearchResponse = BookingAffiliateSearchResponse &
   googleHotelsFailureReason?: GoogleHotelsBookingDiscovery['failureReason']
 }
 
+export type ExactGoogleHotelsAffiliateSourcesInput = {
+  propertyToken: string
+  propertyName?: string
+  hotelName: string
+  alternateHotelNames?: string[]
+  googlePlaceId?: string
+  city?: string
+  countryCode?: string
+  latitude?: number
+  longitude?: number
+  checkInDate?: string
+  checkOutDate?: string
+  tripSub1?: string
+  tripSub3?: string
+  adults?: number
+  children?: number
+  rooms?: number
+  currency?: string
+  language?: string
+}
+
+export type ExactGoogleHotelsAffiliateSourcesDiscovery = {
+  matchStatus: 'matched' | 'no_match' | 'search_error'
+  propertyToken: string
+  propertyName?: string
+  trip?: TripAffiliateHotelCandidate
+  agoda?: AgodaAffiliateHotelCandidate
+  booking?: BookingAffiliateHotelCandidate
+  requestCount: number
+  error?: string
+}
+
 const resultCache = new Map<string, { expiresAt: number; response: TripAffiliateSearchResponse }>()
 const resultRequests = new Map<string, Promise<TripAffiliateSearchResponse>>()
 const payloadCache = new Map<string, { expiresAt: number; payload: GoogleHotelsPayload }>()
@@ -452,6 +484,145 @@ export async function searchBookingAffiliateHotelByGoogleHotelsPropertyToken(
       discoveryMethod: 'google_hotels',
       searchUrl,
       providerRequestCount: googleHotelsRequestCountFromError(error),
+      error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_property_search_failed',
+    }
+  }
+}
+
+/**
+ * Reads all supported booking sources from one Google Hotels property that
+ * has already been proven to match the Google Maps CID. The property-details
+ * payload is fetched once and the same immutable identity is used for Agoda,
+ * Trip and Booking, so translated names never need to be treated as proof.
+ */
+export async function searchExactGoogleHotelsAffiliateSources(
+  input: ExactGoogleHotelsAffiliateSourcesInput,
+): Promise<ExactGoogleHotelsAffiliateSourcesDiscovery | null> {
+  const apiKey = process.env.SERPAPI_API_KEY?.trim() ?? ''
+  if (!apiKey || !plannerSerpApiIsEnabled()) return null
+
+  const propertyToken = cleanGoogleHotelsPropertyToken(input.propertyToken)
+  if (!propertyToken) return null
+  const hotelNames = buildHotelAffiliateSearchNames({
+    verifiedNames: input.propertyName ? [input.propertyName] : undefined,
+    googlePlaceName: input.hotelName,
+    alternateNames: input.alternateHotelNames,
+    maxNames: 3,
+  })
+  const hotelName = hotelNames[0] ?? input.hotelName.trim().slice(0, 160)
+  const alternateHotelNames = hotelNames.slice(1)
+  const latitude = cleanCoordinate(input.latitude, -90, 90)
+  const longitude = cleanCoordinate(input.longitude, -180, 180)
+  const city = cleanText(input.city, 80)
+  const countryCode = cleanText(input.countryCode, 2).toUpperCase()
+  const googlePlaceId = cleanText(input.googlePlaceId, 180)
+  const query: TripAffiliateSearchResponse['query'] = {
+    hotelName,
+    alternateHotelNames,
+    ...(googlePlaceId ? { googlePlaceId } : {}),
+    ...(city ? { city } : {}),
+    ...(countryCode ? { countryCode } : {}),
+    ...(latitude != null ? { latitude } : {}),
+    ...(longitude != null ? { longitude } : {}),
+    maxResult: 5,
+  }
+  const dateRange = buildDateRanges(input.checkInDate, input.checkOutDate)[0]
+
+  try {
+    const fetchOutcome = await fetchGoogleHotelsAfter(apiKey, {
+      hotelName,
+      city,
+      countryCode,
+      dateRange,
+      propertyToken,
+    }, 0)
+    const property = readTopLevelProperty(fetchOutcome.payload)
+    if (!property || (property.propertyToken && property.propertyToken !== propertyToken)) {
+      return {
+        matchStatus: 'no_match',
+        propertyToken,
+        requestCount: fetchOutcome.requestCount,
+      }
+    }
+
+    const mergedProperty: CleanGoogleHotelsProperty = {
+      ...property,
+      propertyToken: property.propertyToken || propertyToken,
+      name: property.name || cleanText(input.propertyName, 160) || hotelName,
+    }
+    const distanceKm = propertyDistanceKm(mergedProperty, query)
+    // The exact CID/property-token pair is the primary identity proof. Keep a
+    // coordinate guard as defence in depth when Google returns coordinates;
+    // a stale or mixed client payload must never become a provider link.
+    if (Number.isFinite(distanceKm) && distanceKm > 2) {
+      return {
+        matchStatus: 'no_match',
+        propertyToken,
+        propertyName: mergedProperty.name,
+        requestCount: fetchOutcome.requestCount,
+      }
+    }
+
+    const evaluation = evaluateGoogleHotelsProperty(mergedProperty, query)
+    const exactEvaluation = { ...evaluation, score: 1, matchStatus: 'matched' as const }
+    const tripConfig = getTripAffiliatePublicConfig()
+    const agodaConfig = getAgodaAffiliatePublicConfig()
+    const tripInput: TripAffiliateSearchInput = {
+      hotelName,
+      alternateHotelNames,
+      googlePlaceId,
+      city,
+      countryCode,
+      latitude,
+      longitude,
+      tripSub1: input.tripSub1,
+      tripSub3: input.tripSub3,
+      checkInDate: input.checkInDate,
+      checkOutDate: input.checkOutDate,
+    }
+    const agodaInput: AgodaAffiliateSearchInput = {
+      hotelName,
+      alternateHotelNames,
+      googlePlaceId,
+      city,
+      countryCode,
+      latitude,
+      longitude,
+      checkInDate: input.checkInDate,
+      checkOutDate: input.checkOutDate,
+      adults: input.adults,
+      children: input.children,
+      rooms: input.rooms,
+      currency: input.currency,
+      language: input.language,
+    }
+    const trip = tripCandidateFromGoogleHotelsProperty(mergedProperty, exactEvaluation, {
+      input: tripInput,
+      allianceId: tripConfig.allianceId,
+      sid: tripConfig.sid,
+      sub1: tripConfig.sub1,
+      sub3: tripConfig.sub3,
+    }, query)
+    const agoda = agodaCandidateFromGoogleHotelsProperty(mergedProperty, exactEvaluation, {
+      input: agodaInput,
+      cid: agodaConfig.cid,
+    }, query)
+    const booking = bookingCandidateFromGoogleHotelsProperty(mergedProperty, exactEvaluation, query)
+
+    return {
+      matchStatus: trip || agoda || booking ? 'matched' : 'no_match',
+      propertyToken,
+      propertyName: mergedProperty.name,
+      ...(trip ? { trip } : {}),
+      ...(agoda ? { agoda } : {}),
+      ...(booking ? { booking } : {}),
+      requestCount: fetchOutcome.requestCount,
+    }
+  } catch (error) {
+    return {
+      matchStatus: 'search_error',
+      propertyToken,
+      requestCount: googleHotelsRequestCountFromError(error),
       error: error instanceof Error ? error.message.slice(0, 120) : 'google_hotels_property_search_failed',
     }
   }
