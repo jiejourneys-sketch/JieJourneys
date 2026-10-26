@@ -3015,6 +3015,25 @@
   right: 6px;
 }
 
+.plannerPhotoOverviewEmpty {
+  display: grid;
+  max-width: 360px;
+  gap: 8px;
+  padding: 28px;
+  color: #cbd5e1;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.plannerPhotoOverviewEmpty strong {
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.plannerPhotoOverviewEmpty span {
+  font-size: 14px;
+}
+
 @media (hover: hover) {
   .plannerImageRemoveButton {
     opacity: 0;

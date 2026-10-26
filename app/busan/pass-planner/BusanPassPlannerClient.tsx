@@ -6689,6 +6689,108 @@ function PlannerImagesPanel({
   )
 }
 
+function PlannerPhotoOverview({
+  images,
+  storageKey,
+  onClose,
+}: {
+  images: PlannerCardImage[]
+  storageKey: string
+  onClose: () => void
+}) {
+  const [activeImageId, setActiveImageId] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    try {
+      return window.localStorage.getItem(storageKey)?.trim() ?? ''
+    } catch {
+      return ''
+    }
+  })
+  const storedIndex = images.findIndex((image) => image.id === activeImageId)
+  const activeImageIndex = storedIndex >= 0 ? storedIndex : 0
+  const activeImage = images[activeImageIndex] ?? null
+  usePlannerBodyScrollLock(true)
+
+  const selectImage = useCallback((index: number) => {
+    const image = images[index]
+    if (!image) return
+    setActiveImageId(image.id)
+    try {
+      window.localStorage.setItem(storageKey, image.id)
+    } catch {
+      // The overview still works when private browsing blocks local storage.
+    }
+  }, [images, storageKey])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+      if (event.key === 'ArrowLeft' && activeImageIndex > 0) selectImage(activeImageIndex - 1)
+      if (event.key === 'ArrowRight' && activeImageIndex + 1 < images.length) selectImage(activeImageIndex + 1)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [activeImageIndex, images.length, onClose, selectImage])
+
+  return createPortal(
+    <div className={styles.plannerImageLightbox} role="presentation" onClick={onClose}>
+      <section
+        className={styles.plannerImageLightboxPanel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="planner-photo-overview-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className={styles.plannerImageLightboxHeader}>
+          <span id="planner-photo-overview-title">
+            照片總覽{activeImage ? `・${activeImageIndex + 1} / ${images.length}` : ''}
+          </span>
+          <button type="button" onClick={onClose} aria-label="關閉照片總覽">×</button>
+        </header>
+        <div className={styles.plannerImageLightboxCanvas}>
+          {activeImage ? (
+            <>
+              {activeImageIndex > 0 ? (
+                <button
+                  className={styles.plannerImagePreviousButton}
+                  type="button"
+                  onClick={() => selectImage(activeImageIndex - 1)}
+                  aria-label="上一張照片"
+                >
+                  ‹
+                </button>
+              ) : null}
+              {/* The private signed URL is loaded directly without creating another stored copy. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className={styles.plannerImageLightboxImage}
+                src={activeImage.url}
+                alt={`Planner 照片 ${activeImageIndex + 1}`}
+              />
+              {activeImageIndex + 1 < images.length ? (
+                <button
+                  className={styles.plannerImageNextButton}
+                  type="button"
+                  onClick={() => selectImage(activeImageIndex + 1)}
+                  aria-label="下一張照片"
+                >
+                  ›
+                </button>
+              ) : null}
+            </>
+          ) : (
+            <div className={styles.plannerPhotoOverviewEmpty}>
+              <strong>目前還沒有照片</strong>
+              <span>在行程卡片的「照片」功能上傳後，就會集中顯示在這裡。</span>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>,
+    document.body,
+  )
+}
+
 function PlannerActionPanel({
   panelRef,
   place,
@@ -7756,6 +7858,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [dayViewStorageReadyKey, setDayViewStorageReadyKey] = useState('')
   const [openPlannerMenu, setOpenPlannerMenu] = useState<null | 'day' | 'actions' | 'batch-move'>(null)
   const [preDepartureOpen, setPreDepartureOpen] = useState(false)
+  const [photoOverviewOpen, setPhotoOverviewOpen] = useState(false)
   const [preDepartureTravelers, setPreDepartureTravelers] = useState<PreDepartureTraveler[]>([{ ...PRE_DEPARTURE_OWNER }])
   const [preDepartureActiveTargetId, setPreDepartureActiveTargetId] = useState(PRE_DEPARTURE_OWNER.id)
   const [preDepartureChecked, setPreDepartureChecked] = useState<Record<string, Record<string, true>>>({})
@@ -7786,6 +7889,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const dayViewStorageKey = `${config.storageKey}:day-view:${plannerBookId ?? 'draft'}`
   const preDepartureStorageKey = `${config.storageKey}:pre-departure:${plannerBookId ?? 'draft'}`
   const preDepartureDraftStorageKey = `${config.storageKey}:pre-departure:draft`
+  const photoOverviewStorageKey = `${config.storageKey}:photo-overview:${plannerBookId ?? plannerBookReadToken ?? 'draft'}`
   const inAppPromptIdentity =
     config.initialSearchParams?.[PLANNER_BOOK_PARAM] ??
     config.initialSearchParams?.[PLANNER_PREVIEW_PARAM] ??
@@ -15263,6 +15367,16 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
                           >
                             行前準備
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenPlannerMenu(null)
+                              setPhotoOverviewOpen(true)
+                              trackPlannerEvent('photo_overview_open', { image_count: plannerImages.length })
+                            }}
+                          >
+                            照片總覽
+                          </button>
                           <button type="button" onClick={handleDownloadPdf} disabled={plannedPlaces.length === 0 || pdfDownloading}>
                             {pdfDownloading ? <span className={styles.pdfSpinner} aria-hidden="true" /> : null}
                             <span className={styles.pdfButtonText} aria-live="polite">
@@ -15849,6 +15963,14 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
               return true
             }}
             onClose={() => setPreDepartureOpen(false)}
+          />
+        ) : null}
+
+        {photoOverviewOpen ? (
+          <PlannerPhotoOverview
+            images={plannerImages}
+            storageKey={photoOverviewStorageKey}
+            onClose={() => setPhotoOverviewOpen(false)}
           />
         ) : null}
 
