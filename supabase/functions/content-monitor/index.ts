@@ -1,5 +1,6 @@
 import { load } from "npm:cheerio@1.1.2";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { eventText, telegramGroups } from "./notification.ts";
 
 const REQUEST_TIMEOUT_MS = clampNumber(Deno.env.get("CONTENT_MONITOR_TIMEOUT_MS"), 15_000, 3_000, 45_000);
 const MAX_SITES_PER_RUN = clampNumber(Deno.env.get("CONTENT_MONITOR_MAX_SITES_PER_RUN"), 20, 1, 50);
@@ -12,6 +13,7 @@ const PREVIEW_LENGTH = 12_000;
 const TELEGRAM_TEXT_LIMIT = 3_700;
 const SITE_CLAIM_WINDOW_MS = 2 * 60 * 1_000;
 const MONITOR_METADATA_KEYS = new Set(["source_page_url", "notify_if_matches", "include_attributes", "structured_rows"]);
+const NOISE_QUERY_PARAMETER = /^(?:utm_.+|fbclid|gclid|dclid|msclkid|yclid|_ga|_gl|clickid|cache|cachebuster|cb|ts|timestamp|ver|version|v|_)$/i;
 const STRUCTURED_ROW_SOURCE_URLS = new Set([
   "https://fukuoka-fukkou-wari.jp/",
   "https://saga-ouen.jp/",
@@ -116,6 +118,33 @@ function normalizeLines(value: string) {
     .map((line) => normalizeText(line))
     .filter(Boolean)
     .join("\n");
+}
+
+function canonicalUrl(value: string, baseUrl: string) {
+  const normalized = normalizeText(value);
+  if (!normalized) return "";
+  try {
+    const parsed = new URL(normalized, baseUrl);
+    for (const key of Array.from(parsed.searchParams.keys())) {
+      if (NOISE_QUERY_PARAMETER.test(key)) parsed.searchParams.delete(key);
+    }
+    parsed.searchParams.sort();
+    parsed.hash = "";
+    return parsed.href;
+  } catch {
+    return normalized;
+  }
+}
+
+function canonicalAttribute(attribute: string, value: string, baseUrl: string) {
+  if (attribute === "href" || attribute === "src") return canonicalUrl(value, baseUrl);
+  if (attribute === "srcset") {
+    return value.split(",").map((candidate) => {
+      const [url, ...descriptor] = normalizeText(candidate).split(" ");
+      return [canonicalUrl(url, baseUrl), ...descriptor].filter(Boolean).join(" ");
+    }).filter(Boolean).join(",");
+  }
+  return normalizeText(value);
 }
 
 function preview(value: string | null | undefined, max = PREVIEW_LENGTH) {
@@ -283,11 +312,7 @@ function structuredHtmlRows(
       const links = Array.from(new Set(node.find("a[href]").map((_linkIndex, anchor) => {
         const href = $(anchor).attr("href")?.trim();
         if (!href) return "";
-        try {
-          return new URL(href, baseUrl).href;
-        } catch {
-          return normalizeText(href);
-        }
+        return canonicalUrl(href, baseUrl);
       }).get().filter(Boolean)));
       if (links.length) parts.push(`網址：${links.join("、")}`);
 
@@ -379,10 +404,10 @@ async function fetchContent(site: MonitorSite): Promise<FetchedContent> {
       const attributes = target.find("a[href],img[src],source[srcset],time[datetime]").map((_, element) => {
         const node = $(element);
         const tag = element.tagName?.toLowerCase() ?? "node";
-        const values = ["href", "src", "srcset", "datetime", "alt"]
-          .map((attribute) => node.attr(attribute))
-          .filter((value): value is string => Boolean(value?.trim()))
-          .map((value) => normalizeText(value));
+        const values = ["href", "src", "srcset", "datetime", "alt"].flatMap((attribute) => {
+          const value = node.attr(attribute);
+          return value?.trim() ? [canonicalAttribute(attribute, value, response.url)] : [];
+        });
         return values.length ? `${tag}:${values.join("|")}` : "";
       }).get().filter(Boolean);
       const stateful = target
@@ -426,34 +451,6 @@ function shouldRebaselineAfterResponseShift(site: MonitorSite, state: MonitorSta
   if (shouldStructureRows(site) && !previous.includes("\n") && current.includes("\n")) return true;
   if (site.source_type === "json" && !previous.includes("：") && !/^[{[]/.test(previous) && /^[{[]/.test(current)) return true;
   return previous.length < 80 && current.length > Math.max(240, previous.length * 4);
-}
-
-function eventText(event: MonitorEvent) {
-  if (event.event_type === "change") {
-    return `🔔 ${event.site_name}\n網站內容有更新\n${event.site_url}`;
-  }
-  if (event.event_type === "recovered") {
-    return `✅ ${event.site_name}\n網站已恢復讀取\n${event.site_url}`;
-  }
-  return `⚠️ ${event.site_name}\n網站連續讀取失敗\n${event.site_url}`;
-}
-
-function telegramGroups(events: MonitorEvent[]) {
-  const groups: MonitorEvent[][] = [];
-  let current: MonitorEvent[] = [];
-  let currentLength = 0;
-  for (const event of events) {
-    const itemLength = eventText(event).length + 2;
-    if (current.length > 0 && currentLength + itemLength > TELEGRAM_TEXT_LIMIT) {
-      groups.push(current);
-      current = [];
-      currentLength = 0;
-    }
-    current.push(event);
-    currentLength += itemLength;
-  }
-  if (current.length) groups.push(current);
-  return groups;
 }
 
 async function sendTelegram(text: string) {
@@ -678,7 +675,7 @@ async function deliverPendingEvents() {
   const events = (data ?? []) as MonitorEvent[];
   let notified = 0;
 
-  for (const group of telegramGroups(events)) {
+  for (const group of telegramGroups(events, TELEGRAM_TEXT_LIMIT)) {
     const body = group.map(eventText).join("\n\n");
     try {
       await sendTelegram(body);
