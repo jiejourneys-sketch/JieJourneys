@@ -34,6 +34,34 @@ export type PlannerHotelAffiliateSearchNamesInput = Pick<
 const MAX_HOTEL_NAME_LENGTH = 160
 
 const VERIFIED_HOTEL_AFFILIATE_IDENTITIES: Readonly<Record<string, VerifiedHotelAffiliateIdentity>> = Object.freeze({
+  ChIJAR5GF3CpQjQR_p99Jt8NKdI: Object.freeze({
+    googlePlaceId: 'ChIJAR5GF3CpQjQR_p99Jt8NKdI',
+    canonicalNames: Object.freeze([
+      'Guide Hotel Taipei Chongqing',
+      'Fortune Hiya Hotel',
+      '承攜行旅 - 台北重慶',
+      '承攜行旅-台北重慶',
+    ]),
+    latitude: 25.052001,
+    longitude: 121.51383,
+    countryCode: 'TW',
+    agoda: Object.freeze({
+      hotelId: '1986603',
+      hotelName: 'Guide Hotel Taipei Chongqing',
+      sourceUrl: 'https://www.agoda.com/partners/partnersearch.aspx?hid=1986603',
+    }),
+    trip: Object.freeze({
+      hotelId: '668062',
+      hotelName: 'Guide Hotel Taipei Chongqing',
+      sourceUrl: 'https://tw.trip.com/hotels/taipei-hotel-detail-668062/fortune-hiya-hotel/',
+    }),
+    booking: Object.freeze({
+      hotelId: 'tw/fortune-haiyatt',
+      hotelName: 'Guide Hotel Taipei Chongqing',
+      sourceUrl: 'https://www.booking.com/hotel/tw/fortune-haiyatt.zh-tw.html',
+    }),
+    verifiedAt: '2026-10-26',
+  }),
   ChIJg5skS97mAGARUiYvgZ977MI: Object.freeze({
     googlePlaceId: 'ChIJg5skS97mAGARUiYvgZ977MI',
     canonicalNames: Object.freeze([

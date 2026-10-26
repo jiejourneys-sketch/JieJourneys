@@ -121,6 +121,15 @@ test('returns only manually verified provider identities by Google Place ID', ()
     trip: { hotelId: '121766774' },
     booking: { hotelId: 'jp/xing-ye-nosu-hoshino-homestay-da-ban-fu' },
   })
+  expect(getVerifiedHotelAffiliateIdentity('ChIJAR5GF3CpQjQR_p99Jt8NKdI')).toMatchObject({
+    canonicalNames: expect.arrayContaining([
+      'Guide Hotel Taipei Chongqing',
+      '承攜行旅 - 台北重慶',
+    ]),
+    agoda: { hotelId: '1986603' },
+    trip: { hotelId: '668062' },
+    booking: { hotelId: 'tw/fortune-haiyatt' },
+  })
   expect(getVerifiedHotelAffiliateIdentity('unknown-place-id')).toBeUndefined()
 })
 

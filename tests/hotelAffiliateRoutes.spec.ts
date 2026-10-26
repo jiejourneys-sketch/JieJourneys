@@ -568,6 +568,63 @@ test('the confirmed T-Hotel identity resolves every provider without a search', 
   }
 })
 
+test('the confirmed Guide Hotel Taipei identity is shared across planners without a search', async () => {
+  const previousFetch = globalThis.fetch
+  let fetchCount = 0
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    throw new Error('a shared verified identity must not perform a provider search')
+  }) as typeof fetch
+
+  try {
+    const response = await postHotelAffiliateResolution(new NextRequest(
+      'http://localhost/api/pass-planner/hotel-affiliate/resolve',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          hotelName: '承攜行旅-台北重慶',
+          googlePlaceName: '承攜行旅 - 台北重慶',
+          googlePlaceId: 'ChIJAR5GF3CpQjQR_p99Jt8NKdI',
+          googleMapsDataId: '0x3442a97017461e01:0xd2290ddf267d9ffe',
+          city: '台灣',
+          countryCode: 'TW',
+          lat: 25.052001,
+          lng: 121.51383,
+          lodgingHint: true,
+          googlePlaceTypes: ['lodging'],
+          providers: ['Trip', 'Agoda', 'Booking'],
+        }),
+      },
+    ))
+    const result = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(fetchCount).toBe(0)
+    expect(result.exactCidStatus).toBeUndefined()
+    expect(result.agoda).toMatchObject({
+      matchStatus: 'matched',
+      confidence: 'verified',
+      bestMatch: { hotelId: '1986603' },
+    })
+    expect(result.trip).toMatchObject({
+      matchStatus: 'matched',
+      confidence: 'verified',
+      providerRequestCount: 0,
+      bestMatch: { hotelId: '668062' },
+    })
+    expect(result.booking).toMatchObject({
+      matchStatus: 'matched',
+      confidence: 'verified',
+      providerRequestCount: 0,
+      bestMatch: { hotelId: 'tw/fortune-haiyatt' },
+    })
+    expect(new URL(result.booking.bestMatch.bookingUrl).hostname).toBe('www.jdoqocy.com')
+  } finally {
+    globalThis.fetch = previousFetch
+  }
+})
+
 test('a durable verified identity bypasses provider searches for all routes', async () => {
   const previousFetch = globalThis.fetch
   const previousSupabaseUrl = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL
@@ -824,6 +881,110 @@ test('the combined route rescues an unresolved Chinese hotel with its exact Goog
         hotelName: canonicalName,
         score: 1,
       },
+    })
+  } finally {
+    globalThis.fetch = previousFetch
+    restoreHotelAffiliateRouteEnvironment('SERPAPI_API_KEY', previousSerpApiKey)
+  }
+})
+
+test('the combined CID rescue tries one remaining alias after an autocomplete no-results response', async () => {
+  const previousFetch = globalThis.fetch
+  const previousSerpApiKey = process.env.SERPAPI_API_KEY
+  const requestedUrls: URL[] = []
+  const englishName = 'Bounded Alias Hotel Taiwan Q384'
+  const chineseName = '測試第二名稱旅館 Q384'
+  const propertyToken = 'bounded-alias-taiwan-property-token-q384'
+  process.env.SERPAPI_API_KEY = 'combined-route-bounded-alias-q384'
+
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    requestedUrls.push(url)
+    const engine = url.searchParams.get('engine')
+
+    if (engine === 'google_hotels' && !url.searchParams.has('property_token')) {
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        properties: [],
+      })
+    }
+
+    if (engine === 'google_hotels_autocomplete' && url.searchParams.get('q') === `${englishName} Taipei`) {
+      return hotelAffiliateRouteJsonResponse({
+        error: "Google Hotels Autocomplete hasn't returned any results for this query.",
+        search_metadata: { status: 'Success' },
+      })
+    }
+
+    if (engine === 'google_hotels_autocomplete' && url.searchParams.get('q') === `${chineseName} Taipei`) {
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        suggestions: [{
+          type: 'accommodation',
+          value: englishName,
+          location: 'Taipei, Taiwan',
+          data_cid: '1234567890123456789',
+          property_token: propertyToken,
+        }],
+      })
+    }
+
+    if (engine === 'google_hotels' && url.searchParams.get('property_token') === propertyToken) {
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        name: englishName,
+        property_token: propertyToken,
+        gps_coordinates: { latitude: 2, longitude: 2 },
+        prices: [{
+          source: 'Agoda',
+          link: 'https://www.agoda.com/partners/partnersearch.aspx?hid=38438438',
+        }],
+      })
+    }
+
+    throw new Error(`unexpected bounded-alias request ${requestedUrls.length}: ${engine ?? 'missing-engine'}`)
+  }) as typeof fetch
+
+  try {
+    const response = await postHotelAffiliateResolution(new NextRequest(
+      'http://localhost/api/pass-planner/hotel-affiliate/resolve',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          hotelName: englishName,
+          googlePlaceName: englishName,
+          googlePlaceNameZhTw: chineseName,
+          name: chineseName,
+          googlePlaceId: 'ChIJ-combined-bounded-alias-q384',
+          googleMapsDataId: '0xabcdef123456:0x112210f47de98115',
+          city: 'Taipei',
+          countryCode: 'TW',
+          lat: 2,
+          lng: 2,
+          lodgingHint: true,
+          googlePlaceTypes: ['lodging'],
+          providers: ['Agoda'],
+        }),
+      },
+    ))
+    const result = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(requestedUrls.map((url) => url.searchParams.get('engine'))).toEqual([
+      'google_hotels',
+      'google_hotels',
+      'google_hotels_autocomplete',
+      'google_hotels_autocomplete',
+      'google_hotels',
+    ])
+    expect(result.exactCidStatus).toBe('matched')
+    expect(result.exactCidRequestCount).toBe(3)
+    expect(result.agoda).toMatchObject({
+      matchStatus: 'matched',
+      identityMethod: 'google_maps_cid',
+      providerRequestCount: 5,
+      bestMatch: { hotelId: '38438438', score: 1 },
     })
   } finally {
     globalThis.fetch = previousFetch

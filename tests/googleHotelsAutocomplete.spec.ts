@@ -97,6 +97,33 @@ test('uses a valid alias when the primary hotel name is unusable', async () => {
   expect(result?.requestCount).toBe(1)
 })
 
+test('treats the provider no-results message as a cacheable miss instead of a search error', async () => {
+  let fetchCount = 0
+  globalThis.fetch = (async () => {
+    fetchCount += 1
+    return jsonResponse({
+      error: "Google Hotels Autocomplete hasn't returned any results for this query.",
+      search_metadata: { status: 'Success' },
+    })
+  }) as typeof fetch
+
+  const input = {
+    hotelName: 'No Autocomplete Result Hotel Taipei Q418',
+    city: 'Taipei',
+    countryCode: 'TW',
+    expectedDataCid: '1323456789012345678',
+  }
+  const result = await searchGoogleHotelsAutocompleteProperty(input)
+  const cached = await searchGoogleHotelsAutocompleteProperty(input)
+
+  expect(fetchCount).toBe(1)
+  expect(result?.matchStatus).toBe('no_match')
+  expect(result?.requestCount).toBe(1)
+  expect(result?.error).toBeUndefined()
+  expect(cached?.matchStatus).toBe('no_match')
+  expect(cached?.requestCount).toBe(0)
+})
+
 test('does not spend a request or auto-match without one trustworthy CID', async () => {
   let fetchCount = 0
   globalThis.fetch = (async () => {

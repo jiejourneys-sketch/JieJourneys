@@ -132,6 +132,18 @@ async function fetchAutocompleteDiscovery(options: {
     const payload = (await response.json().catch(() => null)) as AutocompletePayload | null
     if (!payload) throw new Error('serpapi_invalid_response')
     const providerError = cleanError(payload.error)
+    // SerpAPI reports an empty autocomplete result through its `error` field
+    // even though the request itself succeeded. Treat that provider-specific
+    // message as an ordinary miss so the bounded caller may try its one
+    // remaining alias. Authentication, quota and transport failures remain
+    // retryable search errors and still stop the fallback chain.
+    if (providerError && providerErrorMeansNoResults(providerError)) {
+      return {
+        matchStatus: 'no_match',
+        requestCount,
+        query: options.query,
+      }
+    }
     if (providerError) throw new Error(`serpapi_${providerError}`)
     const status = cleanStatus(payload.search_metadata?.status)
     if (status && status !== 'success') throw new Error(`serpapi_${status}`)
@@ -279,6 +291,14 @@ function cleanStatus(value: unknown) {
 
 function cleanError(value: unknown) {
   return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, 80) : ''
+}
+
+function providerErrorMeansNoResults(value: string) {
+  const normalized = value.toLowerCase().replace(/[\u2018\u2019]/g, "'")
+  return normalized.includes("hasn't returned any results") ||
+    normalized.includes('has not returned any results') ||
+    normalized.includes('did not return any results') ||
+    normalized.includes('no results found')
 }
 
 function normalizeComparableText(value: string) {
