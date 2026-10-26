@@ -13,7 +13,7 @@ const PLACE_ID_PATTERN = /^[A-Za-z0-9:_-]{1,120}$/
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-planner-edit-token, x-planner-image-token, x-planner-read-token',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-planner-edit-token, x-planner-image-token',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
 }
 
@@ -232,12 +232,7 @@ async function cleanupOrphanedDeletedAssets(supabase: NonNullable<ReturnType<typ
 }
 
 async function readImages(request: Request, supabase: NonNullable<ReturnType<typeof adminClient>>) {
-  // New standalone image links keep the capability token in the browser URL
-  // fragment, then send it here as a header. Keep `?v=` for existing Planner
-  // pages, which already use that public API contract.
-  const readToken = request.headers.get('x-planner-read-token')?.trim()
-    || new URL(request.url).searchParams.get('v')?.trim()
-    || ''
+  const readToken = new URL(request.url).searchParams.get('v')?.trim() ?? ''
   if (!readToken) return json({ error: 'missing_view_access' }, 400)
   const { data: book } = await supabase
     .from('pass_planner_books')

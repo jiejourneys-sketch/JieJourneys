@@ -22,15 +22,6 @@ type StoredImage = {
   deleted_at: string | null
 }
 
-type PlannerBook = {
-  id: string
-  read_token: string | null
-  city: string
-  created_at: string
-  updated_at: string
-  expires_at: string | null
-}
-
 function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -73,44 +64,6 @@ function requestedIndex(request: Request) {
   return Number.isInteger(value) && value >= 0 && value <= MAX_INDEX ? value : null
 }
 
-async function listPlannerLinks(supabase: NonNullable<ReturnType<typeof adminClient>>) {
-  const [{ data: owned, error: ownedError }, { data: referenced, error: referencedError }] = await Promise.all([
-    supabase.from('pass_planner_images').select('book_id').is('deleted_at', null).limit(5000),
-    supabase.from('pass_planner_image_references').select('book_id').limit(5000),
-  ])
-  if (ownedError || referencedError) return null
-
-  const imageCounts = new Map<string, number>()
-  for (const row of [...(owned ?? []), ...(referenced ?? [])]) {
-    if (typeof row.book_id !== 'string') continue
-    imageCounts.set(row.book_id, (imageCounts.get(row.book_id) ?? 0) + 1)
-  }
-  const bookIds = [...imageCounts.keys()]
-  if (bookIds.length === 0) return []
-
-  const { data: books, error: booksError } = await supabase
-    .from('pass_planner_books')
-    .select('id, read_token, city, created_at, updated_at, expires_at')
-    .in('id', bookIds)
-    .gt('expires_at', new Date().toISOString())
-    .order('updated_at', { ascending: false })
-    .limit(1000)
-  if (booksError) return null
-
-  return ((books ?? []) as PlannerBook[]).flatMap((book) => {
-    if (!book.read_token) return []
-    return [{
-      bookId: book.id,
-      readToken: book.read_token,
-      city: book.city,
-      imageCount: imageCounts.get(book.id) ?? 0,
-      createdAt: book.created_at,
-      updatedAt: book.updated_at,
-      expiresAt: book.expires_at,
-    }]
-  })
-}
-
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'GET') return json({ error: 'method_not_allowed' }, 405)
@@ -124,11 +77,6 @@ Deno.serve(async (request) => {
 
   const supabase = adminClient()
   if (!supabase) return json({ error: 'server_not_configured' }, 503)
-
-  if (new URL(request.url).searchParams.get('mode') === 'planners') {
-    const planners = await listPlannerLinks(supabase)
-    return planners ? json({ planners }) : json({ error: 'load_failed' }, 503)
-  }
 
   const { data, error, count } = await supabase
     .from('pass_planner_images')
@@ -144,11 +92,6 @@ Deno.serve(async (request) => {
   if (!data?.[0]) return json({ error: 'out_of_range', total }, 416)
 
   const row = data[0] as StoredImage
-  const { data: book } = await supabase
-    .from('pass_planner_books')
-    .select('read_token, expires_at')
-    .eq('id', row.book_id)
-    .maybeSingle()
   const { data: signed, error: signedError } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(row.storage_path, 60 * 60)
@@ -168,8 +111,6 @@ Deno.serve(async (request) => {
       bytes: row.bytes,
       createdAt: row.created_at,
       deletedAt: row.deleted_at,
-      readToken: typeof book?.read_token === 'string' ? book.read_token : null,
-      bookExpiresAt: typeof book?.expires_at === 'string' ? book.expires_at : null,
       url: signed.signedUrl,
     },
   })

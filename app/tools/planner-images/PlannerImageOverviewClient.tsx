@@ -13,8 +13,6 @@ type PlannerImage = {
   bytes: number
   createdAt: string
   deletedAt: string | null
-  readToken: string | null
-  bookExpiresAt: string | null
   url: string
 }
 
@@ -22,21 +20,6 @@ type OverviewResponse = {
   image?: PlannerImage | null
   index?: number
   total?: number
-  error?: string
-}
-
-type PlannerLink = {
-  bookId: string
-  readToken: string
-  city: string
-  imageCount: number
-  createdAt: string
-  updatedAt: string
-  expiresAt: string | null
-}
-
-type PlannerLinksResponse = {
-  planners?: PlannerLink[]
   error?: string
 }
 
@@ -56,18 +39,6 @@ function overviewEndpoint(index: number) {
   const url = new URL(`${base}/functions/v1/planner-image-overview`)
   url.searchParams.set('index', String(index))
   return url.toString()
-}
-
-function plannerLinksEndpoint() {
-  const base = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL?.replace(/\/$/, '')
-  if (!base) return ''
-  const url = new URL(`${base}/functions/v1/planner-image-overview`)
-  url.searchParams.set('mode', 'planners')
-  return url.toString()
-}
-
-function userViewerPath(readToken: string) {
-  return `/tools/planner-images/view#v=${encodeURIComponent(readToken)}`
 }
 
 function requestHeaders(adminToken: string) {
@@ -100,9 +71,6 @@ export default function PlannerImageOverviewClient() {
   const [image, setImage] = useState<PlannerImage | null>(null)
   const [index, setIndex] = useState(0)
   const [total, setTotal] = useState(0)
-  const [planners, setPlanners] = useState<PlannerLink[]>([])
-  const [linksBusy, setLinksBusy] = useState(false)
-  const [copiedBookId, setCopiedBookId] = useState('')
   const [authorized, setAuthorized] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -111,7 +79,7 @@ export default function PlannerImageOverviewClient() {
     const endpoint = overviewEndpoint(targetIndex)
     if (!endpoint) {
       setError('缺少 Supabase 網址設定。')
-      return false
+      return
     }
 
     setBusy(true)
@@ -129,7 +97,7 @@ export default function PlannerImageOverviewClient() {
           setAdminToken('')
         }
         setError(ERROR_MESSAGES[code] ?? ERROR_MESSAGES.request_failed)
-        return false
+        return
       }
 
       setAuthorized(true)
@@ -137,30 +105,10 @@ export default function PlannerImageOverviewClient() {
       setImage(payload.image ?? null)
       setIndex(typeof payload.index === 'number' ? payload.index : targetIndex)
       setTotal(typeof payload.total === 'number' ? payload.total : 0)
-      return true
     } catch {
       setError(ERROR_MESSAGES.request_failed)
-      return false
     } finally {
       setBusy(false)
-    }
-  }
-
-  const loadPlannerLinks = async (token: string) => {
-    const endpoint = plannerLinksEndpoint()
-    if (!endpoint) return
-    setLinksBusy(true)
-    try {
-      const response = await fetch(endpoint, {
-        headers: requestHeaders(token),
-        cache: 'no-store',
-      })
-      const payload = (await response.json().catch(() => null)) as PlannerLinksResponse | null
-      if (response.ok && payload && Array.isArray(payload.planners)) {
-        setPlanners(payload.planners)
-      }
-    } finally {
-      setLinksBusy(false)
     }
   }
 
@@ -171,8 +119,7 @@ export default function PlannerImageOverviewClient() {
       setError('請輸入管理密碼。')
       return
     }
-    const unlocked = await loadImage(0, token)
-    if (unlocked) await loadPlannerLinks(token)
+    await loadImage(0, token)
   }
 
   const lock = () => {
@@ -182,27 +129,11 @@ export default function PlannerImageOverviewClient() {
     setImage(null)
     setIndex(0)
     setTotal(0)
-    setPlanners([])
-    setCopiedBookId('')
     setError('')
-  }
-
-  const copyPlannerLink = async (planner: PlannerLink) => {
-    const fullUrl = new URL(userViewerPath(planner.readToken), window.location.origin).toString()
-    try {
-      await navigator.clipboard.writeText(fullUrl)
-      setCopiedBookId(planner.bookId)
-      window.setTimeout(() => setCopiedBookId((current) => current === planner.bookId ? '' : current), 1800)
-    } catch {
-      setError('瀏覽器無法自動複製，請點「開啟」後從網址列複製。')
-    }
   }
 
   const canGoBack = authorized && index > 0 && !busy
   const canGoForward = authorized && index + 1 < total && !busy
-  const currentUserViewerPath = image?.readToken
-    ? userViewerPath(image.readToken)
-    : ''
 
   return (
     <main className={styles.page}>
@@ -242,33 +173,6 @@ export default function PlannerImageOverviewClient() {
           <p className={styles.empty}>目前沒有任何 Planner 照片。</p>
         ) : null}
 
-        {authorized ? (
-          <details className={styles.plannerLinks}>
-            <summary>
-              使用者專屬照片網址（{linksBusy ? '讀取中…' : `${planners.length} 份`}）
-            </summary>
-            <p>每份 Planner 都有不同網址；「複製」後即可傳給該 Planner 的使用者。</p>
-            {planners.length > 0 ? (
-              <div className={styles.plannerLinkList}>
-                {planners.map((planner) => (
-                  <div className={styles.plannerLinkRow} key={planner.bookId}>
-                    <div>
-                      <strong>{planner.city || '未命名 Planner'}</strong>
-                      <span>{planner.bookId}・{planner.imageCount} 張照片・到期 {formatDate(planner.expiresAt ?? '')}</span>
-                    </div>
-                    <div className={styles.plannerLinkActions}>
-                      <a href={userViewerPath(planner.readToken)} rel="noreferrer" target="_blank">開啟</a>
-                      <button type="button" onClick={() => void copyPlannerLink(planner)}>
-                        {copiedBookId === planner.bookId ? '已複製' : '複製'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : !linksBusy ? <p className={styles.empty}>目前沒有含照片的有效 Planner。</p> : null}
-          </details>
-        ) : null}
-
         {authorized && image ? (
           <div className={styles.viewer} aria-busy={busy}>
             <div className={styles.navigation}>
@@ -302,17 +206,6 @@ export default function PlannerImageOverviewClient() {
               <div><dt>建立時間</dt><dd>{formatDate(image.createdAt)}</dd></div>
               <div><dt>圖片大小</dt><dd>{image.width} × {image.height}・{formatBytes(image.bytes)}</dd></div>
               <div><dt>狀態</dt><dd>{image.deletedAt ? '已從來源行程移除（仍被副本使用）' : '使用中'}</dd></div>
-              <div>
-                <dt>使用者照片頁</dt>
-                <dd>
-                  {currentUserViewerPath ? (
-                    <a className={styles.viewerLink} href={currentUserViewerPath} rel="noreferrer" target="_blank">
-                      開啟此 Planner 的專屬唯讀網址
-                    </a>
-                  ) : '此 Planner 沒有唯讀 token'}
-                </dd>
-              </div>
-              <div><dt>Planner 到期時間</dt><dd>{image.bookExpiresAt ? formatDate(image.bookExpiresAt) : '—'}</dd></div>
               <div className={styles.pathRow}><dt>Storage path</dt><dd>{image.storagePath}</dd></div>
             </dl>
           </div>
