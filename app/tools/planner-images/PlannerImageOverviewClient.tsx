@@ -13,6 +13,7 @@ type PlannerImage = {
   bytes: number
   createdAt: string
   deletedAt: string | null
+  plannerUrl: string | null
   url: string
 }
 
@@ -27,18 +28,39 @@ const ERROR_MESSAGES: Record<string, string> = {
   unauthorized: '管理密碼不正確。',
   server_not_configured: '圖片檢視器尚未完成伺服器設定。',
   invalid_index: '照片頁碼不正確。',
+  invalid_image_id: '照片連結不正確。',
+  invalid_book_id: 'Planner 照片連結不正確。',
+  image_not_found: '這張照片已不存在。',
   out_of_range: '這張照片已不存在，請回到上一張。',
   load_failed: '暫時無法讀取照片資料。',
   sign_failed: '暫時無法建立照片檢視網址。',
   request_failed: '連線失敗，請稍後再試。',
 }
 
-function overviewEndpoint(index: number) {
+function overviewEndpoint(index: number, imageId = '', bookId = '') {
   const base = process.env.NEXT_PUBLIC_TRIP_SUPABASE_URL?.replace(/\/$/, '')
   if (!base) return ''
   const url = new URL(`${base}/functions/v1/planner-image-overview`)
   url.searchParams.set('index', String(index))
+  if (imageId) url.searchParams.set('image', imageId)
+  if (bookId) url.searchParams.set('book', bookId)
   return url.toString()
+}
+
+function requestedImageId() {
+  if (typeof window === 'undefined') return ''
+  return new URLSearchParams(window.location.search).get('image')?.trim() ?? ''
+}
+
+function requestedBookId() {
+  if (typeof window === 'undefined') return ''
+  return new URLSearchParams(window.location.search).get('book')?.trim() ?? ''
+}
+
+function imageViewerUrl(imageId: string, bookId = requestedBookId()) {
+  const search = new URLSearchParams({ image: imageId })
+  if (bookId) search.set('book', bookId)
+  return `https://www.jiejourneys.com/tools/planner-images?${search.toString()}`
 }
 
 function requestHeaders(adminToken: string) {
@@ -74,9 +96,11 @@ export default function PlannerImageOverviewClient() {
   const [authorized, setAuthorized] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [copiedLink, setCopiedLink] = useState<'image' | 'planner' | ''>('')
 
-  const loadImage = async (targetIndex: number, token = adminToken) => {
-    const endpoint = overviewEndpoint(targetIndex)
+  const loadImage = async (targetIndex: number, token = adminToken, imageId = '') => {
+    const bookId = requestedBookId()
+    const endpoint = overviewEndpoint(targetIndex, imageId, bookId)
     if (!endpoint) {
       setError('缺少 Supabase 網址設定。')
       return
@@ -105,6 +129,11 @@ export default function PlannerImageOverviewClient() {
       setImage(payload.image ?? null)
       setIndex(typeof payload.index === 'number' ? payload.index : targetIndex)
       setTotal(typeof payload.total === 'number' ? payload.total : 0)
+      if (payload.image?.id) {
+        const search = new URLSearchParams({ image: payload.image.id })
+        if (bookId) search.set('book', bookId)
+        window.history.replaceState(window.history.state, '', `/tools/planner-images?${search.toString()}`)
+      }
     } catch {
       setError(ERROR_MESSAGES.request_failed)
     } finally {
@@ -119,7 +148,7 @@ export default function PlannerImageOverviewClient() {
       setError('請輸入管理密碼。')
       return
     }
-    await loadImage(0, token)
+    await loadImage(0, token, requestedImageId())
   }
 
   const lock = () => {
@@ -129,7 +158,18 @@ export default function PlannerImageOverviewClient() {
     setImage(null)
     setIndex(0)
     setTotal(0)
+    setCopiedLink('')
     setError('')
+  }
+
+  const copyLink = async (kind: 'image' | 'planner', value: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopiedLink(kind)
+      window.setTimeout(() => setCopiedLink((current) => current === kind ? '' : current), 1800)
+    } catch {
+      setError('瀏覽器無法自動複製，請選取網址後手動複製。')
+    }
   }
 
   const canGoBack = authorized && index > 0 && !busy
@@ -201,6 +241,34 @@ export default function PlannerImageOverviewClient() {
             </a>
 
             <dl className={styles.details}>
+              <div className={styles.linkRow}>
+                <dt>圖片檢視網址</dt>
+                <dd>
+                  <input aria-label="圖片檢視網址" readOnly value={imageViewerUrl(image.id)} />
+                  <span className={styles.linkActions}>
+                    <a href={imageViewerUrl(image.id)} rel="noreferrer" target="_blank">開啟</a>
+                    <button type="button" onClick={() => void copyLink('image', imageViewerUrl(image.id))}>
+                      {copiedLink === 'image' ? '已複製' : '複製'}
+                    </button>
+                  </span>
+                </dd>
+              </div>
+              <div className={styles.linkRow}>
+                <dt>Planner 網址</dt>
+                <dd>
+                  {image.plannerUrl ? (
+                    <>
+                      <input aria-label="Planner 網址" readOnly value={image.plannerUrl} />
+                      <span className={styles.linkActions}>
+                        <a href={image.plannerUrl} rel="noreferrer" target="_blank">開啟</a>
+                        <button type="button" onClick={() => void copyLink('planner', image.plannerUrl!)}>
+                          {copiedLink === 'planner' ? '已複製' : '複製'}
+                        </button>
+                      </span>
+                    </>
+                  ) : '此 Planner 沒有可用連結'}
+                </dd>
+              </div>
               <div><dt>Book ID</dt><dd>{image.bookId}</dd></div>
               <div><dt>Place ID</dt><dd>{image.placeId}</dd></div>
               <div><dt>建立時間</dt><dd>{formatDate(image.createdAt)}</dd></div>

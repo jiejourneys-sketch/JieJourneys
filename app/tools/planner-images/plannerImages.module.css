@@ -250,6 +250,59 @@
   line-height: 1.55;
 }
 
+.linkRow {
+  grid-column: 1 / -1;
+}
+
+.linkRow dd {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.linkRow input {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+}
+
+.linkActions {
+  display: flex;
+  gap: 7px;
+}
+
+.linkActions a,
+.linkActions button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: #e8f3f5;
+  color: #176474;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 850;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.linkActions a:hover,
+.linkActions button:hover {
+  background: #d9ecef;
+}
+
 .pathRow {
   grid-column: 1 / -1;
 }
@@ -286,6 +339,15 @@
 
   .details {
     grid-template-columns: 1fr;
+  }
+
+  .linkRow dd {
+    grid-template-columns: 1fr;
+  }
+
+  .linkActions a,
+  .linkActions button {
+    flex: 1 1 0;
   }
 
   .pathRow {

@@ -6706,21 +6706,160 @@ function PlannerPhotoOverview({
       return ''
     }
   })
+  const [imageTransform, setImageTransform] = useState({ scale: 1, x: 0, y: 0 })
+  const imageTransformRef = useRef({ scale: 1, x: 0, y: 0 })
+  const touchRef = useRef<{
+    mode: 'pan' | 'pinch' | null
+    startX: number
+    startY: number
+    startScale: number
+    startDistance: number
+    originX: number
+    originY: number
+  }>({ mode: null, startX: 0, startY: 0, startScale: 1, startDistance: 0, originX: 0, originY: 0 })
+  const pointerRef = useRef<{
+    id: number
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+  } | null>(null)
   const storedIndex = images.findIndex((image) => image.id === activeImageId)
   const activeImageIndex = storedIndex >= 0 ? storedIndex : 0
   const activeImage = images[activeImageIndex] ?? null
   usePlannerBodyScrollLock(true)
 
+  const updateImageTransform = useCallback((next: { scale: number; x: number; y: number }) => {
+    const scale = Math.min(4, Math.max(1, next.scale))
+    const offsetLimit = (scale - 1) * 520
+    const normalized = {
+      scale,
+      x: scale === 1 ? 0 : Math.min(offsetLimit, Math.max(-offsetLimit, next.x)),
+      y: scale === 1 ? 0 : Math.min(offsetLimit, Math.max(-offsetLimit, next.y)),
+    }
+    imageTransformRef.current = normalized
+    setImageTransform(normalized)
+  }, [])
+
+  const resetImageTransform = useCallback(() => {
+    touchRef.current.mode = null
+    pointerRef.current = null
+    updateImageTransform({ scale: 1, x: 0, y: 0 })
+  }, [updateImageTransform])
+
   const selectImage = useCallback((index: number) => {
     const image = images[index]
     if (!image) return
+    resetImageTransform()
     setActiveImageId(image.id)
     try {
       window.localStorage.setItem(storageKey, image.id)
     } catch {
       // The overview still works when private browsing blocks local storage.
     }
-  }, [images, storageKey])
+  }, [images, resetImageTransform, storageKey])
+
+  const zoomImage = (delta: number) => {
+    updateImageTransform({
+      ...imageTransformRef.current,
+      scale: imageTransformRef.current.scale + delta,
+    })
+  }
+
+  const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    const touch = touchRef.current
+    if (event.touches.length >= 2) {
+      const first = event.touches[0]
+      const second = event.touches[1]
+      touch.mode = 'pinch'
+      touch.startDistance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
+      touch.startScale = imageTransformRef.current.scale
+      return
+    }
+    const first = event.touches[0]
+    if (!first) return
+    touch.mode = 'pan'
+    touch.startX = first.clientX
+    touch.startY = first.clientY
+    touch.originX = imageTransformRef.current.x
+    touch.originY = imageTransformRef.current.y
+  }
+
+  const handleTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    if (event.cancelable) event.preventDefault()
+    const touch = touchRef.current
+    if (event.touches.length >= 2) {
+      const first = event.touches[0]
+      const second = event.touches[1]
+      const distance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
+      if (touch.startDistance > 0) {
+        updateImageTransform({
+          ...imageTransformRef.current,
+          scale: touch.startScale * (distance / touch.startDistance),
+        })
+      }
+      return
+    }
+    const first = event.touches[0]
+    if (!first || touch.mode !== 'pan' || imageTransformRef.current.scale <= 1) return
+    updateImageTransform({
+      ...imageTransformRef.current,
+      x: touch.originX + first.clientX - touch.startX,
+      y: touch.originY + first.clientY - touch.startY,
+    })
+  }
+
+  const handleTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    const touch = touchRef.current
+    const remainingTouch = event.touches[0]
+    if (!remainingTouch) {
+      touch.mode = null
+      return
+    }
+    touch.mode = 'pan'
+    touch.startX = remainingTouch.clientX
+    touch.startY = remainingTouch.clientY
+    touch.originX = imageTransformRef.current.x
+    touch.originY = imageTransformRef.current.y
+  }
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse' || imageTransformRef.current.scale <= 1) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    pointerRef.current = {
+      id: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: imageTransformRef.current.x,
+      originY: imageTransformRef.current.y,
+    }
+  }
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const pointer = pointerRef.current
+    if (!pointer || pointer.id !== event.pointerId) return
+    updateImageTransform({
+      ...imageTransformRef.current,
+      x: pointer.originX + event.clientX - pointer.startX,
+      y: pointer.originY + event.clientY - pointer.startY,
+    })
+  }
+
+  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerRef.current?.id !== event.pointerId) return
+    pointerRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    zoomImage(event.deltaY < 0 ? 0.25 : -0.25)
+  }
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -6745,9 +6884,49 @@ function PlannerPhotoOverview({
           <span id="planner-photo-overview-title">
             照片總覽{activeImage ? `・${activeImageIndex + 1} / ${images.length}` : ''}
           </span>
-          <button type="button" onClick={onClose} aria-label="關閉照片總覽">×</button>
+          <div className={styles.plannerPhotoOverviewControls}>
+            {activeImage ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => zoomImage(-0.5)}
+                  disabled={imageTransform.scale <= 1}
+                  aria-label="縮小照片"
+                >
+                  −
+                </button>
+                <span aria-live="polite">{Math.round(imageTransform.scale * 100)}%</span>
+                <button
+                  type="button"
+                  onClick={() => zoomImage(0.5)}
+                  disabled={imageTransform.scale >= 4}
+                  aria-label="放大照片"
+                >
+                  ＋
+                </button>
+              </>
+            ) : null}
+            <button type="button" onClick={onClose} aria-label="關閉照片總覽">×</button>
+          </div>
         </header>
-        <div className={styles.plannerImageLightboxCanvas}>
+        <div
+          className={`${styles.plannerImageLightboxCanvas} ${styles.plannerPhotoOverviewCanvas}`}
+          data-zoomed={imageTransform.scale > 1 ? 'true' : 'false'}
+          onDoubleClick={() => {
+            if (!activeImage) return
+            if (imageTransformRef.current.scale > 1) resetImageTransform()
+            else updateImageTransform({ scale: 2, x: 0, y: 0 })
+          }}
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+        >
           {activeImage ? (
             <>
               {activeImageIndex > 0 ? (
@@ -6766,6 +6945,8 @@ function PlannerPhotoOverview({
                 className={styles.plannerImageLightboxImage}
                 src={activeImage.url}
                 alt={`Planner 照片 ${activeImageIndex + 1}`}
+                draggable={false}
+                style={{ transform: `translate3d(${imageTransform.x}px, ${imageTransform.y}px, 0) scale(${imageTransform.scale})` }}
               />
               {activeImageIndex + 1 < images.length ? (
                 <button

@@ -3034,6 +3034,32 @@
   font-size: 14px;
 }
 
+.plannerPhotoOverviewControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plannerImageLightboxHeader .plannerPhotoOverviewControls > span {
+  min-width: 52px;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.plannerPhotoOverviewControls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+.plannerPhotoOverviewCanvas[data-zoomed='true'] {
+  cursor: grab;
+}
+
+.plannerPhotoOverviewCanvas[data-zoomed='true']:active {
+  cursor: grabbing;
+}
+
 @media (hover: hover) {
   .plannerImageRemoveButton {
     opacity: 0;
