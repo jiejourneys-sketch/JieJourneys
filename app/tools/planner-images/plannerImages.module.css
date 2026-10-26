@@ -250,6 +250,145 @@
   line-height: 1.55;
 }
 
+.viewerLink {
+  color: #176474;
+  font-weight: 850;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.viewerLink:hover {
+  color: #0f5260;
+}
+
+.plannerLinks {
+  margin-top: 22px;
+  border: 1px solid #dce7ea;
+  border-radius: 14px;
+  background: #f8fbfc;
+}
+
+.plannerLinks summary {
+  padding: 15px 17px;
+  color: #243044;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.plannerLinks > p {
+  margin: 0;
+  padding: 0 17px 15px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.plannerLinkList {
+  display: grid;
+  gap: 1px;
+  max-height: 420px;
+  overflow: auto;
+  border-top: 1px solid #dce7ea;
+  background: #dce7ea;
+}
+
+.plannerLinkRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  background: #fff;
+}
+
+.plannerLinkRow strong,
+.plannerLinkRow span {
+  display: block;
+}
+
+.plannerLinkRow strong {
+  color: #243044;
+}
+
+.plannerLinkRow span {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.plannerLinkActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.plannerLinkActions a,
+.plannerLinkActions button {
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: #e8f3f5;
+  color: #176474;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 20px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.plannerLinkActions a:hover,
+.plannerLinkActions button:hover {
+  background: #d9ecef;
+}
+
+.publicNote {
+  max-width: 720px;
+  margin: 12px 0 0;
+  color: #64748b;
+  font-weight: 650;
+  line-height: 1.7;
+}
+
+.publicActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.refreshButton {
+  min-height: 42px;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 11px;
+  background: #e8f3f5;
+  color: #176474;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.refreshButton:hover:not(:disabled) {
+  background: #d9ecef;
+}
+
+.refreshButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.publicStatus {
+  margin: 16px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .pathRow {
   grid-column: 1 / -1;
 }
@@ -286,6 +425,17 @@
 
   .details {
     grid-template-columns: 1fr;
+  }
+
+  .plannerLinkRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .plannerLinkActions a,
+  .plannerLinkActions button {
+    flex: 1 1 0;
+    text-align: center;
   }
 
   .pathRow {
