@@ -6707,6 +6707,8 @@ function PlannerPhotoOverview({
     }
   })
   const [imageTransform, setImageTransform] = useState({ scale: 1, x: 0, y: 0 })
+  const [swipeOffset, setSwipeOffset] = useState(0)
+  const [slideDirection, setSlideDirection] = useState<'next' | 'previous' | null>(null)
   const imageTransformRef = useRef({ scale: 1, x: 0, y: 0 })
   const touchRef = useRef<{
     mode: 'pan' | 'pinch' | null
@@ -6717,7 +6719,20 @@ function PlannerPhotoOverview({
     startDistance: number
     originX: number
     originY: number
-  }>({ mode: null, allowSwipe: false, startX: 0, startY: 0, startScale: 1, startDistance: 0, originX: 0, originY: 0 })
+    centerX: number
+    centerY: number
+  }>({
+    mode: null,
+    allowSwipe: false,
+    startX: 0,
+    startY: 0,
+    startScale: 1,
+    startDistance: 0,
+    originX: 0,
+    originY: 0,
+    centerX: 0,
+    centerY: 0,
+  })
   const suppressCanvasClickRef = useRef(false)
   const pointerRef = useRef<{
     id: number
@@ -6732,7 +6747,8 @@ function PlannerPhotoOverview({
   usePlannerBodyScrollLock(true)
 
   const updateImageTransform = useCallback((next: { scale: number; x: number; y: number }) => {
-    const scale = Math.min(4, Math.max(1, next.scale))
+    const boundedScale = Math.min(4, Math.max(1, next.scale))
+    const scale = boundedScale < 1.001 ? 1 : boundedScale > 3.999 ? 4 : boundedScale
     const offsetLimit = (scale - 1) * 520
     const normalized = {
       scale,
@@ -6746,12 +6762,14 @@ function PlannerPhotoOverview({
   const resetImageTransform = useCallback(() => {
     touchRef.current.mode = null
     pointerRef.current = null
+    setSwipeOffset(0)
     updateImageTransform({ scale: 1, x: 0, y: 0 })
   }, [updateImageTransform])
 
   const selectImage = useCallback((index: number) => {
     const image = images[index]
     if (!image) return
+    setSlideDirection(index > activeImageIndex ? 'next' : index < activeImageIndex ? 'previous' : null)
     resetImageTransform()
     setActiveImageId(image.id)
     try {
@@ -6759,7 +6777,7 @@ function PlannerPhotoOverview({
     } catch {
       // The overview still works when private browsing blocks local storage.
     }
-  }, [images, resetImageTransform, storageKey])
+  }, [activeImageIndex, images, resetImageTransform, storageKey])
 
   const zoomImage = (delta: number) => {
     updateImageTransform({
@@ -6774,10 +6792,18 @@ function PlannerPhotoOverview({
     if (event.touches.length >= 2) {
       const first = event.touches[0]
       const second = event.touches[1]
+      const bounds = event.currentTarget.getBoundingClientRect()
       touch.mode = 'pinch'
       touch.allowSwipe = false
+      touch.startX = (first.clientX + second.clientX) / 2
+      touch.startY = (first.clientY + second.clientY) / 2
       touch.startDistance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
       touch.startScale = imageTransformRef.current.scale
+      touch.originX = imageTransformRef.current.x
+      touch.originY = imageTransformRef.current.y
+      touch.centerX = bounds.left + bounds.width / 2
+      touch.centerY = bounds.top + bounds.height / 2
+      setSwipeOffset(0)
       return
     }
     const first = event.touches[0]
@@ -6788,6 +6814,7 @@ function PlannerPhotoOverview({
     touch.startY = first.clientY
     touch.originX = imageTransformRef.current.x
     touch.originY = imageTransformRef.current.y
+    setSwipeOffset(0)
   }
 
   const handleTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
@@ -6799,15 +6826,32 @@ function PlannerPhotoOverview({
       const second = event.touches[1]
       const distance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
       if (touch.startDistance > 0) {
+        const scale = Math.min(4, Math.max(1, touch.startScale * (distance / touch.startDistance)))
+        const scaleRatio = scale / touch.startScale
+        const midpointX = (first.clientX + second.clientX) / 2
+        const midpointY = (first.clientY + second.clientY) / 2
+        const startFocalX = touch.startX - touch.centerX
+        const startFocalY = touch.startY - touch.centerY
+        const currentFocalX = midpointX - touch.centerX
+        const currentFocalY = midpointY - touch.centerY
         updateImageTransform({
-          ...imageTransformRef.current,
-          scale: touch.startScale * (distance / touch.startDistance),
+          scale,
+          x: currentFocalX - (startFocalX - touch.originX) * scaleRatio,
+          y: currentFocalY - (startFocalY - touch.originY) * scaleRatio,
         })
       }
       return
     }
     const first = event.touches[0]
-    if (!first || touch.mode !== 'pan' || imageTransformRef.current.scale <= 1) return
+    if (!first || touch.mode !== 'pan') return
+    if (imageTransformRef.current.scale <= 1) {
+      if (touch.allowSwipe) {
+        const deltaX = first.clientX - touch.startX
+        const deltaY = first.clientY - touch.startY
+        setSwipeOffset(Math.abs(deltaX) > Math.abs(deltaY) ? Math.min(150, Math.max(-150, deltaX)) : 0)
+      }
+      return
+    }
     updateImageTransform({
       ...imageTransformRef.current,
       x: touch.originX + first.clientX - touch.startX,
@@ -6826,6 +6870,7 @@ function PlannerPhotoOverview({
       const deltaY = canSwipe ? changedTouch.clientY - touch.startY : 0
       touch.mode = null
       touch.allowSwipe = false
+      setSwipeOffset(0)
       if (canSwipe && Math.abs(deltaX) >= 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) {
         suppressCanvasClickRef.current = true
         window.setTimeout(() => {
@@ -6848,6 +6893,7 @@ function PlannerPhotoOverview({
     event.stopPropagation()
     touchRef.current.mode = null
     touchRef.current.allowSwipe = false
+    setSwipeOffset(0)
   }
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -6974,11 +7020,13 @@ function PlannerPhotoOverview({
               {/* The private signed URL is loaded directly without creating another stored copy. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                className={styles.plannerImageLightboxImage}
+                key={activeImage.id}
+                className={`${styles.plannerImageLightboxImage} ${styles.plannerPhotoOverviewImage}`}
                 src={activeImage.url}
                 alt={`Planner 照片 ${activeImageIndex + 1}`}
                 draggable={false}
-                style={{ transform: `translate3d(${imageTransform.x}px, ${imageTransform.y}px, 0) scale(${imageTransform.scale})` }}
+                data-slide-direction={slideDirection ?? undefined}
+                style={{ transform: `translate3d(${imageTransform.x + swipeOffset}px, ${imageTransform.y}px, 0) scale(${imageTransform.scale})` }}
               />
               {activeImageIndex + 1 < images.length ? (
                 <button
