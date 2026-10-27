@@ -6710,13 +6710,15 @@ function PlannerPhotoOverview({
   const imageTransformRef = useRef({ scale: 1, x: 0, y: 0 })
   const touchRef = useRef<{
     mode: 'pan' | 'pinch' | null
+    allowSwipe: boolean
     startX: number
     startY: number
     startScale: number
     startDistance: number
     originX: number
     originY: number
-  }>({ mode: null, startX: 0, startY: 0, startScale: 1, startDistance: 0, originX: 0, originY: 0 })
+  }>({ mode: null, allowSwipe: false, startX: 0, startY: 0, startScale: 1, startDistance: 0, originX: 0, originY: 0 })
+  const suppressCanvasClickRef = useRef(false)
   const pointerRef = useRef<{
     id: number
     startX: number
@@ -6773,6 +6775,7 @@ function PlannerPhotoOverview({
       const first = event.touches[0]
       const second = event.touches[1]
       touch.mode = 'pinch'
+      touch.allowSwipe = false
       touch.startDistance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
       touch.startScale = imageTransformRef.current.scale
       return
@@ -6780,6 +6783,7 @@ function PlannerPhotoOverview({
     const first = event.touches[0]
     if (!first) return
     touch.mode = 'pan'
+    touch.allowSwipe = imageTransformRef.current.scale <= 1
     touch.startX = first.clientX
     touch.startY = first.clientY
     touch.originX = imageTransformRef.current.x
@@ -6816,14 +6820,34 @@ function PlannerPhotoOverview({
     const touch = touchRef.current
     const remainingTouch = event.touches[0]
     if (!remainingTouch) {
+      const changedTouch = event.changedTouches[0]
+      const canSwipe = touch.mode === 'pan' && touch.allowSwipe && imageTransformRef.current.scale <= 1 && changedTouch
+      const deltaX = canSwipe ? changedTouch.clientX - touch.startX : 0
+      const deltaY = canSwipe ? changedTouch.clientY - touch.startY : 0
       touch.mode = null
+      touch.allowSwipe = false
+      if (canSwipe && Math.abs(deltaX) >= 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) {
+        suppressCanvasClickRef.current = true
+        window.setTimeout(() => {
+          suppressCanvasClickRef.current = false
+        }, 400)
+        if (deltaX < 0 && activeImageIndex + 1 < images.length) selectImage(activeImageIndex + 1)
+        if (deltaX > 0 && activeImageIndex > 0) selectImage(activeImageIndex - 1)
+      }
       return
     }
     touch.mode = 'pan'
+    touch.allowSwipe = false
     touch.startX = remainingTouch.clientX
     touch.startY = remainingTouch.clientY
     touch.originX = imageTransformRef.current.x
     touch.originY = imageTransformRef.current.y
+  }
+
+  const handleTouchCancel = (event: ReactTouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    touchRef.current.mode = null
+    touchRef.current.allowSwipe = false
   }
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -6912,6 +6936,14 @@ function PlannerPhotoOverview({
         <div
           className={`${styles.plannerImageLightboxCanvas} ${styles.plannerPhotoOverviewCanvas}`}
           data-zoomed={imageTransform.scale > 1 ? 'true' : 'false'}
+          onClick={(event) => {
+            event.stopPropagation()
+            if (suppressCanvasClickRef.current) {
+              suppressCanvasClickRef.current = false
+              return
+            }
+            if (event.target === event.currentTarget) onClose()
+          }}
           onDoubleClick={() => {
             if (!activeImage) return
             if (imageTransformRef.current.scale > 1) resetImageTransform()
@@ -6921,7 +6953,7 @@ function PlannerPhotoOverview({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerEnd}
