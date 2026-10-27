@@ -4,9 +4,9 @@ import './globals.css'
 import AnalyticsEvents from './components/AnalyticsEvents'
 import BillLogo from './components/BillLogo'
 import { BillPathProvider } from './components/BillPathProvider'
+import { billFeatures, billPageDescription, billPageTitle } from './pageContent'
 
-const desc =
-  '旅杰分帳（JieJourneys Bill）是最簡單好用的旅行分帳工具：免登入建立帳本、多人共同記帳、支出分攤與結帳建議一目了然，快速算清楚每個人該付多少、該收多少。'
+const desc = billPageDescription
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const OG_IMAGE = 'https://www.jiejourneys.com/assets/og-share.png'
@@ -20,6 +20,8 @@ const structuredData = {
   url: BILL_URL,
   applicationCategory: 'FinanceApplication',
   operatingSystem: 'Any',
+  inLanguage: 'zh-Hant',
+  featureList: billFeatures.map((item) => item.title),
   isAccessibleForFree: true,
   offers: {
     '@type': 'Offer',
@@ -31,7 +33,7 @@ const structuredData = {
 export function generateMetadata(): Metadata {
   return {
     metadataBase: new URL(SITE_URL),
-    title: { default: '旅杰分帳｜JieJourneys Bill', template: '%s｜JieJourneys Bill' },
+    title: { default: billPageTitle, template: '%s｜JieJourneys Bill' },
     description: desc,
     alternates: { canonical: BILL_URL },
     icons: { icon: '/assets/logo.jpg', apple: '/assets/logo.jpg' },
@@ -43,13 +45,13 @@ export function generateMetadata(): Metadata {
       type: 'website',
       url: BILL_URL,
       siteName: '旅杰 JieJourneys',
-      title: '旅杰分帳｜JieJourneys Bill',
+      title: billPageTitle,
       description: desc,
       images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: '旅杰分帳 JieJourneys Bill' }]
     },
     twitter: {
       card: 'summary_large_image',
-      title: '旅杰分帳｜JieJourneys Bill',
+      title: billPageTitle,
       description: desc,
       images: [OG_IMAGE]
     }

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Stay22PageScript from '@/components/Stay22PageScript'
 import {
   kyushuTravelSubsidy2026Canonical,
   kyushuTravelSubsidy2026Description,
@@ -39,5 +40,10 @@ export const metadata: Metadata = {
 }
 
 export default function KyushuTravelSubsidy2026Layout({ children }: { children: React.ReactNode }) {
-  return children
+  return (
+    <>
+      <Stay22PageScript pathname="/japan/kyushu-travel-subsidy-2026" scriptId="stay22-kyushu-travel-subsidy-2026" />
+      {children}
+    </>
+  )
 }

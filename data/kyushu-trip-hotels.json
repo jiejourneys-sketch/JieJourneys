@@ -1,13 +1,14 @@
 {
   "retrievedAt": "2026-10-22",
+  "statusVerifiedAt": "2026-10-27",
   "campaignId": "JP-54391",
   "sourceLabel": "Trip.com 九州ふっこう応援割活動頁",
   "prefectures": [
     {
       "id": "nagasaki",
       "name": "長崎",
-      "status": "open",
-      "statusLabel": "目前可查詢",
+      "status": "paused",
+      "statusLabel": "額滿暫停受理",
       "sourceGroupId": 11075,
       "checkedDates": [
         "2026-10-21",
@@ -152,8 +153,8 @@
     {
       "id": "kumamoto",
       "name": "熊本",
-      "status": "open",
-      "statusLabel": "目前可查詢",
+      "status": "paused",
+      "statusLabel": "額滿暫停受理",
       "sourceGroupId": 11072,
       "checkedDates": [
         "2026-10-24",
@@ -241,8 +242,8 @@
     {
       "id": "kagoshima",
       "name": "鹿兒島",
-      "status": "open",
-      "statusLabel": "目前可查詢",
+      "status": "paused",
+      "statusLabel": "額滿暫停受理",
       "sourceGroupId": 11073,
       "checkedDates": [
         "2026-10-24",
@@ -362,7 +363,7 @@
       "id": "fukuoka",
       "name": "福岡",
       "status": "paused",
-      "statusLabel": "補助暫停",
+      "statusLabel": "額滿暫停受理",
       "sourceGroupId": 11100,
       "checkedDates": [
         "2026-10-21",

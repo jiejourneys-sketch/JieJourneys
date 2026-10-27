@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Stay22PageScript from '@/components/Stay22PageScript'
 import {
   busanPreparationGuideCanonical,
   busanPreparationGuideDescription,
@@ -40,5 +41,10 @@ export const metadata: Metadata = {
 }
 
 export default function BusanPreparationGuideLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <Stay22PageScript pathname="/busan/busan-preparation-guide" scriptId="stay22-busan-preparation-guide" />
+      {children}
+    </>
+  )
 }

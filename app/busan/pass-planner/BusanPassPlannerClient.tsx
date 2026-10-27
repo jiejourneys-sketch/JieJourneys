@@ -4229,6 +4229,7 @@ const PRE_DEPARTURE_CATEGORIES: PreDepartureChecklistCategory[] = [
       { id: 'passport', label: '護照' },
       { id: 'visa', label: '簽證' },
       { id: 'flight', label: '機票' },
+      { id: 'travel-insurance', label: '旅平險' },
       { id: 'accommodation', label: '住宿', resourceId: 'hotel' },
       { id: 'tickets', label: '票券', resourceId: 'ticket' },
       { id: 'money', label: '外幣/信用卡' },

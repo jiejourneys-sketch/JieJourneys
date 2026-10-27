@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Stay22PageScript from '@/components/Stay22PageScript'
 import {
   kansaiAirportTerminalGuideCanonical,
   kansaiAirportTerminalGuideDescription,
@@ -37,5 +38,10 @@ export const metadata: Metadata = {
 }
 
 export default function KansaiAirportTerminalGuideLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <Stay22PageScript pathname="/osaka/kansai-airport-terminal-guide" scriptId="stay22-kansai-airport-terminal-guide" />
+      {children}
+    </>
+  )
 }

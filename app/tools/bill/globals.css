@@ -197,7 +197,22 @@
   line-height: 1.8;
 }
 .bill-app .tool-about p{margin:0}
+.bill-app .tool-about > p + p{margin-top:10px}
+.bill-app .tool-about .tool-related-links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 18px;
+  margin-top:12px;
+  font-size:14px;
+  line-height:1.7;
+}
+.bill-app .tool-about .tool-related-links a{
+  color:#176070;
+  text-underline-offset:3px;
+}
+.bill-app .tool-about .tool-related-links a:hover{text-decoration:underline}
 .bill-app .tool-about ul{
+  list-style:disc;
   margin: 0;
   padding-left: 1.35em;
 }

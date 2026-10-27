@@ -321,6 +321,28 @@
   margin: 0;
 }
 
+.seoIntro > p + p {
+  margin-top: 10px;
+}
+
+.toolRelatedLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.toolRelatedLinks a {
+  color: #176070;
+  text-underline-offset: 3px;
+}
+
+.toolRelatedLinks a:hover {
+  text-decoration: underline;
+}
+
 .seoIntro ul {
   margin: 0;
   padding-left: 1.35em;

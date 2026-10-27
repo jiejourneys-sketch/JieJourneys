@@ -39,7 +39,7 @@ const prefectures: PrefectureOption[] = [
     stayEnd: '12/25',
     saleStartsAt: '2026-10-19T04:00:00Z',
     saleEndsAt: '2026-12-25T14:59:00Z',
-    staticState: 'open',
+    staticState: 'paused',
   },
   {
     name: '熊本',
@@ -48,7 +48,7 @@ const prefectures: PrefectureOption[] = [
     stayEnd: '12/25',
     saleStartsAt: '2026-10-22T04:00:00Z',
     saleEndsAt: '2026-12-25T14:59:00Z',
-    staticState: 'open',
+    staticState: 'paused',
   },
   {
     name: '鹿兒島',
@@ -57,7 +57,7 @@ const prefectures: PrefectureOption[] = [
     stayEnd: '2027/1/31',
     saleStartsAt: '2026-10-22T04:00:00Z',
     saleEndsAt: '2027-01-31T14:59:00Z',
-    staticState: 'open',
+    staticState: 'paused',
     exclusion: '12/26～2027/1/3 不適用',
   },
 ]
@@ -99,7 +99,7 @@ function channelState(option: PrefectureOption, now: number): ChannelState {
 }
 
 function stateLabel(state: ChannelState) {
-  if (state === 'paused') return '補助暫停'
+  if (state === 'paused') return '額滿暫停受理'
   if (state === 'scheduled') return '即將開賣'
   if (state === 'ended') return '販售期已結束'
   return '目前可查詢'
@@ -137,10 +137,10 @@ export default function KyushuTripBookingAssistant() {
         <div>
           <p className={styles.eyebrow}>TRIP.COM 補助中文快查</p>
           <h2 className={styles.heading} id="kyushu-booking-assistant-title">
-            先找參與住宿，再到 Trip 選日期
+            Trip 四縣補助皆額滿，先確認是否重開
           </h2>
           <p className={styles.lead}>
-            直接查中文名單，不必在本站重複填日期；選好住宿後，再到 Trip 查一晚是否有補助房型。
+            2026/10/27 查核：福岡、長崎、熊本、鹿兒島均已達預算上限，Trip 已停止受理補助。下方保留曾參與住宿名單，供查詢飯店與一般房價；名單不代表目前仍有補助。
           </p>
         </div>
         <a
@@ -187,10 +187,10 @@ export default function KyushuTripBookingAssistant() {
       <section className={styles.hotelDirectory} id="participant-hotels" aria-labelledby="participant-hotels-title">
         <div className={styles.directoryHeading}>
           <div>
-            <p className={styles.panelEyebrow}>目前公開 {publishedHotelCount} 間</p>
-            <h3 id="participant-hotels-title">快速找參與住宿</h3>
+            <p className={styles.panelEyebrow}>曾參與住宿 {publishedHotelCount} 間</p>
+            <h3 id="participant-hotels-title">查詢曾參與住宿名單</h3>
           </div>
-          <p className={styles.directoryRule}>點住宿 → Trip 選 1 晚 → 確認顯示「九州ふっこう応援割」</p>
+          <p className={styles.directoryRule}>目前補助暫停；一般房價不等於補助方案。</p>
         </div>
 
         <div className={styles.directoryToolbar}>
@@ -219,7 +219,7 @@ export default function KyushuTripBookingAssistant() {
           </label>
         </div>
 
-        <p className={styles.pendingStrip}>熊本、鹿兒島已於 10/22 開賣；顯示的住宿會隨入住日期與剩餘補助房型變動。</p>
+        <p className={styles.pendingStrip}>10/27 狀態複查：四縣皆額滿。住宿名單取自 10/22 查詢結果；若之後重新開放，仍須從 Trip 活動原頁確認指定補助方案。</p>
 
         {visibleHotelCount === 0 ? (
           <div className={styles.emptyState} role="status">
@@ -234,9 +234,9 @@ export default function KyushuTripBookingAssistant() {
                   <h4 id={`${prefecture.id}-hotels-title`}>{prefecture.name} <small>{prefecture.hotels.length} 間</small></h4>
                   <span data-state={prefecture.status}>{prefecture.statusLabel}</span>
                 </div>
-                {prefecture.id === 'fukuoka' && (
+                {prefecture.status === 'paused' && (
                   <p className={styles.groupNotice}>
-                    官方公告補助暫停；大折扣可能是 Trip 特別優惠，看到「九州ふっこう応援割」才算補助。
+                    Trip 公告本縣補助額滿暫停受理。飯店連結仍可比較一般房價，請勿將一般折扣當成本活動補助。
                   </p>
                 )}
 
@@ -248,7 +248,7 @@ export default function KyushuTripBookingAssistant() {
                       href={buildKyushuTripHotelAffiliateUrl(hotel.hotelId)}
                       target="_blank"
                       rel="sponsored noopener noreferrer"
-                      aria-label={`到 Trip 查看 ${hotel.nameZh} 的日期與補助房型`}
+                      aria-label={`到 Trip 查看 ${hotel.nameZh} 的一般房價（補助目前暫停）`}
                       data-event="kyushusubsidy_trip_hotel_outbound"
                       data-platform="Trip.com"
                       data-section="participant_hotels"

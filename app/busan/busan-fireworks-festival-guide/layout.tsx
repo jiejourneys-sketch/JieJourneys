@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Stay22PageScript from '@/components/Stay22PageScript'
 import {
   busanFireworksFestivalGuideCanonical,
   busanFireworksFestivalGuideDescription,
@@ -39,5 +40,10 @@ export const metadata: Metadata = {
 }
 
 export default function BusanFireworksFestivalGuideLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  return (
+    <>
+      <Stay22PageScript pathname="/busan/busan-fireworks-festival-guide" scriptId="stay22-busan-fireworks-festival-guide" />
+      {children}
+    </>
+  )
 }
