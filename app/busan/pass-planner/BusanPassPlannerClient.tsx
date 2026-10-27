@@ -6397,21 +6397,46 @@ function PlannerImagesPanel({
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null)
   const [pendingImageRemoval, setPendingImageRemoval] = useState<PlannerCardImage | null>(null)
   const [lightboxImageTransform, setLightboxImageTransform] = useState({ scale: 1, x: 0, y: 0 })
+  const [lightboxSwipeOffset, setLightboxSwipeOffset] = useState(0)
+  const [lightboxSlideDirection, setLightboxSlideDirection] = useState<'next' | 'previous' | null>(null)
   const lightboxImageTransformRef = useRef({ scale: 1, x: 0, y: 0 })
   const lightboxTouchRef = useRef<{
     mode: 'pan' | 'pinch' | null
+    allowSwipe: boolean
     startX: number
     startY: number
     startScale: number
     startDistance: number
     originX: number
     originY: number
-  }>({ mode: null, startX: 0, startY: 0, startScale: 1, startDistance: 0, originX: 0, originY: 0 })
+    centerX: number
+    centerY: number
+  }>({
+    mode: null,
+    allowSwipe: false,
+    startX: 0,
+    startY: 0,
+    startScale: 1,
+    startDistance: 0,
+    originX: 0,
+    originY: 0,
+    centerX: 0,
+    centerY: 0,
+  })
+  const lightboxSuppressCanvasClickRef = useRef(false)
+  const lightboxPointerRef = useRef<{
+    id: number
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+  } | null>(null)
   const activeImage = activeImageIndex === null ? null : images[activeImageIndex] ?? null
   usePlannerBodyScrollLock(true)
 
   const updateLightboxImageTransform = useCallback((next: { scale: number; x: number; y: number }) => {
-    const scale = Math.min(4, Math.max(1, next.scale))
+    const boundedScale = Math.min(4, Math.max(1, next.scale))
+    const scale = boundedScale < 1.001 ? 1 : boundedScale > 3.999 ? 4 : boundedScale
     const offsetLimit = (scale - 1) * 520
     const normalized = {
       scale,
@@ -6424,28 +6449,35 @@ function PlannerImagesPanel({
 
   const resetLightboxImageTransform = useCallback(() => {
     lightboxTouchRef.current.mode = null
+    lightboxPointerRef.current = null
+    setLightboxSwipeOffset(0)
     updateLightboxImageTransform({ scale: 1, x: 0, y: 0 })
   }, [updateLightboxImageTransform])
 
   const closeActiveImage = useCallback(() => {
     resetLightboxImageTransform()
+    setLightboxSlideDirection(null)
     setActiveImageIndex(null)
   }, [resetLightboxImageTransform])
 
-  const selectActiveImage = useCallback((index: number) => {
+  const selectActiveImage = useCallback((index: number, direction?: 'next' | 'previous' | null) => {
+    if (!images[index]) return
+    setLightboxSlideDirection(
+      direction ?? (activeImageIndex === null ? null : index > activeImageIndex ? 'next' : index < activeImageIndex ? 'previous' : null),
+    )
     resetLightboxImageTransform()
     setActiveImageIndex(index)
-  }, [resetLightboxImageTransform])
+  }, [activeImageIndex, images, resetLightboxImageTransform])
 
   useEffect(() => {
     if (!activeImage) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeActiveImage()
       if (event.key === 'ArrowLeft' && images.length > 1) {
-        selectActiveImage((activeImageIndex === null ? 0 : activeImageIndex - 1 + images.length) % images.length)
+        selectActiveImage((activeImageIndex === null ? 0 : activeImageIndex - 1 + images.length) % images.length, 'previous')
       }
       if (event.key === 'ArrowRight' && images.length > 1) {
-        selectActiveImage((activeImageIndex === null ? 0 : (activeImageIndex + 1) % images.length))
+        selectActiveImage((activeImageIndex === null ? 0 : (activeImageIndex + 1) % images.length), 'next')
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -6455,11 +6487,18 @@ function PlannerImagesPanel({
   const openImage = (index: number) => selectActiveImage(index)
 
   const showPreviousImage = () => {
-    selectActiveImage((activeImageIndex === null ? 0 : activeImageIndex - 1 + images.length) % images.length)
+    selectActiveImage((activeImageIndex === null ? 0 : activeImageIndex - 1 + images.length) % images.length, 'previous')
   }
 
   const showNextImage = () => {
-    selectActiveImage((activeImageIndex === null ? 0 : (activeImageIndex + 1) % images.length))
+    selectActiveImage((activeImageIndex === null ? 0 : (activeImageIndex + 1) % images.length), 'next')
+  }
+
+  const zoomLightboxImage = (delta: number) => {
+    updateLightboxImageTransform({
+      ...lightboxImageTransformRef.current,
+      scale: lightboxImageTransformRef.current.scale + delta,
+    })
   }
 
   const handleLightboxTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
@@ -6468,18 +6507,29 @@ function PlannerImagesPanel({
     if (event.touches.length >= 2) {
       const first = event.touches[0]
       const second = event.touches[1]
+      const bounds = event.currentTarget.getBoundingClientRect()
       touch.mode = 'pinch'
+      touch.allowSwipe = false
+      touch.startX = (first.clientX + second.clientX) / 2
+      touch.startY = (first.clientY + second.clientY) / 2
       touch.startDistance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
       touch.startScale = lightboxImageTransformRef.current.scale
+      touch.originX = lightboxImageTransformRef.current.x
+      touch.originY = lightboxImageTransformRef.current.y
+      touch.centerX = bounds.left + bounds.width / 2
+      touch.centerY = bounds.top + bounds.height / 2
+      setLightboxSwipeOffset(0)
       return
     }
     const first = event.touches[0]
     if (!first) return
     touch.mode = 'pan'
+    touch.allowSwipe = lightboxImageTransformRef.current.scale <= 1
     touch.startX = first.clientX
     touch.startY = first.clientY
     touch.originX = lightboxImageTransformRef.current.x
     touch.originY = lightboxImageTransformRef.current.y
+    setLightboxSwipeOffset(0)
   }
 
   const handleLightboxTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
@@ -6491,15 +6541,32 @@ function PlannerImagesPanel({
       const second = event.touches[1]
       const distance = Math.hypot(second.clientX - first.clientX, second.clientY - first.clientY)
       if (touch.startDistance > 0) {
+        const scale = Math.min(4, Math.max(1, touch.startScale * (distance / touch.startDistance)))
+        const scaleRatio = scale / touch.startScale
+        const midpointX = (first.clientX + second.clientX) / 2
+        const midpointY = (first.clientY + second.clientY) / 2
+        const startFocalX = touch.startX - touch.centerX
+        const startFocalY = touch.startY - touch.centerY
+        const currentFocalX = midpointX - touch.centerX
+        const currentFocalY = midpointY - touch.centerY
         updateLightboxImageTransform({
-          ...lightboxImageTransformRef.current,
-          scale: touch.startScale * (distance / touch.startDistance),
+          scale,
+          x: currentFocalX - (startFocalX - touch.originX) * scaleRatio,
+          y: currentFocalY - (startFocalY - touch.originY) * scaleRatio,
         })
       }
       return
     }
     const first = event.touches[0]
-    if (!first || touch.mode !== 'pan' || lightboxImageTransformRef.current.scale <= 1) return
+    if (!first || touch.mode !== 'pan') return
+    if (lightboxImageTransformRef.current.scale <= 1) {
+      if (touch.allowSwipe && images.length > 1) {
+        const deltaX = first.clientX - touch.startX
+        const deltaY = first.clientY - touch.startY
+        setLightboxSwipeOffset(Math.abs(deltaX) > Math.abs(deltaY) ? Math.min(150, Math.max(-150, deltaX)) : 0)
+      }
+      return
+    }
     updateLightboxImageTransform({
       ...lightboxImageTransformRef.current,
       x: touch.originX + first.clientX - touch.startX,
@@ -6512,14 +6579,75 @@ function PlannerImagesPanel({
     const touch = lightboxTouchRef.current
     const remainingTouch = event.touches[0]
     if (!remainingTouch) {
+      const changedTouch = event.changedTouches[0]
+      const canSwipe = touch.mode === 'pan'
+        && touch.allowSwipe
+        && lightboxImageTransformRef.current.scale <= 1
+        && images.length > 1
+        && changedTouch
+      const deltaX = canSwipe ? changedTouch.clientX - touch.startX : 0
+      const deltaY = canSwipe ? changedTouch.clientY - touch.startY : 0
       touch.mode = null
+      touch.allowSwipe = false
+      setLightboxSwipeOffset(0)
+      if (canSwipe && Math.abs(deltaX) >= 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.15) {
+        lightboxSuppressCanvasClickRef.current = true
+        window.setTimeout(() => {
+          lightboxSuppressCanvasClickRef.current = false
+        }, 400)
+        if (deltaX < 0) showNextImage()
+        if (deltaX > 0) showPreviousImage()
+      }
       return
     }
     touch.mode = 'pan'
+    touch.allowSwipe = false
     touch.startX = remainingTouch.clientX
     touch.startY = remainingTouch.clientY
     touch.originX = lightboxImageTransformRef.current.x
     touch.originY = lightboxImageTransformRef.current.y
+  }
+
+  const handleLightboxTouchCancel = (event: ReactTouchEvent<HTMLDivElement>) => {
+    event.stopPropagation()
+    lightboxTouchRef.current.mode = null
+    lightboxTouchRef.current.allowSwipe = false
+    setLightboxSwipeOffset(0)
+  }
+
+  const handleLightboxPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse' || lightboxImageTransformRef.current.scale <= 1) return
+    event.currentTarget.setPointerCapture(event.pointerId)
+    lightboxPointerRef.current = {
+      id: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: lightboxImageTransformRef.current.x,
+      originY: lightboxImageTransformRef.current.y,
+    }
+  }
+
+  const handleLightboxPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const pointer = lightboxPointerRef.current
+    if (!pointer || pointer.id !== event.pointerId) return
+    updateLightboxImageTransform({
+      ...lightboxImageTransformRef.current,
+      x: pointer.originX + event.clientX - pointer.startX,
+      y: pointer.originY + event.clientY - pointer.startY,
+    })
+  }
+
+  const handleLightboxPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (lightboxPointerRef.current?.id !== event.pointerId) return
+    lightboxPointerRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  const handleLightboxWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    zoomLightboxImage(event.deltaY < 0 ? 0.25 : -0.25)
   }
 
   return (
@@ -6622,26 +6750,66 @@ function PlannerImagesPanel({
                 aria-modal="true"
                 aria-label={`${placeName} 放大照片`}
                 onClick={(event) => event.stopPropagation()}
-              >
-                <header className={styles.plannerImageLightboxHeader}>
-                  <span>{activeImageIndex! + 1} / {images.length}</span>
-                  <button type="button" onClick={closeActiveImage} aria-label="關閉放大照片">×</button>
-                </header>
-                <div
-                  className={styles.plannerImageLightboxCanvas}
-                  onTouchStart={handleLightboxTouchStart}
-                  onTouchMove={handleLightboxTouchMove}
-                  onTouchEnd={handleLightboxTouchEnd}
-                  onTouchCancel={handleLightboxTouchEnd}
                 >
+                  <header className={styles.plannerImageLightboxHeader}>
+                    <span>{activeImageIndex! + 1} / {images.length}</span>
+                    <div className={styles.plannerPhotoOverviewControls}>
+                      <button
+                        type="button"
+                        onClick={() => zoomLightboxImage(-0.5)}
+                        disabled={lightboxImageTransform.scale <= 1}
+                        aria-label="縮小照片"
+                      >
+                        −
+                      </button>
+                      <span aria-live="polite">{Math.round(lightboxImageTransform.scale * 100)}%</span>
+                      <button
+                        type="button"
+                        onClick={() => zoomLightboxImage(0.5)}
+                        disabled={lightboxImageTransform.scale >= 4}
+                        aria-label="放大照片"
+                      >
+                        ＋
+                      </button>
+                      <button type="button" onClick={closeActiveImage} aria-label="關閉放大照片">×</button>
+                    </div>
+                  </header>
+                  <div
+                    className={`${styles.plannerImageLightboxCanvas} ${styles.plannerPhotoOverviewCanvas}`}
+                    data-zoomed={lightboxImageTransform.scale > 1 ? 'true' : 'false'}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      if (lightboxSuppressCanvasClickRef.current) {
+                        lightboxSuppressCanvasClickRef.current = false
+                        return
+                      }
+                      if (event.target === event.currentTarget) closeActiveImage()
+                    }}
+                    onDoubleClick={() => {
+                      if (lightboxImageTransformRef.current.scale > 1) resetLightboxImageTransform()
+                      else updateLightboxImageTransform({ scale: 2, x: 0, y: 0 })
+                    }}
+                    onWheel={handleLightboxWheel}
+                    onTouchStart={handleLightboxTouchStart}
+                    onTouchMove={handleLightboxTouchMove}
+                    onTouchEnd={handleLightboxTouchEnd}
+                    onTouchCancel={handleLightboxTouchCancel}
+                    onPointerDown={handleLightboxPointerDown}
+                    onPointerMove={handleLightboxPointerMove}
+                    onPointerUp={handleLightboxPointerEnd}
+                    onPointerCancel={handleLightboxPointerEnd}
+                  >
                   {images.length > 1 ? (
                     <button className={styles.plannerImagePreviousButton} type="button" onClick={showPreviousImage} aria-label="上一張照片">‹</button>
                   ) : null}
                   <img
-                    className={styles.plannerImageLightboxImage}
+                    key={activeImage.id}
+                    className={`${styles.plannerImageLightboxImage} ${styles.plannerPhotoOverviewImage}`}
                     src={activeImage.url}
                     alt={`${placeName} 的放大照片`}
-                    style={{ transform: `translate3d(${lightboxImageTransform.x}px, ${lightboxImageTransform.y}px, 0) scale(${lightboxImageTransform.scale})` }}
+                    draggable={false}
+                    data-slide-direction={lightboxSlideDirection ?? undefined}
+                    style={{ transform: `translate3d(${lightboxImageTransform.x + lightboxSwipeOffset}px, ${lightboxImageTransform.y}px, 0) scale(${lightboxImageTransform.scale})` }}
                   />
                   {images.length > 1 ? (
                     <button className={styles.plannerImageNextButton} type="button" onClick={showNextImage} aria-label="下一張照片">›</button>
