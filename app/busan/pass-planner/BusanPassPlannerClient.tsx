@@ -6430,6 +6430,7 @@ function PlannerImagesPanel({
     startY: number
     originX: number
     originY: number
+    moved: boolean
   } | null>(null)
   const activeImage = activeImageIndex === null ? null : images[activeImageIndex] ?? null
   usePlannerBodyScrollLock(true)
@@ -6624,21 +6625,32 @@ function PlannerImagesPanel({
       startY: event.clientY,
       originX: lightboxImageTransformRef.current.x,
       originY: lightboxImageTransformRef.current.y,
+      moved: false,
     }
   }
 
   const handleLightboxPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const pointer = lightboxPointerRef.current
     if (!pointer || pointer.id !== event.pointerId) return
+    const deltaX = event.clientX - pointer.startX
+    const deltaY = event.clientY - pointer.startY
+    if (Math.hypot(deltaX, deltaY) >= 4) pointer.moved = true
     updateLightboxImageTransform({
       ...lightboxImageTransformRef.current,
-      x: pointer.originX + event.clientX - pointer.startX,
-      y: pointer.originY + event.clientY - pointer.startY,
+      x: pointer.originX + deltaX,
+      y: pointer.originY + deltaY,
     })
   }
 
   const handleLightboxPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (lightboxPointerRef.current?.id !== event.pointerId) return
+    const pointer = lightboxPointerRef.current
+    if (!pointer || pointer.id !== event.pointerId) return
+    if (pointer.moved) {
+      lightboxSuppressCanvasClickRef.current = true
+      window.setTimeout(() => {
+        lightboxSuppressCanvasClickRef.current = false
+      }, 400)
+    }
     lightboxPointerRef.current = null
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
@@ -6647,7 +6659,17 @@ function PlannerImagesPanel({
 
   const handleLightboxWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     event.preventDefault()
-    zoomLightboxImage(event.deltaY < 0 ? 0.25 : -0.25)
+    const current = lightboxImageTransformRef.current
+    const nextScale = Math.min(4, Math.max(1, current.scale + (event.deltaY < 0 ? 0.25 : -0.25)))
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const focalX = event.clientX - bounds.left - bounds.width / 2
+    const focalY = event.clientY - bounds.top - bounds.height / 2
+    const scaleRatio = nextScale / current.scale
+    updateLightboxImageTransform({
+      scale: nextScale,
+      x: focalX - (focalX - current.x) * scaleRatio,
+      y: focalY - (focalY - current.y) * scaleRatio,
+    })
   }
 
   return (
@@ -6908,6 +6930,7 @@ function PlannerPhotoOverview({
     startY: number
     originX: number
     originY: number
+    moved: boolean
   } | null>(null)
   const storedIndex = images.findIndex((image) => image.id === activeImageId)
   const activeImageIndex = storedIndex >= 0 ? storedIndex : 0
@@ -7073,21 +7096,32 @@ function PlannerPhotoOverview({
       startY: event.clientY,
       originX: imageTransformRef.current.x,
       originY: imageTransformRef.current.y,
+      moved: false,
     }
   }
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const pointer = pointerRef.current
     if (!pointer || pointer.id !== event.pointerId) return
+    const deltaX = event.clientX - pointer.startX
+    const deltaY = event.clientY - pointer.startY
+    if (Math.hypot(deltaX, deltaY) >= 4) pointer.moved = true
     updateImageTransform({
       ...imageTransformRef.current,
-      x: pointer.originX + event.clientX - pointer.startX,
-      y: pointer.originY + event.clientY - pointer.startY,
+      x: pointer.originX + deltaX,
+      y: pointer.originY + deltaY,
     })
   }
 
   const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (pointerRef.current?.id !== event.pointerId) return
+    const pointer = pointerRef.current
+    if (!pointer || pointer.id !== event.pointerId) return
+    if (pointer.moved) {
+      suppressCanvasClickRef.current = true
+      window.setTimeout(() => {
+        suppressCanvasClickRef.current = false
+      }, 400)
+    }
     pointerRef.current = null
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
@@ -7096,7 +7130,17 @@ function PlannerPhotoOverview({
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     event.preventDefault()
-    zoomImage(event.deltaY < 0 ? 0.25 : -0.25)
+    const current = imageTransformRef.current
+    const nextScale = Math.min(4, Math.max(1, current.scale + (event.deltaY < 0 ? 0.25 : -0.25)))
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const focalX = event.clientX - bounds.left - bounds.width / 2
+    const focalY = event.clientY - bounds.top - bounds.height / 2
+    const scaleRatio = nextScale / current.scale
+    updateImageTransform({
+      scale: nextScale,
+      x: focalX - (focalX - current.x) * scaleRatio,
+      y: focalY - (focalY - current.y) * scaleRatio,
+    })
   }
 
   useEffect(() => {
