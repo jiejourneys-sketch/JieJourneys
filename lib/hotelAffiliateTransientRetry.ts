@@ -4,7 +4,11 @@ export type HotelAffiliateTransientRetryCandidates = Partial<
   Record<HotelAffiliateTransientRetryProvider, string>
 >
 
-export const HOTEL_AFFILIATE_TRANSIENT_RETRY_DELAY_MS = 15_000
+export const HOTEL_AFFILIATE_TRANSIENT_RETRY_DELAYS_MS = [30_000, 5 * 60_000] as const
+
+export function hotelAffiliateTransientRetryDelayMs(completedRetryCount: number) {
+  return HOTEL_AFFILIATE_TRANSIENT_RETRY_DELAYS_MS[completedRetryCount] ?? null
+}
 
 const PROVIDER_ORDER: HotelAffiliateTransientRetryProvider[] = ['Trip', 'Agoda', 'Booking']
 

@@ -61,7 +61,7 @@ import {
 import {
   addHotelAffiliateTransientRetryCandidate,
   eligibleHotelAffiliateTransientRetryProviders,
-  HOTEL_AFFILIATE_TRANSIENT_RETRY_DELAY_MS,
+  hotelAffiliateTransientRetryDelayMs,
   type HotelAffiliateTransientRetryCandidates,
 } from '@/lib/hotelAffiliateTransientRetry'
 import {
@@ -219,6 +219,7 @@ type ActiveHotelAffiliateLookup = {
 }
 type PendingHotelAffiliateTransientRetry = {
   timeout: number
+  retryAt: number
   candidates: HotelAffiliateTransientRetryCandidates
 }
 type NearbyKnownPlacesSuggestion = {
@@ -8230,12 +8231,13 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   // provider searches.
   const hotelAffiliateMetadataRetryTimersRef = useRef<Map<string, { timeout: number; includeBooking: boolean }>>(new Map())
   const hotelAffiliateMetadataRetryUsedRef = useRef<Set<string>>(new Set())
-  // A provider/network failure gets one delayed retry for the exact lodging
-  // identity. Multiple providers that fail together share the same timer and
-  // combined request, while no-match results are never retried here.
+  // A provider/network failure gets two delayed retries for the exact lodging
+  // identity (30 seconds, then 5 minutes). Multiple providers that fail
+  // together share the same timer and combined request, while no-match results
+  // are never retried here.
   const hotelAffiliateTransientRetryTimersRef = useRef<Map<string, PendingHotelAffiliateTransientRetry>>(new Map())
   const hotelAffiliateTransientRetryProvidersRef = useRef<Map<string, Set<HotelAffiliateProvider>>>(new Map())
-  const hotelAffiliateTransientRetryUsedRef = useRef<Map<string, Set<string>>>(new Map())
+  const hotelAffiliateTransientRetryUsedRef = useRef<Map<string, Map<string, number>>>(new Map())
   const removedHotelAffiliateLinksRef = useRef<Map<string, RemovedHotelAffiliateLink>>(new Map())
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
   const placeUserLinksRef = useRef<Record<string, PlannerUserLink[]>>({})
@@ -8493,7 +8495,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     if (requestedProviders.length === 0) return
 
     // A fresh user edit or manual retry supersedes any background retry for
-    // the previous snapshot and starts a new one-retry budget.
+    // the previous snapshot and starts a new bounded retry budget.
     clearHotelAffiliateTransientRetryForCustomPlace(placeId, true)
     hotelAffiliateAutoResolvePlaceIdsRef.current.add(placeId)
     if (requestedProviders.includes('Booking')) bookingAffiliateAutoResolvePlaceIdsRef.current.add(placeId)
@@ -8557,16 +8559,20 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   ) => {
     if (readOnlyPlan) return
 
-    const usedRetries = hotelAffiliateTransientRetryUsedRef.current.get(placeId) ?? new Set<string>()
+    const usedRetries = hotelAffiliateTransientRetryUsedRef.current.get(placeId) ?? new Map<string, number>()
     const retryIdentity = `${provider}|${cacheKey}`
-    if (usedRetries.has(retryIdentity)) return
-    usedRetries.add(retryIdentity)
+    const completedRetryCount = usedRetries.get(retryIdentity) ?? 0
+    const retryDelayMs = hotelAffiliateTransientRetryDelayMs(completedRetryCount)
+    if (retryDelayMs == null) return
+    usedRetries.set(retryIdentity, completedRetryCount + 1)
     hotelAffiliateTransientRetryUsedRef.current.set(placeId, usedRetries)
 
     const pendingRetry = hotelAffiliateTransientRetryTimersRef.current.get(placeId)
     if (pendingRetry) window.clearTimeout(pendingRetry.timeout)
+    const retryAt = Math.max(pendingRetry?.retryAt ?? 0, Date.now() + retryDelayMs)
     const retry: PendingHotelAffiliateTransientRetry = {
       timeout: 0,
+      retryAt,
       candidates: addHotelAffiliateTransientRetryCandidate(
         pendingRetry?.candidates ?? {},
         provider,
@@ -8598,7 +8604,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
         setBookingAffiliateStatus((status) => ({ ...status, [placeId]: 'searching' }))
       }
       setGooglePlaceDetailsRevision((revision) => revision + 1)
-    }, HOTEL_AFFILIATE_TRANSIENT_RETRY_DELAY_MS)
+    }, Math.max(0, retryAt - Date.now()))
     hotelAffiliateTransientRetryTimersRef.current.set(placeId, retry)
   }, [config, readOnlyPlan])
 

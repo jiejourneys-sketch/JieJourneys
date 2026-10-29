@@ -1325,10 +1325,17 @@ test('Booking route resolves an exact Maps CID through autocomplete within five 
       })
     }
 
-    if ((requestedUrls.length === 2 || requestedUrls.length === 3) && engine === 'google') {
+    if (requestedUrls.length === 2 && engine === 'google') {
       return hotelAffiliateRouteJsonResponse({
         search_metadata: { status: 'Success' },
         organic_results: [],
+      })
+    }
+
+    if (requestedUrls.length === 3 && engine === 'booking') {
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        properties: [],
       })
     }
 
@@ -1386,7 +1393,7 @@ test('Booking route resolves an exact Maps CID through autocomplete within five 
     expect(requestedUrls.map((url) => url.searchParams.get('engine'))).toEqual([
       'google_hotels',
       'google',
-      'google',
+      'booking',
       'google_hotels_autocomplete',
       'google_hotels',
     ])
@@ -1420,10 +1427,17 @@ test('Booking route rejects a wrong autocomplete CID without fetching property d
       })
     }
 
-    if ((requestedUrls.length === 2 || requestedUrls.length === 3) && engine === 'google') {
+    if (requestedUrls.length === 2 && engine === 'google') {
       return hotelAffiliateRouteJsonResponse({
         search_metadata: { status: 'Success' },
         organic_results: [],
+      })
+    }
+
+    if (requestedUrls.length === 3 && engine === 'booking') {
+      return hotelAffiliateRouteJsonResponse({
+        search_metadata: { status: 'Success' },
+        properties: [],
       })
     }
 
@@ -1464,7 +1478,7 @@ test('Booking route rejects a wrong autocomplete CID without fetching property d
     expect(requestedUrls.map((url) => url.searchParams.get('engine'))).toEqual([
       'google_hotels',
       'google',
-      'google',
+      'booking',
       'google_hotels_autocomplete',
     ])
     expect(result.matchStatus).toBe('no_match')

@@ -103,23 +103,27 @@ test('uses one bounded organic search and accepts an exact Booking result', asyn
   expect(new URL(result.bestMatch?.bookingUrl ?? '').hostname).toBe('www.jdoqocy.com')
 })
 
-test('automatically retries one broad multilingual Booking search after the exact query misses', async () => {
-  const requestedQueries: string[] = []
+test('uses one date-free Booking directory fallback after the exact web query misses', async () => {
+  const requestedUrls: URL[] = []
   globalThis.fetch = (async (input) => {
     const url = new URL(String(input))
-    const searchQuery = url.searchParams.get('q') ?? ''
-    requestedQueries.push(searchQuery)
-    const organicResults = searchQuery.includes('"')
-      ? []
-      : [{
+    requestedUrls.push(url)
+    if (url.searchParams.get('engine') === 'booking') {
+      return new Response(JSON.stringify({
+        search_metadata: { status: 'Success' },
+        properties: [{
           position: 1,
-          title: '神戶自動搜尋河景住宿, 神戶 (2026 年最新價格)',
+          name: '神戶自動搜尋河景住宿',
           link: 'https://www.booking.com/hotel/jp/automatic-recall-riverside.html',
-          snippet: 'Accommodation in Kobe',
-        }]
+          location: 'Kobe',
+          address: '1-2-3 Harbor Street',
+          gps_coordinates: { latitude: 34.6901, longitude: 135.1955 },
+        }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
     return new Response(JSON.stringify({
       search_metadata: { status: 'Success' },
-      organic_results: organicResults,
+      organic_results: [],
     }), { status: 200, headers: { 'content-type': 'application/json' } })
   }) as typeof fetch
 
@@ -130,13 +134,67 @@ test('automatically retries one broad multilingual Booking search after the exac
     countryCode: 'JP',
   })
 
-  expect(requestedQueries).toEqual([
-    'site:booking.com/hotel/jp/ ("Automatic Recall Riverside" OR "神戶自動搜尋河景住宿") Kobe',
-    'site:booking.com/hotel/jp/ (Automatic Recall Riverside) OR (神戶自動搜尋河景住宿) Kobe',
-  ])
+  expect(requestedUrls).toHaveLength(2)
+  expect(requestedUrls[0].searchParams.get('engine')).toBe('google')
+  expect(requestedUrls[1].searchParams.get('engine')).toBe('booking')
+  expect(requestedUrls[1].searchParams.get('q')).toBe('Automatic Recall Riverside')
+  expect(requestedUrls[1].searchParams.get('check_in_date')).toBeNull()
+  expect(requestedUrls[1].searchParams.get('check_out_date')).toBeNull()
   expect(result.matchStatus).toBe('matched')
   expect(result.bestMatch?.hotelId).toBe('jp/automatic-recall-riverside')
   expect(result.providerRequestCount).toBe(2)
+})
+
+test('recovers a stable Booking URL when Google returns only an opaque redirect', async () => {
+  const requestedEngines: string[] = []
+  globalThis.fetch = (async (input) => {
+    const url = new URL(String(input))
+    const engine = url.searchParams.get('engine') ?? ''
+    requestedEngines.push(engine)
+    if (engine === 'booking') {
+      return new Response(JSON.stringify({
+        search_metadata: { status: 'Success' },
+        properties: [{
+          position: 1,
+          property_id: 6770974,
+          name: 'I Cube Kozu Apartment',
+          link: 'https://www.booking.com/hotel/jp/i-cube-kozu-apartment-da-ban-shi.html?lang=en-us',
+          location: 'Chuo Ward, Osaka',
+          address: 'Chuo-ku Kozu 2-5-2',
+          gps_coordinates: { latitude: 34.6674355, longitude: 135.5105559 },
+        }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } })
+    }
+    return new Response(JSON.stringify({
+      search_metadata: { status: 'Success' },
+      organic_results: [{
+        position: 8,
+        title: 'I Cube Kozu Apartment, Osaka (updated prices for 2027)',
+        link: '/goto?url=CAEShAEBopaque',
+        displayed_link: 'https://www.booking.com › hotel',
+        source: 'Booking.com',
+      }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }) as typeof fetch
+
+  const result = await searchBookingAffiliateHotels({
+    hotelName: 'I Cube Kozu Apartment',
+    alternateHotelNames: ['I Cube Kōzu'],
+    city: 'Osaka',
+    countryCode: 'JP',
+    latitude: 34.6674408,
+    longitude: 135.5105534,
+  })
+
+  expect(requestedEngines).toEqual(['google', 'booking'])
+  expect(result.matchStatus).toBe('matched')
+  expect(result.providerRequestCount).toBe(2)
+  expect(result.bestMatch?.hotelId).toBe('jp/i-cube-kozu-apartment-da-ban-shi')
+  expect(result.bestMatch?.latitude).toBeCloseTo(34.6674355)
+  expect(result.bestMatch?.longitude).toBeCloseTo(135.5105559)
+  const destination = new URL(new URL(result.bestMatch?.bookingUrl ?? '').searchParams.get('url') ?? '')
+  expect(destination.pathname).toBe('/hotel/jp/i-cube-kozu-apartment-da-ban-shi.html')
+  expect(destination.search).toBe('')
 })
 
 test('accepts an exact Booking property with a localized city and annual price suffix', async () => {

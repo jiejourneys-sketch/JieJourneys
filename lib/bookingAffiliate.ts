@@ -78,6 +78,10 @@ type BookingSearchResult = {
   title: string
   snippet: string
   position: number
+  candidateCity?: string
+  candidateCountryCode?: string
+  latitude?: number
+  longitude?: number
 }
 
 type BookingSearchOutcome = {
@@ -177,15 +181,23 @@ export async function searchBookingAffiliateHotels(
     let results: BookingSearchResult[] = []
     let scoredCandidates: ScoredBookingCandidate[] = []
     let classification = classifyBookingCandidates(scoredCandidates)
-    for (const searchQuery of bookingOrganicSearchQueries(query)) {
-      const searchOutcome = await searchBookingResults(query, searchQuery)
-      providerRequestCount += searchOutcome.providerRequestCount
-      results = mergeBookingSearchResults(results, searchOutcome.results)
+    const organicOutcome = await searchBookingResults(query, bookingOrganicSearchQuery(query))
+    providerRequestCount += organicOutcome.providerRequestCount
+    results = mergeBookingSearchResults(results, organicOutcome.results)
+    scoredCandidates = bookingSearchResultsToCandidates(results, query)
+    classification = classifyBookingCandidates(scoredCandidates)
+
+    if (classification.matchStatus !== 'matched' && !classification.ambiguousRunnerUp) {
+      // Google occasionally exposes a real Booking result only through an
+      // opaque `/goto?url=...` token. Waiting longer cannot recover the stable
+      // property path. Use SerpAPI's Booking directory once as the bounded
+      // second request instead. Dates are intentionally omitted: this lookup
+      // needs only the property URL and must not depend on price/availability.
+      const directoryOutcome = await searchBookingDirectoryResults(query)
+      providerRequestCount += directoryOutcome.providerRequestCount
+      results = mergeBookingSearchResults(results, directoryOutcome.results)
       scoredCandidates = bookingSearchResultsToCandidates(results, query)
       classification = classifyBookingCandidates(scoredCandidates)
-      // A confirmed match needs no broader search. Two equally strong matches
-      // are a real identity ambiguity, so another wording should not override it.
-      if (classification.matchStatus === 'matched' || classification.ambiguousRunnerUp) break
     }
     const matchStatus = classification.matchStatus
     const candidates = scoredCandidates.map(({ candidate }) => candidate)
@@ -283,6 +295,10 @@ function bookingSearchResultsToCandidates(
           candidateName,
           candidateSnippet: entry.result.snippet,
           candidateUrl: entry.parsed.toString(),
+          candidateCity: entry.result.candidateCity,
+          candidateCountryCode: entry.result.candidateCountryCode,
+          candidateLatitude: entry.result.latitude,
+          candidateLongitude: entry.result.longitude,
           rankIndex: entry.rankIndex,
         }),
       })),
@@ -309,6 +325,8 @@ function bookingSearchResultsToCandidates(
         title: best.result.title,
         snippet: best.result.snippet,
         ...(alternateNames.length > 0 ? { alternateHotelNames: alternateNames } : {}),
+        ...(best.result.latitude != null ? { latitude: best.result.latitude } : {}),
+        ...(best.result.longitude != null ? { longitude: best.result.longitude } : {}),
       },
       evaluation: best.evaluation,
       rankIndex: best.rankIndex,
@@ -442,20 +460,102 @@ async function searchBookingResults(
   }
 }
 
-function plannerSerpApiSearchAttemptCount(resultOrError: unknown) {
-  return getPlannerSerpApiRequestMetadata(resultOrError)?.searchFetchAttempted ? 1 : 0
+async function searchBookingDirectoryResults(
+  query: BookingAffiliateSearchResponse['query'],
+): Promise<BookingSearchOutcome> {
+  const searchQuery = query.hotelName.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const cacheKey = [
+    'booking-directory-v1',
+    query.countryCode ?? '',
+    searchQuery.toLowerCase(),
+  ].join('|')
+  const cached = resultCache.get(cacheKey)
+  if (cached && cached.expiresAt > Date.now()) {
+    return { results: cached.results, providerRequestCount: 0 }
+  }
+  if (cached) resultCache.delete(cacheKey)
+  const active = activeRequests.get(cacheKey)
+  if (active) {
+    try {
+      return { results: await active, providerRequestCount: 0 }
+    } catch (error) {
+      throw new BookingSearchError(error, 0)
+    }
+  }
+
+  let providerRequestCount = 0
+  const request = (async () => {
+    const url = new URL('https://serpapi.com/search.json')
+    url.searchParams.set('engine', 'booking')
+    url.searchParams.set('q', searchQuery)
+    url.searchParams.set('hl', 'en-us')
+    url.searchParams.set('limit', '25')
+    url.searchParams.set('api_key', process.env.SERPAPI_API_KEY?.trim() ?? '')
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+    try {
+      const response = await fetchPlannerSerpApi(url, { cache: 'no-store', signal: controller.signal })
+      providerRequestCount = plannerSerpApiSearchAttemptCount(response)
+      if (!response.ok) throw new Error(`serpapi_booking_${response.status}`)
+      const payload = await response.json() as {
+        error?: unknown
+        search_metadata?: { status?: unknown }
+        properties?: Array<{
+          position?: unknown
+          name?: unknown
+          link?: unknown
+          location?: unknown
+          address?: unknown
+          gps_coordinates?: { latitude?: unknown; longitude?: unknown }
+        }>
+      }
+      if (typeof payload.error === 'string' && payload.error.trim()) {
+        throw new Error(`serpapi_booking_${payload.error.trim().slice(0, 80)}`)
+      }
+      const status = typeof payload.search_metadata?.status === 'string'
+        ? payload.search_metadata.status.toLowerCase()
+        : ''
+      if (status && status !== 'success') throw new Error(`serpapi_booking_${status.slice(0, 40)}`)
+
+      const results = (payload.properties ?? []).map((property, index) => {
+        const location = cleanText(property.location, 160)
+        const address = cleanText(property.address, 240)
+        const latitude = cleanCoordinate(property.gps_coordinates?.latitude, -90, 90)
+        const longitude = cleanCoordinate(property.gps_coordinates?.longitude, -180, 180)
+        return {
+          url: cleanText(property.link, 2_000),
+          title: cleanText(property.name, 160),
+          snippet: [location, address].filter(Boolean).join(' · '),
+          position: typeof property.position === 'number'
+            ? Math.max(1, Math.round(property.position))
+            : index + 1,
+          ...(location ? { candidateCity: location } : {}),
+          ...(query.countryCode ? { candidateCountryCode: query.countryCode } : {}),
+          ...(latitude != null ? { latitude } : {}),
+          ...(longitude != null ? { longitude } : {}),
+        }
+      }).filter((item) => item.url && item.title)
+      remember(cacheKey, results)
+      return results
+    } catch (error) {
+      providerRequestCount = Math.max(providerRequestCount, plannerSerpApiSearchAttemptCount(error))
+      throw error
+    } finally {
+      clearTimeout(timeout)
+    }
+  })()
+  activeRequests.set(cacheKey, request)
+  try {
+    return { results: await request, providerRequestCount }
+  } catch (error) {
+    throw new BookingSearchError(error, providerRequestCount)
+  } finally {
+    if (activeRequests.get(cacheKey) === request) activeRequests.delete(cacheKey)
+  }
 }
 
-function bookingOrganicSearchQueries(query: BookingAffiliateSearchResponse['query']) {
-  const seen = new Set<string>()
-  return [bookingOrganicSearchQuery(query), bookingOrganicBroadSearchQuery(query)]
-    .map((searchQuery) => searchQuery.replace(/\s+/g, ' ').trim())
-    .filter((searchQuery) => {
-      const key = searchQuery.toLowerCase()
-      if (!key || seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+function plannerSerpApiSearchAttemptCount(resultOrError: unknown) {
+  return getPlannerSerpApiRequestMetadata(resultOrError)?.searchFetchAttempted ? 1 : 0
 }
 
 function bookingOrganicSearchQuery(query: BookingAffiliateSearchResponse['query']) {
@@ -465,19 +565,6 @@ function bookingOrganicSearchQuery(query: BookingAffiliateSearchResponse['query'
   const exactNames = hotelNames.map((hotelName) => `"${hotelName}"`)
   const exactNameQuery = exactNames.length > 1 ? `(${exactNames.join(' OR ')})` : exactNames[0]
   return `${site} ${exactNameQuery}${bookingOrganicCitySuffix(query, hotelNames)}`
-}
-
-function bookingOrganicBroadSearchQuery(query: BookingAffiliateSearchResponse['query']) {
-  const countryPath = query.countryCode?.toLowerCase().match(/^[a-z]{2}$/)?.[0]
-  const site = `site:booking.com/hotel/${countryPath ? `${countryPath}/` : ''}`
-  const hotelNames = bookingOrganicSearchNames(query)
-  const broadNames = hotelNames.map((hotelName) =>
-    hotelName.replace(/["“”()\r\n]+/g, ' ').replace(/\s+/g, ' ').trim(),
-  )
-  const broadNameQuery = broadNames.length > 1
-    ? broadNames.map((hotelName) => `(${hotelName})`).join(' OR ')
-    : broadNames[0]
-  return `${site} ${broadNameQuery}${bookingOrganicCitySuffix(query, hotelNames)}`
 }
 
 function bookingOrganicCitySuffix(
