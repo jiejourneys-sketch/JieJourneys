@@ -61,6 +61,8 @@ import {
 import {
   addHotelAffiliateTransientRetryCandidate,
   eligibleHotelAffiliateTransientRetryProviders,
+  hotelAffiliatePersistenceDisposition,
+  hotelAffiliatePersistenceRetryDelayMs,
   hotelAffiliateTransientRetryDelayMs,
   type HotelAffiliateTransientRetryCandidates,
 } from '@/lib/hotelAffiliateTransientRetry'
@@ -221,6 +223,14 @@ type PendingHotelAffiliateTransientRetry = {
   timeout: number
   retryAt: number
   candidates: HotelAffiliateTransientRetryCandidates
+}
+type PendingHotelAffiliatePersistence = {
+  placeId: string
+  provider: HotelAffiliateProvider
+  bookingUrl: string
+  queuedBookId: string | null
+  completedRetryCount: number
+  exhausted: boolean
 }
 type NearbyKnownPlacesSuggestion = {
   key: string
@@ -3865,6 +3875,7 @@ async function savePlannerAffiliateLink(
   if (!bookId || !isPlannerBookEditToken(editToken) || !placeId || !href) return null
   const res = await fetch('/api/pass-planner/book/affiliate-link', {
     method: 'POST',
+    keepalive: true,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       id: bookId,
@@ -8238,6 +8249,9 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const hotelAffiliateTransientRetryTimersRef = useRef<Map<string, PendingHotelAffiliateTransientRetry>>(new Map())
   const hotelAffiliateTransientRetryProvidersRef = useRef<Map<string, Set<HotelAffiliateProvider>>>(new Map())
   const hotelAffiliateTransientRetryUsedRef = useRef<Map<string, Map<string, number>>>(new Map())
+  const pendingHotelAffiliatePersistenceRef = useRef<Map<string, PendingHotelAffiliatePersistence>>(new Map())
+  const activeHotelAffiliatePersistenceRef = useRef<Map<string, PendingHotelAffiliatePersistence>>(new Map())
+  const hotelAffiliatePersistenceRetryTimersRef = useRef<Map<string, number>>(new Map())
   const removedHotelAffiliateLinksRef = useRef<Map<string, RemovedHotelAffiliateLink>>(new Map())
   const customPlacesRef = useRef<Record<string, CustomPlannerPlace>>({})
   const placeUserLinksRef = useRef<Record<string, PlannerUserLink[]>>({})
@@ -8273,6 +8287,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
   const [agodaAffiliateStatus, setAgodaAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
   const [tripAffiliateStatus, setTripAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
   const [bookingAffiliateStatus, setBookingAffiliateStatus] = useState<Record<string, HotelAffiliateStatus>>({})
+  const [hotelAffiliatePersistenceRevision, setHotelAffiliatePersistenceRevision] = useState(0)
   const [customDraftReturnMode, setCustomDraftReturnMode] = useState<'add' | 'order'>('add')
   const [customDraftReturnItem, setCustomDraftReturnItem] = useState<PlannerItem | null>(null)
   const [customPlaceSaveError, setCustomPlaceSaveError] = useState<'googleUrl' | 'name' | 'location' | null>(null)
@@ -11983,16 +11998,152 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     provider: HotelAffiliateProvider,
     bookingUrl: string,
   ) => {
-    if (!plannerBookId || !plannerBookEditToken || readOnlyPlan) return
-    void savePlannerAffiliateLink(plannerBookId, plannerBookEditToken, placeId, provider, bookingUrl)
-      .then((saved) => {
-        if (saved?.updatedAt) setPlannerBookUpdatedAt(saved.updatedAt)
+    if (readOnlyPlan) return
+    const persistenceKey = `${placeId}|${provider}`
+    const currentPending = pendingHotelAffiliatePersistenceRef.current.get(persistenceKey)
+    if (
+      currentPending?.bookingUrl === bookingUrl &&
+      currentPending.queuedBookId === plannerBookId &&
+      !currentPending.exhausted
+    ) return
+
+    const retryTimer = hotelAffiliatePersistenceRetryTimersRef.current.get(persistenceKey)
+    if (retryTimer != null) window.clearTimeout(retryTimer)
+    hotelAffiliatePersistenceRetryTimersRef.current.delete(persistenceKey)
+    pendingHotelAffiliatePersistenceRef.current.set(persistenceKey, {
+      placeId,
+      provider,
+      bookingUrl,
+      queuedBookId: plannerBookId,
+      completedRetryCount: 0,
+      exhausted: false,
+    })
+    setHotelAffiliatePersistenceRevision((revision) => revision + 1)
+  }, [plannerBookId, readOnlyPlan])
+
+  useEffect(() => {
+    const pendingEntries = pendingHotelAffiliatePersistenceRef.current
+    const activeEntries = activeHotelAffiliatePersistenceRef.current
+    const retryTimers = hotelAffiliatePersistenceRetryTimersRef.current
+
+    if (readOnlyPlan) {
+      retryTimers.forEach((timeout) => window.clearTimeout(timeout))
+      retryTimers.clear()
+      pendingEntries.clear()
+      activeEntries.clear()
+      return
+    }
+
+    pendingEntries.forEach((pending, persistenceKey) => {
+      const currentPlace = customPlacesRef.current[pending.placeId]
+      const currentLinks = currentPlace
+        ? [...(currentPlace.links ?? []), ...(placeUserLinksRef.current[pending.placeId] ?? [])]
+        : []
+      const linkStillPresent = currentLinks.some((link) => (
+        hotelAffiliateProviderForLink(link) === pending.provider &&
+        link.href.trim() === pending.bookingUrl
+      ))
+      const providerDisabled = cleanHotelAffiliateDisabledProviders(
+        currentPlace?.hotelAffiliateDisabledProviders,
+      ).includes(pending.provider)
+      const disposition = hotelAffiliatePersistenceDisposition({
+        queuedBookId: pending.queuedBookId,
+        currentBookId: plannerBookId,
+        hasEditToken: Boolean(plannerBookEditToken && isPlannerBookEditToken(plannerBookEditToken)),
+        readOnly: readOnlyPlan,
+        linkStillPresent,
+        providerDisabled,
       })
-      .catch(() => {
-        // Keep the visible verified link even if this small background write is
-        // temporarily unavailable.  It can be safely retried on the next load.
+
+      if (disposition === 'discard') {
+        const retryTimer = retryTimers.get(persistenceKey)
+        if (retryTimer != null) window.clearTimeout(retryTimer)
+        retryTimers.delete(persistenceKey)
+        pendingEntries.delete(persistenceKey)
+        return
+      }
+      if (
+        disposition !== 'persist' ||
+        pending.exhausted ||
+        activeEntries.has(persistenceKey) ||
+        retryTimers.has(persistenceKey) ||
+        !plannerBookId ||
+        !plannerBookEditToken
+      ) return
+
+      if (!pending.queuedBookId) pending.queuedBookId = plannerBookId
+      activeEntries.set(persistenceKey, pending)
+
+      const scheduleRetry = () => {
+        if (pendingEntries.get(persistenceKey) !== pending) return
+        const retryDelayMs = hotelAffiliatePersistenceRetryDelayMs(pending.completedRetryCount)
+        if (retryDelayMs == null) {
+          pending.exhausted = true
+          return
+        }
+        pending.completedRetryCount += 1
+        const timeout = window.setTimeout(() => {
+          if (retryTimers.get(persistenceKey) !== timeout) return
+          retryTimers.delete(persistenceKey)
+          setHotelAffiliatePersistenceRevision((revision) => revision + 1)
+        }, retryDelayMs)
+        retryTimers.set(persistenceKey, timeout)
+      }
+
+      void savePlannerAffiliateLink(
+        plannerBookId,
+        plannerBookEditToken,
+        pending.placeId,
+        pending.provider,
+        pending.bookingUrl,
+      )
+        .then((saved) => {
+          if (pendingEntries.get(persistenceKey) !== pending) return
+          if (!saved) {
+            scheduleRetry()
+            return
+          }
+          pendingEntries.delete(persistenceKey)
+          if (saved.updatedAt) setPlannerBookUpdatedAt(saved.updatedAt)
+        })
+        .catch(scheduleRetry)
+        .finally(() => {
+          if (activeEntries.get(persistenceKey) !== pending) return
+          activeEntries.delete(persistenceKey)
+          setHotelAffiliatePersistenceRevision((revision) => revision + 1)
+        })
+    })
+  }, [
+    customPlaces,
+    hotelAffiliatePersistenceRevision,
+    placeUserLinks,
+    plannerBookEditToken,
+    plannerBookId,
+    readOnlyPlan,
+  ])
+
+  useEffect(() => () => {
+    hotelAffiliatePersistenceRetryTimersRef.current.forEach((timeout) => window.clearTimeout(timeout))
+    hotelAffiliatePersistenceRetryTimersRef.current.clear()
+    pendingHotelAffiliatePersistenceRef.current.clear()
+    activeHotelAffiliatePersistenceRef.current.clear()
+  }, [])
+
+  useEffect(() => {
+    if (readOnlyPlan) return
+    const retryExhaustedPersistenceAfterReconnect = () => {
+      let changed = false
+      pendingHotelAffiliatePersistenceRef.current.forEach((pending) => {
+        if (!pending.exhausted) return
+        pending.completedRetryCount = 0
+        pending.exhausted = false
+        changed = true
       })
-  }, [plannerBookEditToken, plannerBookId, readOnlyPlan])
+      if (changed) setHotelAffiliatePersistenceRevision((revision) => revision + 1)
+    }
+    window.addEventListener('online', retryExhaustedPersistenceAfterReconnect)
+    return () => window.removeEventListener('online', retryExhaustedPersistenceAfterReconnect)
+  }, [readOnlyPlan])
 
   const setCustomPlaceGoogleTypes = useCallback((placeId: string, googlePlaceId: string, typesValue: unknown, resolved = true) => {
     const types = cleanGooglePlaceTypes(typesValue)
