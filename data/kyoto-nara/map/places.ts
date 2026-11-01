@@ -10,6 +10,7 @@ type KyotoNaraPlaceInput = {
   description: string
   lat: number
   lng: number
+  mapUrl?: string
   googlePlaceId?: string
   category?: MapPlace['category']
   spotActions?: CityCardAction[]
@@ -56,6 +57,9 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lat: 34.9946662,
     lng: 135.784661,
     googlePlaceId: 'ChIJB_vchdMIAWARujTEUIZlr2I',
+    relatedArticleHref: '/kyoto-nara/kyoto-kiyomizudera-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_kiyomizudera_article',
   },
   {
     id: 'sannenzaka',
@@ -64,6 +68,9 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lat: 34.9966644,
     lng: 135.781008,
     googlePlaceId: 'ChIJr_gZonkIAWARB1xyACZNUKM',
+    relatedArticleHref: '/kyoto-nara/kyoto-sannenzaka-ninenzaka-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_sannenzaka_article',
   },
   {
     id: 'ninenzaka',
@@ -72,6 +79,9 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lat: 34.9983989,
     lng: 135.7808431,
     googlePlaceId: 'ChIJlwyrGNAIAWARNb5hUHdZruY',
+    relatedArticleHref: '/kyoto-nara/kyoto-sannenzaka-ninenzaka-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_ninenzaka_article',
   },
   {
     id: 'ichinenzaka',
@@ -80,6 +90,17 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lat: 34.999034,
     lng: 135.7805199,
     googlePlaceId: 'ChIJvRxSVcUIAWARbX2-2LxXsc0',
+    relatedArticleHref: '/kyoto-nara/kyoto-sannenzaka-ninenzaka-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_ichinenzaka_article',
+  },
+  {
+    id: 'kodai-ji',
+    name: '高台寺',
+    description: '東山散步路線上的寺院，可和一年坂、二年坂、八坂神社一起安排。',
+    lat: 35.0007687,
+    lng: 135.7812718,
+    mapUrl: 'https://maps.app.goo.gl/dyZParhy6ocjPyo47',
   },
   {
     id: 'hokan-ji',
@@ -88,6 +109,14 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lat: 34.9985591,
     lng: 135.7791783,
     googlePlaceId: 'ChIJIcT4YMUIAWARSTUi4EEky7E',
+  },
+  {
+    id: 'yasaka-koshindo',
+    name: '八坂庚申堂',
+    description: '鄰近法觀寺與二年坂，適合安排在東山散步路線中順路參拜。',
+    lat: 34.9983244,
+    lng: 135.7787304,
+    mapUrl: 'https://maps.app.goo.gl/V6jbJ1MsstiGndFq7',
   },
   {
     id: 'yasui-konpiragu',
@@ -424,7 +453,7 @@ export const kyotoNaraMapPlaces: MapPlace[] = kyotoNaraPlaceInputs.map((place) =
   description: place.description,
   lat: place.lat,
   lng: place.lng,
-  spotGoogleMapsUrl: googleMapsSearchUrl(place),
+  spotGoogleMapsUrl: place.mapUrl ?? googleMapsSearchUrl(place),
   spotActions: place.spotActions,
   relatedArticleHref: place.relatedArticleHref,
   relatedArticleLabel: place.relatedArticleLabel,

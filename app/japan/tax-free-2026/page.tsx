@@ -22,8 +22,8 @@ const OFFICIAL_SOURCES = {
 } as const
 
 const taxFreeVideoLinks = [
-  { label: 'IG', href: 'https://www.instagram.com/reel/Da72R_yBXam/', event: 'japantaxfree_video_ig', platform: 'IG' },
-  { label: 'YouTube', href: 'https://www.youtube.com/shorts/ULH9oonQ7-I', event: 'japantaxfree_video_youtube', platform: 'YouTube' },
+  { label: 'IG', href: 'https://www.instagram.com/reel/DfKNuRTtn7d/', event: 'japantaxfree_video_ig', platform: 'IG' },
+  { label: 'YouTube', href: 'https://www.youtube.com/shorts/Rvr5N2tp4Jo', event: 'japantaxfree_video_youtube', platform: 'YouTube' },
 ]
 
 const title = '日本退稅新制懶人包｜2026/11/1 退稅流程、Visit Japan Web 與 90 天規定'

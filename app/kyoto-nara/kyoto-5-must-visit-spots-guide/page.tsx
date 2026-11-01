@@ -221,6 +221,7 @@ export default async function KyotoFiveMustVisitGuidePage({ searchParams }: Kyot
         <SeoRelatedLinksSection
           title="接著安排京都行程"
           links={[
+            { label: '清水寺 5 大重點攻略', href: '/kyoto-nara/kyoto-kiyomizudera-guide', event: 'kyoto5spots_related_kiyomizudera', platform: 'internal' },
             { label: '伏見稻荷千本鳥居攻略', href: '/kyoto-nara/kyoto-fushimi-inari-guide', event: 'kyoto5spots_related_fushimiinari', platform: 'internal' },
             { label: '京都 6 大區域攻略', href: '/kyoto-nara/kyoto-6-areas-guide', event: 'kyoto5spots_related_areas', platform: 'internal' },
             { label: '大阪・京都・奈良地圖', href: '/osaka/map', event: 'kyoto5spots_related_map', platform: 'internal' },

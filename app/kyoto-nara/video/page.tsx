@@ -169,6 +169,40 @@ const cards: CityCard[] = [
       },
     ],
   },
+  {
+    title: '清水寺｜攻略',
+    meta: '京都攻略',
+    area: 'all',
+    datasetKey: 'video',
+    datasetValue: 'kyoto-kiyomizudera-guide',
+    actions: [
+      {
+        label: '文章',
+        href: '/kyoto-nara/kyoto-kiyomizudera-guide?from=kyoto-video',
+        className: 'btn',
+        event: 'kyotonaravideo_kiyomizudera_article',
+        platform: 'article',
+        section: 'video',
+      },
+    ],
+  },
+  {
+    title: '三年坂、二年坂、一年坂｜攻略',
+    meta: '京都攻略',
+    area: 'all',
+    datasetKey: 'video',
+    datasetValue: 'kyoto-sannenzaka-ninenzaka-guide',
+    actions: [
+      {
+        label: '文章',
+        href: '/kyoto-nara/kyoto-sannenzaka-ninenzaka-guide?from=kyoto-video',
+        className: 'btn',
+        event: 'kyotonaravideo_sannenzaka_ninenzaka_article',
+        platform: 'article',
+        section: 'video',
+      },
+    ],
+  },
 ]
 
 export default function KyotoNaraVideoPage() {
