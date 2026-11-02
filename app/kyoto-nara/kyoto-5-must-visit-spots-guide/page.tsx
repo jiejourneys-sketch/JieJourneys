@@ -193,10 +193,10 @@ export default async function KyotoFiveMustVisitGuidePage({ searchParams }: Kyot
             </div>
 
             <h3 className="seo-h3">二條城：把「城堡」排成市中心半日</h3>
-            <p>二條城由德川家康興建，最值得看的不只是城牆，而是二之丸御殿內的空間、裝飾與庭園。它比東山、嵐山更適合和錦市場或市中心散步搭配；下雨天也比純戶外景點好安排。</p>
+            <p><a href="/kyoto-nara/kyoto-nijo-castle-guide" data-event="kyoto5spots_nijocastle_guide" data-platform="internal" data-section="article_link">二條城</a>由德川家康興建，最值得看的不只是城牆，而是二之丸御殿內的空間、裝飾與庭園。它比東山、嵐山更適合和錦市場或市中心散步搭配；下雨天也比純戶外景點好安排。</p>
 
             <h3 className="seo-h3">金閣寺：不是只拍金色外觀</h3>
-            <p>金閣寺的舍利殿與鏡湖池倒影是經典構圖，但北側位置較獨立。想走得舒服，讓它成為北側半日的主角；若同日再接龍安寺或仁和寺，會比跨到東山、伏見更順。</p>
+            <p><a href="/kyoto-nara/kyoto-kinkakuji-guide" data-event="kyoto5spots_kinkakuji_guide" data-platform="internal" data-section="article_link">金閣寺</a>的舍利殿與鏡湖池倒影是經典構圖，但北側位置較獨立。想走得舒服，讓它成為北側半日的主角；若同日再接龍安寺或仁和寺，會比跨到東山、伏見更順。</p>
 
             <h3 className="seo-h3">伏見稻荷大社：千本鳥居留給清晨</h3>
             <p>伏見稻荷的重點是鳥居沿山徑延伸的步行感。早上先到本殿，再穿過千本鳥居往奧社方向走，已足夠感受精華；時間與體力都夠才繼續上山。請勿攀爬、塗寫或破壞鳥居與境內設施。</p>
@@ -221,6 +221,8 @@ export default async function KyotoFiveMustVisitGuidePage({ searchParams }: Kyot
         <SeoRelatedLinksSection
           title="接著安排京都行程"
           links={[
+            { label: '金閣寺門票與參觀路線攻略', href: '/kyoto-nara/kyoto-kinkakuji-guide', event: 'kyoto5spots_related_kinkakuji', platform: 'internal' },
+            { label: '二條城門票與路線攻略', href: '/kyoto-nara/kyoto-nijo-castle-guide', event: 'kyoto5spots_related_nijocastle', platform: 'internal' },
             { label: '清水寺 5 大重點攻略', href: '/kyoto-nara/kyoto-kiyomizudera-guide', event: 'kyoto5spots_related_kiyomizudera', platform: 'internal' },
             { label: '伏見稻荷千本鳥居攻略', href: '/kyoto-nara/kyoto-fushimi-inari-guide', event: 'kyoto5spots_related_fushimiinari', platform: 'internal' },
             { label: '京都 6 大區域攻略', href: '/kyoto-nara/kyoto-6-areas-guide', event: 'kyoto5spots_related_areas', platform: 'internal' },

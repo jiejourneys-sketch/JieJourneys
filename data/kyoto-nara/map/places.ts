@@ -213,6 +213,9 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lat: 35.0140379,
     lng: 135.7484258,
     googlePlaceId: 'ChIJcwBKXdQHAWARkeDeMolYT2k',
+    relatedArticleHref: '/kyoto-nara/kyoto-nijo-castle-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_nijo_castle_article',
   },
   {
     id: 'seimei-shrine',
@@ -269,6 +272,9 @@ const kyotoNaraPlaceInputs: KyotoNaraPlaceInput[] = [
     lat: 35.03937,
     lng: 135.7292431,
     googlePlaceId: 'ChIJvUbrwCCoAWARX2QiHCsn5A4',
+    relatedArticleHref: '/kyoto-nara/kyoto-kinkakuji-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_kinkakuji_article',
   },
   {
     id: 'ninna-ji',

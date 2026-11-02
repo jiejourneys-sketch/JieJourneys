@@ -1,13 +1,18 @@
 import KyotoNaraGuidePage from '@/components/KyotoNaraGuidePage'
 import type { CityCard } from '@/components/CityTabbedList'
 
-const tabs = [{ value: 'all', label: '全部', dataArea: 'all' }]
+const tabs = [
+  { value: 'all', label: '全部', dataArea: 'all' },
+  { value: 'planning', label: '行程規劃', dataArea: 'planning' },
+  { value: 'station', label: '京都車站', dataArea: 'station' },
+  { value: 'attraction', label: '景點攻略', dataArea: 'attraction' },
+]
 
 const cards: CityCard[] = [
   {
     title: '京都 5 個必去景點｜攻略',
     meta: '京都攻略',
-    area: 'all',
+    area: 'planning',
     datasetKey: 'video',
     datasetValue: 'kyoto-5-must-visit-spots-guide',
     actions: [
@@ -40,7 +45,7 @@ const cards: CityCard[] = [
   {
     title: '京都 6 大區域｜攻略',
     meta: '京都攻略',
-    area: 'all',
+    area: 'planning',
     datasetKey: 'video',
     datasetValue: 'kyoto-6-areas-guide',
     actions: [
@@ -73,7 +78,7 @@ const cards: CityCard[] = [
   {
     title: '京都車站攻略｜出口動線',
     meta: '京都攻略',
-    area: 'all',
+    area: 'station',
     datasetKey: 'video',
     datasetValue: 'kyoto-station-exits',
     actions: [
@@ -106,7 +111,7 @@ const cards: CityCard[] = [
   {
     title: '京都車站隱藏景點｜攻略',
     meta: '京都攻略',
-    area: 'all',
+    area: 'station',
     datasetKey: 'video',
     datasetValue: 'kyoto-station-hidden-spots',
     actions: [
@@ -139,7 +144,7 @@ const cards: CityCard[] = [
   {
     title: '伏見稻荷大社｜千本鳥居攻略',
     meta: '京都攻略',
-    area: 'all',
+    area: 'attraction',
     datasetKey: 'video',
     datasetValue: 'kyoto-fushimi-inari-guide',
     actions: [
@@ -172,7 +177,7 @@ const cards: CityCard[] = [
   {
     title: '清水寺｜攻略',
     meta: '京都攻略',
-    area: 'all',
+    area: 'attraction',
     datasetKey: 'video',
     datasetValue: 'kyoto-kiyomizudera-guide',
     actions: [
@@ -189,7 +194,7 @@ const cards: CityCard[] = [
   {
     title: '三年坂、二年坂、一年坂｜攻略',
     meta: '京都攻略',
-    area: 'all',
+    area: 'attraction',
     datasetKey: 'video',
     datasetValue: 'kyoto-sannenzaka-ninenzaka-guide',
     actions: [
@@ -198,6 +203,40 @@ const cards: CityCard[] = [
         href: '/kyoto-nara/kyoto-sannenzaka-ninenzaka-guide?from=kyoto-video',
         className: 'btn',
         event: 'kyotonaravideo_sannenzaka_ninenzaka_article',
+        platform: 'article',
+        section: 'video',
+      },
+    ],
+  },
+  {
+    title: '二條城｜攻略',
+    meta: '京都攻略',
+    area: 'attraction',
+    datasetKey: 'video',
+    datasetValue: 'kyoto-nijo-castle-guide',
+    actions: [
+      {
+        label: '文章',
+        href: '/kyoto-nara/kyoto-nijo-castle-guide?from=kyoto-video',
+        className: 'btn',
+        event: 'kyotonaravideo_nijocastle_article',
+        platform: 'article',
+        section: 'video',
+      },
+    ],
+  },
+  {
+    title: '金閣寺｜攻略',
+    meta: '京都攻略',
+    area: 'attraction',
+    datasetKey: 'video',
+    datasetValue: 'kyoto-kinkakuji-guide',
+    actions: [
+      {
+        label: '文章',
+        href: '/kyoto-nara/kyoto-kinkakuji-guide?from=kyoto-video',
+        className: 'btn',
+        event: 'kyotonaravideo_kinkakuji_article',
         platform: 'article',
         section: 'video',
       },

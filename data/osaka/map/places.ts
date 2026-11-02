@@ -666,6 +666,9 @@ const osakaSpotPlaces: SpotPlaceInput[] = [
     lng: 135.729243,
     mapUrl: 'https://maps.app.goo.gl/X2KSeMSCMgiwm5YEA',
     relatedTicketTag: '金閣寺',
+    relatedArticleHref: '/kyoto-nara/kyoto-kinkakuji-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_kinkakuji_article',
   },
   {
     id: 'osaka-kiyomizudera',
@@ -687,6 +690,9 @@ const osakaSpotPlaces: SpotPlaceInput[] = [
     lng: 135.7484258,
     mapUrl: 'https://maps.app.goo.gl/F7zUzo3UZkZqs1kV7',
     relatedTicketTag: '二條城',
+    relatedArticleHref: '/kyoto-nara/kyoto-nijo-castle-guide?from=osaka-map',
+    relatedArticleLabel: '攻略',
+    relatedArticleEvent: 'osakamap_nijo_castle_article',
   },
   {
     id: 'osaka-fushimi-inari',

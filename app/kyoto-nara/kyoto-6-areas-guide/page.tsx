@@ -225,13 +225,13 @@ export default async function KyotoSixAreasGuidePage({ searchParams }: KyotoSixA
             <p>清水寺、二年坂、三年坂、八坂神社與祇園是一條東山步行線。先選一個靠近的下車點，再一路走下去，比每站都回京都車站搭公車更順。這區人多、坡道多，請預留休息與拍照時間。</p>
 
             <h3 className="seo-h3">內圍第三區｜錦市場＆二條城</h3>
-            <p>錦市場是吃吃喝喝與買伴手禮的市中心核心，二條城則是看城郭與將軍文化。兩者適合放在抵達日、雨天，或東山、伏見以外想輕鬆一點的一天；先確認開放日與最後入場時間即可。</p>
+            <p>錦市場是吃吃喝喝與買伴手禮的市中心核心，<a href="/kyoto-nara/kyoto-nijo-castle-guide" data-event="kyoto6areas_nijocastle_guide" data-platform="internal" data-section="article_link">二條城</a>則是看城郭與將軍文化。兩者適合放在抵達日、雨天，或東山、伏見以外想輕鬆一點的一天；先確認開放日與最後入場時間即可。</p>
 
             <h3 className="seo-h3">外圍第一區｜銀閣寺＆平安神宮</h3>
             <p>東北與岡崎一帶適合慢慢走：銀閣寺可接哲學之道、南禪寺，平安神宮則和岡崎公園、美術館方向相近。不要只因為地圖看起來在同一側，就把所有東側景點塞進半天。</p>
 
             <h3 className="seo-h3">外圍第二區｜金閣寺＆下鴨神社</h3>
-            <p>兩者都在京都北側，但不是一出站就能連著走的關係。金閣寺偏西、下鴨神社偏東；若想同日安排，請先依飯店位置與當日交通查路線，或挑一個做主景點、另一個作彈性備案。</p>
+            <p>兩者都在京都北側，但不是一出站就能連著走的關係。<a href="/kyoto-nara/kyoto-kinkakuji-guide" data-event="kyoto6areas_kinkakuji_guide" data-platform="internal" data-section="article_link">金閣寺</a>偏西、下鴨神社偏東；若想同日安排，請先依飯店位置與當日交通查路線，或挑一個做主景點、另一個作彈性備案。</p>
 
             <h3 className="seo-h3">外圍第三區｜嵯峨嵐山</h3>
             <p>嵐山要把竹林小徑、渡月橋與天龍寺放在同一段。若還想搭嵯峨野觀光小火車、保津川遊船或往大覺寺、祇王寺延伸，直接留完整一天；不要下午才從清水寺趕過去。</p>
@@ -263,6 +263,8 @@ export default async function KyotoSixAreasGuidePage({ searchParams }: KyotoSixA
         <SeoRelatedLinksSection
           title="接著安排京都行程"
           links={[
+            { label: '金閣寺門票與參觀路線攻略', href: '/kyoto-nara/kyoto-kinkakuji-guide', event: 'kyoto6areas_related_kinkakuji', platform: 'internal' },
+            { label: '二條城門票與路線攻略', href: '/kyoto-nara/kyoto-nijo-castle-guide', event: 'kyoto6areas_related_nijocastle', platform: 'internal' },
             { label: '清水寺 5 大重點攻略', href: '/kyoto-nara/kyoto-kiyomizudera-guide', event: 'kyoto6areas_related_kiyomizudera', platform: 'internal' },
             { label: '伏見稻荷千本鳥居攻略', href: '/kyoto-nara/kyoto-fushimi-inari-guide', event: 'kyoto6areas_related_fushimiinari', platform: 'internal' },
             { label: '京都 5 個必去景點', href: '/kyoto-nara/kyoto-5-must-visit-spots-guide', event: 'kyoto6areas_related_spots', platform: 'internal' },
