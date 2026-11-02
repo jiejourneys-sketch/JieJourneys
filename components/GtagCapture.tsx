@@ -24,6 +24,11 @@ function pageType(pathname: string) {
   return 'article'
 }
 
+function destination(pathname: string) {
+  const segment = pathname.split('/').filter(Boolean)[0] || 'home'
+  return segment === 'tools' ? 'planner' : segment
+}
+
 function affiliatePlatform(platform: string, destinationUrl: string): string | null {
   const platformKey = platform.trim().toLowerCase()
   if (AFFILIATE_PLATFORM_LABELS[platformKey]) return AFFILIATE_PLATFORM_LABELS[platformKey]
@@ -70,6 +75,11 @@ export default function GtagCapture() {
       const eventParameters = {
         page_path: currentPath,
         page_type: element.dataset.pageType || pageType(currentPath),
+        city: element.dataset.city || destination(currentPath),
+        action: element.dataset.action || '',
+        scenario_id: element.dataset.scenarioId || '',
+        region_key: element.dataset.regionKey || '',
+        source: element.dataset.source || '',
         label: element.dataset.label || '',
         hotel,
         platform,
@@ -84,8 +94,6 @@ export default function GtagCapture() {
         video: (card as HTMLElement)?.dataset?.video || '',
         title: (card as HTMLElement)?.dataset?.title || titleText,
       }
-
-      gtagFn('event', name, eventParameters)
 
       if (canonicalAffiliatePlatform) {
         gtagFn('event', 'affiliate_click', {
@@ -110,7 +118,11 @@ export default function GtagCapture() {
             ],
           })
         }
+
+        return
       }
+
+      gtagFn('event', name, eventParameters)
     }
     document.addEventListener('click', handleClick, { capture: true })
     return () => document.removeEventListener('click', handleClick, { capture: true })

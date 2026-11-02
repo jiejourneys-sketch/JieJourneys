@@ -377,6 +377,7 @@ export type PlannerConfig = {
   headerBackHref: string
   headerBackForceReload: boolean
   eventPrefix: string
+  headerEventPrefix?: string
   title: string
   description: string
   topAriaLabel: string
@@ -9560,19 +9561,31 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     const day = plannedDays[dayView - 1]
     return day ? [day] : plannedDays
   }, [dayView, plannedDays])
-  const planCode = useMemo(() => encodeSharedPlan(validPlanItems, lookupPlaces), [lookupPlaces, validPlanItems])
   const trackPlannerEvent = useCallback(
     (eventSuffix: string, params: Record<string, string | number | boolean | null | undefined> = {}) => {
       const fn = getGtag()
       if (typeof fn !== 'function') return
-      fn('event', `${config.eventPrefix}_${eventSuffix}`, {
+      const safeParams = { ...params }
+      delete safeParams.plan_code
+      fn('event', 'planner_action', {
         page_path: location.pathname,
+        page_type: 'planner',
+        action: eventSuffix,
+        region_key: config.plannerBookRegionKey ?? config.recentRegionKey ?? 'custom',
+        source: config.plannerBookSource ?? config.recentSource ?? 'map',
+        trip_id: plannerBookId ?? 'draft',
         plan_count: validPlanIds.length,
-        plan_code: planCode,
-        ...params,
+        ...safeParams,
       })
     },
-    [config.eventPrefix, planCode, validPlanIds.length],
+    [
+      config.plannerBookRegionKey,
+      config.plannerBookSource,
+      config.recentRegionKey,
+      config.recentSource,
+      plannerBookId,
+      validPlanIds.length,
+    ],
   )
   const planOrderLabels = useMemo(() => {
     const labels = new Map<string, string>()
@@ -15270,7 +15283,7 @@ export default function BusanPassPlannerClient({ places, mapCenter, config: conf
     <>
       <CitySubpageHeader
         backHref={config.headerBackHref}
-        eventPrefix={config.eventPrefix}
+        eventPrefix={config.headerEventPrefix ?? config.eventPrefix}
         forceBackReload={config.headerBackForceReload}
       />
       <main

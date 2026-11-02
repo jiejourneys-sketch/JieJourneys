@@ -990,6 +990,7 @@ export default function ToolsPlannerPage() {
       headerBackHref: '/tools/planner',
       headerBackForceReload: true,
       eventPrefix: `toolsplanner_${region.key}`,
+      headerEventPrefix: 'toolsplanner',
       title: `${countryName}行程排序`,
       description: '貼上 Google Maps 連結或加入我的景點資料，拖曳調整每天順序，保存後可分享給手機或朋友。',
       topAriaLabel: `${countryName}行程排序工具`,

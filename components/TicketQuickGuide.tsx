@@ -57,9 +57,11 @@ export default function TicketQuickGuide({
     const scenario = scenarios.find((item) => item.id === scenarioId)
     const gtag = getGtag()
     if (!scenario || typeof gtag !== 'function') return
-    gtag('event', `${eventPrefix}_quick_choice`, {
+    gtag('event', 'quick_guide_interaction', {
       page_path: window.location.pathname,
       page_type: 'ticket',
+      action: 'select_scenario',
+      scenario_id: scenario.id,
       label: scenario.label,
       area: scenario.category,
       section: 'quick_choice',
@@ -96,7 +98,9 @@ export default function TicketQuickGuide({
               aria-selected={active}
               aria-controls={panelId}
               className={active ? styles.activeScenario : undefined}
-              data-event={`${eventPrefix}_quick_choice`}
+              data-event="quick_guide_interaction"
+              data-action="select_scenario"
+              data-scenario-id={scenario.id}
               data-label={scenario.label}
               data-area={scenario.category}
               data-section="quick_choice"
@@ -174,7 +178,9 @@ export default function TicketQuickGuide({
                         target={isExternal ? '_blank' : undefined}
                         rel={isExternal ? (isAffiliate ? 'sponsored noopener noreferrer' : 'noopener noreferrer') : undefined}
                         aria-label={`${ticket.title} ${action.label}`}
-                        data-event={`${eventPrefix}_${isAffiliate ? 'quick_affiliate' : 'quick_internal'}`}
+                        data-event={isAffiliate ? 'affiliate_click' : 'quick_guide_interaction'}
+                        data-action={isAffiliate ? 'open_affiliate' : 'open_internal'}
+                        data-scenario-id={activeScenario.id}
                         data-platform={action.platform}
                         data-area={ticket.area}
                         data-item={ticket.datasetValue ?? ticket.title}
@@ -198,7 +204,9 @@ export default function TicketQuickGuide({
         <div className={styles.resultFooter}>
           <a
             href={`#${listAnchorId}`}
-            data-event={`${eventPrefix}_quick_full_list`}
+            data-event="quick_guide_interaction"
+            data-action="view_full_list"
+            data-scenario-id={activeScenario.id}
             data-label={activeScenario.label}
             data-area={activeScenario.category}
             data-section="quick_pick"

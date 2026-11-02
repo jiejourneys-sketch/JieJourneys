@@ -54,9 +54,11 @@ export default function HotelQuickGuide({
     const scenario = scenarios.find((item) => item.id === scenarioId)
     const gtag = getGtag()
     if (!scenario || typeof gtag !== 'function') return
-    gtag('event', `${eventPrefix}_quick_choice`, {
+    gtag('event', 'quick_guide_interaction', {
       page_path: window.location.pathname,
       page_type: 'hotel',
+      action: 'select_scenario',
+      scenario_id: scenario.id,
       label: scenario.label,
       area: scenario.area,
       section: 'quick_choice',
@@ -93,7 +95,9 @@ export default function HotelQuickGuide({
               aria-selected={active}
               aria-controls={panelId}
               className={active ? styles.activeScenario : undefined}
-              data-event={`${eventPrefix}_quick_choice`}
+              data-event="quick_guide_interaction"
+              data-action="select_scenario"
+              data-scenario-id={scenario.id}
               data-label={scenario.label}
               data-area={scenario.area}
               data-section="quick_choice"
@@ -160,7 +164,9 @@ export default function HotelQuickGuide({
                       target="_blank"
                       rel="sponsored noopener noreferrer"
                       aria-label={`${hotel.title} ${action.platform} 訂房連結`}
-                      data-event={`${eventPrefix}_quick_affiliate`}
+                      data-event="affiliate_click"
+                      data-action="open_affiliate"
+                      data-scenario-id={activeScenario.id}
                       data-platform={action.platform}
                       data-hotel={hotel.title}
                       data-area={hotel.area}
@@ -184,7 +190,9 @@ export default function HotelQuickGuide({
         <div className={styles.resultFooter}>
           <a
             href={`#${listAnchorId}`}
-            data-event={`${eventPrefix}_quick_full_list`}
+            data-event="quick_guide_interaction"
+            data-action="view_full_list"
+            data-scenario-id={activeScenario.id}
             data-label={activeScenario.label}
             data-area={activeScenario.area}
             data-section="quick_pick"
