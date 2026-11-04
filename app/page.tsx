@@ -7,37 +7,41 @@ import PopularGrid from '@/components/PopularGrid'
 import Footer from '@/components/Footer'
 
 const GROUP_BUY_URL = 'https://www.lapo.com.tw/zh-TW/products/lt17lt28-jiejourneys'
-const GROUP_BUY_VIDEO_SRC = '/assets/group-buy/lapo-travel-goods.mp4'
-const GROUP_BUY_IMAGE_SRC = '/assets/group-buy/lapo-loop-vacuum-bag-hero.png'
-const GROUP_BUY_END_AT = new Date('2026-10-07T23:59:59+08:00').getTime()
-// Keep the completed promotion ready to restore when stock is available again.
-const GROUP_BUY_ENABLED = false
+const GROUP_BUY_VIDEO_URL = 'https://www.instagram.com/reel/DfUg41ntz6n/'
+const GROUP_BUY_IMAGE_SRC = '/assets/group-buy/lapo-loop-vacuum-bag-20261105.png'
+const GROUP_BUY_START_AT = new Date('2026-11-05T00:00:00+08:00').getTime()
+const GROUP_BUY_END_AT = new Date('2026-11-13T00:00:00+08:00').getTime()
+const GROUP_BUY_ENABLED = true
+const GROUP_BUY_VIDEO_ENABLED = true
 
 type GroupBuyCountdown = {
   days: number
   hours: number
   minutes: number
   seconds: number
+  started: boolean
   ended: boolean
 }
 
 function getGroupBuyCountdown(): GroupBuyCountdown {
-  const remaining = Math.max(0, GROUP_BUY_END_AT - Date.now())
-  const totalSeconds = Math.floor(remaining / 1000)
+  const now = Date.now()
+  const started = now >= GROUP_BUY_START_AT
+  const remaining = Math.max(0, (started ? GROUP_BUY_END_AT : GROUP_BUY_START_AT) - now)
+  const totalSeconds = Math.ceil(remaining / 1000)
 
   return {
     days: Math.floor(totalSeconds / 86400),
     hours: Math.floor((totalSeconds % 86400) / 3600),
     minutes: Math.floor((totalSeconds % 3600) / 60),
     seconds: totalSeconds % 60,
-    ended: remaining === 0,
+    started,
+    ended: now >= GROUP_BUY_END_AT,
   }
 }
 
 export default function HomePage() {
   const [groupBuyCountdown, setGroupBuyCountdown] = useState<GroupBuyCountdown | null>(null)
   const [isGroupBuyImageOpen, setGroupBuyImageOpen] = useState(false)
-  const [isGroupBuyVideoOpen, setGroupBuyVideoOpen] = useState(false)
 
   useEffect(() => {
     const header = document.querySelector('header')
@@ -56,12 +60,11 @@ export default function HomePage() {
   }, [])
 
   useEffect(() => {
-    if (!isGroupBuyImageOpen && !isGroupBuyVideoOpen) return
+    if (!isGroupBuyImageOpen) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setGroupBuyImageOpen(false)
-        setGroupBuyVideoOpen(false)
       }
     }
     const previousOverflow = document.body.style.overflow
@@ -72,7 +75,7 @@ export default function HomePage() {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isGroupBuyImageOpen, isGroupBuyVideoOpen])
+  }, [isGroupBuyImageOpen])
 
   useEffect(() => {
     if (!GROUP_BUY_ENABLED) return
@@ -123,16 +126,18 @@ export default function HomePage() {
             type="button"
             className="group-buy-media"
             onClick={() => setGroupBuyImageOpen(true)}
-            data-event="home_groupbuy_lapo_20261001_image_open"
+            data-event="home_groupbuy_lapo_20261105_image_open"
             data-section="group_buy"
             aria-label="放大查看電動真空行李收納袋團購圖片"
           >
-            <Image src={GROUP_BUY_IMAGE_SRC} alt="Loop 電動真空行李收納袋，17L 與 28L 團購優惠" fill sizes="(max-width: 680px) 100vw, 300px" />
+            <Image src={GROUP_BUY_IMAGE_SRC} alt="Loop 電動真空行李收納袋，17L 與 28L 團購優惠" fill sizes="(max-width: 680px) 120px, 240px" />
             <span className="group-buy-image-expand" aria-hidden="true">↗ 放大圖片</span>
           </button>
           <div className="group-buy-copy">
-            <p className="group-buy-kicker">旅杰團購</p>
-            <h2 id="group-buy-title">電動真空收納袋：行李更好收</h2>
+            <div className="group-buy-heading">
+              <p className="group-buy-kicker">旅杰團購｜11/5–11/12</p>
+              <h2 id="group-buy-title">電動真空收納袋<span className="group-buy-title-divider">：</span><span className="group-buy-subtitle">行李更好收</span></h2>
+            </div>
             <div className="group-buy-price" aria-label="團購價格">
               <p><span>17L</span><strong>NT$790</strong><s>NT$990</s></p>
               <p><span>28L</span><strong>NT$890</strong><s>NT$1,190</s></p>
@@ -143,7 +148,7 @@ export default function HomePage() {
                   <strong>活動已結束</strong>
                 ) : groupBuyCountdown ? (
                   <>
-                    <span>倒數</span>
+                    <span>{groupBuyCountdown.started ? '結團倒數' : '距離開團'}</span>
                     <strong>
                       {String(groupBuyCountdown.days).padStart(2, '0')} 天 {String(groupBuyCountdown.hours).padStart(2, '0')}:{String(groupBuyCountdown.minutes).padStart(2, '0')}:{String(groupBuyCountdown.seconds).padStart(2, '0')}
                     </strong>
@@ -152,22 +157,26 @@ export default function HomePage() {
                   <span>倒數載入中</span>
                 )}
               </div>
-              <button
-                type="button"
-                className="group-buy-video-button"
-                onClick={() => setGroupBuyVideoOpen(true)}
-                data-event="home_groupbuy_lapo_20261001_video_open"
-                data-section="group_buy"
-              >
-                <span aria-hidden="true">▶</span> 看影片
-              </button>
+              {GROUP_BUY_VIDEO_ENABLED ? (
+                <a
+                  className="group-buy-video-button"
+                  href={GROUP_BUY_VIDEO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-event="home_groupbuy_lapo_20261105_video_open"
+                  data-platform="instagram"
+                  data-section="group_buy"
+                >
+                  <span aria-hidden="true">▶</span> 觀看影片
+                </a>
+              ) : null}
               {!groupBuyEnded ? (
                 <a
                   className="group-buy-cta"
                   href={GROUP_BUY_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  data-event="home_groupbuy_lapo_20261001_cta"
+                  data-event="home_groupbuy_lapo_20261105_cta"
                   data-platform="LAPO"
                   data-section="group_buy"
                 >
@@ -184,30 +193,13 @@ export default function HomePage() {
                 type="button"
                 className="group-buy-modal-close"
                 onClick={() => setGroupBuyImageOpen(false)}
-                data-event="home_groupbuy_lapo_20261001_image_close"
+                data-event="home_groupbuy_lapo_20261105_image_close"
                 data-section="group_buy"
                 aria-label="關閉圖片"
               >
                 ×
               </button>
-              <Image src={GROUP_BUY_IMAGE_SRC} alt="Loop 電動真空行李收納袋團購資訊" width={941} height={889} sizes="(max-width: 680px) calc(100vw - 32px), 780px" />
-            </div>
-          </div>
-        ) : null}
-        {isGroupBuyVideoOpen ? (
-          <div className="group-buy-modal" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setGroupBuyVideoOpen(false) }}>
-            <div className="group-buy-modal-dialog" role="dialog" aria-modal="true" aria-label="電動真空行李收納袋示範影片">
-              <button
-                type="button"
-                className="group-buy-modal-close"
-                onClick={() => setGroupBuyVideoOpen(false)}
-                data-event="home_groupbuy_lapo_20261001_video_close"
-                data-section="group_buy"
-                aria-label="關閉影片"
-              >
-                ×
-              </button>
-              <video src={GROUP_BUY_VIDEO_SRC} autoPlay controls playsInline preload="metadata" aria-label="電動真空行李收納袋示範影片" />
+              <Image src={GROUP_BUY_IMAGE_SRC} alt="Loop 電動真空行李收納袋團購資訊" width={941} height={1672} sizes="(max-width: 680px) calc(100vw - 32px), 780px" />
             </div>
           </div>
         ) : null}
