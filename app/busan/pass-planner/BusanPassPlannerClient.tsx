@@ -43,6 +43,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import CitySubpageHeader from '@/components/CitySubpageHeader'
+import { KARDEAR_PROMO_CODE } from '@/lib/travelPromos'
 import {
   cityMapSoloCategory,
   type CityMapPlaceCategory,
@@ -4348,16 +4349,18 @@ const PRE_DEPARTURE_RESOURCES: Record<PreDepartureResourceId, PreDepartureResour
     toggleLabel: '選購',
     links: [
       {
-        label: '查看 KarDear eSIM',
+        label: '查看 KarDear eSIM｜9 折',
         href: 'https://kardear.com/product-category/kardear/network/esim/?ref=390',
         event: 'planner_kardear_esim',
         platform: 'KarDear',
+        promoCode: KARDEAR_PROMO_CODE,
       },
       {
-        label: '查看 KarDear SIM 卡',
+        label: '查看 KarDear SIM 卡｜9 折',
         href: 'https://kardear.com/product-category/kardear/network/simcard/?ref=390',
         event: 'planner_kardear_sim',
         platform: 'KarDear',
+        promoCode: KARDEAR_PROMO_CODE,
       },
     ],
   },

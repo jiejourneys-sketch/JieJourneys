@@ -498,6 +498,10 @@ header {
   background: #fff;
 }
 
+.promo-resource-copy-wide {
+  grid-column: 1 / -1;
+}
+
 .promo-resource-visit {
   border-color: #9bcfd6;
   color: #155c6a;
@@ -617,9 +621,11 @@ header {
 
 .group-buy-banner {
   display: grid;
-  grid-template-columns: minmax(210px, 270px) minmax(0, 1fr);
+  grid-template-columns: 176px minmax(0, 1fr);
   align-items: stretch;
+  gap: 18px;
   margin: 14px 0 4px;
+  padding: 12px;
   overflow: hidden;
   border: 1px solid #e4d4bd;
   border-radius: 14px;
@@ -630,20 +636,30 @@ header {
 
 .group-buy-copy {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-content: center;
+  align-items: center;
+  gap: 12px 18px;
+  min-width: 0;
+}
+
+.group-buy-heading {
+  display: grid;
+  grid-column: 1;
   gap: 6px;
   min-width: 0;
-  padding: 12px 16px;
 }
 
 .group-buy-media {
+  --group-buy-preview-scale: 1.65;
   position: relative;
   display: grid;
   place-items: center;
   overflow: hidden;
-  min-height: 180px;
+  min-height: 156px;
   padding: 0;
   border: 0;
+  border-radius: 10px;
   color: inherit;
   background: #eadac7;
   cursor: pointer;
@@ -659,13 +675,15 @@ header {
 }
 
 .group-buy-media img {
-  object-fit: contain;
-  object-position: center;
+  object-fit: cover;
+  object-position: center 34%;
+  transform: scale(var(--group-buy-preview-scale));
+  transform-origin: left center;
   transition: transform 0.25s ease;
 }
 
 .group-buy-media:hover img {
-  transform: scale(1.025);
+  transform: scale(calc(var(--group-buy-preview-scale) + 0.04));
 }
 
 .group-buy-media:focus-visible {
@@ -699,12 +717,13 @@ header {
 .group-buy-copy h2 {
   margin: 0;
   color: #3d2a20;
-  font-size: clamp(19px, 2.3vw, 24px);
-  line-height: 1.2;
+  font-size: clamp(19px, 2vw, 23px);
+  line-height: 1.35;
 }
 
 .group-buy-price {
   display: grid;
+  grid-column: 1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
@@ -742,7 +761,9 @@ header {
 
 .group-buy-actions {
   display: flex;
-  flex-wrap: wrap;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  flex-direction: column;
   align-items: stretch;
   gap: 8px;
 }
@@ -779,6 +800,7 @@ header {
 .group-buy-countdown {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   min-width: 0;
   padding: 8px 10px;
@@ -890,45 +912,94 @@ header {
 
 @media (max-width: 680px) {
   .group-buy-banner {
-    grid-template-columns: 1fr;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
   }
 
   .group-buy-media {
-    min-height: 180px;
+    --group-buy-preview-scale: 1.8;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: stretch;
+    min-height: 88px;
+  }
+
+  .group-buy-media img {
+    object-position: center 32%;
+  }
+
+  .group-buy-image-expand {
+    left: 5px;
+    bottom: 5px;
+    padding: 5px 6px;
+    font-size: 9px;
   }
 
   .group-buy-copy {
-    padding: 14px 16px;
+    display: contents;
   }
 
-  .group-buy-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .group-buy-heading {
+    grid-column: 2;
+    grid-row: 1;
   }
 
-  .group-buy-countdown {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 600px) {
-  .group-buy-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .group-buy-kicker {
+    font-size: 10px;
+    letter-spacing: 0.03em;
   }
 
-  .group-buy-countdown,
-  .group-buy-cta,
-  .group-buy-video-button {
-    justify-content: center;
-    width: 100%;
-  }
-}
-
-@media (max-width: 390px) {
   .group-buy-copy h2 {
     font-size: 18px;
   }
 
+  .group-buy-title-divider {
+    display: none;
+  }
+
+  .group-buy-subtitle {
+    display: block;
+    margin-top: 4px;
+    color: #8b6a50;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .group-buy-price {
+    grid-column: 1 / -1;
+  }
+
+  .group-buy-actions {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .group-buy-countdown {
+    flex: 1 1 auto;
+    gap: 5px;
+    padding: 8px;
+  }
+
+  .group-buy-actions:has(.group-buy-video-button) .group-buy-countdown {
+    flex-basis: 100%;
+  }
+
+  .group-buy-countdown strong {
+    font-size: 12px;
+  }
+
+  .group-buy-cta,
+  .group-buy-video-button {
+    flex: 1 1 0;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 390px) {
   .group-buy-price p {
     padding: 7px 8px;
   }

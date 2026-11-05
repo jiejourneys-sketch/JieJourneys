@@ -5,6 +5,7 @@ import CitySubpageHeader from '@/components/CitySubpageHeader'
 import Footer from '@/components/Footer'
 import PromoResourceCard, { type PromoResourceAction } from '@/components/PromoResourceCard'
 import { BOOKING_AFFILIATE_HOME_URL } from '@/lib/plannerAffiliate'
+import { KARDEAR_PROMO_CODE, KARDEAR_PROMO_LABEL } from '@/lib/travelPromos'
 
 type Resource = {
   title: string
@@ -57,7 +58,9 @@ const travelResources: Resource[] = [
   },
   {
     title: 'KarDear 上網卡',
-    tags: 'eSIM SIM 卡 實體卡 旅遊上網 KarDear',
+    tags: `eSIM SIM 卡 實體卡 旅遊上網 KarDear 優惠碼 ${KARDEAR_PROMO_LABEL}`,
+    event: 'promo_kardear',
+    promoCode: KARDEAR_PROMO_CODE,
     actionLinks: [
       {
         label: 'eSIM',

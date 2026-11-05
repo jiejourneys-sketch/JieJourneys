@@ -5,7 +5,7 @@ import {
   autumnLeavesForecast2026Title,
 } from './pageMeta'
 
-const FORECAST_IMAGE = 'https://www.jiejourneys.com/assets/japan-autumn-leaves-forecast-2026/forecast-map-v2.png'
+const FORECAST_IMAGE = 'https://www.jiejourneys.com/assets/japan-autumn-leaves-forecast-2026/forecast-map-v3.png'
 
 export const metadata: Metadata = {
   title: autumnLeavesForecast2026Title,
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: autumnLeavesForecast2026Title,
     description: autumnLeavesForecast2026Description,
     url: autumnLeavesForecast2026Canonical,
-    images: [{ url: FORECAST_IMAGE, width: 1122, height: 1400, alt: '2026 日本賞楓預測地圖' }],
+    images: [{ url: FORECAST_IMAGE, width: 1073, height: 1466, alt: '2026 日本紅葉與銀杏預測地圖' }],
   },
   twitter: {
     card: 'summary_large_image',

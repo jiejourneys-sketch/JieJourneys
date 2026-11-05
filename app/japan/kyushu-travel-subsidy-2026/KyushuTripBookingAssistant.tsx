@@ -140,7 +140,7 @@ export default function KyushuTripBookingAssistant() {
             Trip 四縣補助皆額滿，先確認是否重開
           </h2>
           <p className={styles.lead}>
-            2026/11/2 查核：福岡、長崎、熊本、鹿兒島均已達預算上限，Trip 已停止受理補助。下方保留曾參與住宿名單，供查詢飯店與一般房價；名單不代表目前仍有補助。
+            2026/11/4 查核：福岡、長崎、熊本、鹿兒島均已達預算上限，Trip 已停止受理補助。下方保留曾參與住宿名單，供查詢飯店與一般房價；名單不代表目前仍有補助。
           </p>
         </div>
         <a
@@ -219,7 +219,7 @@ export default function KyushuTripBookingAssistant() {
           </label>
         </div>
 
-        <p className={styles.pendingStrip}>11/2 狀態複查：四縣皆額滿。住宿名單取自 10/22 查詢結果；若之後重新開放，仍須從 Trip 活動原頁確認指定補助方案。</p>
+        <p className={styles.pendingStrip}>11/4 狀態複查：四縣皆額滿。住宿名單取自 10/22 查詢結果；若之後重新開放，仍須從 Trip 活動原頁確認指定補助方案。</p>
 
         {visibleHotelCount === 0 ? (
           <div className={styles.emptyState} role="status">
