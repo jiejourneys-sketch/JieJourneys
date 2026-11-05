@@ -106,6 +106,14 @@ async function fetchMapUrlWithValidatedRedirects(
       throw new Error('map_redirect_invalid')
     }
     if (!isAllowedMapUrl(nextUrl, provider)) throw new Error('map_redirect_not_allowed')
+
+    // A validated Google redirect can already contain the complete venue
+    // identity. Do not make the result depend on downloading the large Maps
+    // destination page, which is occasionally rejected even though the short
+    // link itself resolved correctly.
+    if (provider === 'google' && hasUsableGoogleMapsRedirectIdentity(nextUrl)) {
+      return { response, resolvedUrl: nextUrl }
+    }
     currentUrl = nextUrl
   }
 
@@ -221,6 +229,13 @@ function cleanGoogleMapsQueryTitle(value: string | null) {
   const normalized = stripGoogleMapsPlusCode(value)
     .replace(/\s+/g, ' ')
     .trim()
+  // Prefer the first explicit street number boundary before stripping broad
+  // administrative tails. Otherwise a query such as `<venue> 1 Chome-...,
+  // Taito City, Tokyo` can retain half of the address as the venue name.
+  const addressStart = normalized.search(
+    /\d{1,6}\s*(?:[A-Za-z]|$)|\s(?:[A-Za-z0-9.-]+\s+)?(?:ro|gil|gu|dong|myeon|eup|si),|\s(?:[A-Za-z0-9.-]+-)?\d{1,5},/i,
+  )
+  if (addressStart > 1) return cleanGoogleMapsTitle(normalized.slice(0, addressStart).trim())
   const locationTailStripped = stripGoogleMapsLocationTail(normalized)
   if (locationTailStripped !== normalized) {
     return isLikelyGoogleMapsAddress(locationTailStripped) ? null : cleanGoogleMapsTitle(locationTailStripped)
@@ -228,10 +243,6 @@ function cleanGoogleMapsQueryTitle(value: string | null) {
   const embeddedPlaceName = extractEmbeddedNonLatinPlaceName(normalized)
   if (embeddedPlaceName && isLikelyGoogleMapsAddress(normalized)) return cleanGoogleMapsTitle(embeddedPlaceName)
   if (isLikelyGoogleMapsAddress(normalized)) return null
-  const addressStart = normalized.search(
-    /\d{1,6}\s*(?:[A-Za-z]|$)|\s(?:[A-Za-z0-9.-]+\s+)?(?:ro|gil|gu|dong|myeon|eup|si),|\s(?:[A-Za-z0-9.-]+-)?\d{1,5},/i,
-  )
-  if (addressStart > 1) return cleanGoogleMapsTitle(normalized.slice(0, addressStart).trim())
   const stripped = normalized
     .replace(/^(.{2,70}?)(?=\d{1,6}\s*[A-Za-z])/u, '$1')
     .replace(/^(.{2,70}?)(?=\s+\d{1,6}\s)/u, '$1')
@@ -427,6 +438,19 @@ function googleMapsUrlFallback(value: string) {
   }
 }
 
+function hasUsableGoogleMapsRedirectIdentity(value: string) {
+  const googleMapsDataId = extractGoogleMapsDataId(value)
+  if (!googleMapsDataId) return false
+  const pathPlaceName = decodeGoogleMapsPathPlaceName(value)
+  const urlQuery = decodeGoogleMapsQuery(value)
+  const title =
+    (pathPlaceName && isGoogleMapsPlacePath(value) ? pathPlaceName : '') ||
+    (urlQuery ? extractGoogleMapsAddressPlaceName(urlQuery) : null) ||
+    cleanGoogleMapsQueryTitle(urlQuery) ||
+    pathPlaceName
+  return Boolean(title)
+}
+
 export async function GET(request: NextRequest) {
   const rawUrl = request.nextUrl.searchParams.get('url')?.trim()
   const isGoogleUrl = rawUrl ? isAllowedGoogleMapsUrl(rawUrl) : false
@@ -455,15 +479,15 @@ export async function GET(request: NextRequest) {
       const pathPlaceName = decodeGoogleMapsPathPlaceName(resolvedUrl)
       const urlQuery = decodeGoogleMapsQuery(resolvedUrl)
       const addressQueryPlaceName = urlQuery ? extractGoogleMapsAddressPlaceName(urlQuery) : null
+      const googleMapsDataId = extractGoogleMapsDataId(resolvedUrl)
       const fastPlaceName =
         pathPlaceName && isGoogleMapsPlacePath(resolvedUrl)
           ? pathPlaceName
-          : addressQueryPlaceName
+          : addressQueryPlaceName || (googleMapsDataId ? cleanGoogleMapsQueryTitle(urlQuery) : null)
       if (fastPlaceName) {
         const query = urlQuery ?? pathPlaceName ?? fastPlaceName
         const coordinates = extractGoogleMapsCoordinates(resolvedUrl)
         const googlePlaceId = extractGoogleMapsPlaceId(resolvedUrl)
-        const googleMapsDataId = extractGoogleMapsDataId(resolvedUrl)
         if (response.body) void response.body.cancel().catch(() => undefined)
         return NextResponse.json({
           url: resolvedUrl,

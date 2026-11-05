@@ -112,6 +112,57 @@ test('keeps a dense-area Japanese homestay match under review and corrects its s
   }
 })
 
+test('prefers the unique very close named branch over a farther same-brand hotel', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = (() => {
+    throw new Error('APA Hotel index matching must not use the network')
+  }) as typeof fetch
+
+  try {
+    const result = await searchAgodaAffiliateHotels({
+      hotelName: 'アパホテル〈浅草駅前〉',
+      alternateHotelNames: [
+        'APA Hotel 淺草站前',
+        'APA Hotel 淺草站前（APA Hotel Asakusa-Ekimae）',
+      ],
+      cityId: 5085,
+      city: 'Tokyo',
+      countryCode: 'JP',
+      latitude: 35.70821235572481,
+      longitude: 139.7954849526286,
+      lodgingHint: true,
+    })
+
+    expect(result.matchStatus).toBe('matched')
+    expect(result.bestMatch).toMatchObject({
+      hotelId: '5500893',
+      hotelName: 'APA Hotel Asakusa-Ekimae',
+      source: 'index',
+    })
+    expect(result.bestMatch?.distanceKm).toBeLessThan(0.01)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('keeps duplicate Agoda listings at the same building under review', async () => {
+  const result = await searchAgodaAffiliateHotels({
+    hotelName: 'Hotel The Point - Kyoto Station South',
+    cityId: 1784,
+    city: 'Kyoto',
+    countryCode: 'JP',
+    latitude: 34.9824164,
+    longitude: 135.7625184,
+    lodgingHint: true,
+  })
+
+  expect(result.matchStatus).toBe('needs_review')
+  expect(result.candidates.slice(0, 2).map((candidate) => candidate.hotelId)).toEqual([
+    '34563942',
+    '46568915',
+  ])
+})
+
 test('uses the local Agoda catalogue without spending SerpAPI quota', async () => {
   const previousFetch = globalThis.fetch
   const previousSerpApiKey = process.env.SERPAPI_API_KEY

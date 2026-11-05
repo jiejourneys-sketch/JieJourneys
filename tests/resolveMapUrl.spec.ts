@@ -94,6 +94,32 @@ test('extracts a place name from the address-style Maps URL shared by mobile', a
   })
 })
 
+test('uses a validated Maps redirect identity when the destination page would fail', async () => {
+  const shortUrl = 'https://maps.app.goo.gl/HNmwZueUzqwDfazx5?g_st=ic'
+  const expandedUrl =
+    'https://maps.google.com?q=%E3%82%A2%E3%83%91%E3%83%9B%E3%83%86%E3%83%AB%E3%80%88%E6%B5%85%E8%8D%89%E9%A7%85%E5%89%8D%E3%80%89+1+Chome-12-16+Komagata,+Taito+City,+Tokyo+111-0043%E6%97%A5%E6%9C%AC&ftid=0x60188ec7952b5d81:0x51892c72f494f0a&entry=gps'
+  const requestedUrls: string[] = []
+  globalThis.fetch = (async (input) => {
+    const url = String(input)
+    requestedUrls.push(url)
+    if (url === shortUrl) {
+      return new Response(null, { status: 302, headers: { location: expandedUrl } })
+    }
+    throw new Error(`destination_page_must_not_be_requested:${url}`)
+  }) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(shortUrl))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(requestedUrls).toEqual([shortUrl])
+  expect(payload).toMatchObject({
+    url: new URL(expandedUrl).toString(),
+    title: 'アパホテル〈浅草駅前〉',
+    googleMapsDataId: '0x60188ec7952b5d81:0x51892c72f494f0a',
+  })
+})
+
 test('prefers a hotel name in the Maps query over an address-like HTML title', async () => {
   const url =
     'https://www.google.com/maps?q=Dormy+Inn+Premium+Osaka+Kitahama,+1+Chome-6-7+Koraibashi,+Chuo+Ward,+Osaka,+541-0043%E6%97%A5%E6%9C%AC&ftid=0x6000e6de4b249b83:0xc2ec7b9f812f2652'

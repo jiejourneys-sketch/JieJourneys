@@ -20,6 +20,8 @@ const REVIEW_MATCH_MIN_SCORE = 0.78
 const AUTO_MATCH_MIN_MARGIN = 0.04
 const MAX_AUTO_MATCH_DISTANCE_KM = 1
 const MAX_INDEX_CANDIDATE_DISTANCE_KM = 2
+const MAX_PREFERRED_CLOSE_NAMED_DISTANCE_KM = 0.08
+const MIN_DISPLACED_CANDIDATE_DISTANCE_KM = 0.3
 // Agoda occasionally reissues a property ID while keeping the same canonical
 // listing. Keep the immutable source catalogue intact and apply confirmed ID
 // replacements while loading it.
@@ -640,6 +642,7 @@ async function searchAgodaHotelIndex(
     (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY) ||
     (b.reviewScore ?? 0) - (a.reviewScore ?? 0),
   )
+  prioritizeUniqueCloseNamedCandidate(candidates, query)
   const topCandidates = candidates.slice(0, 8).map(({ nameScore: _nameScore, ...candidate }) => candidate)
   const bestMatch = topCandidates[0]
   const bestRankedMatch = candidates[0]
@@ -717,9 +720,14 @@ function classifyAgodaIndexMatch(
     coordinateOnlyMatch || veryClosePartialNameMatch || nameAndDistanceMatch ? AUTO_MATCH_MIN_SCORE : 0,
   )
   const candidateHasStrongNameEvidence = (candidate.nameScore ?? 0) >= REVIEW_MATCH_MIN_SCORE
+  const runnerUpIsSpatiallyPlausible =
+    typeof distanceKm !== 'number' ||
+    typeof runnerUp?.distanceKm !== 'number' ||
+    runnerUp.distanceKm <= Math.max(MIN_DISPLACED_CANDIDATE_DISTANCE_KM, distanceKm + MAX_PREFERRED_CLOSE_NAMED_DISTANCE_KM)
   const runnerUpCompetes =
     Boolean(runnerUp) &&
     runnerUp?.hotelId !== candidate.hotelId &&
+    runnerUpIsSpatiallyPlausible &&
     (
       // A nearby apartment or hotel with no comparable name evidence must not
       // veto an exact named match. Coordinate-only candidates still protect a
@@ -742,6 +750,37 @@ function classifyAgodaIndexMatch(
   }
   if (evidenceScore >= REVIEW_MATCH_MIN_SCORE) return 'needs_review'
   return 'no_match'
+}
+
+function prioritizeUniqueCloseNamedCandidate(
+  candidates: RankedAgodaHotelCandidate[],
+  query: AgodaAffiliateSearchResponse['query'],
+) {
+  const currentTop = candidates[0]
+  if (
+    !query.lodgingHint ||
+    !currentTop ||
+    typeof currentTop.distanceKm !== 'number' ||
+    currentTop.distanceKm < MIN_DISPLACED_CANDIDATE_DISTANCE_KM
+  ) return
+
+  const closeNamedCandidates = candidates.filter((candidate) => (
+    typeof candidate.distanceKm === 'number' &&
+    candidate.distanceKm <= MAX_PREFERRED_CLOSE_NAMED_DISTANCE_KM &&
+    candidate.nameScore >= REVIEW_MATCH_MIN_SCORE &&
+    candidate.score >= AUTO_MATCH_MIN_SCORE &&
+    isLikelyAccommodationCandidate(candidate)
+  ))
+  // Multiple equally plausible listings at the same building remain under
+  // review. Coordinates may select a branch, but must never guess between
+  // duplicate Agoda property IDs.
+  if (closeNamedCandidates.length !== 1 || closeNamedCandidates[0] === currentTop) return
+
+  const preferred = closeNamedCandidates[0]
+  const preferredIndex = candidates.indexOf(preferred)
+  if (preferredIndex <= 0) return
+  candidates.splice(preferredIndex, 1)
+  candidates.unshift(preferred)
 }
 
 function agodaMatchConfidence(status: AgodaAffiliateMatchStatus): 'high' | 'review' | 'none' {
