@@ -1,0 +1,20 @@
+﻿/* Map layout and every interaction use the existing city-map component. */
+.regionFilter { grid-column: 1 / span 2; min-width: 0; }
+.regionPicker { display: none; }
+.regionFilter .regionTabs { margin: 0; }
+
+@media (max-width: 959px) {
+  .regionFilter { grid-column: auto; }
+  .regionFilter .regionTabs { display: none; }
+  .regionPicker { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; color: var(--brand); font-size: 13px; font-weight: 700; }
+  .regionPicker select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px; margin: 0; border: 1px solid var(--ring); border-radius: 12px; padding: 8px; background-color: #fff; color: #0f172a; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .regionPicker select:focus-visible { outline: 3px solid rgba(31, 122, 140, 0.28); outline-offset: 2px; }
+}
+
+.guide section[id], .activity { scroll-margin-top: calc(var(--navH, 72px) + 24px); }
+.activity + .activity { margin-top: 32px; }
+.period + .period, .cardPeriod { display: block; }
+.cardFacts { display: grid; gap: 6px; margin: 8px 0 12px; color: #475569; font-size: 13px; line-height: 1.6; }
+.cardFacts > div { display: grid; grid-template-columns: 3em minmax(0,1fr); gap: 8px; }
+.cardFacts dt { font-weight: 700; }
+.cardFacts dd { margin: 0; overflow-wrap: anywhere; }

@@ -219,6 +219,14 @@ export default function HomePage() {
           <PopularGrid />
         </section>
 
+        <section className="section" aria-label="當季旅遊攻略">
+          <h2>當季旅遊攻略</h2>
+          <Link href="/japan/winter-illuminations-2026" className="home-resource-card home-resource-card-link" data-event="home_winter_illuminations_2026" data-item="article">
+            <h3>日本熱門耶誕市集與點燈</h3>
+            <span>東京、橫濱、大阪、札幌等經典活動・區域地圖與日期重點</span>
+          </Link>
+        </section>
+
         <section id="tools" className="section" aria-label="旅遊資源">
           <h2>旅遊資源</h2>
           <p className="sub">行前會用到的工具與優惠</p>

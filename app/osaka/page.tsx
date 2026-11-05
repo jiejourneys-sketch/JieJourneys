@@ -13,6 +13,10 @@ export default function OsakaPage() {
         <h1>日本｜大阪・京都・奈良</h1>
         <p className="sub">完整連結快速選單</p>
         <div className="link-list">
+          <Link className="link-item" href="/japan/winter-illuminations-2026?from=osaka" data-event="osaka_winter_illuminations_2026" data-item="guide" data-section="quick">
+            <Image className="link-icon" src="/assets/gonglue.png" alt="冬季點燈攻略" width={48} height={48} />
+            <div className="link-text">冬季點燈・聖誕市集｜御堂筋、中之島與活動地圖</div>
+          </Link>
           <Link className="link-item" href="/osaka/map" data-event="osaka_map" data-item="map" data-section="quick">
             <Image className="link-icon" src="/assets/ditu.png" alt="地圖" width={48} height={48} />
             <div className="link-text">旅杰大阪・京都・奈良地圖</div>

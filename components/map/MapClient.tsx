@@ -58,6 +58,8 @@ export type MapClientProps = {
   defaultCategories?: Partial<Record<CityMapPlaceCategory, boolean>>
   /** Override which category toggle buttons to show. Defaults to all four. */
   categoryItems?: { key: CityMapPlaceCategory; label: string; keys?: CityMapPlaceCategory[] }[]
+  /** Hide category controls when the map is filtered by region only. */
+  showCategoryFilters?: boolean
   /** Override category labels used in cards, list sections, and marker titles. */
   categoryLabels?: Partial<Record<CityMapPlaceCategory, string>>
   officialPassTierItems?: { key: NonNullable<MapPlace['officialPassTier']>; label: string }[]
@@ -68,6 +70,10 @@ export type MapClientProps = {
   topActions?: MapTopAction[]
   /** Static content rendered below the interactive map, before the footer. */
   belowContent?: ReactNode
+  /** Extra filters rendered with the existing category tabs. */
+  filterContent?: ReactNode
+  /** Optional content inside the existing place cards. */
+  placeDetails?: (place: MapPlace) => ReactNode
 }
 
 const CATEGORY_LABEL = CITY_MAP_CATEGORY_LABEL
@@ -553,6 +559,7 @@ type MapPlaceCardProps = {
   defaultMapButtonEvent: string
   collapseLocationLinks: boolean
   categoryLabels: Record<CityMapPlaceCategory, string>
+  details?: ReactNode
 }
 
 function stopCardPick(e: ReactMouseEvent<HTMLAnchorElement> | ReactPointerEvent<HTMLAnchorElement>) {
@@ -643,13 +650,14 @@ function MapGoogleLink({
 
 function MapArticleLink({ place, gtagPrefix }: { place: MapPlace; gtagPrefix: string }) {
   if (!place.relatedArticleHref) return null
+  const samePage = place.relatedArticleHref.startsWith('#')
 
   return (
     <a
       className="btn"
       href={place.relatedArticleHref}
-      target="_blank"
-      rel="noopener noreferrer"
+      target={samePage ? undefined : '_blank'}
+      rel={samePage ? undefined : 'noopener noreferrer'}
       data-event={relatedArticleButtonEvent(place, gtagPrefix)}
       data-item={place.id}
       data-platform="article"
@@ -855,6 +863,7 @@ function MapPlaceCard({
   defaultMapButtonEvent,
   collapseLocationLinks,
   categoryLabels,
+  details,
 }: MapPlaceCardProps) {
   const relatedTicketClassName = hasPrimarySpotAction(place) ? 'btn' : 'btn primary'
   const spotActionRows = place.spotActionRows ? mergeShortVideoRows(place.spotActionRows) : undefined
@@ -906,6 +915,7 @@ function MapPlaceCard({
         </div>
         <h3 className="title">{place.name}</h3>
         <p className="desc">{place.description}</p>
+        {details}
         {place.hotelActions && place.hotelActions.length > 0 ? (
           <div className={styles.mapActionRow}>
             <MapActionLinks actions={place.hotelActions.filter((action) => !isNaverMapAction(action))} place={place} />
@@ -1046,6 +1056,7 @@ export default function MapClient({
   backHref,
   defaultCategories,
   categoryItems,
+  showCategoryFilters = true,
   categoryLabels,
   officialPassTierItems,
   routeLayers,
@@ -1053,6 +1064,8 @@ export default function MapClient({
   collapseLocationLinks = false,
   topActions,
   belowContent,
+  filterContent,
+  placeDetails,
 }: MapClientProps) {
   const topMenuActions = useMemo(
     () => topActions?.filter((action) => action.placement !== 'afterBelowContent') ?? [],
@@ -2478,7 +2491,7 @@ export default function MapClient({
           <h1>{title}</h1>
           <div className={styles.introBlock}>
             <div className={styles.mapFilterGroups}>
-              <div
+              {showCategoryFilters ? <div
                 className="tabs"
                 id={`${gtagPrefix}CategoryToggles`}
                 role="group"
@@ -2560,7 +2573,7 @@ export default function MapClient({
                     </button>
                   )
                 })}
-              </div>
+              </div> : null}
               {officialPassTierItems && officialPassTierItems.length > 0 ? (
                 <div
                   className="tabs"
@@ -2624,6 +2637,7 @@ export default function MapClient({
                   ))}
                 </div>
               ) : null}
+              {filterContent}
             </div>
             {topActions && topActions.length > 0 ? (
               <div ref={topActionsRef} className={styles.mapTopActions} aria-label="快速連結">
@@ -2835,6 +2849,7 @@ export default function MapClient({
                           defaultMapButtonEvent={defaultMapButtonEvent}
                           collapseLocationLinks={collapseLocationLinks}
                           categoryLabels={categoryLabelMap}
+                          details={placeDetails?.(place)}
                           cardRef={(el) => {
                             desktopCardRefs.current[place.id] = el
                           }}
@@ -2933,6 +2948,7 @@ export default function MapClient({
                     defaultMapButtonEvent={defaultMapButtonEvent}
                     collapseLocationLinks={collapseLocationLinks}
                     categoryLabels={categoryLabelMap}
+                    details={placeDetails?.(selectedPlace)}
                     cardRef={(el) => {
                       mobileCardRefs.current[selectedPlace.id] = el
                     }}
@@ -2979,6 +2995,7 @@ export default function MapClient({
                                 defaultMapButtonEvent={defaultMapButtonEvent}
                                 collapseLocationLinks={collapseLocationLinks}
                                 categoryLabels={categoryLabelMap}
+                                details={placeDetails?.(place)}
                                 cardRef={(el) => {
                                   mobileCardRefs.current[place.id] = el
                                 }}

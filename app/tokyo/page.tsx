@@ -13,6 +13,10 @@ export default function TokyoPage() {
         <h1>日本｜東京</h1>
         <p className="sub">完整連結快速選單</p>
         <div className="link-list">
+          <Link className="link-item" href="/japan/winter-illuminations-2026?from=tokyo" data-event="tokyo_winter_illuminations_2026" data-item="guide" data-section="quick">
+            <Image className="link-icon" src="/assets/gonglue.png" alt="冬季點燈攻略" width={48} height={48} />
+            <div className="link-text">冬季點燈・聖誕市集｜日期與活動地圖</div>
+          </Link>
           <Link
             className="link-item"
             href="/tokyo/map"

@@ -12,7 +12,7 @@ type SitemapRoute = {
 }
 
 const lastModifiedByPath: Record<string, string> = {
-  '/': '2026-10-16',
+  '/': '2026-11-05',
   '/contact': '2026-04-10',
   '/countries': '2026-05-09',
   '/tools/planner': '2026-07-13',
@@ -22,6 +22,7 @@ const lastModifiedByPath: Record<string, string> = {
   '/japan/visit-japan-web-guide': '2026-07-22',
   '/japan/kyushu-travel-subsidy-2026': '2026-11-02',
   '/japan/autumn-leaves-forecast-2026': '2026-10-01',
+  '/japan/winter-illuminations-2026': '2026-11-05',
   '/busan': '2026-05-17',
   '/busan/hotel': '2026-06-06',
   '/busan/ticket': '2026-06-15',
@@ -122,6 +123,7 @@ const sitemapRoutes: SitemapRoute[] = [
   { path: '/japan/visit-japan-web-guide', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/japan/kyushu-travel-subsidy-2026', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/japan/autumn-leaves-forecast-2026', changeFrequency: 'weekly', priority: 0.8, images: ['/assets/japan-autumn-leaves-forecast-2026/forecast-map-v2.png'] },
+  { path: '/japan/winter-illuminations-2026', changeFrequency: 'weekly', priority: 0.8 },
 
   { path: '/busan', changeFrequency: 'monthly', priority: 0.8 },
   { path: '/busan/hotel', changeFrequency: 'monthly', priority: 0.7 },

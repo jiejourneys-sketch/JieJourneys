@@ -19,6 +19,7 @@ type CtaLink = {
 }
 
 type Props = {
+  headingLevel?: 'h1' | 'h2'
   badge?: string
   h1: string
   intro?: string
@@ -31,6 +32,7 @@ type Props = {
 }
 
 export default function SeoHeroSection({
+  headingLevel = 'h1',
   badge,
   h1,
   intro,
@@ -40,6 +42,7 @@ export default function SeoHeroSection({
   eventPrefix = 'page',
   showVisual = true,
 }: Props) {
+  const Heading = headingLevel
   const KEYWORD = '釜山住宿'
   const [rawTitle, rawSubtitle] = h1.split('｜')
   const title = rawTitle?.trim() || h1
@@ -63,10 +66,10 @@ export default function SeoHeroSection({
         <div className="hero-left">
           {badge ? <div className="hero-badge">{badge}</div> : null}
 
-          <h1 className="seo-h1">
+          <Heading className="seo-h1">
             <span className="hero-title">{titleNode}</span>
             {subtitle ? <span className="hero-subtitle">{subtitle}</span> : null}
-          </h1>
+          </Heading>
 
           {intro ? <p className="seo-lead">{intro}</p> : null}
 
