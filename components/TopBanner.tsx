@@ -1,4 +1,5 @@
 import PromoLink from '@/components/PromoLink'
+import { KARDEAR_PROMO_CODE, KARDEAR_PROMO_LABEL } from '@/lib/travelPromos'
 
 export default function TopBanner() {
   return (
@@ -42,15 +43,14 @@ export default function TopBanner() {
           </div>
           <div>
             <strong>KarDear 上網卡：</strong>
-            <a
+            <PromoLink
               href="https://kardear.com/?ref=390"
-              target="_blank"
-              rel="noopener noreferrer"
+              promoCode={KARDEAR_PROMO_CODE}
               data-event="promo_kardear"
               className="code-link"
             >
-              <span className="code">eSIM／SIM 卡 ↗</span>
-            </a>
+              <span className="code">{KARDEAR_PROMO_LABEL} ↗</span>
+            </PromoLink>
           </div>
           <div>
             <strong>訂房：</strong>

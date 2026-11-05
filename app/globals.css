@@ -498,6 +498,10 @@ header {
   background: #fff;
 }
 
+.promo-resource-copy-wide {
+  grid-column: 1 / -1;
+}
+
 .promo-resource-visit {
   border-color: #9bcfd6;
   color: #155c6a;

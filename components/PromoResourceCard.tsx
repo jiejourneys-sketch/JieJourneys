@@ -52,7 +52,8 @@ export default function PromoResourceCard({ title, tags, href, event, actionLink
         {promoCode ? (
           <button
             type="button"
-            className="promo-resource-copy"
+            className={`promo-resource-copy${actionLinks?.length ? ' promo-resource-copy-wide' : ''}`}
+            aria-label={`複製${title}優惠碼 ${promoCode}`}
             onClick={handleCopy}
             data-event={`${event}_copy`}
             data-item="tool"

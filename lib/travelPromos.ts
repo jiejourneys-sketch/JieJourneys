@@ -1,0 +1,2 @@
+export const KARDEAR_PROMO_CODE = 'JIE90'
+export const KARDEAR_PROMO_LABEL = `${KARDEAR_PROMO_CODE} 享 9 折`
