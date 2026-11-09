@@ -205,6 +205,48 @@ test('keeps a Google Maps feature data ID separate from a ChIJ Place ID', async 
   expect(payload.googlePlaceId).toBeUndefined()
 })
 
+test('uses the destination identity and coordinates from a Google Maps directions URL', async () => {
+  const url =
+    'https://www.google.com/maps/dir/Roman-kan/Koto-an/@34.994,135.757,17z/data=!4m14!4m13!1m5!1m1!1s0x600108a16e6513ad:0xb6cc3857fa4b6097!2m2!1d135.756048!2d34.993788!1m5!1m1!1s0x600108a3964e3e01:0xdf30194320cfac08!2m2!1d135.7584119!2d34.9943761!3e2'
+  globalThis.fetch = (async () => new Response(
+    '<title>Roman-kan to Koto-an - Google Maps</title>',
+    { status: 200, headers: { 'content-type': 'text/html' } },
+  )) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(url))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload).toMatchObject({
+    url,
+    title: 'Koto-an',
+    query: 'Koto-an',
+    lat: 34.9943761,
+    lng: 135.7584119,
+    googleMapsDataId: '0x600108a3964e3e01:0xdf30194320cfac08',
+  })
+})
+
+test('prefers destination parameters over origin parameters in a Maps directions URL', async () => {
+  const url =
+    'https://www.google.com/maps/dir/?api=1&origin=Roman-kan&origin_place_id=ChIOriginPlace123456&destination=Koto-an&destination_place_id=ChIDestination123456'
+  globalThis.fetch = (async () => new Response(
+    '<title>Roman-kan to Koto-an - Google Maps</title>',
+    { status: 200, headers: { 'content-type': 'text/html' } },
+  )) as typeof fetch
+
+  const response = await resolveMapUrl(resolverRequest(url))
+  const payload = await response.json()
+
+  expect(response.status).toBe(200)
+  expect(payload).toMatchObject({
+    url,
+    title: 'Koto-an',
+    query: 'Koto-an',
+    googlePlaceId: 'ChIDestination123456',
+  })
+})
+
 test('preserves the reported ART Hotel Maps short-link identity', async () => {
   globalThis.fetch = (async (input) => {
     const url = String(input)

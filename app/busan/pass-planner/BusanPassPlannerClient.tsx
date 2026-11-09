@@ -425,10 +425,11 @@ const PUBLIC_SITE_ORIGIN = 'https://www.jiejourneys.com'
 const PLANNER_BOOK_CACHE_TTL_MS = 10 * 60 * 1000
 const LEGACY_DIAMOND_BAY_RESERVATION_URL = 'https://diamondbay-tw.imweb.me/vbp-tw'
 const DIAMOND_BAY_RESERVATION_URL = 'https://diamondbay.co.kr/zh-TW/visit-busan-pass/'
-// v4 drops the old permanent "not found" result.  A short Google Maps link
-// often has a feature ID (`g/...`) rather than a reusable `ChIJ...` Place ID,
-// so an intermittent lookup failure must be retried instead of cached forever.
-const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v4:'
+// v5 also invalidates direction URLs that previously cached their origin as
+// the place identity. A short Google Maps link often has a feature ID (`g/...`)
+// rather than a reusable `ChIJ...` Place ID, so intermittent lookup failures
+// must be retried instead of cached forever.
+const RESOLVED_MAP_URL_CACHE_PREFIX = 'jiejourneys:planner:resolved-map-url:v5:'
 const HOTEL_AFFILIATE_LOOKUP_CACHE_PREFIX = 'jiejourneys:planner:hotel-affiliate-lookup:'
 const HOTEL_AFFILIATE_REQUEST_TIMEOUT_MS = 60_000
 const CUSTOM_MAP_URL_RESOLVE_TIMEOUT_MS = 25_000
@@ -1668,13 +1669,21 @@ function googleMapsTravelMode(mode: TransportMode) {
   return null
 }
 
+function isGoogleMapsDirectionsUrl(value: string) {
+  try {
+    return /\/maps\/dir(?:\/|$)/i.test(new URL(value).pathname)
+  } catch {
+    return /\/maps\/dir(?:\/|[?#]|$)/i.test(value)
+  }
+}
+
 function googleMapsPlaceIdFromUrl(value: string | undefined) {
   const raw = value?.trim()
   if (!raw) return ''
 
   try {
     const url = new URL(raw)
-    for (const key of ['query_place_id', 'place_id', 'origin_place_id', 'destination_place_id']) {
+    for (const key of ['query_place_id', 'place_id', 'destination_place_id', 'origin_place_id']) {
       const id = url.searchParams.get(key)?.trim()
       if (id) return id
     }
@@ -1682,10 +1691,14 @@ function googleMapsPlaceIdFromUrl(value: string | undefined) {
     // Fall through to loose text matching.
   }
 
-  const paramMatch = raw.match(/[?&](?:query_place_id|place_id|origin_place_id|destination_place_id)=([^&#]+)/i)
-  if (paramMatch?.[1]) return decodeURIComponent(paramMatch[1]).trim()
-  const dataMatch = raw.match(/!1s(ChI[A-Za-z0-9_-]{12,})/)
-  return dataMatch?.[1] ?? ''
+  for (const key of ['query_place_id', 'place_id', 'destination_place_id', 'origin_place_id']) {
+    const paramMatch = raw.match(new RegExp(`[?&]${key}=([^&#]+)`, 'i'))
+    if (paramMatch?.[1]) return decodeURIComponent(paramMatch[1]).trim()
+  }
+  const dataMatches = Array.from(raw.matchAll(/!1s(ChI[A-Za-z0-9_-]{12,})/g))
+  if (dataMatches.length === 0) return ''
+  const selected = isGoogleMapsDirectionsUrl(raw) ? dataMatches[dataMatches.length - 1] : dataMatches[0]
+  return selected?.[1] ?? ''
 }
 
 function googleMapsDataIdFromUrl(value: string | undefined) {
@@ -1699,8 +1712,10 @@ function googleMapsDataIdFromUrl(value: string | undefined) {
   }
   const parameterMatch = raw.match(/[?&]ftid=(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
   if (parameterMatch?.[1]) return parameterMatch[1].toLowerCase()
-  const dataMatch = raw.match(/!1s(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
-  return dataMatch?.[1]?.toLowerCase() ?? ''
+  const dataMatches = Array.from(raw.matchAll(/!1s(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/gi))
+  if (dataMatches.length === 0) return ''
+  const selected = isGoogleMapsDirectionsUrl(raw) ? dataMatches[dataMatches.length - 1] : dataMatches[0]
+  return selected?.[1]?.toLowerCase() ?? ''
 }
 
 function trustedProviderPlaceId(
@@ -2043,6 +2058,28 @@ function cleanUserLinks(value: unknown): Record<string, PlannerUserLink[]> {
 function parseGoogleMapsUrl(value: string) {
   const url = value.trim()
   if (!url) return null
+  const directionsUrl = isGoogleMapsDirectionsUrl(url)
+  if (directionsUrl) {
+    try {
+      const destination = new URL(url).searchParams.get('destination')?.trim()
+      const destinationMatch = destination?.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/)
+      if (destinationMatch) {
+        const lat = Number(destinationMatch[1])
+        const lng = Number(destinationMatch[2])
+        if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+      }
+    } catch {
+      // Fall through to embedded route endpoint matching.
+    }
+
+    const endpointMatches = Array.from(url.matchAll(/!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g))
+    const destinationEndpoint = endpointMatches[endpointMatches.length - 1]
+    if (destinationEndpoint) {
+      const lat = Number(destinationEndpoint[2])
+      const lng = Number(destinationEndpoint[1])
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+    }
+  }
   const coordinatePatterns = [
     /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
     /!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/,
@@ -2053,7 +2090,8 @@ function parseGoogleMapsUrl(value: string) {
     /[?&]ll=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
   ]
   for (const pattern of coordinatePatterns) {
-    const match = url.match(pattern)
+    const matches = Array.from(url.matchAll(new RegExp(pattern.source, 'g')))
+    const match = directionsUrl ? matches[matches.length - 1] : matches[0]
     if (!match) continue
     const isLngLatPattern = pattern.source.startsWith('!2d')
     const lat = Number(match[isLngLatPattern ? 2 : 1])
@@ -2255,6 +2293,25 @@ function isGenericGoogleMapsPlaceName(name: string) {
 }
 
 function parseGoogleMapsPlaceName(value: string) {
+  if (isGoogleMapsDirectionsUrl(value)) {
+    try {
+      const url = new URL(value)
+      const destination = url.searchParams.get('destination')?.trim()
+      if (destination && !/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(destination)) {
+        return cleanGoogleMapsQueryPlaceName(destination)
+      }
+      const segments = url.pathname.split('/').filter(Boolean)
+      const dirIndex = segments.findIndex((segment, index) => segment.toLowerCase() === 'dir' && segments[index - 1]?.toLowerCase() === 'maps')
+      const routeSegments = dirIndex < 0
+        ? []
+        : segments.slice(dirIndex + 1).filter((segment) => !segment.startsWith('@') && !segment.startsWith('data='))
+      const encodedDestination = routeSegments[routeSegments.length - 1]
+      if (encodedDestination) return cleanGoogleMapsQueryPlaceName(decodeURIComponent(encodedDestination.replace(/\+/g, ' ')))
+    } catch {
+      // Fall through to the standard place/search/query parsing.
+    }
+  }
+
   const match = value.match(/\/place\/([^/?@]+)/)
   if (match) {
     try {
@@ -2286,7 +2343,11 @@ function parseGoogleMapsPlaceName(value: string) {
 function parseGoogleMapsQuery(value: string) {
   try {
     const url = new URL(value)
-    const query = url.searchParams.get('q') || url.searchParams.get('query')
+    const query =
+      (isGoogleMapsDirectionsUrl(value) ? url.searchParams.get('destination') : null) ||
+      url.searchParams.get('q') ||
+      url.searchParams.get('query')
+    if (!query && isGoogleMapsDirectionsUrl(value)) return parseGoogleMapsPlaceName(value)
     if (!query || /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(query.trim())) return ''
     return query.replace(/\s+/g, ' ').trim()
   } catch {

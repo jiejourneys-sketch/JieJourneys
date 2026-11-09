@@ -678,6 +678,10 @@ const osakaSpotPlaces: SpotPlaceInput[] = [
     lng: 135.784661,
     mapUrl: 'https://maps.app.goo.gl/rjjZ6K9YP5gY5tsR9',
     relatedTicketTag: '清水寺',
+    extraActions: [
+      { label: '清水寺 IG', href: 'https://www.instagram.com/reel/DfcPUiUtgMN/', className: 'btn', mapEvent: 'osakamap_kiyomizudera_ig', platform: 'IG', section: 'map_bar' },
+      { label: '清水寺 YouTube', href: 'https://www.youtube.com/shorts/rhg0BsGzzWY', className: 'btn', mapEvent: 'osakamap_kiyomizudera_youtube', platform: 'YouTube', section: 'map_bar' },
+    ],
     relatedArticleHref: '/kyoto-nara/kyoto-kiyomizudera-guide?from=osaka-map',
     relatedArticleLabel: '攻略',
     relatedArticleEvent: 'osakamap_kiyomizudera_article',

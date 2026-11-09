@@ -140,7 +140,40 @@ function cleanGoogleMapsTitle(value: string) {
   return normalized || null
 }
 
+function isGoogleMapsDirectionsUrl(value: string) {
+  try {
+    return /\/maps\/dir(?:\/|$)/i.test(new URL(value).pathname)
+  } catch {
+    return /\/maps\/dir(?:\/|[?#]|$)/i.test(value)
+  }
+}
+
+function decodeGoogleMapsDirectionsDestination(value: string) {
+  if (!isGoogleMapsDirectionsUrl(value)) return null
+  try {
+    const url = new URL(value)
+    const destination = url.searchParams.get('destination')?.trim()
+    if (destination && !/^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(destination)) {
+      return cleanGoogleMapsQueryTitle(destination)
+    }
+
+    const segments = url.pathname.split('/').filter(Boolean)
+    const dirIndex = segments.findIndex((segment, index) => segment.toLowerCase() === 'dir' && segments[index - 1]?.toLowerCase() === 'maps')
+    if (dirIndex < 0) return null
+    const routeSegments = segments
+      .slice(dirIndex + 1)
+      .filter((segment) => !segment.startsWith('@') && !segment.startsWith('data='))
+    const encodedDestination = routeSegments[routeSegments.length - 1]
+    if (!encodedDestination) return null
+    return cleanGoogleMapsQueryTitle(decodeURIComponent(encodedDestination.replace(/\+/g, ' ')))
+  } catch {
+    return null
+  }
+}
+
 function decodeGoogleMapsPathPlaceName(value: string) {
+  const directionsDestination = decodeGoogleMapsDirectionsDestination(value)
+  if (directionsDestination) return directionsDestination
   try {
     const url = new URL(value)
     const match = url.pathname.match(/\/maps\/(?:place|search)\/([^/?@]+)/)
@@ -168,7 +201,10 @@ function isGoogleMapsPlacePath(value: string) {
 function decodeGoogleMapsQuery(value: string) {
   try {
     const url = new URL(value)
-    const query = url.searchParams.get('q') || url.searchParams.get('query')
+    const query =
+      (isGoogleMapsDirectionsUrl(value) ? url.searchParams.get('destination') : null) ||
+      url.searchParams.get('q') ||
+      url.searchParams.get('query')
     if (!query || /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/.test(query.trim())) return null
     return query.replace(/\s+/g, ' ').trim()
   } catch {
@@ -179,7 +215,7 @@ function decodeGoogleMapsQuery(value: string) {
 function extractGoogleMapsPlaceId(value: string) {
   try {
     const url = new URL(value)
-    for (const key of ['query_place_id', 'place_id', 'origin_place_id', 'destination_place_id']) {
+    for (const key of ['query_place_id', 'place_id', 'destination_place_id', 'origin_place_id']) {
       const id = url.searchParams.get(key)?.trim()
       if (id) return id
     }
@@ -187,10 +223,14 @@ function extractGoogleMapsPlaceId(value: string) {
     // Fall through to loose text matching.
   }
 
-  const paramMatch = value.match(/[?&](?:query_place_id|place_id|origin_place_id|destination_place_id)=([^&#]+)/i)
-  if (paramMatch?.[1]) return decodeURIComponent(paramMatch[1]).trim()
-  const dataMatch = value.match(/!1s(ChI[A-Za-z0-9_-]{12,})/)
-  return dataMatch?.[1] ?? null
+  for (const key of ['query_place_id', 'place_id', 'destination_place_id', 'origin_place_id']) {
+    const paramMatch = value.match(new RegExp(`[?&]${key}=([^&#]+)`, 'i'))
+    if (paramMatch?.[1]) return decodeURIComponent(paramMatch[1]).trim()
+  }
+  const dataMatches = Array.from(value.matchAll(/!1s(ChI[A-Za-z0-9_-]{12,})/g))
+  if (dataMatches.length === 0) return null
+  const selected = isGoogleMapsDirectionsUrl(value) ? dataMatches[dataMatches.length - 1] : dataMatches[0]
+  return selected?.[1] ?? null
 }
 
 // Google Maps often embeds a feature data ID (`0x...:0x...`) instead of a
@@ -205,8 +245,10 @@ function extractGoogleMapsDataId(value: string) {
   }
   const ftidMatch = value.match(/[?&]ftid=(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
   if (ftidMatch?.[1]) return ftidMatch[1].toLowerCase()
-  const match = value.match(/!1s(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/i)
-  return match?.[1]?.toLowerCase() ?? null
+  const matches = Array.from(value.matchAll(/!1s(0x[0-9a-f]{6,}:0x[0-9a-f]{6,})/gi))
+  if (matches.length === 0) return null
+  const selected = isGoogleMapsDirectionsUrl(value) ? matches[matches.length - 1] : matches[0]
+  return selected?.[1]?.toLowerCase() ?? null
 }
 
 function extractNaverPlaceId(value: string) {
@@ -381,6 +423,27 @@ function parseCoordinatePair(latValue: string | undefined, lngValue: string | un
 }
 
 function extractGoogleMapsCoordinates(value: string) {
+  const directionsUrl = isGoogleMapsDirectionsUrl(value)
+  if (directionsUrl) {
+    try {
+      const destination = new URL(value).searchParams.get('destination')?.trim()
+      const destinationMatch = destination?.match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/)
+      if (destinationMatch) {
+        const pair = parseCoordinatePair(destinationMatch[1], destinationMatch[2])
+        if (pair) return pair
+      }
+    } catch {
+      // Fall through to embedded route endpoint matching.
+    }
+
+    const endpointMatches = Array.from(value.matchAll(/!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g))
+    const destinationEndpoint = endpointMatches[endpointMatches.length - 1]
+    if (destinationEndpoint) {
+      const pair = parseCoordinatePair(destinationEndpoint[2], destinationEndpoint[1])
+      if (pair) return pair
+    }
+  }
+
   const patterns = [
     /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
     /!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)/,
@@ -389,7 +452,8 @@ function extractGoogleMapsCoordinates(value: string) {
   ]
 
   for (const pattern of patterns) {
-    const match = value.match(pattern)
+    const matches = Array.from(value.matchAll(new RegExp(pattern.source, 'g')))
+    const match = directionsUrl ? matches[matches.length - 1] : matches[0]
     if (!match) continue
     const isLngLatPattern = pattern.source.startsWith('!2d')
     const pair = parseCoordinatePair(match[isLngLatPattern ? 2 : 1], match[isLngLatPattern ? 1 : 2])

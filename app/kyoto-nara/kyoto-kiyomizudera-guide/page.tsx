@@ -4,6 +4,7 @@ import Footer from '@/components/Footer'
 import SeoFaqSection from '@/components/seo/SeoFaqSection'
 import SeoHeroSection from '@/components/seo/SeoHeroSection'
 import SeoRelatedLinksSection from '@/components/seo/SeoRelatedLinksSection'
+import SeoVideoLinkMenu from '@/components/seo/SeoVideoLinkMenu'
 import type { PageSearchParams } from '@/lib/plannerReturn'
 import {
   kyotoKiyomizuderaGuideCanonical,
@@ -18,6 +19,11 @@ const OFFICIAL_HOURS_URL = 'https://www.kiyomizudera.or.jp/news/open-hour.php'
 const KYOTO_ACCESS_URL =
   'https://kyoto.travel/en/getting-around/comfortable-access-to-higashiyama-kiyomizu-dera-temple/'
 const KYOTO_CONGESTION_URL = 'https://global.kyoto.travel/en/comfort/'
+
+const videoLinks = [
+  { label: '清水寺 IG', href: 'https://www.instagram.com/reel/DfcPUiUtgMN/', event: 'kyotokiyomizudera_video_ig', platform: 'IG', primary: true },
+  { label: '清水寺 YouTube', href: 'https://www.youtube.com/shorts/rhg0BsGzzWY', event: 'kyotokiyomizudera_video_youtube', platform: 'YouTube' },
+]
 
 const faqItems = [
   {
@@ -121,6 +127,14 @@ export default async function KyotoKiyomizuderaGuidePage({ searchParams }: Kyoto
               <strong>成人 500 日圓</strong>
               <p>小學、國中生 200 日圓；特殊公開可能另行收費。</p>
             </div>
+          </div>
+        </section>
+
+        <section className="seo-content" id="video-guide" aria-label="清水寺攻略短影音">
+          <h2 className="seo-h2">先看短影音：清水寺參觀重點與路線</h2>
+          <div className="seo-prose">
+            <p>先用短影音掌握清水寺的參觀重點，再搭配下方交通說明與境內地圖，安排仁王門、清水舞台、奧之院到音羽瀑布的路線。</p>
+            <SeoVideoLinkMenu label="清水寺" links={videoLinks} />
           </div>
         </section>
 

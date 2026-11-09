@@ -9,10 +9,11 @@ import type { PageSearchParams } from '@/lib/plannerReturn'
 const SITE_URL = 'https://www.jiejourneys.com'
 const PAGE_PATH = '/japan/tax-free-2026'
 const PAGE_URL = `${SITE_URL}${PAGE_PATH}`
-const UPDATED_AT = '2026-10-21'
+const UPDATED_AT = '2026-11-10'
 
 const OFFICIAL_SOURCES = {
-  customs: 'https://www.customs.go.jp/kaigairyoko/taxrefund_e.html',
+  customs: 'https://www.customs.go.jp/kaigairyoko/taxrefund.htm',
+  customsEnglish: 'https://www.customs.go.jp/kaigairyoko/taxrefund_e.html',
   tourismAgency: 'https://www.mlit.go.jp/kankocho/tax-free/page01_000001_00021.html',
   travelerFaq: 'https://www.mlit.go.jp/kankocho/tax-free/page01_000001_00023.html',
   taxAgency: 'https://www.nta.go.jp/publication/pamph/shohi/menzei/201805/format/002.htm',
@@ -28,7 +29,7 @@ const taxFreeVideoLinks = [
 
 const title = '日本退稅新制懶人包｜2026/11/1 退稅流程、Visit Japan Web 與 90 天規定'
 const description =
-  '日本 2026 年 11 月 1 日購買分起改採先付含稅價、出境確認後退款。整理同店同日未稅 5,000 日圓門檻、90 天期限、KIOSK、Visit Japan Web 七座機場、紅綠燈判定與行李托運注意事項。'
+  '日本退稅新制已於 2026 年 11 月 1 日正式實施：購物先付含稅價，出境確認後退款。整理同店同日未稅 5,000 日圓門檻、90 天期限、KIOSK、Visit Japan Web 七座機場、紅綠燈判定與行李托運注意事項。'
 
 const faqItems = [
   {
@@ -151,9 +152,9 @@ export default async function JapanTaxFree2026Page({ searchParams }: JapanTaxFre
       <CitySubpageHeader backHref={backHref} eventPrefix="japantaxfree" />
       <main className="busan-main transport-main seo-page japan-tax-free-page">
         <SeoHeroSection
-          badge="日本購物攻略"
+          badge="日本購物攻略｜2026/11/10 實施後查核"
           h1="日本退稅新制懶人包｜2026/11/1 起先付稅、出境後退款"
-          intro="2026 年 11 月 1 日購買分起，日本外國旅客免稅制度改採 Refund Method。購物時先付含稅價，90 天內在最後離開日本的機場或港口完成海關確認，再由免稅店或受託業者退款。"
+          intro="日本退稅新制已於 2026 年 11 月 1 日正式上路。當日起的購買改採 Refund Method：購物時先付含稅價，90 天內在最後離開日本的機場或港口完成海關確認，再由免稅店或受託業者退款。"
           eventPrefix="japantaxfree"
           showVisual={false}
           ctaLinks={[
@@ -165,8 +166,13 @@ export default async function JapanTaxFree2026Page({ searchParams }: JapanTaxFre
 
         <section className="seo-content" aria-label="日本退稅新制重點">
           <p className="article-updated">
-            最後查核：<time dateTime={UPDATED_AT}>2026/10/21</time>。本文以日本海關、觀光廳、國稅廳、JNTO 與數位廳資料為準。
+            最後查核：<time dateTime={UPDATED_AT}>2026/11/10</time>。本文以日本海關、觀光廳、國稅廳、JNTO 與數位廳資料為準。
           </p>
+          <div className="seo-prose">
+            <p>
+              <strong>這項制度已經正式實施，不再是預告。</strong>日本海關已啟用出境確認說明與 Visit Japan Web 線上手續；國稅廳也已發布 2026 年 11 月修訂資料。以下流程依上路後官方版本整理。
+            </p>
+          </div>
           <div className="tax-free-summary-grid" role="list">
             <div role="listitem">
               <span className="summary-label">適用日期</span>
@@ -387,7 +393,8 @@ export default async function JapanTaxFree2026Page({ searchParams }: JapanTaxFre
           <div className="seo-prose">
             <p>本文以政府與官方旅遊機構的一手資料交叉查核，實際退款方式仍以購買店家及出境地現場公告為準。</p>
             <ul>
-              <li><a href={OFFICIAL_SOURCES.customs} target="_blank" rel="noopener noreferrer">日本海關｜Tax Exemption (Refund) Program for Foreign Visitors</a></li>
+              <li><a href={OFFICIAL_SOURCES.customs} target="_blank" rel="noopener noreferrer">日本海關｜退稅新制出境確認與線上手續</a></li>
+              <li><a href={OFFICIAL_SOURCES.customsEnglish} target="_blank" rel="noopener noreferrer">日本海關｜Tax Exemption (Refund) Program for Foreign Visitors</a></li>
               <li><a href={OFFICIAL_SOURCES.tourismAgency} target="_blank" rel="noopener noreferrer">日本觀光廳｜旅行者向け新制度特設頁</a></li>
               <li><a href={OFFICIAL_SOURCES.travelerFaq} target="_blank" rel="noopener noreferrer">日本觀光廳｜旅客退稅常見問題</a></li>
               <li><a href={OFFICIAL_SOURCES.taxAgency} target="_blank" rel="noopener noreferrer">日本國稅廳｜免稅制度改採 Refund Method</a></li>

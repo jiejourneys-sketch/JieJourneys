@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 const title = '日本退稅新制懶人包｜2026/11/1 退稅流程、VJW 與 90 天規定'
 const description =
-  '日本 2026 年 11 月 1 日購買分起改採先付含稅價、出境確認後退款。整理同店同日未稅 5,000 日圓門檻、90 天期限、KIOSK、Visit Japan Web 七座機場、紅綠燈判定與托運注意事項。'
+  '日本退稅新制已於 2026 年 11 月 1 日正式實施：購物先付含稅價、出境確認後退款。整理同店同日未稅 5,000 日圓門檻、90 天期限、KIOSK、Visit Japan Web 七座機場、紅綠燈判定與托運注意事項。'
 const shareImage = 'https://www.jiejourneys.com/assets/og-share.png'
 
 export const metadata: Metadata = {
