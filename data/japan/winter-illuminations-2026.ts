@@ -2,7 +2,7 @@ import type { MapPlace } from '@/lib/mapPlace'
 
 export const WINTER_GUIDE_PATH = '/japan/winter-illuminations-2026'
 export const WINTER_GUIDE_PUBLISHED_AT = '2026-11-02'
-export const WINTER_GUIDE_CHECKED_AT = '2026-11-05'
+export const WINTER_GUIDE_CHECKED_AT = '2026-11-12'
 
 export const winterRegions = [
   { id: 'tokyo', name: '東京・近郊', note: '東京聖誕市集・六本木・晴空塔', center: { lat: 35.668, lng: 139.746 } },
@@ -194,12 +194,13 @@ const additionalWinterEvents: WinterEvent[] = [
     sources: [{ label: '東京中城日比谷｜2026 點燈公告', url: 'https://www.hibiya.tokyo-midtown.com/jp/news/7612/' }, { label: '官方新聞稿｜各區日期與點燈時間', url: 'https://www.hibiya.tokyo-midtown.com/jp/news/upload/9f1844050096a19294d9fb356cab9a2a.pdf' }],
   },
   {
-    id: 'shibuya-blue-cave', region: 'tokyo', name: '澀谷青之洞窟｜藍色燈海，2026 日程待公布', shortName: '澀谷青之洞窟', kind: '街道點燈', scheduleStatus: 'pending',
-    venue: '澀谷公園通至代代木公園周邊（2026 範圍待公告）', position: { lat: 35.6669, lng: 139.6985 }, mapQuery: '代々木公園ケヤキ並木 青の洞窟', periods: [],
-    hours: '2026 點燈日期、時間與會場範圍待官方公布。', fee: '2026 入場與活動規則待公告。', booking: '先收藏官方頁面，待本季公告後再排定。', access: '可先以澀谷、原宿及代代木公園一帶理解位置；確切入口等本季公告。',
-    highlights: ['藍色燈海是多篇東京耶誕整理會提到的經典選擇，先收進清單，方便公告後接上澀谷行程。', '目前官方頁面仍是 2025 活動結束資訊，不能拿去年日期當成今年已確認。'],
-    caution: '這一筆尚無已確認的 2026 舉辦日期；地圖位置供認識周邊區域，不代表活動已開始。',
-    sources: [{ label: '青之洞窟｜官方最新公告', url: 'https://shibuya-aonodokutsu.jp/' }],
+    id: 'shibuya-blue-cave', region: 'tokyo', name: '澀谷青之洞窟｜50 萬顆藍色燈海與 THE BLUE TREE', shortName: '澀谷青之洞窟', kind: '街道點燈',
+    venue: '澀谷公園通至代代木公園櫸樹大道', position: { lat: 35.6680, lng: 139.6972 }, mapQuery: '代々木公園ケヤキ並木 青の洞窟',
+    periods: [{ label: '青之洞窟 SHIBUYA', start: '2026-12-11', end: '2026-12-27' }],
+    hours: '17:00～22:00；雨天、現場狀況或人流管制可能調整。', fee: '街道點燈免費觀賞。', booking: '一般觀賞不需預約；遇人潮過多時可能限制進入。', access: 'JR 原宿站、東京 Metro 明治神宮前站步行約 10 分鐘；亦可由澀谷站、代代木公園站或代代木八幡站步行。',
+    highlights: ['約 50 萬顆藍色燈球一路延伸至代代木公園櫸樹大道，是澀谷冬季最有辨識度的夜間散步路線之一。', '2026 年新增聖誕樹造型大型螢幕「青之洞窟 THE BLUE TREE」，搭配主題影像與藍色燈海。'],
+    caution: '活動範圍很長，導航請使用代代木公園櫸樹大道；雨天、壅塞或其他情況可能縮短點燈時間或取消。',
+    sources: [{ label: '青之洞窟｜2026 官方活動資訊', url: 'https://shibuya-aonodokutsu.jp/' }],
   },
   {
     id: 'tokyo-disney-christmas', region: 'tokyo', name: '東京迪士尼樂園｜Disney Christmas', shortName: '東京迪士尼樂園耶誕活動', kind: '主題樂園耶誕活動', ticketRequired: true,
@@ -351,5 +352,5 @@ export const winterFaqItems = [
   { q: '冬季點燈和聖誕市集都免費嗎？', a: '六本木、麻布台、天王寺、梅田廣場、博多與天神等市集可免費入場，餐飲與購物另計。東京聖誕市集新豐洲、芝公園與橫濱紅磚倉庫主會場有入場費；迪士尼、USJ、名花之里、豪斯登堡及神戶布引香草園也要另外確認門票或交通套票。' },
   { q: '東京有哪些點燈可以排在同一晚？', a: '11/26～12/25 可將六本木之丘櫸坂通與東京中城排在同一晚，兩地之間保留步行與拍照時間。丸之內可接東京車站、銀座；惠比壽則適合安排晚餐與廣場散步。' },
   { q: '聖誕活動需要事先預約嗎？', a: '一般街道點燈和免費市集通常不需預約。需購票的市集、樂園與纜車行程，則先核對指定日期票券；名花之里 12/23～12/25 另需限量指定日專用票。餐廳、住宿與工作坊等體驗也可能另需預約。' },
-  { q: '澀谷青之洞窟的 2026 日程確定了嗎？', a: '截至本頁更新，官方網站仍顯示 2025 活動結束公告，所以本篇保留這個經典地點並標示「2026 日程待官方公布」，不把往年的日期當成本季已確認日期。' },
+  { q: '澀谷青之洞窟的 2026 日程確定了嗎？', a: '已確定。2026 年活動期間為 12/11～12/27，每天 17:00～22:00，範圍從澀谷公園通延伸至代代木公園櫸樹大道；一般觀賞免費，不需預約，但雨天與人潮管制可能讓點燈時間或內容調整。' },
 ]

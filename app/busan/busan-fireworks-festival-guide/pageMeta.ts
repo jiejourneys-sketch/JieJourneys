@@ -2,7 +2,7 @@ export const busanFireworksFestivalGuideCanonical =
   'https://www.jiejourneys.com/busan/busan-fireworks-festival-guide'
 
 export const busanFireworksFestivalGuideTitle =
-  '釜山煙火節攻略｜2026 日期、觀賞地點、票券與交通避人潮 | JieJourneys(旅杰)'
+  '釜山煙火節攻略｜2026 活動紀錄、觀賞地點與交通避人潮 | JieJourneys(旅杰)'
 
 export const busanFireworksFestivalGuideDescription =
-  '2026 釜山煙火節 11/7 舉行，官方完整節目表與交通管制圖已公布：16:00 特技飛行、19:00 海外煙火、19:25 釜山主秀。整理 KKday 購票、R／S 席與廣安大橋封閉時段。'
+  '2026 釜山煙火節已於 11/7 舉行並結束。保留官方節目表、廣安里與冬柏島等觀賞地點、R／S 席及廣安大橋交通管制紀錄；2027 日期尚待官方公布。'

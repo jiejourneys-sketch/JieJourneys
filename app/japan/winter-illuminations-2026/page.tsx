@@ -77,7 +77,7 @@ export default async function WinterIlluminations2026Page({ searchParams }: { se
           headingLevel="h2"
           badge={`日本冬季旅遊｜${checkedDateLabel} 更新`}
           h1="2026 日本熱門耶誕活動整理｜東京、橫濱、大阪、札幌聖誕市集與點燈"
-          intro={`東京聖誕市集、橫濱紅磚倉庫、札幌慕尼黑、大阪天王寺與梅田，都是多篇旅遊整理常見的經典選擇。這篇按 ${winterRegions.length} 個區域整理 ${winterEvents.length} 處耶誕市集、點燈與樂園活動，附活動地圖、日期、費用與交通；日程尚未公布的活動會明確標示。`}
+          intro={`東京聖誕市集、澀谷青之洞窟、橫濱紅磚倉庫、札幌慕尼黑、大阪天王寺與梅田，都是冬季熱門選擇。這篇按 ${winterRegions.length} 個區域整理 ${winterEvents.length} 處耶誕市集、點燈與樂園活動，附活動地圖、日期、費用與交通。`}
           eventPrefix="winter2026"
           showVisual={false}
           ctaLinks={[
@@ -93,9 +93,9 @@ export default async function WinterIlluminations2026Page({ searchParams }: { se
               <li><strong>東京逛市集：</strong>東京聖誕市集的新豐洲、芝公園兩會場，還有六本木、麻布台與晴空塔。</li>
               <li><strong>港景與北海道氣氛：</strong>橫濱紅磚倉庫、札幌慕尼黑聖誕市集。</li>
               <li><strong>關西逛市集：</strong>大阪天王寺、梅田藍天大廈，或另排神戶布引香草園。</li>
-              <li><strong>城市散步與大型燈海：</strong>丸之內、日比谷、御堂筋、名花之里；樂園則可選迪士尼、USJ、豪斯登堡。</li>
+              <li><strong>城市散步與大型燈海：</strong>澀谷青之洞窟、丸之內、日比谷、御堂筋、名花之里；樂園則可選迪士尼、USJ、豪斯登堡。</li>
             </ul>
-            <p>多數聖誕市集在 12/25 前後結束，部分冬季燈飾延續到隔年。澀谷青之洞窟目前標示為 2026 日程待公布；安排時先以已公告的活動為主。下列時間皆為日本當地時間。</p>
+            <p>多數聖誕市集在 12/25 前後結束，部分冬季燈飾延續到隔年。澀谷青之洞窟已公布於 12/11～12/27、每天 17:00～22:00 點燈；下列時間皆為日本當地時間。</p>
           </div>
         </section>
 

@@ -17,7 +17,7 @@ import {
 
 const SITE_URL = 'https://www.jiejourneys.com'
 const PUBLISHED_AT = '2026-08-28'
-const UPDATED_AT = '2026-11-10'
+const UPDATED_AT = '2026-11-12'
 
 const JAPAN_TOURISM_AGENCY_URL = 'https://www.mlit.go.jp/kankocho/page13_00002.html'
 const KYUSHU_CAMPAIGN_URL = 'https://fightkyushu.welcomekyushu.jp/'
@@ -41,6 +41,8 @@ const SKYTICKET_HOTEL_URL = 'https://skyticket.jp/hotel/'
 const TABIMARU_URL = 'https://tabimile.jp/'
 const TOBU_TOP_TOURS_URL = 'https://tobutoptours.jp/dom/kyushu_ouen/'
 const BIG_HOLIDAY_URL = 'https://bigs.jp/'
+const BIG_HOLIDAY_KUMAMOTO_URL = 'https://bigs.jp/kyushu/special/kyusyu-fukko-ouen/kumamoto/'
+const BIG_HOLIDAY_NAGASAKI_URL = 'https://bigs.jp/kyushu/special/kyusyu-fukko-ouen/nagasaki/'
 const INSTAGRAM_CHANNEL_URL = 'https://www.instagram.com/channel/AbZxb3pZjSFNqWvD/'
 
 type ActionLink = {
@@ -137,6 +139,27 @@ const officialSources: ActionLink[] = [
     platform: 'J-TRIP',
     purpose: '福岡、長崎、熊本、宮崎、鹿兒島方案皆已達預算上限；查看是否再次釋出。',
   },
+  {
+    label: 'Big Holiday 熊本補助套裝',
+    href: BIG_HOLIDAY_KUMAMOTO_URL,
+    event: 'kyushusubsidy_big_holiday_kumamoto',
+    platform: 'Big Holiday',
+    purpose: '11/12 重開羽田／伊丹出發的日本國內航班＋熊本住宿套裝。',
+  },
+  {
+    label: 'Big Holiday 長崎補助套裝',
+    href: BIG_HOLIDAY_NAGASAKI_URL,
+    event: 'kyushusubsidy_big_holiday_nagasaki',
+    platform: 'Big Holiday',
+    purpose: '11/12 重開羽田／伊丹／中部出發的日本國內航班＋長崎住宿套裝。',
+  },
+  {
+    label: '東武 Top Tours 最新狀態',
+    href: TOBU_TOP_TOURS_URL,
+    event: 'kyushusubsidy_tobu_top_tours',
+    platform: 'Tobu Top Tours',
+    purpose: '鹿兒島 11/11 開賣後 5 分鐘額滿；佐賀已額滿，大分狀態須在預訂頁確認。',
+  },
 ]
 
 const prefectureRows: PrefectureRow[] = [
@@ -154,7 +177,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '50%',
     booking: 'OTA 9/24、旅行社 10/2、直訂 10/13 起',
     stay: '10/1～12/25',
-    status: '官方列出的 OTA 已完售；旅行社與住宿直訂仍須逐家確認。',
+    status: '官方列出的 OTA 已完售；東武 Top Tours 11/9 重開後也已達預算上限。其他旅行社與住宿直訂仍須逐家確認。',
     href: SAGA_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_saga',
   },
@@ -163,7 +186,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '50%',
     booking: 'OTA 9/15、直訂 9/28、旅行社等 9/30 起',
     stay: '10/1～12/25',
-    status: 'Trip.com、STAYNAVI 直訂第一與第二期、じゃらん／楽天第二期及 J-TRIP 均已額滿。',
+    status: 'Big Holiday 11/12 重開羽田／伊丹／中部出發的國內航班＋住宿套裝；Trip.com、STAYNAVI、じゃらん／楽天第二期及 J-TRIP 均已額滿。',
     href: NAGASAKI_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_nagasaki',
   },
@@ -172,7 +195,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '60%',
     booking: '9/15 起，各業者陸續販售',
     stay: '10/1～12/25',
-    status: 'Trip.com 額滿暫停；AEON 10/26 補發券已用完。J-TRIP 10/28 開賣的交通套裝也已達上限。',
+    status: 'Big Holiday 11/12 重開羽田／伊丹出發的國內航班＋住宿套裝；Trip.com、AEON、J-TRIP 均已額滿。',
     href: KUMAMOTO_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_kumamoto',
   },
@@ -181,7 +204,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '50%',
     booking: 'OTA 9/25、旅行社 10/9、直訂 10/16 起',
     stay: 'OTA 10/1、旅行社 10/9、直訂 10/16 起，皆至 12/25',
-    status: '各管道的適用起日不同；各通路與設施額度分開，須確認當下狀態。',
+    status: '東武 Top Tours 11/9 開賣；官方最新消息尚未標示大分額滿，但仍須以預訂頁實際可用額度為準。其他通路與設施額度分開。',
     href: OITA_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_oita',
   },
@@ -199,7 +222,7 @@ const prefectureRows: PrefectureRow[] = [
     discount: '60%',
     booking: '10/14 起，各平台分批開賣',
     stay: 'OTA／旅行社至 2027/1/31；直訂至 2027/2/28',
-    status: 'Trip.com、J-TRIP 已額滿；Skyticket、Tabimaru 11/6 開賣，東武 Top Tours 預定 11/11 14:00、Big Holiday 預定 11/25 00:00 開賣。12/26～2027/1/3 不適用。',
+    status: 'Trip.com、J-TRIP 已額滿；東武 Top Tours 11/11 14:00 開賣後 14:05 即額滿。Skyticket、Tabimaru 已開賣，Big Holiday 鹿兒島預定 11/25 00:00 開賣。12/26～2027/1/3 不適用。',
     href: KAGOSHIMA_CAMPAIGN_URL,
     event: 'kyushusubsidy_prefecture_kagoshima',
   },
@@ -391,7 +414,7 @@ const faqItems = [
   },
   {
     q: '楽天、じゃらん、Trip.com、Agoda、Booking.com 都能訂嗎？',
-    a: '不是。楽天與じゃらん仍只有活動指定商品適用；楽天還排除外語版、JR 新幹線或特急＋住宿與跨兩縣訂單。2026/11/10 複查，長崎與宮崎的じゃらん第二期均已額滿；宮崎楽天日文版於 11/9 重開，但須以完成訂單時的剩餘額度為準。Trip.com 的福岡、長崎、熊本、鹿兒島四縣仍已達預算上限。Agoda、Booking.com 的一般訂房頁面不能直接視為補助商品。',
+    a: '不是。楽天與じゃらん仍只有活動指定商品適用；楽天還排除外語版、JR 新幹線或特急＋住宿與跨兩縣訂單。2026/11/12 複查，長崎與宮崎的じゃらん第二期均已額滿；宮崎楽天日文版於 11/9 重開，Big Holiday 熊本、長崎國內航空套裝則於 11/12 重開。Trip.com 的福岡、長崎、熊本、鹿兒島四縣仍已達預算上限。Agoda、Booking.com 的一般訂房頁面不能直接視為補助商品。',
   },
   {
     q: '台灣旅客可以直接在 JTB 或日本旅行買交通＋住宿嗎？',
@@ -481,13 +504,13 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
       <CitySubpageHeader backHref={backHref} eventPrefix="kyushusubsidy" />
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
-          badge="九州旅遊速報｜2026/11/10 更新"
-          h1="九州旅遊補助最新狀態｜宮崎楽天重開、鹿兒島新增通路"
-          intro="11/10 最新：福岡活動已結束；宮崎じゃらん第二期已額滿，但楽天日文版與部分飯店直訂自 11/9 重開。鹿兒島新增 11/11、11/25 預定開賣通路；Trip.com 四縣仍額滿。"
+          badge="九州旅遊速報｜2026/11/12 更新"
+          h1="九州旅遊補助最新狀態｜Big Holiday 熊本長崎重開、東武鹿兒島額滿"
+          intro="11/12 最新：Big Holiday 重新販售熊本、長崎的日本國內航班＋住宿套裝；東武 Top Tours 鹿兒島 11/11 開賣後 5 分鐘額滿，大分尚未標示完售。Trip.com 四縣仍額滿。"
           eventPrefix="kyushusubsidy"
           showVisual={false}
           ctaLinks={[
-            { label: '先看 11/10 新消息', href: '#latest-update', dataEvent: 'kyushusubsidy_hero_latest', platform: 'article' },
+            { label: '先看 11/12 新消息', href: '#latest-update', dataEvent: 'kyushusubsidy_hero_latest', platform: 'article' },
             { label: 'Trip 額滿狀態與住宿名單', href: '#booking-assistant', dataEvent: 'kyushusubsidy_hero_assistant', platform: 'article' },
             { label: '先看已確認重點', href: '#quick-answer', dataEvent: 'kyushusubsidy_hero_quick', platform: 'article' },
             { label: '折扣與上限', href: '#discount', dataEvent: 'kyushusubsidy_hero_discount', platform: 'article' },
@@ -495,22 +518,31 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           ]}
         />
 
-        <section className="seo-content" id="latest-update" aria-label="2026 年 11 月 10 日九州旅遊補助最新消息" style={{ scrollMarginTop: '76px' }}>
-          <h2 className="seo-h2">11/10 最新：宮崎楽天重開，鹿兒島新增兩個預定開賣通路</h2>
+        <section className="seo-content" id="latest-update" aria-label="2026 年 11 月 12 日九州旅遊補助最新消息" style={{ scrollMarginTop: '76px' }}>
+          <h2 className="seo-h2">11/12 最新：Big Holiday 熊本、長崎重開，東武鹿兒島 5 分鐘額滿</h2>
           <div className="seo-prose">
             <p>
-              以下為<strong>2026/11/10 本次複查</strong>結果；福岡官方已明確公告整體活動結束，其餘縣仍要分平台確認。各平台可能因取消釋回或追加預算重新開放，下單前仍以官方活動頁與結帳頁為準。
+              以下為<strong>2026/11/12 本次複查</strong>結果；這次新增的是日本國內航空＋住宿套裝與旅行社額度，不是 Trip.com 補助恢復。各平台可能因取消釋回或追加預算重新開放，下單前仍以官方活動頁與結帳頁為準。
             </p>
             <ul>
+              <li><strong>Big Holiday 熊本、長崎重新販售：</strong>11/12 日本時間 10:00（台灣 09:00）開始。熊本為羽田／伊丹出發、最高 60%；長崎為羽田／伊丹／中部出發、最高 50%。都是日本國內航班＋住宿套裝，不含台灣往返日本的國際機票。</li>
+              <li><strong>東武 Top Tours 鹿兒島已額滿：</strong>11/11 日本時間 14:00 開賣，官方於 14:05 公告 WEB 預訂結束；文章原本的「預定開賣」已改成完售狀態。</li>
+              <li><strong>東武 Top Tours 大分、佐賀：</strong>兩縣均於 11/9 14:00 開賣，佐賀 14:55 公告額滿；大分目前未見額滿公告，但實際能否成立仍以預訂頁為準。</li>
               <li><strong>福岡活動已結束：</strong>縣官方特設頁目前明確顯示活動結束，不再只是 Trip.com、AEON 或 J-TRIP 個別通路額滿。</li>
               <li><strong>宮崎楽天與部分飯店直訂重開：</strong>11/9 日本時間 10:00（台灣 09:00）起重新販售。楽天僅限日文版指定商品，外語版不適用；部分直訂飯店則依各館準備與剩餘額度陸續受理，需到飯店官網或電話確認。</li>
               <li><strong>宮崎じゃらん第二期已額滿：</strong>11/4 開賣的國內住宿、JAL じゃらんパック與 ANA じゃらんパック皆已停止受理；不要再把它當成目前可訂入口。</li>
               <li><strong>長崎第二期也已額滿：</strong>じゃらん與楽天第二期均已達預算上限；STAYNAVI 直訂第一、二期同樣額滿，取消名額仍可能無預警釋回。</li>
-              <li><strong>鹿兒島新增通路：</strong>Skyticket、Tabimaru 已於 11/6 開賣；東武 Top Tours 預定 11/11 日本時間 14:00、Big Holiday 預定 11/25 日本時間 00:00 開賣。實際可售商品與剩餘額度仍以各平台為準。</li>
+              <li><strong>鹿兒島其他通路：</strong>Skyticket、Tabimaru 已於 11/6 開賣；Big Holiday 鹿兒島仍預定 11/25 日本時間 00:00 開賣。實際可售商品與剩餘額度以各平台為準。</li>
               <li><strong>Trip.com 四縣全數額滿：</strong>活動原頁已公告福岡、長崎、熊本、鹿兒島達預算上限，停止受理補助。本站保留曾參與住宿名單，供查詢飯店與一般房價，不代表仍有補助。</li>
               <li><strong>J-TRIP 五縣皆已售完：</strong>福岡、長崎、熊本、宮崎及 11/9 開賣的鹿兒島方案均已達預算上限；佐賀、大分未販售。</li>
             </ul>
-            <div className="seo-action-links" aria-label="11 月 10 日最新訂房狀態與原始公告">
+            <div className="seo-action-links" aria-label="11 月 12 日最新訂房狀態與原始公告">
+              <a className="seo-buy-link primary" href={BIG_HOLIDAY_KUMAMOTO_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_latest_big_holiday_kumamoto" data-platform="Big Holiday" data-section="latest_update">
+                Big Holiday 熊本方案
+              </a>
+              <a className="seo-buy-link primary" href={BIG_HOLIDAY_NAGASAKI_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_latest_big_holiday_nagasaki" data-platform="Big Holiday" data-section="latest_update">
+                Big Holiday 長崎方案
+              </a>
               <a className="seo-buy-link primary" href={RAKUTEN_CAMPAIGN_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_latest_rakuten" data-platform="Rakuten Travel" data-section="latest_update">
                 查看宮崎楽天重開頁
               </a>
@@ -527,10 +559,10 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
                 Tabimaru 住宿入口
               </a>
               <a className="seo-buy-link" href={TOBU_TOP_TOURS_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_latest_tobu" data-platform="Tobu Top Tours" data-section="latest_update">
-                東武 Top Tours 11/11
+                東武 Top Tours 最新狀態
               </a>
               <a className="seo-buy-link" href={BIG_HOLIDAY_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_latest_big_holiday" data-platform="Big Holiday" data-section="latest_update">
-                Big Holiday 11/25
+                Big Holiday 最新公告
               </a>
               <a className="seo-buy-link" href={JTRIP_CAMPAIGN_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_latest_jtrip" data-platform="J-TRIP" data-section="latest_update">
                 查看 J-TRIP 最新售完狀態
@@ -572,8 +604,8 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
             </div>
             <div role="listitem">
               <span className="narita-summary-label">現在最重要</span>
-              <strong>有活動不等於有額度</strong>
-              <p>宮崎楽天與部分直訂 11/9 重開；じゃらん第二期與 J-TRIP 五縣皆額滿。</p>
+              <strong>Big Holiday 熊本、長崎重開</strong>
+              <p>11/12 起可查日本國內航班＋住宿套裝；Trip.com 四縣仍額滿。</p>
             </div>
           </div>
         </section>
@@ -604,9 +636,9 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
             </div>
             <div role="listitem">
               <span className="narita-summary-label">JR／日本國內航班＋住宿</span>
-              <strong>必須買業者套裝商品</strong>
-              <p>不能自己把交通票與飯店合併；平台還必須接受海外居住者購買。</p>
-              <a className="seo-buy-link" href="#transport-package-guide" data-event="kyushusubsidy_selector_transport" data-platform="article" data-section="booking_selector">看交通套裝教學</a>
+              <strong>熊本、長崎有新一批套裝</strong>
+              <p>Big Holiday 11/12 重開日本國內線＋住宿；不含台灣往返日本機票。</p>
+              <a className="seo-buy-link" href="#big-holiday-guide" data-event="kyushusubsidy_selector_big_holiday" data-platform="article" data-section="booking_selector">看 Big Holiday 使用方式</a>
             </div>
             <div role="listitem">
               <span className="narita-summary-label">只買車票、JR Pass 或一日遊</span>
@@ -621,7 +653,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
           <h2 className="seo-h2">七縣開賣日期與最新狀態：先找還有額度的通路</h2>
           <div className="seo-prose">
             <p>
-              這次不是全九州同一天、同一平台統一放券，而是由各縣把額度分配給住宿設施、旅行社與 OTA。即使官方活動期間尚未結束，個別通路也可能已經完售；以下為<strong>截至 2026 年 11 月 10 日</strong>的官方與平台資訊。
+              這次不是全九州同一天、同一平台統一放券，而是由各縣把額度分配給住宿設施、旅行社與 OTA。即使官方活動期間尚未結束，個別通路也可能已經完售；以下為<strong>截至 2026 年 11 月 12 日</strong>的官方與平台資訊。
             </p>
             <div className="narita-table-scroll">
               <table>
@@ -662,7 +694,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               最容易誤會的是「活動期間」不等於「現在還訂得到」。請從縣別名稱進入官方特設頁，再確認該平台或住宿設施是否仍接受補助訂單；結帳畫面沒有顯示活動名稱與折扣，就不要當成補助訂單。
             </p>
             <p>
-              <strong>11 月 10 日複查：</strong>福岡活動已結束；長崎與宮崎じゃらん第二期均已額滿，宮崎楽天與部分飯店直訂則自 11/9 重開。Trip.com 四縣與 J-TRIP 五縣目前均停止受理補助；鹿兒島另有 11/11、11/25 預定開賣通路。
+              <strong>11 月 12 日複查：</strong>Big Holiday 熊本、長崎日本國內航班＋住宿套裝已重開；東武 Top Tours 鹿兒島於 11/11 開賣後 5 分鐘額滿，佐賀也已額滿，大分尚未公告額滿但仍須以預訂頁為準。Trip.com 四縣與 J-TRIP 五縣目前均停止受理補助；Big Holiday 鹿兒島預定 11/25 開賣。
             </p>
           </div>
         </section>
@@ -778,6 +810,11 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
                     <td>先追蹤原頁是否重新開放；一般訂房折扣不等於補助。</td>
                   </tr>
                   <tr>
+                    <td><strong>Big Holiday 熊本／長崎</strong></td>
+                    <td>11/12 10:00 起重新販售日本國內航班＋住宿套裝；須從指定出發機場搭配住宿。</td>
+                    <td><strong>目前可優先查</strong>；折扣碼要在完成預訂前輸入，剩餘額度以結帳頁為準。</td>
+                  </tr>
+                  <tr>
                     <td><strong>宮崎楽天日文版</strong></td>
                     <td>11/9 日本時間 10:00 重開指定住宿；外語版不適用，實際額度以完成訂單為準。</td>
                     <td><strong>目前可優先查</strong>；付款前確認活動優惠券、折扣與最終金額都還在。</td>
@@ -794,7 +831,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
                   </tr>
                   <tr>
                     <td><strong>鹿兒島新增通路</strong></td>
-                    <td>Skyticket、Tabimaru 已於 11/6 開賣；東武 Top Tours 預定 11/11 14:00、Big Holiday 預定 11/25 00:00 開賣。</td>
+                    <td>Skyticket、Tabimaru 已於 11/6 開賣；東武 Top Tours 11/11 14:00 開賣後 14:05 額滿，Big Holiday 預定 11/25 00:00 開賣。</td>
                     <td>先從鹿兒島官方通路表進入；平台已到開賣時間也不代表仍有補助額度。</td>
                   </tr>
                   <tr>
@@ -850,7 +887,7 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               <li><strong>付款前看最終價格：</strong>即使前一頁看到活動方案，預算也可能在你完成付款前用完。</li>
             </ol>
             <p>
-              <strong>11/10 狀態：</strong>福岡、長崎、熊本、鹿兒島四縣均已達預算上限，停止受理。上方流程僅供重新開放後參考；本站保留 63 間跨日期曾回傳補助方案的住宿名單，目前可用來查詢飯店與一般房價，不代表仍有補助房型。
+              <strong>11/12 狀態：</strong>福岡、長崎、熊本、鹿兒島四縣均已達預算上限，停止受理。上方流程僅供重新開放後參考；本站保留 63 間跨日期曾回傳補助方案的住宿名單，目前可用來查詢飯店與一般房價，不代表仍有補助房型。
             </p>
 
             <h3 className="seo-h3" id="direct-booking-guide" style={{ scrollMarginTop: '76px' }}>方式 C｜飯店官方直訂：向參與飯店確認剩餘額度</h3>
@@ -915,7 +952,24 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
               楽天官方明確排除<strong>外語版網站、JR 新幹線／特急＋住宿、跨兩縣訂單、日歸與商務用途</strong>。國內航班＋住宿的 ANA 樂包、JAL 樂包屬可能適用商品，但仍要以該縣優惠券與結帳畫面為準。台灣旅客若無法在日文版完成帳號、聯絡資料或付款流程，不要改用外語版並期待入住時補折，應改查飯店官方直訂。
             </p>
 
-            <h3 className="seo-h3" id="transport-package-guide" style={{ scrollMarginTop: '76px' }}>方式 E｜交通＋住宿：先確認是同一份補助旅行商品</h3>
+            <h3 className="seo-h3" id="big-holiday-guide" style={{ scrollMarginTop: '76px' }}>方式 E｜Big Holiday：熊本、長崎日本國內航班＋住宿</h3>
+            <div className="seo-action-links" aria-label="Big Holiday 九州旅遊補助入口">
+              <a className="seo-buy-link primary" href={BIG_HOLIDAY_KUMAMOTO_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_big_holiday_kumamoto_guide" data-platform="Big Holiday" data-section="booking_guide">
+                查熊本補助套裝
+              </a>
+              <a className="seo-buy-link primary" href={BIG_HOLIDAY_NAGASAKI_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_big_holiday_nagasaki_guide" data-platform="Big Holiday" data-section="booking_guide">
+                查長崎補助套裝
+              </a>
+            </div>
+            <ol>
+              <li><strong>先選符合的日本國內出發機場：</strong>熊本方案由羽田或伊丹出發；長崎方案由羽田、伊丹或中部出發。台灣往返日本的國際機票不在補助內。</li>
+              <li><strong>熊本最高補助 60%：</strong>住 1 晚輸入 <code>KMOUEN1</code>，每人最高折 ¥20,000；住 2～3 晚輸入 <code>KMOUEN2</code>，每人最高折 ¥30,000。</li>
+              <li><strong>長崎最高補助 50%：</strong>住 1 晚輸入 <code>NSOUEN1</code>；住 2～3 晚輸入 <code>NSOUEN2</code>，實際折扣上限與售價以商品頁及結帳畫面為準。</li>
+              <li><strong>完成預訂前輸入折扣碼：</strong>先確認活動名稱、折扣金額及最終應付價格都正確；訂單成立後不能事後補套。</li>
+              <li><strong>仍要看即時額度：</strong>11/12 重開不代表名額永久保留，搜尋結果或折扣碼無法使用時，可能是指定商品或該批預算已用完。</li>
+            </ol>
+
+            <h3 className="seo-h3" id="transport-package-guide" style={{ scrollMarginTop: '76px' }}>方式 F｜其他交通＋住宿：先確認是同一份補助旅行商品</h3>
             <p>
               <strong>J-TRIP 五縣目前售完：</strong>福岡、長崎、熊本、宮崎，以及 11/9 開賣的鹿兒島專用方案均已達預算上限；佐賀、大分未販售。這些是日本國內交通＋住宿套裝，不是單訂飯店或台灣出發國際機票的折扣；若取消額度累積到可再次販售，J-TRIP 會透過 LINE 與電子報公告。
               <a href={JTRIP_CAMPAIGN_URL} target="_blank" rel="noopener noreferrer" data-event="kyushusubsidy_transport_jtrip_campaign" data-platform="J-TRIP" data-section="booking_guide"><strong>最新販售狀態與預訂流程</strong></a>
@@ -993,8 +1047,18 @@ export default async function KyushuTravelSubsidy2026Page({ searchParams }: Kyus
                 <tbody>
                   <tr>
                     <td><strong>Trip.com</strong></td>
-                    <td>11/10 複查四縣均已額滿暫停；活動規則原為指定單晚方案自動反映折扣。</td>
+                    <td>11/12 複查四縣均已額滿暫停；活動規則原為指定單晚方案自動反映折扣。</td>
                     <td>先等原頁公告重新開放；名單與一般房價不能當成仍有補助。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Big Holiday</strong></td>
+                    <td>熊本、長崎日本國內航班＋住宿套裝於 11/12 10:00 重開；鹿兒島預定 11/25 00:00 開賣。</td>
+                    <td>熊本、長崎目前可優先查；須從指定日本國內機場出發並於完成預訂前輸入對應折扣碼。</td>
+                  </tr>
+                  <tr>
+                    <td><strong>東武 Top Tours</strong></td>
+                    <td>鹿兒島 11/11 開賣後 5 分鐘額滿，佐賀已額滿；大分目前沒有額滿公告。</td>
+                    <td>鹿兒島、佐賀不要再當成可訂；大分仍須進入預訂頁確認即時商品與額度。</td>
                   </tr>
                   <tr>
                     <td><strong>じゃらん</strong></td>

@@ -13,7 +13,7 @@ import {
 } from './pageMeta'
 
 const SITE_URL = 'https://www.jiejourneys.com'
-const UPDATED_AT = '2026-10-27'
+const UPDATED_AT = '2026-11-12'
 
 type ActionLink = {
   label: string
@@ -53,7 +53,7 @@ const officialLinks: ActionLink[] = [
     primary: true,
   },
   {
-    label: '官方票券頁',
+    label: '2026 官方票券頁（已結束）',
     href: 'https://busanfireworks.com/reservation_en',
     event: 'busanfireworks_official_ticket',
     platform: 'official',
@@ -117,24 +117,24 @@ const viewingAreas = [
     place: '二妓臺一帶',
     fit: '想從較遠處看廣安大橋與整體煙火構圖的人。',
     transport: '可搭地鐵 2 號線到慶星大・釜慶大站，再轉乘公車；下車點以官方當年公告為準。',
-    note: '列為 2026 官方會場之一，但可進入區域、管制與最佳位置尚待今年公告。',
+    note: '2026 官方列為同步會場之一；下屆可進入區域、管制與最佳位置仍須重新確認。',
   },
   {
     place: '冬柏島（海雲台）',
     fit: '當天本來就住海雲台、想從另一側感受活動氛圍的人。',
     transport: '官方位置說明列有冬柏島進出方式：地鐵 2 號線冬柏站 1 號出口可步行前往。',
-    note: '2026 官方列為海雲台會場；實際可觀賞位置與進出管制請等正式配置圖，不要只憑往年照片決定。',
+    note: '2026 官方列為海雲台同步會場；下屆實際可觀賞位置與進出管制仍須以當年配置圖為準。',
   },
 ]
 
 const faqItems = [
   {
     q: '2026 釜山煙火節日期與地點是什麼？',
-    a: '第 21 屆釜山煙火節已公布在 2026 年 11 月 7 日星期六舉行，觀賞地點為廣安里海灘、冬柏島與二妓臺。廣安里是最適合第一次參加者鎖定的主會場，中央另設付費 R／S 座位區。',
+    a: '第 21 屆釜山煙火節已於 2026 年 11 月 7 日星期六舉行並結束，觀賞地點為廣安里海灘、冬柏島與二妓臺。本文保留當年節目、座位與交通資料作為紀錄；2027 日期尚未公布。',
   },
   {
     q: '釜山煙火節可以用 KKday 購票嗎？',
-    a: '可以，KKday 可作中文購票入口。官方英文首頁也連到 NOL World 一般票頁，不只有 8/26 的早鳥票；一般票需護照驗證，每人最多 4 張。各平台的取票、座位與取消規定請分別確認。',
+    a: '2026 售票已隨活動結束。當年 KKday 曾提供中文購票入口，官方英文首頁也連到 NOL World 一般票頁；下屆是否沿用相同平台、價格與驗證方式仍要等官方公布，現在不要購買標示年份不明的舊商品。',
   },
   {
     q: 'R 席和 S 席差在哪裡？',
@@ -253,14 +253,14 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
       <CitySubpageHeader backHref={backHref} eventPrefix="busanfireworks" />
       <main className="busan-main transport-main seo-page narita-transport-page">
         <SeoHeroSection
-          badge="釜山季節活動｜2026/10/27 更新"
-          h1="2026 釜山煙火節攻略｜日期、觀賞地點、票券與交通避人潮"
-          intro="2026 釜山煙火節將於 11 月 7 日舉行，官方已公布完整節目表與交通管制圖：16:00 特技飛行、19:00 海外邀請煙火、19:25 釜山多點煙火。先確認觀賞位置、票券與進出動線，再安排住宿和回程。"
+          badge="釜山季節活動｜2026/11/12 活動後更新"
+          h1="2026 釜山煙火節攻略｜活動紀錄、觀賞地點與交通避人潮"
+          intro="第 21 屆釜山煙火節已於 2026 年 11 月 7 日舉行並結束。本文保留當年完整節目表、R／S 席、三個觀賞區與交通管制資料作為規劃參考；2027 日期、票價與會場配置尚未公布。"
           eventPrefix="busanfireworks"
           showVisual={false}
           ctaLinks={[
-            { label: '最新節目表', href: '#confirmed', dataEvent: 'busanfireworks_hero_schedule', platform: 'article' },
-            { label: '票券重點', href: '#ticket', dataEvent: 'busanfireworks_hero_ticket', platform: 'article' },
+            { label: '2026 節目紀錄', href: '#confirmed', dataEvent: 'busanfireworks_hero_schedule', platform: 'article' },
+            { label: '2026 票券紀錄', href: '#ticket', dataEvent: 'busanfireworks_hero_ticket', platform: 'article' },
             { label: '觀賞地點', href: '#viewing-areas', dataEvent: 'busanfireworks_hero_viewing', platform: 'article' },
             { label: '交通避人潮', href: '#transport', dataEvent: 'busanfireworks_hero_transport', platform: 'article' },
           ]}
@@ -270,8 +270,8 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
           <div className="narita-summary-grid haneda-summary-grid" role="list">
             <div role="listitem">
               <span className="narita-summary-label">日期</span>
-              <strong>2026 年 11 月 7 日（六）</strong>
-              <p>煙火表演為 19:00～20:00，現在就能先排住宿與城市行程。</p>
+              <strong>2026 活動已結束</strong>
+              <p>活動於 11 月 7 日舉行；2027 日期尚未公布。</p>
             </div>
             <div role="listitem">
               <span className="narita-summary-label">主會場</span>
@@ -281,26 +281,26 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
             <div role="listitem">
               <span className="narita-summary-label">同步會場</span>
               <strong>二妓臺、冬柏島</strong>
-              <p>官方也列為活動地點；確切觀賞區、出入口與管制範圍，仍要等今年配置圖。</p>
+              <p>2026 官方也列為活動地點；下屆配置與管制須重新確認。</p>
             </div>
             <div role="listitem">
               <span className="narita-summary-label">最重要提醒</span>
-              <strong>交通管制圖已公布</strong>
-              <p>周邊道路 10:00 起分階段管制；一般票售至 11/6 韓國時間 17:00，售完可能提前結束。</p>
+              <strong>不要購買舊年度票券</strong>
+              <p>2026 售票已結束；下一屆票價、通路與交通配置尚未公布。</p>
             </div>
           </div>
         </section>
 
         <section className="seo-content" id="confirmed" aria-label="2026 釜山煙火節已確認資訊">
-          <h2 className="seo-h2">10/27 更新：完整節目表已公布，主秀 19:25 開始</h2>
+          <h2 className="seo-h2">2026 活動紀錄：完整節目表與 19:25 多點主秀</h2>
           <div className="seo-prose">
             <p>
-              第 21 屆釜山煙火節確定在 <strong>2026 年 11 月 7 日星期六</strong>舉行；可看的三個位置是<strong>廣安里海灘、冬柏島與二妓臺</strong>。廣安里海灘中央設有付費 R／S 座位，活動由釜山市主辦、釜山慶典組織營運。
+              第 21 屆釜山煙火節已於 <strong>2026 年 11 月 7 日星期六</strong>舉行並結束；當年三個官方位置是<strong>廣安里海灘、冬柏島與二妓臺</strong>。廣安里海灘中央設有付費 R／S 座位，活動由釜山市主辦、釜山慶典組織營運。
             </p>
             <p>
-              以下依<strong>2026/10/27 查核的官方節目表</strong>整理。主煙火時段仍為<strong>19:00～20:00</strong>，但 19:15～19:25 是中場檢查，別以為已經結束；釜山多點主秀要到 19:25 才開始。節目可能依主辦單位或現場狀況調整。
+              以下依<strong>2026 官方節目表</strong>保留當年時程。主煙火時段為<strong>19:00～20:00</strong>，其中 19:15～19:25 是中場檢查，釜山多點主秀於 19:25 開始；未來年度請勿直接套用相同時間。
             </p>
-            <p><strong>購票時間提醒：</strong>售票時間以韓國時間（KST）公告；台灣時間比韓國慢 1 小時。活動當天的入場、文化活動與煙火時間則直接看韓國當地時間即可。</p>
+            <p><strong>閱讀提醒：</strong>下列售票、節目與交通時間皆是 2026 活動紀錄，並非下一屆公告。韓國時間比台灣快 1 小時。</p>
             <div className="narita-table-scroll">
               <table style={{ minWidth: '100%', tableLayout: 'fixed' }}>
                 <thead>
@@ -324,17 +324,17 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
           </div>
         </section>
 
-        <section className="seo-content" id="ticket" aria-label="釜山煙火節票券資訊">
-          <h2 className="seo-h2">票券怎麼買：台灣旅客直接用 KKday，R 席與 S 席一次看懂</h2>
+        <section className="seo-content" id="ticket" aria-label="2026 釜山煙火節票券紀錄">
+          <h2 className="seo-h2">2026 票券紀錄：售票已結束，R 席與 S 席價格留作參考</h2>
           <div className="seo-prose">
             <p>
-              <strong>台灣旅客可用 KKday 中文頁查看 R／S 席方案。</strong>官方英文首頁也提供 NOL World 一般票入口，並非只有 8/26 的早鳥；一般票需護照驗證，每人最多 4 張。兩個平台的座位安排、取票方式與取消規則請各自確認。公共觀賞區則要預留提早到場、步行與散場等待時間。
+              <strong>2026 活動與售票都已結束。</strong>當年台灣旅客可透過 KKday 中文頁查看 R／S 席方案，官方英文首頁也提供 NOL World 一般票入口。以下價格、驗證與入場資料只作為歷年規劃參考；下一屆是否沿用相同平台與規則，要等新公告。
             </p>
             <ActionLinks
-              label="台灣旅客 KKday 購票"
+              label="2026 KKday 商品紀錄"
               links={[
                 {
-                  label: '台灣旅客 → KKday 購票',
+                  label: '查看 KKday 商品頁（2026 已結束）',
                   href: 'https://www.kkday.com/zh-tw/product/17613-busan-fireworks-festival-ticket-south-korea?cid=22312',
                   event: 'busanfireworks_ticket_kkday_top',
                   platform: 'KKDAY',
@@ -350,10 +350,10 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
                 height={1402}
                 sizes="(max-width: 820px) 100vw, 760px"
               />
-              <figcaption>廣安里海灘中央付費座位區配置：R 席含桌與椅，S 席為一般座椅；顏色區域以購票頁實際選位為準。</figcaption>
+              <figcaption>2026 廣安里海灘中央付費座位區配置：R 席含桌與椅，S 席為一般座椅；未來年度座位配置可能不同。</figcaption>
             </figure>
 
-            <h3 className="seo-h3">售票時間與座位：早鳥只有一天，9/4 起開放一般售票</h3>
+            <h3 className="seo-h3">2026 售票時間與座位價格紀錄</h3>
             <div className="narita-table-scroll">
               <table>
                 <thead>
@@ -379,16 +379,16 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
               </table>
             </div>
             <p>
-              NOL World 的外國旅客早鳥票只在 <strong>韓國時間 2026 年 8 月 26 日 14:00 至 23:59（台灣時間 13:00 至 22:59）</strong>開放。頁面標示 S 席一般座椅早鳥 8 折為 <strong>56,000 韓元</strong>，需以護照驗證身分、每人最多購買 2 張。這是限時早鳥資訊；一般購票直接選上方 KKday 即可。
+              NOL World 的外國旅客早鳥票曾於 <strong>韓國時間 2026 年 8 月 26 日 14:00 至 23:59（台灣時間 13:00 至 22:59）</strong>開放。當年 S 席一般座椅早鳥 8 折為 <strong>56,000 韓元</strong>，需以護照驗證身分、每人最多購買 2 張。
             </p>
             <p>
-              第二次一般售票從<strong>韓國時間 9 月 4 日 14:00（台灣時間 13:00）</strong>開始，R 席是桌＋椅、每張 100,000 韓元；S 席是一般座椅、每張 70,000 韓元。票券頁標示演出約 1 小時、另有 10 分鐘中場休息；座位區、取票與入場規定請以購買頁面和最新公告為準。
+              2026 第二次一般售票從<strong>韓國時間 9 月 4 日 14:00（台灣時間 13:00）</strong>開始，R 席是桌＋椅、每張 100,000 韓元；S 席是一般座椅、每張 70,000 韓元。這不代表下一屆價格，新的座位區、取票與入場規定應以新年度公告為準。
             </p>
             <ActionLinks
               label="釜山煙火節票券連結"
               links={[
                 {
-                  label: '官方一般票（NOL World）',
+                  label: '2026 官方一般票（已結束）',
                   href: 'https://world.nol.com/en/ticket/places/26000729/products/26009342',
                   event: 'busanfireworks_ticket_nolworld',
                   platform: 'NOL World',
@@ -397,9 +397,9 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
               ]}
             />
 
-            <h3 className="seo-h3">不買座位票可以嗎？</h3>
+            <h3 className="seo-h3">下一屆不買座位票可以嗎？</h3>
             <p>
-              可以把公共開放區當作選項，但請不要把它理解成輕鬆抵達就有好位置。廣安里是釜山最熱門的節慶場景之一：越靠近開始時間，人流、地鐵和海灘周邊步道都會更難移動。若你重視舒適度或帶長輩、小孩，指定座位或提早進場會更適合。
+              歷年通常可把公共開放區當作選項，但下一屆仍要先確認官方配置。廣安里是釜山最熱門的節慶場景之一：越靠近開始時間，人流、地鐵和海灘周邊步道都會更難移動。若重視舒適度或帶長輩、小孩，可在新票種公布後評估指定座位。
             </p>
           </div>
         </section>
@@ -408,7 +408,7 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
           <h2 className="seo-h2">三個觀賞區怎麼選：第一次就選廣安里</h2>
           <div className="seo-prose">
             <p>
-              如果你是為了煙火節特地排釜山，廣安里海灘仍是最完整的體驗，且中央有付費 R／S 座位；冬柏島與二妓臺適合想換角度的人，但今年的可進入範圍還沒公告，先不要只看往年社群照片就決定。
+              2026 三個官方會場為廣安里海灘、冬柏島與二妓臺；廣安里中央另設付費 R／S 座位。這張相對位置圖可用來理解區域，但下一屆的付費座位、公共觀賞區與管制範圍都要重新確認，不要直接照搬舊配置。
             </p>
             <figure className="seo-figure seo-tall-figure">
               <Image
@@ -446,7 +446,7 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
             <h3 className="seo-h3">我的選擇建議</h3>
             <ol>
               <li><strong>第一次、只看一次：</strong>選廣安里，整體聲光與節慶氣氛最完整。</li>
-              <li><strong>已經住海雲台：</strong>可從冬柏島觀賞，並等官方公布進出配置後再決定是否跨區移動。</li>
+              <li><strong>已經住海雲台：</strong>歷年可考慮冬柏島，但要等新年度官方公布進出配置後再決定是否跨區移動。</li>
               <li><strong>想避開最中心人流：</strong>研究二妓臺，但把交通、步行距離和天候一起算進去，不要當成廣安里的無痛替代。</li>
             </ol>
           </div>
@@ -459,7 +459,7 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
               官方在廣安里位置說明中特別提醒，活動日周邊交通會非常壅塞，附近也沒有足夠停車空間；請直接把<strong>地鐵與公車</strong>當作主要方案。廣安里可從地鐵 2 號線廣安站 3 號出口步行前往，二妓臺與海雲台則依各自位置轉乘。
             </p>
             <h3 className="seo-h3">2026 交通管制：廣安大橋分上、下層封閉</h3>
-            <p>依 10/27 查核的官方管制圖，廣安大橋 11/2～11/8 有分階段車道管制；11/7 當天的全面封閉與主要周邊管制如下，時間均為韓國當地時間。</p>
+            <p>以下是 2026 官方管制紀錄：廣安大橋 11/2～11/8 曾分階段進行車道管制；11/7 活動當天的全面封閉與主要周邊管制如下，時間均為韓國當地時間。未來年度不可直接套用。</p>
             <div className="narita-table-scroll">
               <table style={{ minWidth: '100%', tableLayout: 'fixed' }}>
                 <thead><tr><th>路段</th><th>11/7 管制時段</th></tr></thead>
@@ -472,7 +472,7 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
                 </tbody>
               </table>
             </div>
-            <p>管制會依交通狀況彈性提前或調整；地鐵增班、是否不停靠及會場出入口，仍須另看最新交通公告與現場指示。</p>
+            <p>管制會依每年活動規模與交通狀況重排；下屆地鐵增班、是否不停靠及會場出入口，仍須另看當年度交通公告與現場指示。</p>
             <ActionLinks label="2026 釜山煙火交通管制原圖" links={[officialLinks[4]]} />
             <h3 className="seo-h3">當天不被人潮打亂的四件事</h3>
             <ol>
@@ -491,27 +491,27 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
           </div>
         </section>
 
-        <section className="seo-content" id="checklist" aria-label="釜山煙火節行前清單">
-          <h2 className="seo-h2">行前清單：出發前再確認這五件事</h2>
+        <section className="seo-content" id="checklist" aria-label="下一屆釜山煙火節行前清單">
+          <h2 className="seo-h2">下一屆公告後，再確認這五件事</h2>
           <div className="seo-prose">
             <ol>
-              <li>日期是否仍為 11 月 7 日，以及當日天候。</li>
-              <li>對照已公布的完整節目表，確認飛行表演與煙火是否有臨時調整。</li>
-              <li>是否需要指定座位票；外國旅客票的護照驗證與張數限制是否符合自己需求。</li>
-              <li>選定觀賞區的最新出入口、交通管制與可進入範圍。</li>
+              <li>新的活動日期、天候備案與是否延期。</li>
+              <li>當年度完整節目表，以及飛行表演與主煙火時間。</li>
+              <li>指定座位票的販售平台、護照驗證、價格與張數限制。</li>
+              <li>當年度觀賞區、出入口、交通管制與可進入範圍。</li>
               <li>散場後回住宿的地鐵、公車與步行備案。</li>
             </ol>
             <p>
-              日期、會場、完整節目表與道路管制圖均已公布。出發前仍要回官方頁核對臨時變更，並確認所購票種的換票與入場規定、選定觀賞區的出入口及回程交通。
+              2026 資料可以拿來估算人潮與規劃方式，但不能視為下一屆公告。2027 日期、售票與交通配置尚未公布，看到新年度官方資訊後再安排不可取消的住宿或交通。
             </p>
           </div>
         </section>
 
         <section className="seo-content" id="next-steps" aria-label="釜山煙火節延伸規劃">
-          <h2 className="seo-h2">把煙火節放進釜山行程</h2>
+          <h2 className="seo-h2">下一屆公布後，怎麼放進釜山行程？</h2>
           <div className="seo-prose">
             <p>
-              煙火節當天不要再硬塞太多景點，白天安排海雲台、南浦洞或西面其中一區就好，傍晚提早往選定會場移動。住宿還沒決定，可以先從交通與行程重心挑區域；想把其他釜山景點排進前後兩天，也可回旅遊攻略合輯找對應攻略。
+              活動日不要再硬塞太多景點，白天安排海雲台、南浦洞或西面其中一區就好，傍晚提早往選定會場移動。新日期尚未公布前，可先理解廣安里與地鐵 2 號線住宿位置，不必急著訂不可取消方案。
             </p>
             <div className="seo-buy-links seo-action-links" aria-label="釜山煙火節延伸攻略">
               <a className="seo-buy-link primary" href="/busan/hotel?from=busan-fireworks-festival-guide" data-event="busanfireworks_hotel" data-platform="internal" data-section="article_link">釜山住宿推薦</a>
@@ -523,8 +523,8 @@ export default async function BusanFireworksFestivalGuidePage({ searchParams }: 
 
         <AccommodationAffiliatePanel
           id="accommodation"
-          title="煙火節住宿要提早比價"
-          intro="煙火節當晚散場時間難抓，住宿可優先看廣安里或地鐵 2 號線沿線。用同一入住日期比較兩個平台，並特別確認免費取消期限，等官方交通配置公布後仍保有調整空間。"
+          title="下一屆日期公布後，住宿要提早比價"
+          intro="煙火節當晚散場時間難抓，住宿可優先看廣安里或地鐵 2 號線沿線。2027 日期尚未公布；等官方確認後，再用同一入住日期比較兩個平台並優先保留免費取消方案。"
           destination="釜山"
           agodaHref="https://www.agoda.com/zh-tw/city/busan-kr.html?cid=1945734"
           tripHref="https://tw.trip.com/hotels/busan-hotels-list-253/?Allianceid=6833709&SID=242535686&trip_sub1=&trip_sub3=D13969664"
