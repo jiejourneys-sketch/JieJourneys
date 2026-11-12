@@ -11,7 +11,7 @@ const GROUP_BUY_VIDEO_URL = 'https://www.instagram.com/reel/DfUg41ntz6n/'
 const GROUP_BUY_IMAGE_SRC = '/assets/group-buy/lapo-loop-vacuum-bag-20261105.png'
 const GROUP_BUY_START_AT = new Date('2026-11-05T00:00:00+08:00').getTime()
 const GROUP_BUY_END_AT = new Date('2026-11-13T00:00:00+08:00').getTime()
-const GROUP_BUY_ENABLED = true
+const GROUP_BUY_ENABLED = false
 const GROUP_BUY_VIDEO_ENABLED = true
 
 type GroupBuyCountdown = {
