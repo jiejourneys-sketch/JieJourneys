@@ -2,7 +2,9 @@ const SERPAPI_HOST = 'serpapi.com'
 const ACCOUNT_CACHE_TTL_MS = 15_000
 const ACCOUNT_REQUEST_TIMEOUT_MS = 5_000
 const DEFAULT_MAX_REQUESTS_PER_HOUR = 20
-const DEFAULT_MIN_CREDITS_RESERVE = 25
+// Let the account use every purchased search by default. The account and
+// hourly guards still stop requests at zero and cap sudden bursts.
+const DEFAULT_MIN_CREDITS_RESERVE = 0
 
 type SerpApiAccountPayload = {
   total_searches_left?: unknown
